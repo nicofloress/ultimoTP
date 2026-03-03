@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+*.db
+*.db-shm
+*.db-wal
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local env
+*.local
+appsettings.Development.json
