@@ -15,6 +15,7 @@ public static class LogisticaServiceExtensions
         // Services
         services.AddScoped<IZonaService, ZonaService>();
         services.AddScoped<IRepartidorService, RepartidorService>();
+        services.AddScoped<IControlCamionetaService, ControlCamionetaService>();
 
         return services;
     }

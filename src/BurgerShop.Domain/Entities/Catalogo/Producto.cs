@@ -9,6 +9,9 @@ public class Producto
     public int CategoriaId { get; set; }
     public bool Activo { get; set; } = true;
     public string? ImagenUrl { get; set; }
+    public string? NumeroInterno { get; set; }
+    public int? PesoGramos { get; set; }
+    public int UnidadesPorBulto { get; set; } = 1;
 
     public Categoria Categoria { get; set; } = null!;
     public ICollection<ComboDetalle> ComboDetalles { get; set; } = new List<ComboDetalle>();

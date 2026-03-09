@@ -19,3 +19,20 @@ export const marcarEnCamino = (pedidoId: number) => api.put<Pedido>(`/entregas/$
 export const marcarEntregado = (pedidoId: number, notas?: string) => api.put<Pedido>(`/entregas/${pedidoId}/entregar`, JSON.stringify(notas || ''), { headers: { 'Content-Type': 'application/json' } }).then(r => r.data);
 
 export const loginRepartidor = (codigoAcceso: string) => api.post<{ id: number; nombre: string }>('/auth/repartidor', { codigoAcceso }).then(r => r.data);
+
+export const getPedidosPorZona = () => api.get<Pedido[]>('/entregas/por-zona').then(r => r.data);
+export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number }[]) =>
+  api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);
+
+export const descargarControlCamioneta = async (asignaciones: { zonaId: number; repartidorId: number }[]) => {
+  const response = await api.post('/entregas/control-camioneta', { asignaciones }, { responseType: 'blob' });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  const fecha = new Date().toISOString().slice(0, 10);
+  link.setAttribute('download', `ControlCamionetas_${fecha}.xlsx`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

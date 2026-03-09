@@ -10,5 +10,8 @@ public interface IPedidoRepository : IRepository<Pedido>
     Task<IEnumerable<Pedido>> GetByEstadoAsync(EstadoPedido estado);
     Task<IEnumerable<Pedido>> GetByRepartidorHoyAsync(int repartidorId);
     Task<IEnumerable<Pedido>> GetPendientesEntregaAsync();
+    Task<IEnumerable<Pedido>> GetListosParaRepartoHoyAsync();
+    Task<IEnumerable<Pedido>> GetListosParaRepartoConProductosAsync();
     Task<int> GetSiguienteNumeroTicketAsync(DateTime fecha);
+    Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId);
 }

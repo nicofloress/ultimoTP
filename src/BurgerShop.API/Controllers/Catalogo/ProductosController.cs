@@ -1,11 +1,13 @@
 using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BurgerShop.API.Controllers.Catalogo;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProductosController : ControllerBase
 {
     private readonly IProductoService _service;
@@ -13,11 +15,16 @@ public class ProductosController : ControllerBase
     public ProductosController(IProductoService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductoDto>>> GetAll([FromQuery] int? categoriaId)
+    public async Task<ActionResult<IEnumerable<ProductoDto>>> GetAll(
+        [FromQuery] int? categoriaId,
+        [FromQuery] string? buscar,
+        [FromQuery] int? listaPrecioId)
     {
+        if (!string.IsNullOrWhiteSpace(buscar))
+            return Ok(await _service.BuscarAsync(buscar, listaPrecioId));
         if (categoriaId.HasValue)
-            return Ok(await _service.GetByCategoriaAsync(categoriaId.Value));
-        return Ok(await _service.GetActivosAsync());
+            return Ok(await _service.GetByCategoriaAsync(categoriaId.Value, listaPrecioId));
+        return Ok(await _service.GetActivosAsync(listaPrecioId));
     }
 
     [HttpGet("{id}")]
@@ -28,6 +35,7 @@ public class ProductosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<ProductoDto>> Create(CrearProductoDto dto)
     {
         var producto = await _service.CreateAsync(dto);
@@ -35,6 +43,7 @@ public class ProductosController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<ProductoDto>> Update(int id, ActualizarProductoDto dto)
     {
         var producto = await _service.UpdateAsync(id, dto);
@@ -42,6 +51,7 @@ public class ProductosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

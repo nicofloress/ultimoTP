@@ -19,10 +19,12 @@ public class RepartidorZonaConfiguration : IEntityTypeConfiguration<RepartidorZo
             .HasForeignKey(rz => rz.ZonaId);
 
         builder.HasData(
+            // Repartidor 1 cubre Norte y Sur
             new RepartidorZona { RepartidorId = 1, ZonaId = 1 },
             new RepartidorZona { RepartidorId = 1, ZonaId = 2 },
+            // Repartidor 2 cubre Norte y Sur
             new RepartidorZona { RepartidorId = 2, ZonaId = 1 },
-            new RepartidorZona { RepartidorId = 2, ZonaId = 3 }
+            new RepartidorZona { RepartidorId = 2, ZonaId = 2 }
         );
     }
 }

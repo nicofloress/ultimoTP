@@ -14,3 +14,18 @@ export interface Repartidor {
   activo: boolean;
   zonas: Zona[];
 }
+
+export interface CrearRepartidorDto {
+  nombre: string;
+  telefono?: string;
+  vehiculo?: string;
+  codigoAcceso: string;
+}
+
+export interface ActualizarRepartidorDto {
+  nombre: string;
+  telefono?: string;
+  vehiculo?: string;
+  activo: boolean;
+  codigoAcceso?: string;
+}

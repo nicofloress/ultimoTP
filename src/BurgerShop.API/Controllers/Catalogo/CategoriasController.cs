@@ -1,11 +1,13 @@
 using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BurgerShop.API.Controllers.Catalogo;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class CategoriasController : ControllerBase
 {
     private readonly ICategoriaService _service;
@@ -24,6 +26,7 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<CategoriaDto>> Create(CrearCategoriaDto dto)
     {
         var categoria = await _service.CreateAsync(dto);
@@ -31,6 +34,7 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<CategoriaDto>> Update(int id, ActualizarCategoriaDto dto)
     {
         var categoria = await _service.UpdateAsync(id, dto);
@@ -38,6 +42,7 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

@@ -16,7 +16,9 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             .Include(p => p.Lineas)
             .Include(p => p.Cliente)
             .Include(p => p.Zona)
+            .Include(p => p.FormaPago)
             .Include(p => p.Repartidor)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -24,7 +26,10 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         return await _dbSet
             .Include(p => p.Lineas)
-            .Where(p => p.FechaCreacion.Date == fecha.Date)
+            .Include(p => p.FormaPago)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(p => p.FechaCreacion.Date == fecha.Date
+                || (p.FechaProgramada != null && p.FechaProgramada.Value.Date == fecha.Date))
             .OrderByDescending(p => p.FechaCreacion)
             .ToListAsync();
     }
@@ -33,6 +38,8 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.FormaPago)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(p => p.Estado == estado)
             .OrderByDescending(p => p.FechaCreacion)
             .ToListAsync();
@@ -44,6 +51,8 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return await _dbSet
             .Include(p => p.Lineas)
             .Include(p => p.Zona)
+            .Include(p => p.FormaPago)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(p => p.RepartidorId == repartidorId && p.FechaCreacion.Date == hoy)
             .OrderByDescending(p => p.FechaCreacion)
             .ToListAsync();
@@ -54,10 +63,54 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return await _dbSet
             .Include(p => p.Lineas)
             .Include(p => p.Zona)
+            .Include(p => p.FormaPago)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(p => p.Tipo == TipoPedido.Domicilio
-                && p.Estado == EstadoPedido.Listo
+                && p.Estado == EstadoPedido.EnPreparacion
                 && p.RepartidorId == null)
             .OrderBy(p => p.FechaCreacion)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Pedido>> GetListosParaRepartoConProductosAsync()
+    {
+        var hoy = DateTime.Today;
+        return await _dbSet
+            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria)
+            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria)
+            .Include(p => p.Zona)
+            .Include(p => p.Repartidor)
+            .Where(p => p.Tipo == TipoPedido.Domicilio
+                && p.Estado == EstadoPedido.EnPreparacion
+                && p.ZonaId != null
+                && (p.FechaProgramada == null
+                    ? p.FechaCreacion.Date == hoy
+                    : p.FechaProgramada.Value.Date <= hoy))
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Pedido>> GetListosParaRepartoHoyAsync()
+    {
+        var hoy = DateTime.Today;
+        var estadosReparto = new[]
+        {
+            EstadoPedido.EnPreparacion,
+            EstadoPedido.EnCamino, EstadoPedido.Entregado
+        };
+        return await _dbSet
+            .Include(p => p.Lineas)
+            .Include(p => p.Zona)
+            .Include(p => p.FormaPago)
+            .Include(p => p.Repartidor)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(p => p.Tipo == TipoPedido.Domicilio
+                && estadosReparto.Contains(p.Estado)
+                && p.ZonaId != null
+                && (p.FechaProgramada == null
+                    ? p.FechaCreacion.Date == hoy
+                    : p.FechaProgramada.Value.Date <= hoy))
+            .OrderBy(p => p.ZonaId)
+            .ThenBy(p => p.FechaCreacion)
             .ToListAsync();
     }
 
@@ -74,5 +127,14 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
 
         var numero = int.Parse(ultimoTicket.Split('-').Last());
         return numero + 1;
+    }
+
+    public async Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId)
+    {
+        return await _dbSet
+            .Include(p => p.FormaPago)
+            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(p => p.CierreCajaId == cierreCajaId && p.Estado != EstadoPedido.Cancelado)
+            .ToListAsync();
     }
 }

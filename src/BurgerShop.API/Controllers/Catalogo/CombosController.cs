@@ -1,11 +1,13 @@
 using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BurgerShop.API.Controllers.Catalogo;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class CombosController : ControllerBase
 {
     private readonly IComboService _service;
@@ -24,6 +26,7 @@ public class CombosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<ComboDto>> Create(CrearComboDto dto)
     {
         var combo = await _service.CreateAsync(dto);
@@ -31,6 +34,7 @@ public class CombosController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<ComboDto>> Update(int id, ActualizarComboDto dto)
     {
         var combo = await _service.UpdateAsync(id, dto);
@@ -38,6 +42,7 @@ public class CombosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

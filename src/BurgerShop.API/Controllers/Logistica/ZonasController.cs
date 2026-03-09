@@ -1,11 +1,13 @@
 using BurgerShop.Application.Logistica.DTOs;
 using BurgerShop.Application.Logistica.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BurgerShop.API.Controllers.Logistica;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ZonasController : ControllerBase
 {
     private readonly IZonaService _service;
@@ -13,10 +15,12 @@ public class ZonasController : ControllerBase
     public ZonasController(IZonaService service) => _service = service;
 
     [HttpGet]
+    [Authorize(Roles = "Administrador,Local")]
     public async Task<ActionResult<IEnumerable<ZonaDto>>> GetAll()
         => Ok(await _service.GetAllAsync());
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Administrador,Local")]
     public async Task<ActionResult<ZonaDto>> GetById(int id)
     {
         var zona = await _service.GetByIdAsync(id);
@@ -24,6 +28,7 @@ public class ZonasController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<ZonaDto>> Create(CrearZonaDto dto)
     {
         var zona = await _service.CreateAsync(dto);
@@ -31,6 +36,7 @@ public class ZonasController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<ActionResult<ZonaDto>> Update(int id, ActualizarZonaDto dto)
     {
         var zona = await _service.UpdateAsync(id, dto);
@@ -38,6 +44,7 @@ public class ZonasController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

@@ -12,11 +12,14 @@ public static class CatalogoServiceExtensions
         // Repositories
         services.AddScoped<IProductoRepository, ProductoRepository>();
         services.AddScoped<IComboRepository, ComboRepository>();
+        services.AddScoped<IListaPrecioRepository, ListaPrecioRepository>();
 
         // Services
         services.AddScoped<ICategoriaService, CategoriaService>();
         services.AddScoped<IProductoService, ProductoService>();
         services.AddScoped<IComboService, ComboService>();
+        services.AddScoped<IProveedorService, ProveedorService>();
+        services.AddScoped<IListaPrecioService, ListaPrecioService>();
 
         return services;
     }

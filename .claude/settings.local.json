@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet run:*)",
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(dotnet ef:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

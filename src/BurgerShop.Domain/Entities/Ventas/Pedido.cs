@@ -1,4 +1,5 @@
 using BurgerShop.Domain.Entities.Catalogo;
+using BurgerShop.Domain.Entities.Finanzas;
 using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Enums;
 
@@ -20,15 +21,25 @@ public class Pedido
 
     public decimal Subtotal { get; set; }
     public decimal Descuento { get; set; }
+    public decimal Recargo { get; set; }
     public decimal Total { get; set; }
 
+    public int? FormaPagoId { get; set; }
     public int? RepartidorId { get; set; }
+    public int? CierreCajaId { get; set; }
+    public DateTime? FechaProgramada { get; set; }
     public DateTime? FechaAsignacion { get; set; }
     public DateTime? FechaEntrega { get; set; }
     public string? NotasEntrega { get; set; }
+    public string? NotaInterna { get; set; }
+    public TipoFactura TipoFactura { get; set; } = TipoFactura.FacturaB;
+    public bool EstaPago { get; set; }
 
     public Cliente? Cliente { get; set; }
     public Zona? Zona { get; set; }
+    public FormaPago? FormaPago { get; set; }
     public Repartidor? Repartidor { get; set; }
+    public CierreCaja? CierreCaja { get; set; }
     public ICollection<LineaPedido> Lineas { get; set; } = new List<LineaPedido>();
+    public ICollection<PagoPedido> Pagos { get; set; } = new List<PagoPedido>();
 }

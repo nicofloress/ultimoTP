@@ -1,12 +1,14 @@
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BurgerShop.API.Controllers.Ventas;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PedidosController : ControllerBase
 {
     private readonly IPedidoService _service;
@@ -36,6 +38,21 @@ public class PedidosController : ControllerBase
         return pedido is null ? NotFound() : Ok(pedido);
     }
 
+    [HttpPut("{id}")]
+    public async Task<ActionResult<PedidoDto>> Update(int id, [FromBody] ActualizarPedidoDto dto)
+    {
+        try
+        {
+            var pedido = await _service.UpdateAsync(id, dto);
+            if (pedido == null) return NotFound();
+            return Ok(pedido);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{id}/estado")]
     public async Task<ActionResult<PedidoDto>> CambiarEstado(int id, CambiarEstadoDto dto)
     {
@@ -55,5 +72,12 @@ public class PedidosController : ControllerBase
     {
         var ticket = await _service.GetTicketAsync(id);
         return ticket is null ? NotFound() : Ok(ticket);
+    }
+
+    [HttpPut("preparar-todos")]
+    public async Task<ActionResult> PrepararTodos()
+    {
+        var count = await _service.PrepararTodosAsync();
+        return Ok(new { actualizados = count });
     }
 }

@@ -1,3 +1,4 @@
+using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Entities.Ventas;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,16 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
         builder.HasOne(c => c.Zona)
             .WithMany()
             .HasForeignKey(c => c.ZonaId)
+            .IsRequired(false);
+
+        builder.HasOne(c => c.TipoCliente)
+            .WithMany()
+            .HasForeignKey(c => c.TipoClienteId)
+            .IsRequired(false);
+
+        builder.HasOne(c => c.ListaPrecio)
+            .WithMany()
+            .HasForeignKey(c => c.ListaPrecioId)
             .IsRequired(false);
     }
 }

@@ -6,6 +6,7 @@ namespace BurgerShop.Application.Ventas.Interfaces;
 public interface IPedidoService
 {
     Task<PedidoDto> CreateAsync(CrearPedidoDto dto);
+    Task<PedidoDto?> UpdateAsync(int id, ActualizarPedidoDto dto);
     Task<PedidoDto?> GetByIdAsync(int id);
     Task<IEnumerable<PedidoDto>> GetByFechaAsync(DateTime fecha);
     Task<IEnumerable<PedidoDto>> GetByEstadoAsync(EstadoPedido estado);
@@ -17,4 +18,7 @@ public interface IPedidoService
     Task<IEnumerable<PedidoDto>> GetEntregasRepartidorHoyAsync(int repartidorId);
     Task<PedidoDto?> MarcarEnCaminoAsync(int pedidoId);
     Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, string? notas);
+    Task<IEnumerable<PedidoDto>> GetListosParaRepartoHoyAsync();
+    Task<IEnumerable<PedidoDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
+    Task<int> PrepararTodosAsync();
 }

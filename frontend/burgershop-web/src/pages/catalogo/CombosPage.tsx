@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Combo, Producto } from '../../types';
 import { getCombos, createCombo, updateCombo, deleteCombo } from '../../api/combos';
 import { getProductos } from '../../api/productos';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export default function CombosPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -12,6 +15,9 @@ export default function CombosPage() {
   const [descripcion, setDescripcion] = useState('');
   const [precio, setPrecio] = useState(0);
   const [detalles, setDetalles] = useState<{ productoId: number; cantidad: number }[]>([]);
+  const { usuario } = useAuth();
+  const esAdmin = usuario?.rol === RolUsuario.Administrador;
+  const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
   const cargar = () => {
     getCombos().then(setCombos);
@@ -41,22 +47,30 @@ export default function CombosPage() {
     setShowForm(true);
   };
 
+  const confirmarDesactivar = async () => {
+    await deleteCombo(confirmacion.id);
+    setConfirmacion({ visible: false, id: 0 });
+    cargar();
+  };
+
   const agregarDetalle = () => setDetalles([...detalles, { productoId: 0, cantidad: 1 }]);
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Combos</h1>
-        <button onClick={() => { setShowForm(!showForm); resetForm(); }} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
-          {showForm ? 'Cerrar' : 'Nuevo Combo'}
-        </button>
+        {esAdmin && (
+          <button onClick={() => { setShowForm(!showForm); resetForm(); }} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
+            {showForm ? 'Cerrar' : 'Nuevo Combo'}
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && esAdmin && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre" className="border rounded px-3 py-2" required />
-            <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripción" className="border rounded px-3 py-2" />
+            <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripcion" className="border rounded px-3 py-2" />
             <input type="number" value={precio} onChange={e => setPrecio(Number(e.target.value))} placeholder="Precio combo" className="border rounded px-3 py-2" min={0} step={0.01} required />
           </div>
           <div>
@@ -97,13 +111,25 @@ export default function CombosPage() {
                 <li key={d.productoId}>- {d.productoNombre} x{d.cantidad}</li>
               ))}
             </ul>
-            <div className="flex gap-2">
-              <button onClick={() => handleEditar(c)} className="text-sm text-blue-600 hover:underline">Editar</button>
-              <button onClick={async () => { if (confirm('¿Desactivar?')) { await deleteCombo(c.id); cargar(); } }} className="text-sm text-red-600 hover:underline">Desactivar</button>
-            </div>
+            {esAdmin && (
+              <div className="flex gap-2">
+                <button onClick={() => handleEditar(c)} className="text-sm text-blue-600 hover:underline">Editar</button>
+                <button onClick={() => setConfirmacion({ visible: true, id: c.id })} className="text-sm text-red-600 hover:underline">Desactivar</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      <ConfirmModal
+        visible={confirmacion.visible}
+        titulo="Desactivar combo"
+        mensaje="¿Desactivar este combo?"
+        tipo="danger"
+        textoConfirmar="Desactivar"
+        onConfirmar={confirmarDesactivar}
+        onCancelar={() => setConfirmacion({ visible: false, id: 0 })}
+      />
     </div>
   );
 }
