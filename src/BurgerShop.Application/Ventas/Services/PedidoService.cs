@@ -369,14 +369,28 @@ public class PedidoService : IPedidoService
         return await CambiarEstadoAsync(pedidoId, EstadoPedido.EnCamino);
     }
 
-    public async Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, string? notas)
+    public async Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, MarcarEntregadoDto dto)
     {
         var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId);
         if (pedido is null) return null;
 
         pedido.Estado = EstadoPedido.Entregado;
         pedido.FechaEntrega = DateTime.Now;
-        pedido.NotasEntrega = notas;
+        pedido.NotasEntrega = dto.Notas;
+
+        // Si se informa forma de pago al entregar, actualizar pago
+        if (dto.FormaPagoId.HasValue)
+        {
+            pedido.FormaPagoId = dto.FormaPagoId.Value;
+            pedido.EstaPago = true;
+        }
+
+        // Guardar comprobante de transferencia si viene
+        if (!string.IsNullOrEmpty(dto.ComprobanteBase64))
+        {
+            pedido.ComprobanteEntrega = dto.ComprobanteBase64;
+        }
+
         _pedidoRepo.Update(pedido);
         await _pedidoRepo.SaveChangesAsync();
         return ToDto(pedido);
@@ -472,6 +486,7 @@ public class PedidoService : IPedidoService
             p.FechaProgramada != null,
             p.EstaPago,
             p.Lineas.Select(l => new LineaPedidoDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
-            pagos);
+            pagos,
+            p.ComprobanteEntrega);
     }
 }

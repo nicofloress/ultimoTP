@@ -34,6 +34,7 @@ public class Pedido
     public string? NotaInterna { get; set; }
     public TipoFactura TipoFactura { get; set; } = TipoFactura.FacturaB;
     public bool EstaPago { get; set; }
+    public string? ComprobanteEntrega { get; set; }
 
     public Cliente? Cliente { get; set; }
     public Zona? Zona { get; set; }

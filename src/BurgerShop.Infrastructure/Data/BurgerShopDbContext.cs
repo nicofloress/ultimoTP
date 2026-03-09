@@ -30,6 +30,7 @@ public class BurgerShopDbContext : DbContext
     public DbSet<PagoPedido> PagosPedido => Set<PagoPedido>();
     public DbSet<CierreCaja> CierresCaja => Set<CierreCaja>();
     public DbSet<CierreCajaDetalle> CierresCajaDetalle => Set<CierreCajaDetalle>();
+    public DbSet<Mensaje> Mensajes => Set<Mensaje>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

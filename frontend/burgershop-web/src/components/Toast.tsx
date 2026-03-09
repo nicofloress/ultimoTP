@@ -1,5 +1,118 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from 'react';
 
+// ============================
+// Types
+// ============================
+export type ToastType = 'success' | 'info' | 'error';
+
+interface ToastItem {
+  id: number;
+  message: string;
+  type: ToastType;
+  exiting?: boolean;
+}
+
+// ============================
+// Global Toast Context (for notifications)
+// ============================
+interface GlobalToastContextType {
+  showToast: (message: string, type?: ToastType) => void;
+}
+
+const GlobalToastContext = createContext<GlobalToastContextType | null>(null);
+
+let globalNextId = 0;
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 300);
+  }, []);
+
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    const id = globalNextId++;
+    setToasts(prev => [...prev, { id, message, type }]);
+    const timer = setTimeout(() => {
+      dismissToast(id);
+      timersRef.current.delete(id);
+    }, 5000);
+    timersRef.current.set(id, timer);
+  }, [dismissToast]);
+
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(t => clearTimeout(t));
+    };
+  }, []);
+
+  return (
+    <GlobalToastContext.Provider value={{ showToast }}>
+      {children}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '22rem', width: '100%' }}>
+        {toasts.map(toast => (
+          <GlobalToastItem key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
+        ))}
+      </div>
+    </GlobalToastContext.Provider>
+  );
+}
+
+const globalTypeStyles: Record<ToastType, string> = {
+  success: 'bg-green-600 text-white',
+  info: 'bg-amber-500 text-white',
+  error: 'bg-red-600 text-white',
+};
+
+const globalTypeIcons: Record<ToastType, string> = {
+  success: '\u2705',
+  info: '\uD83D\uDD14',
+  error: '\u274C',
+};
+
+function GlobalToastItem({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => void }) {
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const isVisible = entered && !toast.exiting;
+
+  return (
+    <div
+      className={`pointer-events-auto rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 transition-all duration-300 ease-out ${globalTypeStyles[toast.type]} ${
+        isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+      }`}
+      onClick={onDismiss}
+      role="alert"
+    >
+      <span className="text-lg flex-shrink-0">{globalTypeIcons[toast.type]}</span>
+      <p className="text-sm font-medium flex-1 min-w-0">{toast.message}</p>
+      <button className="text-white/80 hover:text-white text-lg leading-none flex-shrink-0" onClick={onDismiss}>
+        &times;
+      </button>
+    </div>
+  );
+}
+
+export function useGlobalToast(): GlobalToastContextType {
+  const ctx = useContext(GlobalToastContext);
+  if (!ctx) {
+    // Fallback: return a no-op if not in a provider (for backward compat)
+    return { showToast: () => {} };
+  }
+  return ctx;
+}
+
+// ============================
+// Legacy per-component Toast (backward compatible)
+// ============================
 export interface ToastProps {
   visible: boolean;
   mensaje: string;
@@ -55,7 +168,6 @@ export function Toast({
 
   useEffect(() => {
     if (visible) {
-      // Pequeño delay para activar la transicion de entrada
       const frame = requestAnimationFrame(() => setShow(true));
       return () => cancelAnimationFrame(frame);
     } else {

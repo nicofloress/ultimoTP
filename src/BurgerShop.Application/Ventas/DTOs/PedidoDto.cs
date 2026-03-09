@@ -17,7 +17,8 @@ public record PedidoDto(
     bool EsProgramado,
     bool EstaPago,
     List<LineaPedidoDto> Lineas,
-    List<PagoPedidoDto>? Pagos = null);
+    List<PagoPedidoDto>? Pagos = null,
+    string? ComprobanteEntrega = null);
 
 public record LineaPedidoDto(
     int Id, int? ProductoId, int? ComboId, string Descripcion,
@@ -63,6 +64,11 @@ public record ActualizarPedidoDto(
 public record CambiarEstadoDto(EstadoPedido NuevoEstado);
 
 public record AsignarEntregaDto(int PedidoId, int RepartidorId);
+
+public record MarcarEntregadoDto(
+    string? Notas = null,
+    int? FormaPagoId = null,
+    string? ComprobanteBase64 = null);
 
 public record EmpezarRepartoDto(List<AsignacionZonaDto> Asignaciones);
 public record AsignacionZonaDto(int ZonaId, int RepartidorId);

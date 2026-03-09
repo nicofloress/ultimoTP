@@ -16,7 +16,8 @@ export const getEntregasPendientes = () => api.get<Pedido[]>('/entregas/pendient
 export const asignarEntrega = (pedidoId: number, repartidorId: number) => api.post<Pedido>('/entregas/asignar', { pedidoId, repartidorId }).then(r => r.data);
 export const getEntregasRepartidor = (id: number) => api.get<Pedido[]>(`/entregas/repartidor/${id}`).then(r => r.data);
 export const marcarEnCamino = (pedidoId: number) => api.put<Pedido>(`/entregas/${pedidoId}/en-camino`).then(r => r.data);
-export const marcarEntregado = (pedidoId: number, notas?: string) => api.put<Pedido>(`/entregas/${pedidoId}/entregar`, JSON.stringify(notas || ''), { headers: { 'Content-Type': 'application/json' } }).then(r => r.data);
+export const marcarEntregado = (pedidoId: number, data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string }) =>
+  api.put<Pedido>(`/entregas/${pedidoId}/entregar`, data).then(r => r.data);
 
 export const loginRepartidor = (codigoAcceso: string) => api.post<{ id: number; nombre: string }>('/auth/repartidor', { codigoAcceso }).then(r => r.data);
 

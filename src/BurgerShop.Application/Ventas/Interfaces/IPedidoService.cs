@@ -17,7 +17,7 @@ public interface IPedidoService
     Task<PedidoDto?> AsignarRepartidorAsync(int pedidoId, int repartidorId);
     Task<IEnumerable<PedidoDto>> GetEntregasRepartidorHoyAsync(int repartidorId);
     Task<PedidoDto?> MarcarEnCaminoAsync(int pedidoId);
-    Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, string? notas);
+    Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, MarcarEntregadoDto dto);
     Task<IEnumerable<PedidoDto>> GetListosParaRepartoHoyAsync();
     Task<IEnumerable<PedidoDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
     Task<int> PrepararTodosAsync();

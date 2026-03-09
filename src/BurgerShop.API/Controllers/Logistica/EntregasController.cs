@@ -43,9 +43,9 @@ public class EntregasController : ControllerBase
     }
 
     [HttpPut("{pedidoId}/entregar")]
-    public async Task<ActionResult<PedidoDto>> MarcarEntregado(int pedidoId, [FromBody] string? notas)
+    public async Task<ActionResult<PedidoDto>> MarcarEntregado(int pedidoId, [FromBody] MarcarEntregadoDto dto)
     {
-        var pedido = await _pedidoService.MarcarEntregadoAsync(pedidoId, notas);
+        var pedido = await _pedidoService.MarcarEntregadoAsync(pedidoId, dto);
         return pedido is null ? NotFound() : Ok(pedido);
     }
 

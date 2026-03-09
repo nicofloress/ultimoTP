@@ -36,6 +36,7 @@ export interface Pedido {
   notaInterna?: string;
   tipoFactura: TipoFactura;
   estaPago: boolean;
+  comprobanteEntrega?: string;
   clienteId?: number;
   lineas: LineaPedido[];
   pagos?: PagoPedidoDto[];

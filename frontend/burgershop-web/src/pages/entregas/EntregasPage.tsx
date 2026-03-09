@@ -4,6 +4,7 @@ import { getPedidosPorZona, getRepartidores, empezarReparto, descargarControlCam
 import { getProductos } from '../../api/productos';
 import { crearPedido, cambiarEstado, getPedido } from '../../api/pedidos';
 import { Toast, useToast } from '../../components/Toast';
+import AdminChat from './AdminChat';
 
 const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
   [EstadoPedido.EnPreparacion]: 'bg-blue-100 text-blue-800',
@@ -24,6 +25,7 @@ export default function EntregasPage() {
   const [pedidoDetalle, setPedidoDetalle] = useState<Pedido | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { toast, mostrarToast, cerrarToast } = useToast();
+  const [chatAbierto, setChatAbierto] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -235,6 +237,15 @@ export default function EntregasPage() {
               Test +6
             </button>
           )}
+          <button
+            onClick={() => setChatAbierto(true)}
+            className="text-sm text-amber-600 hover:text-amber-800 flex items-center gap-1 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Chat
+          </button>
           <button
             onClick={cargar}
             className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
@@ -627,6 +638,9 @@ export default function EntregasPage() {
           </div>
         </div>
       )}
+
+      {/* Chat Admin */}
+      <AdminChat abierto={chatAbierto} onCerrar={() => setChatAbierto(false)} />
 
       {/* Toast de exito */}
       <Toast {...toast} onClose={cerrarToast} />

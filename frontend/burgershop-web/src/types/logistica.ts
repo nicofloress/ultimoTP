@@ -29,3 +29,12 @@ export interface ActualizarRepartidorDto {
   activo: boolean;
   codigoAcceso?: string;
 }
+
+export interface Mensaje {
+  id: number;
+  repartidorId: number;
+  texto: string;
+  esDeAdmin: boolean;
+  fechaEnvio: string;
+  leido: boolean;
+}
