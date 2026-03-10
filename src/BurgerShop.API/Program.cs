@@ -131,7 +131,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     if (db.Database.IsNpgsql())
     {
-        // PostgreSQL: crear tablas desde el modelo directamente
+        // PostgreSQL: recrear tablas desde el modelo
+        // TODO: quitar EnsureDeleted una vez estable
+        db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
     }
     else
