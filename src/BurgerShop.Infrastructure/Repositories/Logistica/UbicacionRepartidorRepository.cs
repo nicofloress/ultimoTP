@@ -11,12 +11,13 @@ public class UbicacionRepartidorRepository : Repository<UbicacionRepartidor>, IU
 
     public async Task<UbicacionRepartidor?> GetByRepartidorIdAsync(int repartidorId)
     {
-        return await _dbSet.FirstOrDefaultAsync(u => u.RepartidorId == repartidorId);
+        return await _dbSet.Include(u => u.Repartidor).FirstOrDefaultAsync(u => u.RepartidorId == repartidorId);
     }
 
     public async Task<IEnumerable<UbicacionRepartidor>> GetActivosAsync()
     {
         return await _dbSet
+            .Include(u => u.Repartidor)
             .Where(u => u.EstaActivo)
             .OrderByDescending(u => u.FechaActualizacion)
             .ToListAsync();
@@ -47,6 +48,7 @@ public class UbicacionRepartidorRepository : Repository<UbicacionRepartidor>, IU
         }
 
         await _context.SaveChangesAsync();
+        await _context.Entry(existente).Reference(u => u.Repartidor).LoadAsync();
         return existente;
     }
 

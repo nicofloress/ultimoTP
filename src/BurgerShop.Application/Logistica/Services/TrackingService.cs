@@ -35,5 +35,5 @@ public class TrackingService : ITrackingService
     }
 
     private static UbicacionDto ToDto(UbicacionRepartidor u) => new(
-        u.Id, u.RepartidorId, u.Latitud, u.Longitud, u.FechaActualizacion, u.EstaActivo);
+        u.Id, u.RepartidorId, u.Repartidor?.Nombre ?? "Desconocido", u.Latitud, u.Longitud, u.FechaActualizacion, u.EstaActivo);
 }
