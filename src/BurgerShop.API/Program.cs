@@ -129,7 +129,15 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
-    db.Database.Migrate();
+    if (db.Database.IsNpgsql())
+    {
+        // PostgreSQL: crear tablas desde el modelo directamente
+        db.Database.EnsureCreated();
+    }
+    else
+    {
+        db.Database.Migrate();
+    }
 }
 
 if (app.Environment.IsDevelopment())
