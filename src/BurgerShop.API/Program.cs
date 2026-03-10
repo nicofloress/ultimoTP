@@ -131,6 +131,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     if (db.Database.IsNpgsql())
     {
+        // TODO: quitar EnsureDeleted después del primer deploy con nico
+        db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
     }
     else

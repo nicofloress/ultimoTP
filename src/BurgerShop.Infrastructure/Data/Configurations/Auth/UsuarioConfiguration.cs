@@ -11,6 +11,7 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
     private const string LocalHash = "$2a$11$0pKoaFrCbKlj/IQINhN4pumdQ550SnejahxpjBg.MLgbuTtKCufAa";
     private const string Rep1Hash = "$2a$11$GP5TV.wofKMCcswZFsFBHOvsLJ83PqGveVQ4bcUO9FuY4V9N54Mwi";
     private const string Rep2Hash = "$2a$11$W8Sz4uInizUbeN7QyFxus.yY5OeJjg1FpWxkbaweuNyzCipCAF87u";
+    private const string NicoHash = "$2a$11$k8abIU/DHMapQlOJM1JCe.MsfWKeOI0UtDTfemLVgPRESrFAhYbdu";
 
     public void Configure(EntityTypeBuilder<Usuario> builder)
     {
@@ -79,6 +80,16 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
                 NombreCompleto = "María García",
                 Rol = RolUsuario.Repartidor,
                 RepartidorId = 2,
+                Activo = true
+            },
+            new Usuario
+            {
+                Id = 5,
+                NombreUsuario = "nico",
+                PasswordHash = NicoHash,
+                NombreCompleto = "Nico Flores",
+                Rol = RolUsuario.Repartidor,
+                RepartidorId = 3,
                 Activo = true
             }
         );
