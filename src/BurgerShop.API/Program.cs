@@ -106,14 +106,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        var origins = new List<string> { "http://localhost:5173", "http://localhost:3000", "https://*.vercel.app" };
-
         var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-        if (!string.IsNullOrEmpty(frontendUrl))
-            origins.Add(frontendUrl);
 
-        policy.WithOrigins(origins.ToArray())
-            .SetIsOriginAllowedToAllowWildcardSubdomains()
+        policy.SetIsOriginAllowed(origin =>
+            {
+                var uri = new Uri(origin);
+                if (uri.Host == "localhost") return true;
+                if (uri.Host.EndsWith(".vercel.app")) return true;
+                if (!string.IsNullOrEmpty(frontendUrl) && origin.TrimEnd('/') == frontendUrl.TrimEnd('/')) return true;
+                return false;
+            })
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
