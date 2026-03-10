@@ -146,6 +146,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Show detailed errors temporarily for debugging
+app.UseDeveloperExceptionPage();
+
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
