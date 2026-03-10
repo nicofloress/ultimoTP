@@ -9,7 +9,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first strategy for API calls
+  // Don't intercept cross-origin requests (external API, etc.)
+  if (new URL(event.request.url).origin !== self.location.origin) {
+    return;
+  }
+
+  // Network-first strategy for API calls (same-origin only)
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
