@@ -15,6 +15,7 @@ import RepartidoresPage from './pages/catalogo/RepartidoresPage';
 import TiposClientePage from './pages/catalogo/TiposClientePage';
 import ListasPrecioPage from './pages/catalogo/ListasPrecioPage';
 import EntregasPage from './pages/entregas/EntregasPage';
+import TrackingMapaPage from './pages/entregas/TrackingMapaPage';
 import ConfigPage from './pages/config/ConfigPage';
 import CajaPage from './pages/finanzas/CajaPage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
@@ -59,6 +60,11 @@ export default function App() {
             <Route path="/reparto" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}>
                 <EntregasPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/tracking" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}>
+                <TrackingMapaPage />
               </ProtectedRoute>
             } />
             <Route path="/config" element={

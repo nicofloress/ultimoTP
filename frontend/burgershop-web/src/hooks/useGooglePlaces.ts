@@ -4,7 +4,7 @@ let scriptLoaded = false;
 let scriptLoading = false;
 const loadCallbacks: (() => void)[] = [];
 
-function loadGoogleMapsScript(): Promise<void> {
+export function loadGoogleMapsScript(): Promise<void> {
   if (scriptLoaded) return Promise.resolve();
 
   return new Promise((resolve) => {

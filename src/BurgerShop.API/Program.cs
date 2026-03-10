@@ -10,10 +10,37 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core - SQLite
-builder.Services.AddDbContext<BurgerShopDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=burgershop.db"));
+// PORT dinámico para Railway
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://+:{port}");
+}
+
+// EF Core - PostgreSQL en producción, SQLite en desarrollo
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING");
+var pgConnection = connectionString ?? databaseUrl;
+
+if (!string.IsNullOrEmpty(pgConnection))
+{
+    // Si es formato postgres:// de Railway, convertir a formato Npgsql
+    if (pgConnection.StartsWith("postgres://") || pgConnection.StartsWith("postgresql://"))
+    {
+        var uri = new Uri(pgConnection);
+        var userInfo = uri.UserInfo.Split(':');
+        pgConnection = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    }
+
+    builder.Services.AddDbContext<BurgerShopDbContext>(options =>
+        options.UseNpgsql(pgConnection));
+}
+else
+{
+    builder.Services.AddDbContext<BurgerShopDbContext>(options =>
+        options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
+            ?? "Data Source=burgershop.db"));
+}
 
 // Shared
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -79,7 +106,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        var origins = new List<string> { "http://localhost:5173", "http://localhost:3000", "https://*.vercel.app" };
+
+        var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
+        if (!string.IsNullOrEmpty(frontendUrl))
+            origins.Add(frontendUrl);
+
+        policy.WithOrigins(origins.ToArray())
+            .SetIsOriginAllowedToAllowWildcardSubdomains()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });

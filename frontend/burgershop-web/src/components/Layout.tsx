@@ -44,6 +44,7 @@ const menuSections: MenuSection[] = [
   {
     items: [
       { to: '/reparto', label: 'Reparto', adminOnly: true },
+      { to: '/tracking', label: 'Tracking', adminOnly: true },
       { to: '/config', label: 'Configuracion', adminOnly: true },
     ],
   },
@@ -63,6 +64,7 @@ function getPageTitle(pathname: string): string {
     '/catalogo/listasprecios': 'Listas de Precios',
     '/finanzas/caja': 'Caja Diaria',
     '/reparto': 'Reparto',
+    '/tracking': 'Tracking en Vivo',
     '/config': 'Configuracion',
   };
   return map[pathname] || 'Gestion HLP';

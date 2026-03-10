@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { ToastProvider, useGlobalToast } from '../../components/Toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
+import { useGeoTracking } from '../../hooks/useGeoTracking';
+import { desactivarTracking } from '../../api/tracking';
 import { GoogleMap } from '../../components/GoogleMap';
 
 export default function RepartidorApp() {
@@ -23,6 +25,7 @@ function RepartidorAppContent() {
   const repartidorId = usuario?.repartidorId ?? null;
   const { entregas, pendingCount, refresh, lastRefresh, isRefreshing } = useNotifications(repartidorId);
   const { showToast } = useGlobalToast();
+  const { gpsStatus } = useGeoTracking(!!repartidorId);
 
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
   const [modalPedido, setModalPedido] = useState<Pedido | null>(null);
@@ -150,7 +153,7 @@ function RepartidorAppContent() {
       {/* Header sticky - estilo panel admin */}
       <header className="sticky top-0 z-40">
         {/* Barra superior slate */}
-        <div className="bg-slate-800 text-gray-300">
+        <div className="bg-slate-800 text-gray-300" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0">
@@ -158,6 +161,19 @@ function RepartidorAppContent() {
                 <p className="text-slate-400 text-sm truncate">{usuario?.nombreCompleto}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
+                {/* GPS indicator */}
+                {gpsStatus === 'active' && (
+                  <span className="relative flex h-3 w-3" title="GPS activo">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                  </span>
+                )}
+                {gpsStatus === 'denied' && (
+                  <span className="text-red-400 text-xs font-medium" title="GPS denegado">GPS off</span>
+                )}
+                {gpsStatus === 'error' && (
+                  <span className="text-amber-400 text-xs font-medium" title="Error GPS">GPS err</span>
+                )}
                 {/* Badge pendientes */}
                 {pendingCount > 0 && (
                   <span className="bg-amber-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
@@ -177,7 +193,7 @@ function RepartidorAppContent() {
                 </button>
                 {/* Logout */}
                 <button
-                  onClick={logout}
+                  onClick={() => { desactivarTracking().catch(() => {}); logout(); }}
                   className="text-gray-400 hover:text-white hover:bg-slate-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
                 >
                   Salir
@@ -888,7 +904,7 @@ function RutaOptimizadaModal({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-md">
+      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-md" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
         <div className="flex items-center gap-2">
           <button onClick={onCerrar} className="text-slate-400 hover:text-white transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1078,7 +1094,7 @@ function RepartidorChatPanel({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">
       {/* Header */}
-      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-md">
+      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-md" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
         <div className="flex items-center gap-2">
           <button
             onClick={onCerrar}

@@ -18,8 +18,17 @@
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin:0">
+    <div id="root">
+      <!-- Splash screen mientras carga React -->
+      <div id="splash" style="position:fixed;inset:0;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999">
+        <img src="/icon-192.png" alt="HLP" style="width:96px;height:96px;border-radius:24px;margin-bottom:24px" />
+        <div style="color:#f8fafc;font-size:24px;font-weight:700;letter-spacing:1px">Gestion HLP</div>
+        <div style="color:#94a3b8;font-size:13px;margin-top:8px">Cargando...</div>
+        <div style="margin-top:24px;width:40px;height:40px;border:3px solid #334155;border-top:3px solid #f59e0b;border-radius:50%;animation:sp .8s linear infinite"></div>
+      </div>
+      <style>#splash{transition:opacity .3s}@keyframes sp{to{transform:rotate(360deg)}}</style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
