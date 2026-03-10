@@ -131,9 +131,6 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     if (db.Database.IsNpgsql())
     {
-        // PostgreSQL: recrear tablas desde el modelo
-        // TODO: quitar EnsureDeleted una vez estable
-        db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
     }
     else
@@ -147,9 +144,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-// Show detailed errors temporarily for debugging
-app.UseDeveloperExceptionPage();
 
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
