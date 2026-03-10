@@ -6,6 +6,7 @@ using BurgerShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,7 +34,8 @@ if (!string.IsNullOrEmpty(pgConnection))
     }
 
     builder.Services.AddDbContext<BurgerShopDbContext>(options =>
-        options.UseNpgsql(pgConnection));
+        options.UseNpgsql(pgConnection)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 }
 else
 {
