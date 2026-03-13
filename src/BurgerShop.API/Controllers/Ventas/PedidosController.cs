@@ -1,3 +1,4 @@
+using BurgerShop.Application.Notificaciones;
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Enums;
@@ -12,13 +13,19 @@ namespace BurgerShop.API.Controllers.Ventas;
 public class PedidosController : ControllerBase
 {
     private readonly IPedidoService _service;
+    private readonly INotificacionService _notificaciones;
 
-    public PedidosController(IPedidoService service) => _service = service;
+    public PedidosController(IPedidoService service, INotificacionService notificaciones)
+    {
+        _service = service;
+        _notificaciones = notificaciones;
+    }
 
     [HttpPost]
     public async Task<ActionResult<PedidoDto>> Create(CrearPedidoDto dto)
     {
         var pedido = await _service.CreateAsync(dto);
+        await _notificaciones.NotificarNuevoPedidoAsync(pedido.Id, pedido.NumeroTicket, pedido.Tipo.ToString());
         return CreatedAtAction(nameof(GetById), new { id = pedido.Id }, pedido);
     }
 
@@ -57,14 +64,18 @@ public class PedidosController : ControllerBase
     public async Task<ActionResult<PedidoDto>> CambiarEstado(int id, CambiarEstadoDto dto)
     {
         var pedido = await _service.CambiarEstadoAsync(id, dto.NuevoEstado);
-        return pedido is null ? NotFound() : Ok(pedido);
+        if (pedido is null) return NotFound();
+        await _notificaciones.NotificarCambioEstadoAsync(pedido.Id, pedido.NumeroTicket, dto.NuevoEstado.ToString());
+        return Ok(pedido);
     }
 
     [HttpPut("{id}/cancelar")]
     public async Task<ActionResult<PedidoDto>> Cancelar(int id)
     {
         var pedido = await _service.CancelarAsync(id);
-        return pedido is null ? NotFound() : Ok(pedido);
+        if (pedido is null) return NotFound();
+        await _notificaciones.NotificarPedidoCanceladoAsync(pedido.Id, pedido.NumeroTicket);
+        return Ok(pedido);
     }
 
     [HttpGet("{id}/ticket")]

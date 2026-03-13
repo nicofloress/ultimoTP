@@ -3,7 +3,7 @@ import { Pedido, Mensaje, EstadoPedido } from '../../types';
 import { marcarEnCamino, marcarEntregado } from '../../api/entregas';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useAuth } from '../../context/AuthContext';
-import { ToastProvider, useGlobalToast } from '../../components/Toast';
+import { useGlobalToast } from '../../components/Toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
@@ -11,11 +11,7 @@ import { desactivarTracking } from '../../api/tracking';
 import { GoogleMap } from '../../components/GoogleMap';
 
 export default function RepartidorApp() {
-  return (
-    <ToastProvider>
-      <RepartidorAppContent />
-    </ToastProvider>
-  );
+  return <RepartidorAppContent />;
 }
 
 type Tab = 'pendientes' | 'completados';

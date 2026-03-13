@@ -1,4 +1,5 @@
 using BurgerShop.Application.Logistica.Interfaces;
+using BurgerShop.Application.Notificaciones;
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -13,11 +14,16 @@ public class EntregasController : ControllerBase
 {
     private readonly IPedidoService _pedidoService;
     private readonly IControlCamionetaService _controlCamionetaService;
+    private readonly INotificacionService _notificaciones;
 
-    public EntregasController(IPedidoService pedidoService, IControlCamionetaService controlCamionetaService)
+    public EntregasController(
+        IPedidoService pedidoService,
+        IControlCamionetaService controlCamionetaService,
+        INotificacionService notificaciones)
     {
         _pedidoService = pedidoService;
         _controlCamionetaService = controlCamionetaService;
+        _notificaciones = notificaciones;
     }
 
     [HttpGet("pendientes")]
@@ -28,7 +34,10 @@ public class EntregasController : ControllerBase
     public async Task<ActionResult<PedidoDto>> Asignar(AsignarEntregaDto dto)
     {
         var pedido = await _pedidoService.AsignarRepartidorAsync(dto.PedidoId, dto.RepartidorId);
-        return pedido is null ? NotFound() : Ok(pedido);
+        if (pedido is null) return NotFound();
+        await _notificaciones.NotificarPedidoAsignadoAsync(
+            dto.RepartidorId, pedido.Id, pedido.NumeroTicket, pedido.DireccionEntrega);
+        return Ok(pedido);
     }
 
     [HttpGet("repartidor/{id}")]
@@ -46,7 +55,9 @@ public class EntregasController : ControllerBase
     public async Task<ActionResult<PedidoDto>> MarcarEntregado(int pedidoId, [FromBody] MarcarEntregadoDto dto)
     {
         var pedido = await _pedidoService.MarcarEntregadoAsync(pedidoId, dto);
-        return pedido is null ? NotFound() : Ok(pedido);
+        if (pedido is null) return NotFound();
+        await _notificaciones.NotificarPedidoEntregadoAsync(pedido.Id, pedido.NumeroTicket, pedido.RepartidorNombre);
+        return Ok(pedido);
     }
 
     [HttpGet("por-zona")]
@@ -58,7 +69,15 @@ public class EntregasController : ControllerBase
     {
         try
         {
-            var pedidos = await _pedidoService.EmpezarRepartoAsync(dto);
+            var pedidos = (await _pedidoService.EmpezarRepartoAsync(dto)).ToList();
+
+            // Notificar a cada repartidor cuántos pedidos le tocaron
+            var asignaciones = pedidos
+                .Where(p => p.RepartidorId.HasValue)
+                .GroupBy(p => p.RepartidorId!.Value)
+                .Select(g => (g.Key, g.Count()));
+            await _notificaciones.NotificarRepartoIniciadoAsync(asignaciones);
+
             return Ok(pedidos);
         }
         catch (InvalidOperationException ex)

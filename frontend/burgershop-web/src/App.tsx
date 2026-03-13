@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/Toast';
+import { SignalRProvider } from './components/SignalRProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/auth/LoginPage';
@@ -24,8 +26,10 @@ import { RolUsuario } from './types/auth';
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+      <ToastProvider>
+        <AuthProvider>
+          <SignalRProvider>
+            <Routes>
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/repartidor" element={
@@ -73,8 +77,10 @@ export default function App() {
               </ProtectedRoute>
             } />
           </Route>
-        </Routes>
-      </AuthProvider>
+            </Routes>
+          </SignalRProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }
