@@ -1,5 +1,6 @@
 using System.Text;
 using BurgerShop.API.Extensions;
+using BurgerShop.Application.Notificaciones;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Infrastructure.Data;
 using BurgerShop.Infrastructure.Repositories;
@@ -41,7 +42,8 @@ else
 {
     builder.Services.AddDbContext<BurgerShopDbContext>(options =>
         options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-            ?? "Data Source=burgershop.db"));
+            ?? "Data Source=burgershop.db")
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 }
 
 // Shared
@@ -53,6 +55,10 @@ builder.Services.AddCatalogoServices();
 builder.Services.AddVentasServices();
 builder.Services.AddLogisticaServices();
 builder.Services.AddFinanzasServices();
+
+// SignalR
+builder.Services.AddSignalR();
+builder.Services.AddScoped<INotificacionService, NotificacionService>();
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -68,6 +74,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+
+        // Permitir que SignalR reciba el token desde query string
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/notificaciones"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -119,7 +140,8 @@ builder.Services.AddCors(options =>
                 return false;
             })
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -149,6 +171,7 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<NotificacionHub>("/hubs/notificaciones");
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.Now }))
     .AllowAnonymous();

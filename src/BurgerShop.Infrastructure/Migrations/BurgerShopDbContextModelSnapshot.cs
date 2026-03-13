@@ -54,7 +54,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("RepartidorId");
 
-                    b.ToTable("Usuarios");
+                    b.ToTable("Usuarios", (string)null);
 
                     b.HasData(
                         new
@@ -116,7 +116,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categorias");
+                    b.ToTable("Categorias", (string)null);
 
                     b.HasData(
                         new
@@ -268,7 +268,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("CategoriaId");
 
-                    b.ToTable("Combos");
+                    b.ToTable("Combos", (string)null);
 
                     b.HasData(
                         new
@@ -333,7 +333,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("ProductoId");
 
-                    b.ToTable("ComboDetalles");
+                    b.ToTable("ComboDetalles", (string)null);
 
                     b.HasData(
                         new
@@ -426,7 +426,7 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("Nombre")
                         .IsUnique();
 
-                    b.ToTable("ListasPrecios");
+                    b.ToTable("ListasPrecios", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.ListaPrecioDetalle", b =>
@@ -451,7 +451,7 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("ListaPrecioId", "ProductoId")
                         .IsUnique();
 
-                    b.ToTable("ListasPreciosDetalle");
+                    b.ToTable("ListasPreciosDetalle", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Producto", b =>
@@ -499,7 +499,7 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("NumeroInterno")
                         .IsUnique();
 
-                    b.ToTable("Productos");
+                    b.ToTable("Productos", (string)null);
 
                     b.HasData(
                         new
@@ -1031,7 +1031,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Proveedores");
+                    b.ToTable("Proveedores", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Finanzas.CierreCaja", b =>
@@ -1068,7 +1068,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("FechaApertura");
 
-                    b.ToTable("CierresCaja");
+                    b.ToTable("CierresCaja", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Finanzas.CierreCajaDetalle", b =>
@@ -1095,7 +1095,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("FormaPagoId");
 
-                    b.ToTable("CierresCajaDetalle");
+                    b.ToTable("CierresCajaDetalle", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Mensaje", b =>
@@ -1127,7 +1127,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("RepartidorId", "Leido");
 
-                    b.ToTable("Mensajes");
+                    b.ToTable("Mensajes", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Repartidor", b =>
@@ -1162,7 +1162,7 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("CodigoAcceso")
                         .IsUnique();
 
-                    b.ToTable("Repartidores");
+                    b.ToTable("Repartidores", (string)null);
 
                     b.HasData(
                         new
@@ -1197,7 +1197,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("ZonaId");
 
-                    b.ToTable("RepartidorZonas");
+                    b.ToTable("RepartidorZonas", (string)null);
 
                     b.HasData(
                         new
@@ -1250,7 +1250,7 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("RepartidorId")
                         .IsUnique();
 
-                    b.ToTable("UbicacionesRepartidor");
+                    b.ToTable("UbicacionesRepartidor", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Zona", b =>
@@ -1276,7 +1276,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Zonas");
+                    b.ToTable("Zonas", (string)null);
 
                     b.HasData(
                         new
@@ -1331,7 +1331,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("ZonaId");
 
-                    b.ToTable("Clientes");
+                    b.ToTable("Clientes", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.FormaPago", b =>
@@ -1353,7 +1353,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FormasPago");
+                    b.ToTable("FormasPago", (string)null);
 
                     b.HasData(
                         new
@@ -1441,7 +1441,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("ProductoId");
 
-                    b.ToTable("LineasPedido");
+                    b.ToTable("LineasPedido", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.PagoPedido", b =>
@@ -1474,7 +1474,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("PedidoId");
 
-                    b.ToTable("PagosPedido");
+                    b.ToTable("PagosPedido", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Pedido", b =>
@@ -1583,7 +1583,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("ZonaId");
 
-                    b.ToTable("Pedidos");
+                    b.ToTable("Pedidos", (string)null);
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.TipoCliente", b =>
@@ -1606,7 +1606,7 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TiposCliente");
+                    b.ToTable("TiposCliente", (string)null);
 
                     b.HasData(
                         new

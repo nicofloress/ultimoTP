@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using BurgerShop.Application.Logistica.DTOs;
 using BurgerShop.Application.Logistica.Interfaces;
+using BurgerShop.Application.Notificaciones;
+using BurgerShop.Domain.Interfaces.Logistica;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,8 +14,18 @@ namespace BurgerShop.API.Controllers.Logistica;
 public class MensajesController : ControllerBase
 {
     private readonly IMensajeService _service;
+    private readonly INotificacionService _notificaciones;
+    private readonly IRepartidorRepository _repartidorRepo;
 
-    public MensajesController(IMensajeService service) => _service = service;
+    public MensajesController(
+        IMensajeService service,
+        INotificacionService notificaciones,
+        IRepartidorRepository repartidorRepo)
+    {
+        _service = service;
+        _notificaciones = notificaciones;
+        _repartidorRepo = repartidorRepo;
+    }
 
     [HttpGet("repartidor/{repartidorId}")]
     public async Task<ActionResult<IEnumerable<MensajeDto>>> GetByRepartidor(int repartidorId)
@@ -24,6 +36,7 @@ public class MensajesController : ControllerBase
     public async Task<ActionResult<MensajeDto>> EnviarComoAdmin(CrearMensajeDto dto)
     {
         var mensaje = await _service.EnviarMensajeAsync(dto, esDeAdmin: true);
+        await _notificaciones.NotificarMensajeParaRepartidorAsync(dto.RepartidorId, dto.Texto);
         return Ok(mensaje);
     }
 
@@ -37,6 +50,9 @@ public class MensajesController : ControllerBase
 
         var crearDto = new CrearMensajeDto(repartidorId, dto.Texto);
         var mensaje = await _service.EnviarMensajeAsync(crearDto, esDeAdmin: false);
+
+        var repartidor = await _repartidorRepo.GetByIdAsync(repartidorId);
+        await _notificaciones.NotificarMensajeParaAdminAsync(repartidorId, repartidor?.Nombre ?? "Repartidor", dto.Texto);
         return Ok(mensaje);
     }
 
