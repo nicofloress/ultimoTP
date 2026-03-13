@@ -10,6 +10,7 @@ const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
   [EstadoPedido.EnPreparacion]: 'bg-blue-100 text-blue-800',
   [EstadoPedido.EnCamino]: 'bg-indigo-100 text-indigo-800',
   [EstadoPedido.Entregado]: 'bg-gray-100 text-gray-600',
+  [EstadoPedido.Cancelado]: 'bg-red-100 text-red-700',
 };
 
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -276,7 +277,9 @@ export default function EntregasPage() {
               const pendientesZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnPreparacion).length;
               const enCaminoZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnCamino).length;
               const entregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Entregado).length;
+              const canceladosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Cancelado).length;
               const tienePendientes = pendientesZona > 0;
+              const repartidorDeZona = data.pedidos.find(p => p.repartidorNombre)?.repartidorNombre;
 
               return (
                 <div
@@ -290,6 +293,12 @@ export default function EntregasPage() {
                       <span className="text-lg" role="img" aria-label="moto">🏍</span>
                     </div>
                     {tienePendientes ? (
+                      <>
+                      {repartidorDeZona && (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 mb-1">
+                          <span>Repartidor: {repartidorDeZona}</span>
+                        </div>
+                      )}
                       <select
                         value={repartidorAsignado || ''}
                         onChange={e => {
@@ -305,8 +314,17 @@ export default function EntregasPage() {
                           </option>
                         ))}
                       </select>
+                      </>
                     ) : (
-                      <div className="text-sm text-gray-400 italic py-1.5">Todos despachados</div>
+                      <div className="py-1.5">
+                        {repartidorDeZona && (
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 rounded px-2 py-1 mb-1">
+                            <span>🏍</span>
+                            <span>{repartidorDeZona}</span>
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-400 italic">Todos despachados</div>
+                      </div>
                     )}
                     <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 font-medium">
                       <span>{data.pedidos.length} pedido{data.pedidos.length !== 1 ? 's' : ''} · ${totalZona.toLocaleString('es-AR')}</span>
@@ -314,6 +332,7 @@ export default function EntregasPage() {
                       {pendientesZona > 0 && <span className="text-green-600">{pendientesZona} listo{pendientesZona !== 1 ? 's' : ''}</span>}
                       {enCaminoZona > 0 && <span className="text-indigo-600">{enCaminoZona} en camino</span>}
                       {entregadosZona > 0 && <span className="text-gray-500">{entregadosZona} entregado{entregadosZona !== 1 ? 's' : ''}</span>}
+                      {canceladosZona > 0 && <span className="text-red-500">{canceladosZona} cancelado{canceladosZona !== 1 ? 's' : ''}</span>}
                     </div>
                   </div>
 
@@ -322,7 +341,7 @@ export default function EntregasPage() {
                     {data.pedidos.map(pedido => (
                       <div
                         key={pedido.id}
-                        className="bg-gray-50 rounded-md border border-gray-100 p-2.5 hover:bg-gray-100 transition-colors"
+                        className={`rounded-md border p-2.5 transition-colors ${pedido.estado === EstadoPedido.Cancelado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">

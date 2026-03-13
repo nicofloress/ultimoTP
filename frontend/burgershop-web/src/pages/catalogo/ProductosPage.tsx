@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '' };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0 };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -41,7 +41,7 @@ export default function ProductosPage() {
 
   const handleEditar = (p: Producto) => {
     setEditando(p);
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '' });
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0 });
     setShowForm(true);
   };
 
@@ -79,6 +79,10 @@ export default function ProductosPage() {
           <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2" />
           <input type="number" value={form.precio} onChange={e => setForm({ ...form, precio: Number(e.target.value) })} placeholder="Precio" className="border rounded px-3 py-2" min={0} step={0.01} required />
           <input type="text" value={form.numeroInterno} onChange={e => setForm({ ...form, numeroInterno: e.target.value })} placeholder="Numero interno (ej: HAM-001)" className="border rounded px-3 py-2" />
+          <input type="text" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} placeholder="Marca (ej: La Conquista, Finexcor...)" className="border rounded px-3 py-2" />
+          <input type="number" value={form.pesoGramos} onChange={e => setForm({ ...form, pesoGramos: Number(e.target.value) })} placeholder="Peso en gramos" className="border rounded px-3 py-2" min={0} />
+          <input type="number" value={form.unidadesPorBulto} onChange={e => setForm({ ...form, unidadesPorBulto: Number(e.target.value) })} placeholder="Unidades por bulto" className="border rounded px-3 py-2" min={1} />
+          <input type="number" value={form.unidadesPorMedia} onChange={e => setForm({ ...form, unidadesPorMedia: Number(e.target.value) })} placeholder="Unidades por media" className="border rounded px-3 py-2" min={0} />
           <div className="col-span-2 flex gap-2">
             <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
@@ -96,6 +100,8 @@ export default function ProductosPage() {
                 <h3 className="font-bold text-lg">{p.nombre}</h3>
                 <p className="text-sm text-gray-500">{p.categoriaNombre}</p>
                 {p.numeroInterno && <p className="text-xs text-gray-400">{p.numeroInterno}</p>}
+                {p.marca && <p className="text-xs text-gray-400">Marca: {p.marca}</p>}
+                {p.unidadesPorMedia > 0 && <p className="text-xs text-gray-400">Media: {p.unidadesPorMedia} | Bulto: {p.unidadesPorBulto}</p>}
                 {p.descripcion && <p className="text-sm text-gray-600 mt-1">{p.descripcion}</p>}
               </div>
               <span className="text-lg font-bold text-amber-600">${p.precio.toLocaleString()}</span>

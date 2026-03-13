@@ -4,6 +4,7 @@ using BurgerShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -15,37 +16,43 @@ namespace BurgerShop.Infrastructure.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.13");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "9.0.14")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Auth.Usuario", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("NombreCompleto")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("NombreUsuario")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int?>("RepartidorId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Rol")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -94,6 +101,16 @@ namespace BurgerShop.Infrastructure.Migrations
                             PasswordHash = "$2a$11$W8Sz4uInizUbeN7QyFxus.yY5OeJjg1FpWxkbaweuNyzCipCAF87u",
                             RepartidorId = 2,
                             Rol = "Repartidor"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Activo = true,
+                            NombreCompleto = "Nico Flores",
+                            NombreUsuario = "nico",
+                            PasswordHash = "$2a$11$k8abIU/DHMapQlOJM1JCe.MsfWKeOI0UtDTfemLVgPRESrFAhYbdu",
+                            RepartidorId = 3,
+                            Rol = "Repartidor"
                         });
                 });
 
@@ -101,142 +118,165 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activa")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("CategoriaPadreId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("SeccionCamioneta")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoriaPadreId");
 
                     b.ToTable("Categorias");
 
                     b.HasData(
                         new
                         {
+                            Id = 17,
+                            Activa = true,
+                            Nombre = "Económica",
+                            SeccionCamioneta = 10
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Activa = true,
+                            Nombre = "Premium",
+                            SeccionCamioneta = 10
+                        },
+                        new
+                        {
                             Id = 1,
                             Activa = true,
-                            Nombre = "Hamburguesas",
+                            CategoriaPadreId = 17,
+                            Nombre = "Hamburguesa Económica 55gr",
                             SeccionCamioneta = 0
                         },
                         new
                         {
                             Id = 2,
                             Activa = true,
-                            Nombre = "Maxi Hamburguesas",
-                            SeccionCamioneta = 1
+                            CategoriaPadreId = 17,
+                            Nombre = "Hamburguesa Económica 69gr",
+                            SeccionCamioneta = 0
                         },
                         new
                         {
                             Id = 3,
                             Activa = true,
-                            Nombre = "Super Hamburguesas",
-                            SeccionCamioneta = 1
+                            CategoriaPadreId = 17,
+                            Nombre = "Hamburguesa Económica 80gr",
+                            SeccionCamioneta = 0
                         },
                         new
                         {
                             Id = 4,
                             Activa = true,
-                            Nombre = "Mega Hamburguesas",
-                            SeccionCamioneta = 1
+                            CategoriaPadreId = 17,
+                            Nombre = "Hamburguesa Económica 110gr",
+                            SeccionCamioneta = 0
                         },
                         new
                         {
                             Id = 5,
                             Activa = true,
-                            Nombre = "Pan Hamburguesa",
-                            SeccionCamioneta = 4
+                            CategoriaPadreId = 18,
+                            Nombre = "Hamburguesa Premium 80gr",
+                            SeccionCamioneta = 1
                         },
                         new
                         {
                             Id = 6,
                             Activa = true,
-                            Nombre = "Pan Maxi Hamburguesa",
-                            SeccionCamioneta = 5
+                            CategoriaPadreId = 18,
+                            Nombre = "Hamburguesa Premium 110gr",
+                            SeccionCamioneta = 1
                         },
                         new
                         {
                             Id = 7,
                             Activa = true,
-                            Nombre = "Panchos",
-                            SeccionCamioneta = 2
+                            CategoriaPadreId = 18,
+                            Nombre = "Hamburguesa Premium 120gr",
+                            SeccionCamioneta = 1
                         },
                         new
                         {
                             Id = 8,
                             Activa = true,
-                            Nombre = "Salchichas",
-                            SeccionCamioneta = 2
+                            CategoriaPadreId = 18,
+                            Nombre = "Hamburguesa Premium 160gr",
+                            SeccionCamioneta = 1
                         },
                         new
                         {
                             Id = 9,
                             Activa = true,
-                            Nombre = "Pan Pancho",
-                            SeccionCamioneta = 6
+                            CategoriaPadreId = 18,
+                            Nombre = "Hamburguesa Premium 198gr",
+                            SeccionCamioneta = 1
                         },
                         new
                         {
                             Id = 10,
                             Activa = true,
-                            Nombre = "Super Panchos",
-                            SeccionCamioneta = 3
+                            Nombre = "Salchicha Corta",
+                            SeccionCamioneta = 2
                         },
                         new
                         {
                             Id = 11,
                             Activa = true,
-                            Nombre = "Salchichas Largas",
+                            Nombre = "Salchicha Larga",
                             SeccionCamioneta = 3
                         },
                         new
                         {
                             Id = 12,
                             Activa = true,
-                            Nombre = "Pan Super Pancho",
-                            SeccionCamioneta = 7
+                            Nombre = "Pan Tradicional",
+                            SeccionCamioneta = 4
                         },
                         new
                         {
                             Id = 13,
                             Activa = true,
-                            Nombre = "Aderezos",
-                            SeccionCamioneta = 8
+                            Nombre = "Pan Maxi",
+                            SeccionCamioneta = 5
                         },
                         new
                         {
                             Id = 14,
                             Activa = true,
-                            Nombre = "Snacks",
-                            SeccionCamioneta = 9
+                            Nombre = "Pan Pancho",
+                            SeccionCamioneta = 6
                         },
                         new
                         {
                             Id = 15,
                             Activa = true,
-                            Nombre = "Congelados",
-                            SeccionCamioneta = 9
+                            Nombre = "Pan Super Pancho",
+                            SeccionCamioneta = 7
                         },
                         new
                         {
                             Id = 16,
                             Activa = true,
-                            Nombre = "Bebidas",
-                            SeccionCamioneta = 9
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Activa = true,
-                            Nombre = "Ofertas Semanales",
-                            SeccionCamioneta = 10
+                            Nombre = "Aderezos",
+                            SeccionCamioneta = 8
                         });
                 });
 
@@ -244,22 +284,24 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("CategoriaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Descripcion")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
@@ -275,59 +317,190 @@ namespace BurgerShop.Infrastructure.Migrations
                         {
                             Id = 1,
                             Activo = true,
-                            CategoriaId = 17,
-                            Descripcion = "40 hamburguesas 110gr + 40 panes",
-                            Nombre = "Promo 40 Hamburguesas + Pan",
-                            Precio = 3700m
+                            Descripcion = "Media eco 69gr con pan y aderezo",
+                            Nombre = "30 Hamburguesas 69gr Eco C/Pan + ADD",
+                            Precio = 22000m
                         },
                         new
                         {
                             Id = 2,
                             Activo = true,
-                            CategoriaId = 17,
-                            Descripcion = "30 hamburguesas 69gr + 30 panes",
-                            Nombre = "Promo 30 Hamburguesas + Pan",
-                            Precio = 2700m
+                            Descripcion = "Media eco 80gr con pan y aderezo",
+                            Nombre = "30 Hamburguesas 80gr Eco C/Pan + ADD",
+                            Precio = 27000m
                         },
                         new
                         {
                             Id = 3,
                             Activo = true,
-                            CategoriaId = 17,
-                            Descripcion = "30 panchos + 30 panes",
-                            Nombre = "Promo 30 Panchos",
-                            Precio = 1900m
+                            Descripcion = "Media eco 110gr con pan y aderezo",
+                            Nombre = "20 Hamburguesas 110gr Eco C/Pan + ADD",
+                            Precio = 24000m
                         },
                         new
                         {
                             Id = 4,
                             Activo = true,
-                            CategoriaId = 17,
-                            Descripcion = "18 super panchos + 18 panes",
-                            Nombre = "Promo 18 Super Panchos",
-                            Precio = 1600m
+                            Descripcion = "Media premium 80gr",
+                            Nombre = "30 Hamburguesas 80gr Premium C/Pan + ADD",
+                            Precio = 38000m
                         },
                         new
                         {
                             Id = 5,
                             Activo = true,
-                            CategoriaId = 17,
-                            Descripcion = "36 super panchos + 36 panes",
-                            Nombre = "Promo 36 Super Panchos",
-                            Precio = 2950m
+                            Descripcion = "Media premium 110gr",
+                            Nombre = "20 Hamburguesas 110gr Premium C/Pan + ADD",
+                            Precio = 34000m
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Activo = true,
+                            Descripcion = "Media premium 120gr",
+                            Nombre = "20 Hamburguesas 120gr Premium C/Pan + ADD",
+                            Precio = 40000m
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Activo = true,
+                            Descripcion = "Media premium 160gr",
+                            Nombre = "12 Hamburguesas 160gr Premium C/Pan + ADD",
+                            Precio = 35000m
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Activo = true,
+                            Descripcion = "Media premium 198gr",
+                            Nombre = "12 Hamburguesas 198gr Premium C/Pan + ADD",
+                            Precio = 42000m
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado eco 69gr",
+                            Nombre = "60 Hamburguesas 69gr Eco C/Pan",
+                            Precio = 38000m
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado eco 80gr",
+                            Nombre = "60 Hamburguesas 80gr Eco C/Pan",
+                            Precio = 48000m
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado eco 110gr",
+                            Nombre = "40 Hamburguesas 110gr Eco C/Pan",
+                            Precio = 44000m
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado premium 80gr",
+                            Nombre = "60 Hamburguesas 80gr Premium C/Pan",
+                            Precio = 72000m
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado premium 110gr",
+                            Nombre = "40 Hamburguesas 110gr Premium C/Pan",
+                            Precio = 64000m
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado premium 120gr",
+                            Nombre = "40 Hamburguesas 120gr Premium C/Pan",
+                            Precio = 76000m
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado premium 160gr",
+                            Nombre = "24 Hamburguesas 160gr Premium C/Pan",
+                            Precio = 65000m
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Activo = true,
+                            Descripcion = "Bulto cerrado premium 198gr",
+                            Nombre = "24 Hamburguesas 198gr Premium C/Pan",
+                            Precio = 80000m
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Activo = true,
+                            Descripcion = "Bulto 55gr con pan tradicional",
+                            Nombre = "72 Hamburguesas 55gr Eco C/Pan",
+                            Precio = 32000m
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Activo = true,
+                            Descripcion = "Bulto 55gr sin pan ni aderezo",
+                            Nombre = "72 Hamburguesas 55gr Eco S/Pan",
+                            Precio = 26000m
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Activo = true,
+                            Descripcion = "Media salchicha corta",
+                            Nombre = "30 Panchos C/Pan + ADD",
+                            Precio = 18000m
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Activo = true,
+                            Descripcion = "Bulto salchicha corta",
+                            Nombre = "60 Panchos C/Pan + ADD",
+                            Precio = 32000m
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Activo = true,
+                            Descripcion = "Media salchicha larga",
+                            Nombre = "36 Super Panchos C/Pan + ADD",
+                            Precio = 28000m
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Activo = true,
+                            Descripcion = "Bulto salchicha larga",
+                            Nombre = "60 Super Panchos C/Pan + ADD",
+                            Precio = 45000m
                         });
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.ComboDetalle", b =>
                 {
                     b.Property<int>("ComboId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Cantidad")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("ComboId", "ProductoId");
 
@@ -339,68 +512,332 @@ namespace BurgerShop.Infrastructure.Migrations
                         new
                         {
                             ComboId = 1,
-                            ProductoId = 6,
-                            Cantidad = 1
+                            ProductoId = 2,
+                            Cantidad = 30
                         },
                         new
                         {
                             ComboId = 1,
-                            ProductoId = 23,
-                            Cantidad = 2
+                            ProductoId = 12,
+                            Cantidad = 30
+                        },
+                        new
+                        {
+                            ComboId = 1,
+                            ProductoId = 16,
+                            Cantidad = 1
                         },
                         new
                         {
                             ComboId = 2,
+                            ProductoId = 3,
+                            Cantidad = 30
+                        },
+                        new
+                        {
+                            ComboId = 2,
+                            ProductoId = 12,
+                            Cantidad = 30
+                        },
+                        new
+                        {
+                            ComboId = 2,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 3,
+                            ProductoId = 4,
+                            Cantidad = 20
+                        },
+                        new
+                        {
+                            ComboId = 3,
+                            ProductoId = 13,
+                            Cantidad = 20
+                        },
+                        new
+                        {
+                            ComboId = 3,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 4,
                             ProductoId = 5,
-                            Cantidad = 1
-                        },
-                        new
-                        {
-                            ComboId = 2,
-                            ProductoId = 23,
-                            Cantidad = 1
-                        },
-                        new
-                        {
-                            ComboId = 3,
-                            ProductoId = 29,
-                            Cantidad = 1
-                        },
-                        new
-                        {
-                            ComboId = 3,
-                            ProductoId = 27,
-                            Cantidad = 1
-                        },
-                        new
-                        {
-                            ComboId = 3,
-                            ProductoId = 33,
-                            Cantidad = 2
+                            Cantidad = 30
                         },
                         new
                         {
                             ComboId = 4,
-                            ProductoId = 34,
-                            Cantidad = 3
+                            ProductoId = 12,
+                            Cantidad = 30
                         },
                         new
                         {
                             ComboId = 4,
-                            ProductoId = 38,
-                            Cantidad = 3
+                            ProductoId = 16,
+                            Cantidad = 1
                         },
                         new
                         {
                             ComboId = 5,
-                            ProductoId = 35,
-                            Cantidad = 3
+                            ProductoId = 6,
+                            Cantidad = 20
                         },
                         new
                         {
                             ComboId = 5,
-                            ProductoId = 39,
-                            Cantidad = 3
+                            ProductoId = 13,
+                            Cantidad = 20
+                        },
+                        new
+                        {
+                            ComboId = 5,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 6,
+                            ProductoId = 7,
+                            Cantidad = 20
+                        },
+                        new
+                        {
+                            ComboId = 6,
+                            ProductoId = 13,
+                            Cantidad = 20
+                        },
+                        new
+                        {
+                            ComboId = 6,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 7,
+                            ProductoId = 8,
+                            Cantidad = 12
+                        },
+                        new
+                        {
+                            ComboId = 7,
+                            ProductoId = 13,
+                            Cantidad = 12
+                        },
+                        new
+                        {
+                            ComboId = 7,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 8,
+                            ProductoId = 9,
+                            Cantidad = 12
+                        },
+                        new
+                        {
+                            ComboId = 8,
+                            ProductoId = 13,
+                            Cantidad = 12
+                        },
+                        new
+                        {
+                            ComboId = 8,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 9,
+                            ProductoId = 2,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 9,
+                            ProductoId = 12,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 10,
+                            ProductoId = 3,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 10,
+                            ProductoId = 12,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 11,
+                            ProductoId = 4,
+                            Cantidad = 40
+                        },
+                        new
+                        {
+                            ComboId = 11,
+                            ProductoId = 13,
+                            Cantidad = 40
+                        },
+                        new
+                        {
+                            ComboId = 12,
+                            ProductoId = 5,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 12,
+                            ProductoId = 12,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 13,
+                            ProductoId = 6,
+                            Cantidad = 40
+                        },
+                        new
+                        {
+                            ComboId = 13,
+                            ProductoId = 13,
+                            Cantidad = 40
+                        },
+                        new
+                        {
+                            ComboId = 14,
+                            ProductoId = 7,
+                            Cantidad = 40
+                        },
+                        new
+                        {
+                            ComboId = 14,
+                            ProductoId = 13,
+                            Cantidad = 40
+                        },
+                        new
+                        {
+                            ComboId = 15,
+                            ProductoId = 8,
+                            Cantidad = 24
+                        },
+                        new
+                        {
+                            ComboId = 15,
+                            ProductoId = 13,
+                            Cantidad = 24
+                        },
+                        new
+                        {
+                            ComboId = 16,
+                            ProductoId = 9,
+                            Cantidad = 24
+                        },
+                        new
+                        {
+                            ComboId = 16,
+                            ProductoId = 13,
+                            Cantidad = 24
+                        },
+                        new
+                        {
+                            ComboId = 17,
+                            ProductoId = 1,
+                            Cantidad = 72
+                        },
+                        new
+                        {
+                            ComboId = 17,
+                            ProductoId = 12,
+                            Cantidad = 72
+                        },
+                        new
+                        {
+                            ComboId = 18,
+                            ProductoId = 1,
+                            Cantidad = 72
+                        },
+                        new
+                        {
+                            ComboId = 19,
+                            ProductoId = 10,
+                            Cantidad = 30
+                        },
+                        new
+                        {
+                            ComboId = 19,
+                            ProductoId = 14,
+                            Cantidad = 30
+                        },
+                        new
+                        {
+                            ComboId = 19,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 20,
+                            ProductoId = 10,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 20,
+                            ProductoId = 14,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 20,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 21,
+                            ProductoId = 11,
+                            Cantidad = 36
+                        },
+                        new
+                        {
+                            ComboId = 21,
+                            ProductoId = 15,
+                            Cantidad = 36
+                        },
+                        new
+                        {
+                            ComboId = 21,
+                            ProductoId = 16,
+                            Cantidad = 1
+                        },
+                        new
+                        {
+                            ComboId = 22,
+                            ProductoId = 11,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 22,
+                            ProductoId = 15,
+                            Cantidad = 60
+                        },
+                        new
+                        {
+                            ComboId = 22,
+                            ProductoId = 16,
+                            Cantidad = 1
                         });
                 });
 
@@ -408,18 +845,20 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activa")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("EsDefault")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
 
@@ -433,16 +872,18 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ListaPrecioId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -458,39 +899,50 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("CategoriaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Descripcion")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ImagenUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Marca")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("NumeroInterno")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("PesoGramos")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Precio")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("UnidadesPorBulto")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UnidadesPorMedia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Id");
 
@@ -507,499 +959,181 @@ namespace BurgerShop.Infrastructure.Migrations
                             Id = 1,
                             Activo = true,
                             CategoriaId = 1,
-                            Nombre = "Hamburguesa x 1",
-                            NumeroInterno = "HAM-001",
-                            PesoGramos = 80,
-                            Precio = 50m,
-                            UnidadesPorBulto = 1
+                            Marca = "La Defensa",
+                            Nombre = "Hamburguesa Eco 55gr",
+                            PesoGramos = 55,
+                            Precio = 300m,
+                            UnidadesPorBulto = 72,
+                            UnidadesPorMedia = 36
                         },
                         new
                         {
                             Id = 2,
                             Activo = true,
-                            CategoriaId = 1,
-                            Nombre = "Hamburguesa x 2",
-                            NumeroInterno = "HAM-002",
-                            PesoGramos = 80,
-                            Precio = 100m,
-                            UnidadesPorBulto = 2
+                            CategoriaId = 2,
+                            Marca = "La Conquista",
+                            Nombre = "Hamburguesa Eco 69gr",
+                            PesoGramos = 69,
+                            Precio = 450m,
+                            UnidadesPorBulto = 60,
+                            UnidadesPorMedia = 30
                         },
                         new
                         {
                             Id = 3,
                             Activo = true,
-                            CategoriaId = 1,
-                            Nombre = "Hamburguesa x 6",
-                            NumeroInterno = "HAM-003",
+                            CategoriaId = 3,
+                            Marca = "Rancho Alto",
+                            Nombre = "Hamburguesa Eco 80gr",
                             PesoGramos = 80,
-                            Precio = 250m,
-                            UnidadesPorBulto = 6
+                            Precio = 550m,
+                            UnidadesPorBulto = 60,
+                            UnidadesPorMedia = 30
                         },
                         new
                         {
                             Id = 4,
                             Activo = true,
-                            CategoriaId = 1,
-                            Nombre = "Hamburguesa x 12",
-                            NumeroInterno = "HAM-004",
-                            PesoGramos = 80,
-                            Precio = 400m,
-                            UnidadesPorBulto = 12
+                            CategoriaId = 4,
+                            Marca = "La Defensa",
+                            Nombre = "Hamburguesa Eco 110gr",
+                            PesoGramos = 110,
+                            Precio = 750m,
+                            UnidadesPorBulto = 40,
+                            UnidadesPorMedia = 20
                         },
                         new
                         {
                             Id = 5,
                             Activo = true,
-                            CategoriaId = 1,
-                            Nombre = "Hamburguesa x 30",
-                            NumeroInterno = "HAM-005",
+                            CategoriaId = 5,
+                            Marca = "Finexcor",
+                            Nombre = "Hamburguesa Premium 80gr",
                             PesoGramos = 80,
-                            Precio = 750m,
-                            UnidadesPorBulto = 30
+                            Precio = 850m,
+                            UnidadesPorBulto = 60,
+                            UnidadesPorMedia = 30
                         },
                         new
                         {
                             Id = 6,
                             Activo = true,
-                            CategoriaId = 1,
-                            Nombre = "Hamburguesa x 40",
-                            NumeroInterno = "HAM-006",
-                            PesoGramos = 80,
-                            Precio = 940m,
-                            UnidadesPorBulto = 40
+                            CategoriaId = 6,
+                            Marca = "Finexcor",
+                            Nombre = "Hamburguesa Premium 110gr",
+                            PesoGramos = 110,
+                            Precio = 1100m,
+                            UnidadesPorBulto = 40,
+                            UnidadesPorMedia = 20
                         },
                         new
                         {
                             Id = 7,
                             Activo = true,
-                            CategoriaId = 2,
-                            Nombre = "Maxi Hamburguesa x 1",
-                            NumeroInterno = "MAX-001",
-                            PesoGramos = 110,
-                            Precio = 70m,
-                            UnidadesPorBulto = 1
+                            CategoriaId = 7,
+                            Marca = "Finexcor",
+                            Nombre = "Hamburguesa Premium 120gr",
+                            PesoGramos = 120,
+                            Precio = 1300m,
+                            UnidadesPorBulto = 40,
+                            UnidadesPorMedia = 20
                         },
                         new
                         {
                             Id = 8,
                             Activo = true,
-                            CategoriaId = 2,
-                            Nombre = "Maxi Hamburguesa x 2",
-                            NumeroInterno = "MAX-002",
-                            PesoGramos = 110,
-                            Precio = 130m,
-                            UnidadesPorBulto = 2
+                            CategoriaId = 8,
+                            Marca = "Finexcor",
+                            Nombre = "Hamburguesa Premium 160gr",
+                            PesoGramos = 160,
+                            Precio = 1800m,
+                            UnidadesPorBulto = 24,
+                            UnidadesPorMedia = 12
                         },
                         new
                         {
                             Id = 9,
                             Activo = true,
-                            CategoriaId = 2,
-                            Nombre = "Maxi Hamburguesa x 4",
-                            NumeroInterno = "MAX-003",
-                            PesoGramos = 110,
-                            Precio = 260m,
-                            UnidadesPorBulto = 4
+                            CategoriaId = 9,
+                            Marca = "Friar",
+                            Nombre = "Hamburguesa Premium 198gr",
+                            PesoGramos = 198,
+                            Precio = 2200m,
+                            UnidadesPorBulto = 24,
+                            UnidadesPorMedia = 12
                         },
                         new
                         {
                             Id = 10,
                             Activo = true,
-                            CategoriaId = 2,
-                            Nombre = "Maxi Hamburguesa x 12",
-                            NumeroInterno = "MAX-004",
-                            PesoGramos = 110,
-                            Precio = 680m,
-                            UnidadesPorBulto = 12
+                            CategoriaId = 10,
+                            Marca = "Jetfood",
+                            Nombre = "Salchicha Corta",
+                            Precio = 350m,
+                            UnidadesPorBulto = 60,
+                            UnidadesPorMedia = 30
                         },
                         new
                         {
                             Id = 11,
                             Activo = true,
-                            CategoriaId = 2,
-                            Nombre = "Maxi Hamburguesa x 20",
-                            NumeroInterno = "MAX-005",
-                            PesoGramos = 110,
-                            Precio = 1100m,
-                            UnidadesPorBulto = 20
+                            CategoriaId = 11,
+                            Marca = "Delosan",
+                            Nombre = "Salchicha Larga",
+                            Precio = 500m,
+                            UnidadesPorBulto = 60,
+                            UnidadesPorMedia = 36
                         },
                         new
                         {
                             Id = 12,
                             Activo = true,
-                            CategoriaId = 3,
-                            Nombre = "Super Hamburguesa x 1",
-                            NumeroInterno = "SUP-001",
-                            PesoGramos = 120,
-                            Precio = 100m,
-                            UnidadesPorBulto = 1
+                            CategoriaId = 12,
+                            Nombre = "Pan Tradicional",
+                            Precio = 1200m,
+                            UnidadesPorBulto = 6,
+                            UnidadesPorMedia = 0
                         },
                         new
                         {
                             Id = 13,
                             Activo = true,
-                            CategoriaId = 3,
-                            Nombre = "Super Hamburguesa x 2",
-                            NumeroInterno = "SUP-002",
-                            PesoGramos = 120,
-                            Precio = 180m,
-                            UnidadesPorBulto = 2
+                            CategoriaId = 13,
+                            Nombre = "Pan Maxi",
+                            Precio = 1500m,
+                            UnidadesPorBulto = 6,
+                            UnidadesPorMedia = 0
                         },
                         new
                         {
                             Id = 14,
                             Activo = true,
-                            CategoriaId = 3,
-                            Nombre = "Super Hamburguesa x 4",
-                            NumeroInterno = "SUP-003",
-                            PesoGramos = 120,
-                            Precio = 350m,
-                            UnidadesPorBulto = 4
+                            CategoriaId = 14,
+                            Nombre = "Pan Pancho",
+                            Precio = 1000m,
+                            UnidadesPorBulto = 6,
+                            UnidadesPorMedia = 0
                         },
                         new
                         {
                             Id = 15,
                             Activo = true,
-                            CategoriaId = 3,
-                            Nombre = "Super Hamburguesa x 12",
-                            NumeroInterno = "SUP-004",
-                            PesoGramos = 120,
-                            Precio = 1000m,
-                            UnidadesPorBulto = 12
+                            CategoriaId = 15,
+                            Nombre = "Pan Super Pancho",
+                            Precio = 1400m,
+                            UnidadesPorBulto = 6,
+                            UnidadesPorMedia = 0
                         },
                         new
                         {
                             Id = 16,
                             Activo = true,
-                            CategoriaId = 4,
-                            Nombre = "Mega Hamburguesa x 1",
-                            NumeroInterno = "MEG-001",
-                            PesoGramos = 160,
-                            Precio = 120m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Activo = true,
-                            CategoriaId = 4,
-                            Nombre = "Mega Hamburguesa x 2",
-                            NumeroInterno = "MEG-002",
-                            PesoGramos = 160,
-                            Precio = 220m,
-                            UnidadesPorBulto = 2
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Activo = true,
-                            CategoriaId = 4,
-                            Nombre = "Mega Hamburguesa x 4",
-                            NumeroInterno = "MEG-003",
-                            PesoGramos = 160,
-                            Precio = 420m,
-                            UnidadesPorBulto = 4
-                        },
-                        new
-                        {
-                            Id = 19,
-                            Activo = true,
-                            CategoriaId = 4,
-                            Nombre = "Mega Hamburguesa x 12",
-                            NumeroInterno = "MEG-004",
-                            PesoGramos = 160,
-                            Precio = 1200m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Activo = true,
-                            CategoriaId = 5,
-                            Nombre = "Pan Hamburguesa x 2",
-                            NumeroInterno = "PHA-001",
-                            Precio = 80m,
-                            UnidadesPorBulto = 2
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Activo = true,
-                            CategoriaId = 5,
-                            Nombre = "Pan Hamburguesa x 6",
-                            NumeroInterno = "PHA-002",
-                            Precio = 200m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 22,
-                            Activo = true,
-                            CategoriaId = 5,
-                            Nombre = "Pan Hamburguesa x 12",
-                            NumeroInterno = "PHA-003",
-                            Precio = 360m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 23,
-                            Activo = true,
-                            CategoriaId = 5,
-                            Nombre = "Pan Hamburguesa x 30",
-                            NumeroInterno = "PHA-004",
-                            Precio = 800m,
-                            UnidadesPorBulto = 30
-                        },
-                        new
-                        {
-                            Id = 24,
-                            Activo = true,
-                            CategoriaId = 6,
-                            Nombre = "Pan Maxi x 2",
-                            NumeroInterno = "PMA-001",
-                            Precio = 100m,
-                            UnidadesPorBulto = 2
-                        },
-                        new
-                        {
-                            Id = 25,
-                            Activo = true,
-                            CategoriaId = 6,
-                            Nombre = "Pan Maxi x 6",
-                            NumeroInterno = "PMA-002",
-                            Precio = 260m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 26,
-                            Activo = true,
-                            CategoriaId = 6,
-                            Nombre = "Pan Maxi x 12",
-                            NumeroInterno = "PMA-003",
-                            Precio = 480m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 27,
-                            Activo = true,
-                            CategoriaId = 7,
-                            Nombre = "Pancho x 6",
-                            NumeroInterno = "PAN-001",
-                            Precio = 150m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 28,
-                            Activo = true,
-                            CategoriaId = 7,
-                            Nombre = "Pancho x 12",
-                            NumeroInterno = "PAN-002",
-                            Precio = 260m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 29,
-                            Activo = true,
-                            CategoriaId = 7,
-                            Nombre = "Pancho x 24",
-                            NumeroInterno = "PAN-003",
-                            Precio = 480m,
-                            UnidadesPorBulto = 24
-                        },
-                        new
-                        {
-                            Id = 30,
-                            Activo = true,
-                            CategoriaId = 8,
-                            Nombre = "Salchicha x 6",
-                            NumeroInterno = "SAL-001",
-                            Precio = 180m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 31,
-                            Activo = true,
-                            CategoriaId = 8,
-                            Nombre = "Salchicha x 12",
-                            NumeroInterno = "SAL-002",
-                            Precio = 320m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 32,
-                            Activo = true,
-                            CategoriaId = 9,
-                            Nombre = "Pan Pancho x 6",
-                            NumeroInterno = "PPH-001",
-                            Precio = 100m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 33,
-                            Activo = true,
-                            CategoriaId = 9,
-                            Nombre = "Pan Pancho x 12",
-                            NumeroInterno = "PPH-002",
-                            Precio = 180m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 34,
-                            Activo = true,
-                            CategoriaId = 10,
-                            Nombre = "Super Pancho x 6",
-                            NumeroInterno = "SPC-001",
-                            Precio = 200m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 35,
-                            Activo = true,
-                            CategoriaId = 10,
-                            Nombre = "Super Pancho x 12",
-                            NumeroInterno = "SPC-002",
-                            Precio = 380m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 36,
-                            Activo = true,
-                            CategoriaId = 11,
-                            Nombre = "Salchicha Larga x 6",
-                            NumeroInterno = "SLA-001",
-                            Precio = 220m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 37,
-                            Activo = true,
-                            CategoriaId = 11,
-                            Nombre = "Salchicha Larga x 12",
-                            NumeroInterno = "SLA-002",
-                            Precio = 400m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 38,
-                            Activo = true,
-                            CategoriaId = 12,
-                            Nombre = "Pan Super Pancho x 6",
-                            NumeroInterno = "PSP-001",
-                            Precio = 130m,
-                            UnidadesPorBulto = 6
-                        },
-                        new
-                        {
-                            Id = 39,
-                            Activo = true,
-                            CategoriaId = 12,
-                            Nombre = "Pan Super Pancho x 12",
-                            NumeroInterno = "PSP-002",
-                            Precio = 240m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 40,
-                            Activo = true,
-                            CategoriaId = 13,
-                            Nombre = "Mayonesa",
-                            NumeroInterno = "ADR-001",
-                            Precio = 80m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 41,
-                            Activo = true,
-                            CategoriaId = 13,
-                            Nombre = "Ketchup",
-                            NumeroInterno = "ADR-002",
-                            Precio = 80m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 42,
-                            Activo = true,
-                            CategoriaId = 13,
-                            Nombre = "Mostaza",
-                            NumeroInterno = "ADR-003",
-                            Precio = 80m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 43,
-                            Activo = true,
-                            CategoriaId = 14,
-                            Nombre = "Papas Congeladas x 1kg",
-                            NumeroInterno = "SNK-001",
-                            Precio = 300m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 44,
-                            Activo = true,
-                            CategoriaId = 15,
-                            Nombre = "Empanadas x 12",
-                            NumeroInterno = "CON-001",
-                            Precio = 500m,
-                            UnidadesPorBulto = 12
-                        },
-                        new
-                        {
-                            Id = 45,
-                            Activo = true,
-                            CategoriaId = 15,
-                            Nombre = "Milanesas x 4",
-                            NumeroInterno = "CON-002",
-                            Precio = 450m,
-                            UnidadesPorBulto = 4
-                        },
-                        new
-                        {
-                            Id = 46,
-                            Activo = true,
                             CategoriaId = 16,
-                            Nombre = "Coca Cola 1.5L",
-                            NumeroInterno = "BEB-001",
-                            Precio = 200m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 47,
-                            Activo = true,
-                            CategoriaId = 16,
-                            Nombre = "Sprite 1.5L",
-                            NumeroInterno = "BEB-002",
-                            Precio = 200m,
-                            UnidadesPorBulto = 1
-                        },
-                        new
-                        {
-                            Id = 48,
-                            Activo = true,
-                            CategoriaId = 16,
-                            Nombre = "Agua 500ml",
-                            NumeroInterno = "BEB-003",
-                            Precio = 100m,
-                            UnidadesPorBulto = 1
+                            Marca = "Benidor",
+                            Nombre = "Aderezo Benidor",
+                            Precio = 2500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
                         });
                 });
 
@@ -1007,27 +1141,29 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Contacto")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Direccion")
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Telefono")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 
@@ -1038,16 +1174,18 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Estado")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("FechaApertura")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("FechaCierre")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<decimal?>("MontoFinal")
                         .HasColumnType("decimal(18,2)");
@@ -1057,10 +1195,10 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int?>("UsuarioId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1075,16 +1213,18 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CantidadOperaciones")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CierreCajaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("FormaPagoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("MontoTotal")
                         .HasColumnType("decimal(18,2)");
@@ -1102,24 +1242,26 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("EsDeAdmin")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("FechaEnvio")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("Leido")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("RepartidorId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Texto")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.HasKey("Id");
 
@@ -1134,28 +1276,30 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("CodigoAcceso")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Telefono")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Vehiculo")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
@@ -1182,16 +1326,25 @@ namespace BurgerShop.Infrastructure.Migrations
                             Nombre = "María García",
                             Telefono = "11-8765-4321",
                             Vehiculo = "Bicicleta"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Activo = true,
+                            CodigoAcceso = "9999",
+                            Nombre = "Nico Flores",
+                            Telefono = "11-0000-0000",
+                            Vehiculo = "Moto"
                         });
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RepartidorZona", b =>
                 {
                     b.Property<int>("RepartidorId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ZonaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("RepartidorId", "ZonaId");
 
@@ -1226,22 +1379,24 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("EstaActivo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("FechaActualizacion")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<double>("Latitud")
-                        .HasColumnType("REAL");
+                        .HasColumnType("double precision");
 
                     b.Property<double>("Longitud")
-                        .HasColumnType("REAL");
+                        .HasColumnType("double precision");
 
                     b.Property<int>("RepartidorId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1257,22 +1412,24 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activa")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal>("CostoEnvio")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Descripcion")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
@@ -1299,29 +1456,31 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Direccion")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("ListaPrecioId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Telefono")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("TipoClienteId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ZonaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1338,15 +1497,17 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activa")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<decimal>("PorcentajeRecargo")
                         .HasColumnType("decimal(18,2)");
@@ -1404,31 +1565,33 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Cantidad")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ComboId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Notas")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("PedidoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("PrecioUnitario")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("ProductoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(18,2)");
@@ -1448,16 +1611,18 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("FormaPagoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Monto")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("PedidoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("PorcentajeRecargo")
                         .HasColumnType("decimal(18,2)");
@@ -1481,86 +1646,88 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("CierreCajaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ClienteId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ComprobanteEntrega")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("DireccionEntrega")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("EstaPago")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Estado")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("FechaAsignacion")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("FechaEntrega")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("FechaProgramada")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("FormaPagoId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("NombreCliente")
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("NotaInterna")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("NotasEntrega")
                         .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("NumeroTicket")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<decimal>("Recargo")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("RepartidorId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("TelefonoCliente")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("Tipo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TipoFactura")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("ZonaId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1590,19 +1757,21 @@ namespace BurgerShop.Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Descripcion")
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
@@ -1637,6 +1806,15 @@ namespace BurgerShop.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Repartidor");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Categoria", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Categoria", "CategoriaPadre")
+                        .WithMany("SubCategorias")
+                        .HasForeignKey("CategoriaPadreId");
+
+                    b.Navigation("CategoriaPadre");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Combo", b =>
@@ -1856,6 +2034,8 @@ namespace BurgerShop.Infrastructure.Migrations
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Categoria", b =>
                 {
                     b.Navigation("Productos");
+
+                    b.Navigation("SubCategorias");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Combo", b =>

@@ -55,9 +55,11 @@ function RepartidorAppContent() {
 
   const pendientes = useMemo(() => {
     return entregas
-      .filter(e => e.estado === EstadoPedido.Asignado || e.estado === EstadoPedido.EnCamino)
+      .filter(e => e.estado === EstadoPedido.Asignado || e.estado === EstadoPedido.EnCamino || e.estado === EstadoPedido.Cancelado)
       .sort((a, b) => {
-        // EnCamino first, then Asignado
+        // Cancelados al final, luego EnCamino primero, luego Asignado
+        if (a.estado === EstadoPedido.Cancelado && b.estado !== EstadoPedido.Cancelado) return 1;
+        if (b.estado === EstadoPedido.Cancelado && a.estado !== EstadoPedido.Cancelado) return -1;
         if (a.estado === EstadoPedido.EnCamino && b.estado !== EstadoPedido.EnCamino) return -1;
         if (b.estado === EstadoPedido.EnCamino && a.estado !== EstadoPedido.EnCamino) return 1;
         return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
@@ -386,12 +388,15 @@ function PedidoCard({
 }) {
   const isAsignado = pedido.estado === EstadoPedido.Asignado;
   const isEnCamino = pedido.estado === EstadoPedido.EnCamino;
+  const isCancelado = pedido.estado === EstadoPedido.Cancelado;
   const loading = actionLoading === pedido.id;
 
-  const borderColor = isAsignado ? 'border-l-amber-400' : 'border-l-blue-400';
-  const bgColor = isAsignado ? 'bg-amber-50' : 'bg-blue-50';
-  const estadoLabel = isAsignado ? 'Asignado' : 'En Camino';
-  const estadoBadge = isAsignado
+  const borderColor = isCancelado ? 'border-l-red-400' : isAsignado ? 'border-l-amber-400' : 'border-l-blue-400';
+  const bgColor = isCancelado ? 'bg-red-50' : isAsignado ? 'bg-amber-50' : 'bg-blue-50';
+  const estadoLabel = isCancelado ? 'Cancelado' : isAsignado ? 'Asignado' : 'En Camino';
+  const estadoBadge = isCancelado
+    ? 'bg-red-100 text-red-800 border border-red-300'
+    : isAsignado
     ? 'bg-amber-100 text-amber-800 border border-amber-300'
     : 'bg-blue-100 text-blue-800 border border-blue-300';
 
@@ -405,7 +410,7 @@ function PedidoCard({
             <span className="text-gray-400 text-xs ml-2">{formatTime(pedido.fechaCreacion)}</span>
           </div>
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${estadoBadge}`}>
-            {isEnCamino ? '\uD83D\uDEF5' : '\uD83D\uDCE6'} {estadoLabel}
+            {isCancelado ? '\u274C' : isEnCamino ? '\uD83D\uDEF5' : '\uD83D\uDCE6'} {estadoLabel}
           </span>
         </div>
 

@@ -95,7 +95,8 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         var estadosReparto = new[]
         {
             EstadoPedido.EnPreparacion,
-            EstadoPedido.EnCamino, EstadoPedido.Entregado
+            EstadoPedido.EnCamino, EstadoPedido.Entregado,
+            EstadoPedido.Cancelado
         };
         return await _dbSet
             .Include(p => p.Lineas)

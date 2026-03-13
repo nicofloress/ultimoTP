@@ -2,6 +2,8 @@ export interface Categoria {
   id: number;
   nombre: string;
   activa: boolean;
+  categoriaPadreId?: number;
+  categoriaPadreNombre?: string;
 }
 
 export interface Producto {
@@ -14,6 +16,11 @@ export interface Producto {
   activo: boolean;
   imagenUrl?: string;
   numeroInterno?: string;
+  pesoGramos?: number;
+  unidadesPorBulto: number;
+  precioLista?: number;
+  marca?: string;
+  unidadesPorMedia: number;
 }
 
 export interface ComboDetalle {

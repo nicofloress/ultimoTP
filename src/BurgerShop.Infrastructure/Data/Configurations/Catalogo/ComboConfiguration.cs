@@ -19,12 +19,35 @@ public class ComboConfiguration : IEntityTypeConfiguration<Combo>
             .IsRequired(false);
 
         builder.HasData(
-            // Todos los combos pertenecen a Cat 17 - Ofertas Semanales
-            new Combo { Id = 1, Nombre = "Promo 40 Hamburguesas + Pan", Descripcion = "40 hamburguesas 110gr + 40 panes", Precio = 3700m, Activo = true, CategoriaId = 17 },
-            new Combo { Id = 2, Nombre = "Promo 30 Hamburguesas + Pan", Descripcion = "30 hamburguesas 69gr + 30 panes",  Precio = 2700m, Activo = true, CategoriaId = 17 },
-            new Combo { Id = 3, Nombre = "Promo 30 Panchos",            Descripcion = "30 panchos + 30 panes",            Precio = 1900m, Activo = true, CategoriaId = 17 },
-            new Combo { Id = 4, Nombre = "Promo 18 Super Panchos",      Descripcion = "18 super panchos + 18 panes",      Precio = 1600m, Activo = true, CategoriaId = 17 },
-            new Combo { Id = 5, Nombre = "Promo 36 Super Panchos",      Descripcion = "36 super panchos + 36 panes",      Precio = 2950m, Activo = true, CategoriaId = 17 }
+            // --- Medias con Aderezo (+ADD) ---
+            new Combo { Id = 1,  Nombre = "30 Hamburguesas 69gr Eco C/Pan + ADD",      Descripcion = "Media eco 69gr con pan y aderezo",    Precio = 22000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 2,  Nombre = "30 Hamburguesas 80gr Eco C/Pan + ADD",      Descripcion = "Media eco 80gr con pan y aderezo",    Precio = 27000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 3,  Nombre = "20 Hamburguesas 110gr Eco C/Pan + ADD",     Descripcion = "Media eco 110gr con pan y aderezo",   Precio = 24000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 4,  Nombre = "30 Hamburguesas 80gr Premium C/Pan + ADD",  Descripcion = "Media premium 80gr",                  Precio = 38000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 5,  Nombre = "20 Hamburguesas 110gr Premium C/Pan + ADD", Descripcion = "Media premium 110gr",                 Precio = 34000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 6,  Nombre = "20 Hamburguesas 120gr Premium C/Pan + ADD", Descripcion = "Media premium 120gr",                 Precio = 40000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 7,  Nombre = "12 Hamburguesas 160gr Premium C/Pan + ADD", Descripcion = "Media premium 160gr",                 Precio = 35000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 8,  Nombre = "12 Hamburguesas 198gr Premium C/Pan + ADD", Descripcion = "Media premium 198gr",                 Precio = 42000m, Activo = true, CategoriaId = null },
+
+            // --- Bultos cerrados sin Aderezo ---
+            new Combo { Id = 9,  Nombre = "60 Hamburguesas 69gr Eco C/Pan",            Descripcion = "Bulto cerrado eco 69gr",              Precio = 38000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 10, Nombre = "60 Hamburguesas 80gr Eco C/Pan",            Descripcion = "Bulto cerrado eco 80gr",              Precio = 48000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 11, Nombre = "40 Hamburguesas 110gr Eco C/Pan",           Descripcion = "Bulto cerrado eco 110gr",             Precio = 44000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 12, Nombre = "60 Hamburguesas 80gr Premium C/Pan",        Descripcion = "Bulto cerrado premium 80gr",          Precio = 72000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 13, Nombre = "40 Hamburguesas 110gr Premium C/Pan",       Descripcion = "Bulto cerrado premium 110gr",         Precio = 64000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 14, Nombre = "40 Hamburguesas 120gr Premium C/Pan",       Descripcion = "Bulto cerrado premium 120gr",         Precio = 76000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 15, Nombre = "24 Hamburguesas 160gr Premium C/Pan",       Descripcion = "Bulto cerrado premium 160gr",         Precio = 65000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 16, Nombre = "24 Hamburguesas 198gr Premium C/Pan",       Descripcion = "Bulto cerrado premium 198gr",         Precio = 80000m, Activo = true, CategoriaId = null },
+
+            // --- 55gr (bulto cerrado, revendedores) ---
+            new Combo { Id = 17, Nombre = "72 Hamburguesas 55gr Eco C/Pan",            Descripcion = "Bulto 55gr con pan tradicional",      Precio = 32000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 18, Nombre = "72 Hamburguesas 55gr Eco S/Pan",            Descripcion = "Bulto 55gr sin pan ni aderezo",       Precio = 26000m, Activo = true, CategoriaId = null },
+
+            // --- Combos Panchos ---
+            new Combo { Id = 19, Nombre = "30 Panchos C/Pan + ADD",                   Descripcion = "Media salchicha corta",               Precio = 18000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 20, Nombre = "60 Panchos C/Pan + ADD",                   Descripcion = "Bulto salchicha corta",               Precio = 32000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 21, Nombre = "36 Super Panchos C/Pan + ADD",             Descripcion = "Media salchicha larga",               Precio = 28000m, Activo = true, CategoriaId = null },
+            new Combo { Id = 22, Nombre = "60 Super Panchos C/Pan + ADD",             Descripcion = "Bulto salchicha larga",               Precio = 45000m, Activo = true, CategoriaId = null }
         );
     }
 }

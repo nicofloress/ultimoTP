@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.OpenApi.Models;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // PORT dinámico para Railway
@@ -18,7 +20,8 @@ if (!string.IsNullOrEmpty(port))
     builder.WebHost.UseUrls($"http://+:{port}");
 }
 
-// EF Core - PostgreSQL en producción, SQLite en desarrollo
+// EF Core - PostgreSQL
+// Las variables de entorno DATABASE_URL / CONNECTION_STRING tienen prioridad (para Railway)
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING");
 var pgConnection = connectionString ?? databaseUrl;
@@ -32,17 +35,15 @@ if (!string.IsNullOrEmpty(pgConnection))
         var userInfo = uri.UserInfo.Split(':');
         pgConnection = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
     }
-
-    builder.Services.AddDbContext<BurgerShopDbContext>(options =>
-        options.UseNpgsql(pgConnection)
-            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 }
 else
 {
-    builder.Services.AddDbContext<BurgerShopDbContext>(options =>
-        options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-            ?? "Data Source=burgershop.db"));
+    pgConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 }
+
+builder.Services.AddDbContext<BurgerShopDbContext>(options =>
+    options.UseNpgsql(pgConnection)
+        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
 // Shared
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -129,14 +130,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
-    if (db.Database.IsNpgsql())
-    {
-        db.Database.EnsureCreated();
-    }
-    else
-    {
-        db.Database.Migrate();
-    }
+    db.Database.Migrate();
 }
 
 if (app.Environment.IsDevelopment())

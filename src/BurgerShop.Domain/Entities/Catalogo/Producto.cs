@@ -12,6 +12,8 @@ public class Producto
     public string? NumeroInterno { get; set; }
     public int? PesoGramos { get; set; }
     public int UnidadesPorBulto { get; set; } = 1;
+    public string? Marca { get; set; }
+    public int UnidadesPorMedia { get; set; } = 0;
 
     public Categoria Categoria { get; set; } = null!;
     public ICollection<ComboDetalle> ComboDetalles { get; set; } = new List<ComboDetalle>();

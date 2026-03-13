@@ -6,10 +6,10 @@ export const getProductos = (categoriaId?: number, buscar?: string) =>
 
 export const getProducto = (id: number) => api.get<Producto>(`/productos/${id}`).then(r => r.data);
 
-export const createProducto = (data: { nombre: string; descripcion?: string; precio: number; categoriaId: number; imagenUrl?: string; numeroInterno?: string }) =>
+export const createProducto = (data: { nombre: string; descripcion?: string; precio: number; categoriaId: number; imagenUrl?: string; numeroInterno?: string; pesoGramos?: number; unidadesPorBulto?: number; marca?: string; unidadesPorMedia: number }) =>
   api.post<Producto>('/productos', data).then(r => r.data);
 
-export const updateProducto = (id: number, data: { nombre: string; descripcion?: string; precio: number; categoriaId: number; activo: boolean; imagenUrl?: string; numeroInterno?: string }) =>
+export const updateProducto = (id: number, data: { nombre: string; descripcion?: string; precio: number; categoriaId: number; activo: boolean; imagenUrl?: string; numeroInterno?: string; pesoGramos?: number; unidadesPorBulto?: number; marca?: string; unidadesPorMedia: number }) =>
   api.put<Producto>(`/productos/${id}`, data).then(r => r.data);
 
 export const deleteProducto = (id: number) => api.delete(`/productos/${id}`);
