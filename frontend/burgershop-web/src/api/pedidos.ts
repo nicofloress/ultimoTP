@@ -26,7 +26,7 @@ export const crearPedido = (data: {
 export const cambiarEstado = (id: number, nuevoEstado: number) =>
   api.put<Pedido>(`/pedidos/${id}/estado`, { nuevoEstado }).then(r => r.data);
 
-export const cancelarPedido = (id: number) => api.put<Pedido>(`/pedidos/${id}/cancelar`).then(r => r.data);
+export const cancelarPedido = (id: number, motivo: string) => api.put<Pedido>(`/pedidos/${id}/cancelar`, { motivo }).then(r => r.data);
 
 export const actualizarPedido = (id: number, data: any) =>
   api.put<Pedido>(`/pedidos/${id}`, data).then(r => r.data);

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Pedido, Mensaje, EstadoPedido } from '../../types';
-import { marcarEnCamino, marcarEntregado } from '../../api/entregas';
+import { marcarEnCamino, marcarEntregado, marcarNoEntregado } from '../../api/entregas';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useAuth } from '../../context/AuthContext';
 import { ToastProvider, useGlobalToast } from '../../components/Toast';
@@ -55,11 +55,9 @@ function RepartidorAppContent() {
 
   const pendientes = useMemo(() => {
     return entregas
-      .filter(e => e.estado === EstadoPedido.Asignado || e.estado === EstadoPedido.EnCamino || e.estado === EstadoPedido.Cancelado)
+      .filter(e => e.estado === EstadoPedido.Asignado || e.estado === EstadoPedido.EnCamino)
       .sort((a, b) => {
-        // Cancelados al final, luego EnCamino primero, luego Asignado
-        if (a.estado === EstadoPedido.Cancelado && b.estado !== EstadoPedido.Cancelado) return 1;
-        if (b.estado === EstadoPedido.Cancelado && a.estado !== EstadoPedido.Cancelado) return -1;
+        // EnCamino primero, luego Asignado
         if (a.estado === EstadoPedido.EnCamino && b.estado !== EstadoPedido.EnCamino) return -1;
         if (b.estado === EstadoPedido.EnCamino && a.estado !== EstadoPedido.EnCamino) return 1;
         return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
@@ -69,9 +67,38 @@ function RepartidorAppContent() {
   const completados = useMemo(() => {
     const hoy = new Date().toISOString().slice(0, 10);
     return entregas
-      .filter(e => e.estado === EstadoPedido.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy)
-      .sort((a, b) => new Date(b.fechaEntrega!).getTime() - new Date(a.fechaEntrega!).getTime());
+      .filter(e =>
+        (e.estado === EstadoPedido.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy) ||
+        e.estado === EstadoPedido.NoEntregado
+      )
+      .sort((a, b) => {
+        // Cancelados al final
+        if (a.estado === EstadoPedido.NoEntregado && b.estado !== EstadoPedido.NoEntregado) return 1;
+        if (b.estado === EstadoPedido.NoEntregado && a.estado !== EstadoPedido.NoEntregado) return -1;
+        return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
+      });
   }, [entregas]);
+
+  // Estado para modal de cancelacion
+  const [cancelarPedido, setCancelarPedido] = useState<Pedido | null>(null);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const handleCancelar = async () => {
+    if (!cancelarPedido || !motivoCancelacion.trim()) return;
+    setCancelLoading(true);
+    try {
+      await marcarNoEntregado(cancelarPedido.id, motivoCancelacion.trim());
+      showToast(`Pedido ${cancelarPedido.numeroTicket} marcado como no entregado`, 'success');
+      setCancelarPedido(null);
+      setMotivoCancelacion('');
+      await refresh();
+    } catch {
+      showToast('Error al cancelar entrega', 'error');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const handleEnCamino = async (pedido: Pedido) => {
     setActionLoading(pedido.id);
@@ -261,6 +288,7 @@ function RepartidorAppContent() {
               actionLoading={actionLoading}
               onEnCamino={handleEnCamino}
               onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
+              onCancelar={(p) => { setCancelarPedido(p); setMotivoCancelacion(''); }}
               formatTime={formatTime}
             />
           </>
@@ -297,6 +325,52 @@ function RepartidorAppContent() {
           pedidos={pendientes.filter(p => p.direccionEntrega)}
           onCerrar={() => setMostrarRuta(false)}
         />
+      )}
+
+      {/* Modal de cancelacion */}
+      {cancelarPedido && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => !cancelLoading && setCancelarPedido(null)}>
+          <div className="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-red-600 px-5 py-4 sm:rounded-t-xl rounded-t-xl">
+              <h3 className="text-white font-bold text-lg">No Entregado</h3>
+              <p className="text-red-100 text-sm">#{cancelarPedido.numeroTicket} - {cancelarPedido.nombreCliente}</p>
+            </div>
+            <div className="px-5 py-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Motivo de no entrega *</label>
+              <textarea
+                value={motivoCancelacion}
+                onChange={e => setMotivoCancelacion(e.target.value)}
+                placeholder="Ingresa el motivo de no entrega..."
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 resize-none"
+                autoFocus
+              />
+              {motivoCancelacion.trim() === '' && (
+                <p className="text-xs text-red-500 mt-1">El motivo es obligatorio</p>
+              )}
+            </div>
+            <div className="px-5 py-3 flex gap-3 border-t border-gray-200">
+              <button
+                onClick={() => { setCancelarPedido(null); setMotivoCancelacion(''); }}
+                disabled={cancelLoading}
+                className="flex-1 py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleCancelar}
+                disabled={cancelLoading || !motivoCancelacion.trim()}
+                className="flex-1 py-2.5 rounded-lg font-bold text-sm bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {cancelLoading ? (
+                  <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  'Confirmar No Entregado'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Boton flotante de chat */}
@@ -336,12 +410,14 @@ function PendientesTab({
   actionLoading,
   onEnCamino,
   onEntregado,
+  onCancelar,
   formatTime,
 }: {
   pedidos: Pedido[];
   actionLoading: number | null;
   onEnCamino: (p: Pedido) => void;
   onEntregado: (p: Pedido) => void;
+  onCancelar: (p: Pedido) => void;
   formatTime: (s: string) => string;
 }) {
   if (pedidos.length === 0) {
@@ -363,6 +439,7 @@ function PendientesTab({
           actionLoading={actionLoading}
           onEnCamino={onEnCamino}
           onEntregado={onEntregado}
+          onCancelar={onCancelar}
           formatTime={formatTime}
         />
       ))}
@@ -378,25 +455,24 @@ function PedidoCard({
   actionLoading,
   onEnCamino,
   onEntregado,
+  onCancelar,
   formatTime,
 }: {
   pedido: Pedido;
   actionLoading: number | null;
   onEnCamino: (p: Pedido) => void;
   onEntregado: (p: Pedido) => void;
+  onCancelar: (p: Pedido) => void;
   formatTime: (s: string) => string;
 }) {
   const isAsignado = pedido.estado === EstadoPedido.Asignado;
   const isEnCamino = pedido.estado === EstadoPedido.EnCamino;
-  const isCancelado = pedido.estado === EstadoPedido.Cancelado;
   const loading = actionLoading === pedido.id;
 
-  const borderColor = isCancelado ? 'border-l-red-400' : isAsignado ? 'border-l-amber-400' : 'border-l-blue-400';
-  const bgColor = isCancelado ? 'bg-red-50' : isAsignado ? 'bg-amber-50' : 'bg-blue-50';
-  const estadoLabel = isCancelado ? 'Cancelado' : isAsignado ? 'Asignado' : 'En Camino';
-  const estadoBadge = isCancelado
-    ? 'bg-red-100 text-red-800 border border-red-300'
-    : isAsignado
+  const borderColor = isAsignado ? 'border-l-amber-400' : 'border-l-blue-400';
+  const bgColor = isAsignado ? 'bg-amber-50' : 'bg-blue-50';
+  const estadoLabel = isAsignado ? 'Asignado' : 'En Camino';
+  const estadoBadge = isAsignado
     ? 'bg-amber-100 text-amber-800 border border-amber-300'
     : 'bg-blue-100 text-blue-800 border border-blue-300';
 
@@ -410,7 +486,7 @@ function PedidoCard({
             <span className="text-gray-400 text-xs ml-2">{formatTime(pedido.fechaCreacion)}</span>
           </div>
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${estadoBadge}`}>
-            {isCancelado ? '\u274C' : isEnCamino ? '\uD83D\uDEF5' : '\uD83D\uDCE6'} {estadoLabel}
+            {isEnCamino ? '\uD83D\uDEF5' : '\uD83D\uDCE6'} {estadoLabel}
           </span>
         </div>
 
@@ -471,20 +547,30 @@ function PedidoCard({
         )}
 
         {isEnCamino && (
-          <button
-            onClick={() => onEntregado(pedido)}
-            disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                {'\u2705'} Marcar Entregado
-              </>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEntregado(pedido)}
+              disabled={loading}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  {'\u2705'} Marcar Entregado
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => onCancelar(pedido)}
+              disabled={loading}
+              className="bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 py-2.5 px-4 rounded-lg font-semibold transition-colors text-sm"
+            >
+              No Entregado
+            </button>
+          </div>
         )}
+
       </div>
     </div>
   );
@@ -519,7 +605,7 @@ function CompletadosTab({
 
       <div className="space-y-2">
         {pedidos.map(p => (
-          <div key={p.id} className="bg-white rounded-xl shadow-sm border border-green-100 p-3">
+          <div key={p.id} className={`bg-white rounded-xl shadow-sm border p-3 ${p.estado === EstadoPedido.NoEntregado ? 'border-red-200' : 'border-green-100'}`}>
             <div className="flex items-start justify-between mb-1">
               <div className="min-w-0 flex-1">
                 <span className="font-semibold text-gray-800">#{p.numeroTicket}</span>
@@ -527,9 +613,15 @@ function CompletadosTab({
                   <span className="text-gray-500 text-sm ml-2">{p.nombreCliente}</span>
                 )}
               </div>
-              <span className="bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
-                {'\u2705'} Entregado
-              </span>
+              {p.estado === EstadoPedido.NoEntregado ? (
+                <span className="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
+                  {'\u274C'} No Entregado
+                </span>
+              ) : (
+                <span className="bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
+                  {'\u2705'} Entregado
+                </span>
+              )}
             </div>
             {p.direccionEntrega && (
               <p className="text-xs text-gray-500">{'\uD83D\uDCCD'} {p.direccionEntrega}</p>
@@ -543,6 +635,11 @@ function CompletadosTab({
             {p.notasEntrega && (
               <p className="text-xs text-gray-500 mt-1 bg-gray-50 rounded px-2 py-1">
                 {'\uD83D\uDCDD'} {p.notasEntrega}
+              </p>
+            )}
+            {p.estado === EstadoPedido.NoEntregado && p.motivoCancelacion && (
+              <p className="text-xs text-red-600 mt-1 bg-red-50 rounded px-2 py-1 italic">
+                Motivo no entrega: {p.motivoCancelacion}
               </p>
             )}
           </div>

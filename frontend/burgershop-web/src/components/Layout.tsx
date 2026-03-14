@@ -19,7 +19,14 @@ const menuSections: MenuSection[] = [
   {
     items: [
       { to: '/', label: 'POS', end: true },
-      { to: '/pedidos', label: 'Pedidos' },
+    ],
+  },
+  {
+    title: 'Reparto',
+    items: [
+      { to: '/pedidos', label: 'Alta de Pedidos' },
+      { to: '/reparto', label: 'Entregas', adminOnly: true },
+      { to: '/tracking', label: 'Tracking', adminOnly: true },
       { to: '/historial', label: 'Historial' },
     ],
   },
@@ -43,8 +50,6 @@ const menuSections: MenuSection[] = [
   },
   {
     items: [
-      { to: '/reparto', label: 'Reparto', adminOnly: true },
-      { to: '/tracking', label: 'Tracking', adminOnly: true },
       { to: '/config', label: 'Configuracion', adminOnly: true },
     ],
   },
@@ -53,7 +58,7 @@ const menuSections: MenuSection[] = [
 function getPageTitle(pathname: string): string {
   const map: Record<string, string> = {
     '/': 'Punto de Venta',
-    '/pedidos': 'Pedidos',
+    '/pedidos': 'Alta de Pedidos',
     '/historial': 'Historial de Pedidos',
     '/catalogo/categorias': 'Categorias',
     '/catalogo/productos': 'Articulos',
@@ -63,7 +68,7 @@ function getPageTitle(pathname: string): string {
     '/catalogo/tiposCliente': 'Tipos de Cliente',
     '/catalogo/listasprecios': 'Listas de Precios',
     '/finanzas/caja': 'Caja Diaria',
-    '/reparto': 'Reparto',
+    '/reparto': 'Entregas',
     '/tracking': 'Tracking en Vivo',
     '/config': 'Configuracion',
   };
@@ -134,21 +139,6 @@ export default function Layout() {
             ))}
           </nav>
 
-          {/* Sidebar Footer */}
-          <div className="border-t border-slate-700 bg-slate-900 px-4 py-3">
-            <div className="text-sm text-gray-300 truncate mb-2">
-              {usuario?.nombreCompleto}
-            </div>
-            <div className="text-xs text-slate-500 mb-3">
-              {usuario?.rolNombre}
-            </div>
-            <button
-              onClick={logout}
-              className="w-full text-left text-sm text-gray-400 hover:text-white hover:bg-slate-700 px-3 py-2 rounded transition-colors"
-            >
-              Salir
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -182,6 +172,24 @@ export default function Layout() {
           <h1 className="ml-3 text-lg font-semibold text-gray-800">
             {pageTitle}
           </h1>
+          <div className="flex-1 flex items-center justify-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-bold">
+              {usuario?.nombreCompleto?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-gray-700 leading-tight">{usuario?.nombreCompleto}</div>
+              <div className="text-xs text-gray-400 leading-tight">{usuario?.rolNombre}</div>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Salir
+          </button>
         </header>
 
         {/* Page content */}

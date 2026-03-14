@@ -27,7 +27,7 @@ npm run lint       # ESLint
 ```
 
 ### Database
-- SQLite with EF Core. Auto-migrates on API startup.
+- PostgreSQL with EF Core + Npgsql. Auto-migrates on API startup.
 - Connection string in `src/BurgerShop.API/appsettings.json`
 - Add migration: `dotnet ef migrations add <Name> --project src/BurgerShop.Infrastructure --startup-project src/BurgerShop.API`
 
@@ -50,7 +50,7 @@ frontend/burgershop-web  → React 19 + TypeScript + Tailwind CSS + Axios
 The application is organized into 3 business modules, each with its own entities, services, DTOs, repositories, and controllers:
 
 1. **Catalogo** — Categorias, Productos, Combos (ComboDetalle for many-to-many)
-2. **Ventas** — Pedidos, LineaPedido, Cliente. Pedido has 7 states: Pendiente → EnPreparacion → Listo → Asignado → EnCamino → Entregado | Cancelado
+2. **Ventas** — Pedidos, LineaPedido, Cliente. Pedido has 5 states: Pendiente → Asignado → EnCamino → Entregado | Cancelado. Cancelar requires MotivoCancelacion.
 3. **Logistica** — Zonas, Repartidores, RepartidorZona (many-to-many). Includes repartidor auth via CodigoAcceso
 
 ## Key Patterns

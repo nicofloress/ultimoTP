@@ -8,6 +8,7 @@ export const estadoLabels: Record<EstadoPedido, string> = {
   [EstadoPedido.EnCamino]: 'En Camino',
   [EstadoPedido.Entregado]: 'Entregado',
   [EstadoPedido.Cancelado]: 'Cancelado',
+  [EstadoPedido.NoEntregado]: 'No Entregado',
 };
 
 export const estadoColores: Record<EstadoPedido, string> = {
@@ -18,4 +19,5 @@ export const estadoColores: Record<EstadoPedido, string> = {
   [EstadoPedido.EnCamino]: 'bg-orange-100 text-orange-800',
   [EstadoPedido.Entregado]: 'bg-gray-100 text-gray-800',
   [EstadoPedido.Cancelado]: 'bg-red-100 text-red-800',
+  [EstadoPedido.NoEntregado]: 'bg-rose-100 text-rose-800',
 };

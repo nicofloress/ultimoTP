@@ -49,6 +49,20 @@ public class EntregasController : ControllerBase
         return pedido is null ? NotFound() : Ok(pedido);
     }
 
+    [HttpPut("{pedidoId}/no-entregado")]
+    public async Task<ActionResult<PedidoDto>> MarcarNoEntregado(int pedidoId, [FromBody] CancelarPedidoDto dto)
+    {
+        try
+        {
+            var pedido = await _pedidoService.MarcarNoEntregadoAsync(pedidoId, dto.Motivo);
+            return pedido is null ? NotFound() : Ok(pedido);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("por-zona")]
     public async Task<ActionResult<IEnumerable<PedidoDto>>> GetPorZona()
         => Ok(await _pedidoService.GetListosParaRepartoHoyAsync());

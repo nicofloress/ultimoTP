@@ -21,6 +21,9 @@ export const marcarEntregado = (pedidoId: number, data: { notas?: string; formaP
 
 export const loginRepartidor = (codigoAcceso: string) => api.post<{ id: number; nombre: string }>('/auth/repartidor', { codigoAcceso }).then(r => r.data);
 
+export const marcarNoEntregado = (pedidoId: number, motivo: string) =>
+  api.put<Pedido>(`/entregas/${pedidoId}/no-entregado`, { motivo }).then(r => r.data);
+
 export const getPedidosPorZona = () => api.get<Pedido[]>('/entregas/por-zona').then(r => r.data);
 export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number }[]) =>
   api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);

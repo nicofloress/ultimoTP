@@ -35,6 +35,7 @@ public class Pedido
     public TipoFactura TipoFactura { get; set; } = TipoFactura.FacturaB;
     public bool EstaPago { get; set; }
     public string? ComprobanteEntrega { get; set; }
+    public string? MotivoCancelacion { get; set; }
 
     public Cliente? Cliente { get; set; }
     public Zona? Zona { get; set; }
