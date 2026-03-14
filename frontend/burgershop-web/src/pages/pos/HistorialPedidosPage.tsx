@@ -30,6 +30,7 @@ export default function HistorialPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(false);
   const [seleccionado, setSeleccionado] = useState<Pedido | null>(null);
+  const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -273,6 +274,26 @@ export default function HistorialPedidosPage() {
                 </div>
               </div>
             )}
+
+            {/* Comprobante de entrega */}
+            {seleccionado.comprobanteEntrega && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Comprobante de entrega</h4>
+                <button
+                  onClick={() => setComprobanteSrc(seleccionado.comprobanteEntrega!)}
+                  className="relative group cursor-pointer w-full"
+                >
+                  <img
+                    src={seleccionado.comprobanteEntrega}
+                    alt="Comprobante"
+                    className="w-full h-40 object-cover rounded-lg border border-gray-200 group-hover:opacity-80 transition-opacity"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full font-medium">Ver imagen</span>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Footer totales */}
@@ -305,6 +326,24 @@ export default function HistorialPedidosPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox comprobante */}
+      {comprobanteSrc && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setComprobanteSrc(null)}>
+          <button
+            onClick={() => setComprobanteSrc(null)}
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold transition-colors"
+          >
+            &times;
+          </button>
+          <img
+            src={comprobanteSrc}
+            alt="Comprobante de entrega"
+            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

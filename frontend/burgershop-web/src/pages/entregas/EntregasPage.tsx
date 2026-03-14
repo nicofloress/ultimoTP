@@ -26,6 +26,7 @@ export default function EntregasPage() {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [creandoTest, setCreandoTest] = useState(false);
   const [pedidoDetalle, setPedidoDetalle] = useState<Pedido | null>(null);
+  const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { toast, mostrarToast, cerrarToast } = useToast();
   const [chatAbierto, setChatAbierto] = useState(false);
@@ -710,6 +711,26 @@ export default function EntregasPage() {
                   )}
                 </div>
 
+                {/* Comprobante de entrega */}
+                {pedidoDetalle.comprobanteEntrega && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Comprobante de entrega</h4>
+                    <button
+                      onClick={() => setComprobanteSrc(pedidoDetalle.comprobanteEntrega!)}
+                      className="relative group cursor-pointer"
+                    >
+                      <img
+                        src={pedidoDetalle.comprobanteEntrega}
+                        alt="Comprobante"
+                        className="w-full h-40 object-cover rounded-lg border border-gray-200 group-hover:opacity-80 transition-opacity"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full font-medium">Ver imagen</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
                 {/* Footer totales */}
                 <div className="border-t border-amber-200 px-6 py-3 space-y-1 bg-amber-50 flex-shrink-0">
                   <div className="flex justify-between text-sm text-amber-700/70">
@@ -741,6 +762,24 @@ export default function EntregasPage() {
 
       {/* Chat Admin */}
       <AdminChat abierto={chatAbierto} onCerrar={() => setChatAbierto(false)} />
+
+      {/* Lightbox comprobante */}
+      {comprobanteSrc && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={() => setComprobanteSrc(null)}>
+          <button
+            onClick={() => setComprobanteSrc(null)}
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold transition-colors"
+          >
+            &times;
+          </button>
+          <img
+            src={comprobanteSrc}
+            alt="Comprobante de entrega"
+            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Toast de exito */}
       <Toast {...toast} onClose={cerrarToast} />

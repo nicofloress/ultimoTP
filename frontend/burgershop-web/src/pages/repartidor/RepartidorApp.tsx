@@ -14,7 +14,7 @@ export default function RepartidorApp() {
   return <RepartidorAppContent />;
 }
 
-type Tab = 'pendientes' | 'completados';
+type Tab = 'pendientes' | 'completados' | 'noEntregados';
 
 function RepartidorAppContent() {
   const { usuario, logout } = useAuth();
@@ -63,22 +63,23 @@ function RepartidorAppContent() {
   const completados = useMemo(() => {
     const hoy = new Date().toISOString().slice(0, 10);
     return entregas
-      .filter(e =>
-        (e.estado === EstadoPedido.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy) ||
-        e.estado === EstadoPedido.NoEntregado
-      )
-      .sort((a, b) => {
-        // Cancelados al final
-        if (a.estado === EstadoPedido.NoEntregado && b.estado !== EstadoPedido.NoEntregado) return 1;
-        if (b.estado === EstadoPedido.NoEntregado && a.estado !== EstadoPedido.NoEntregado) return -1;
-        return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
-      });
+      .filter(e => e.estado === EstadoPedido.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy)
+      .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
+  }, [entregas]);
+
+  const noEntregados = useMemo(() => {
+    return entregas
+      .filter(e => e.estado === EstadoPedido.NoEntregado)
+      .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
   }, [entregas]);
 
   // Estado para modal de cancelacion
   const [cancelarPedido, setCancelarPedido] = useState<Pedido | null>(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Estado para lightbox comprobante
+  const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
 
   const handleCancelar = async () => {
     if (!cancelarPedido || !motivoCancelacion.trim()) return;
@@ -253,11 +254,21 @@ function RepartidorAppContent() {
               onClick={() => setActiveTab('completados')}
               className={`flex-1 py-3 text-sm font-semibold text-center transition-colors border-b-2 ${
                 activeTab === 'completados'
-                  ? 'border-amber-500 text-gray-800'
+                  ? 'border-green-500 text-gray-800'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
-              Completados ({completados.length})
+              Entregados ({completados.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('noEntregados')}
+              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors border-b-2 ${
+                activeTab === 'noEntregados'
+                  ? 'border-red-500 text-gray-800'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              No Entregados ({noEntregados.length})
             </button>
           </div>
         </div>
@@ -293,6 +304,14 @@ function RepartidorAppContent() {
         {activeTab === 'completados' && (
           <CompletadosTab
             pedidos={completados}
+            formatTime={formatTime}
+            onVerComprobante={setComprobanteSrc}
+          />
+        )}
+
+        {activeTab === 'noEntregados' && (
+          <NoEntregadosTab
+            pedidos={noEntregados}
             formatTime={formatTime}
           />
         )}
@@ -366,6 +385,24 @@ function RepartidorAppContent() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox comprobante */}
+      {comprobanteSrc && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setComprobanteSrc(null)}>
+          <button
+            onClick={() => setComprobanteSrc(null)}
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold transition-colors"
+          >
+            &times;
+          </button>
+          <img
+            src={comprobanteSrc}
+            alt="Comprobante de entrega"
+            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
         </div>
       )}
 
@@ -578,9 +615,11 @@ function PedidoCard({
 function CompletadosTab({
   pedidos,
   formatTime,
+  onVerComprobante,
 }: {
   pedidos: Pedido[];
   formatTime: (s: string) => string;
+  onVerComprobante: (src: string) => void;
 }) {
   if (pedidos.length === 0) {
     return (
@@ -601,7 +640,7 @@ function CompletadosTab({
 
       <div className="space-y-2">
         {pedidos.map(p => (
-          <div key={p.id} className={`bg-white rounded-xl shadow-sm border p-3 ${p.estado === EstadoPedido.NoEntregado ? 'border-red-200' : 'border-green-100'}`}>
+          <div key={p.id} className="bg-white rounded-xl shadow-sm border border-green-100 p-3">
             <div className="flex items-start justify-between mb-1">
               <div className="min-w-0 flex-1">
                 <span className="font-semibold text-gray-800">#{p.numeroTicket}</span>
@@ -609,15 +648,9 @@ function CompletadosTab({
                   <span className="text-gray-500 text-sm ml-2">{p.nombreCliente}</span>
                 )}
               </div>
-              {p.estado === EstadoPedido.NoEntregado ? (
-                <span className="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
-                  {'\u274C'} No Entregado
-                </span>
-              ) : (
-                <span className="bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
-                  {'\u2705'} Entregado
-                </span>
-              )}
+              <span className="bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
+                {'\u2705'} Entregado
+              </span>
             </div>
             {p.direccionEntrega && (
               <p className="text-xs text-gray-500">{'\uD83D\uDCCD'} {p.direccionEntrega}</p>
@@ -633,9 +666,75 @@ function CompletadosTab({
                 {'\uD83D\uDCDD'} {p.notasEntrega}
               </p>
             )}
-            {p.estado === EstadoPedido.NoEntregado && p.motivoCancelacion && (
+            {p.comprobanteEntrega && (
+              <button
+                onClick={() => onVerComprobante(p.comprobanteEntrega!)}
+                className="mt-1.5 flex items-center gap-1 text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1 hover:bg-blue-100 transition-colors font-medium"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Ver comprobante
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================
+// No Entregados Tab
+// ============================
+function NoEntregadosTab({
+  pedidos,
+  formatTime,
+}: {
+  pedidos: Pedido[];
+  formatTime: (s: string) => string;
+}) {
+  if (pedidos.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-5xl mb-4">{'\u2705'}</p>
+        <p className="text-gray-500 text-lg font-medium">No hay pedidos sin entregar</p>
+        <p className="text-gray-400 text-sm mt-1">Todos los pedidos fueron entregados correctamente</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Resumen */}
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-center">
+        <p className="text-3xl font-bold text-red-700">{pedidos.length}</p>
+        <p className="text-sm text-red-600 font-medium">pedidos no entregados</p>
+      </div>
+
+      <div className="space-y-2">
+        {pedidos.map(p => (
+          <div key={p.id} className="bg-white rounded-xl shadow-sm border border-red-200 p-3">
+            <div className="flex items-start justify-between mb-1">
+              <div className="min-w-0 flex-1">
+                <span className="font-semibold text-gray-800">#{p.numeroTicket}</span>
+                {p.nombreCliente && (
+                  <span className="text-gray-500 text-sm ml-2">{p.nombreCliente}</span>
+                )}
+              </div>
+              <span className="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
+                {'\u274C'} No Entregado
+              </span>
+            </div>
+            {p.direccionEntrega && (
+              <p className="text-xs text-gray-500">{'\uD83D\uDCCD'} {p.direccionEntrega}</p>
+            )}
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-sm font-bold text-amber-700">${p.total.toLocaleString('es-AR')}</span>
+            </div>
+            {p.motivoCancelacion && (
               <p className="text-xs text-red-600 mt-1 bg-red-50 rounded px-2 py-1 italic">
-                Motivo no entrega: {p.motivoCancelacion}
+                Motivo: {p.motivoCancelacion}
               </p>
             )}
           </div>
