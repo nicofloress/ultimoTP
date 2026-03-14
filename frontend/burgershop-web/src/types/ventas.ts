@@ -37,6 +37,7 @@ export interface Pedido {
   tipoFactura: TipoFactura;
   estaPago: boolean;
   comprobanteEntrega?: string;
+  motivoCancelacion?: string;
   clienteId?: number;
   lineas: LineaPedido[];
   pagos?: PagoPedidoDto[];
@@ -55,6 +56,7 @@ export enum EstadoPedido {
   EnCamino = 5,
   Entregado = 6,
   Cancelado = 7,
+  NoEntregado = 8,
 }
 
 export interface CarritoItem {

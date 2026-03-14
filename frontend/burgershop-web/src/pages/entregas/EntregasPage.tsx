@@ -7,10 +7,12 @@ import { Toast, useToast } from '../../components/Toast';
 import AdminChat from './AdminChat';
 
 const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
-  [EstadoPedido.EnPreparacion]: 'bg-blue-100 text-blue-800',
+  [EstadoPedido.Pendiente]: 'bg-yellow-100 text-yellow-800',
+  [EstadoPedido.Asignado]: 'bg-amber-100 text-amber-800',
   [EstadoPedido.EnCamino]: 'bg-indigo-100 text-indigo-800',
   [EstadoPedido.Entregado]: 'bg-gray-100 text-gray-600',
   [EstadoPedido.Cancelado]: 'bg-red-100 text-red-700',
+  [EstadoPedido.NoEntregado]: 'bg-rose-100 text-rose-700',
 };
 
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -27,6 +29,7 @@ export default function EntregasPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { toast, mostrarToast, cerrarToast } = useToast();
   const [chatAbierto, setChatAbierto] = useState(false);
+  const [zonasFinalizadas, setZonasFinalizadas] = useState<Set<number>>(new Set());
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -34,6 +37,25 @@ export default function EntregasPage() {
       const [p, r] = await Promise.all([getPedidosPorZona(), getRepartidores()]);
       setPedidos(p);
       setRepartidores(r.filter(rep => rep.activo));
+
+      // Auto-asignar repartidores en zonas que ya tienen reparto activo
+      setAsignaciones(prev => {
+        const next = new Map(prev);
+        const zonaRepartidor = new Map<number, number>();
+        p.forEach(ped => {
+          if (ped.zonaId && ped.repartidorId &&
+            (ped.estado === EstadoPedido.Asignado || ped.estado === EstadoPedido.EnCamino)) {
+            zonaRepartidor.set(ped.zonaId, ped.repartidorId);
+          }
+        });
+        // Pre-llenar zonas que no tienen asignacion manual pero ya tienen repartidor activo
+        zonaRepartidor.forEach((repId, zonaId) => {
+          if (!next.has(zonaId)) {
+            next.set(zonaId, repId);
+          }
+        });
+        return next;
+      });
     } catch (err) {
       console.error('Error cargando datos de entregas:', err);
     } finally {
@@ -83,7 +105,7 @@ export default function EntregasPage() {
           estaPago: Math.random() > 0.5,
           lineas,
         });
-        await cambiarEstado(pedido.id, EstadoPedido.EnPreparacion);
+        // Pedido ya se crea en estado Pendiente, no hace falta cambiar
       }
 
       mostrarToast('6 pedidos de prueba creados', 'success');
@@ -118,9 +140,9 @@ export default function EntregasPage() {
 
   const totalPedidos = pedidos.length;
 
-  // Pedidos pendientes de despacho (EnPreparacion) — para el boton Empezar Reparto
+  // Pedidos pendientes de despacho (Pendiente) — para el boton Empezar Reparto
   const pedidosPendientes = useMemo(() =>
-    pedidos.filter(p => p.estado === EstadoPedido.EnPreparacion),
+    pedidos.filter(p => p.estado === EstadoPedido.Pendiente),
     [pedidos]
   );
 
@@ -266,20 +288,48 @@ export default function EntregasPage() {
             <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
-            <p className="text-lg font-medium">No hay pedidos en preparacion para reparto</p>
-            <p className="text-sm mt-1">Los pedidos tipo Domicilio en estado En Preparacion apareceran aqui</p>
+            <p className="text-lg font-medium">No hay pedidos pendientes para reparto</p>
+            <p className="text-sm mt-1">Los pedidos tipo Domicilio con zona asignada apareceran aqui</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-2">
             {Array.from(pedidosPorZona.entries()).map(([zonaId, data]) => {
               const totalZona = data.pedidos.reduce((sum, p) => sum + p.total, 0);
               const repartidorAsignado = asignaciones.get(zonaId);
-              const pendientesZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnPreparacion).length;
+              const pendientesZona = data.pedidos.filter(p => p.estado === EstadoPedido.Pendiente).length;
+              const asignadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Asignado).length;
               const enCaminoZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnCamino).length;
               const entregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Entregado).length;
               const canceladosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Cancelado).length;
+              const noEntregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.NoEntregado).length;
               const tienePendientes = pendientesZona > 0;
               const repartidorDeZona = data.pedidos.find(p => p.repartidorNombre)?.repartidorNombre;
+              // Zona completada: todos los pedidos en estado final y al menos uno fue despachado
+              const todosFinales = data.pedidos.length > 0
+                && data.pedidos.every(p => p.estado === EstadoPedido.Entregado || p.estado === EstadoPedido.Cancelado || p.estado === EstadoPedido.NoEntregado);
+              const zonaFinalizada = zonasFinalizadas.has(zonaId);
+
+              // Si la zona fue finalizada, mostrar colapsada
+              if (zonaFinalizada) {
+                return (
+                  <div
+                    key={zonaId}
+                    className="bg-gray-50 rounded-lg border border-gray-200 shadow-sm p-3 opacity-60"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="font-bold text-gray-500 text-base">{data.zona}</h2>
+                        <span className="text-xs text-gray-400">
+                          Reparto finalizado · {data.pedidos.length} pedido{data.pedidos.length !== 1 ? 's' : ''} · ${totalZona.toLocaleString('es-AR')}
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                        Finalizado
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div
@@ -323,13 +373,33 @@ export default function EntregasPage() {
                             <span>{repartidorDeZona}</span>
                           </div>
                         )}
-                        <div className="text-xs text-gray-400 italic">Todos despachados</div>
+                        {todosFinales ? (
+                          <button
+                            onClick={() => {
+                              setZonasFinalizadas(prev => {
+                                const next = new Set(prev);
+                                next.add(zonaId);
+                                return next;
+                              });
+                              mostrarToast(`Reparto de ${data.zona} finalizado`, 'success');
+                            }}
+                            className="w-full mt-1 py-2 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Finalizar Reparto
+                          </button>
+                        ) : (
+                          <div className="text-xs text-gray-400 italic">Todos despachados</div>
+                        )}
                       </div>
                     )}
                     <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 font-medium">
                       <span>{data.pedidos.length} pedido{data.pedidos.length !== 1 ? 's' : ''} · ${totalZona.toLocaleString('es-AR')}</span>
                       <span className="text-gray-300">|</span>
-                      {pendientesZona > 0 && <span className="text-green-600">{pendientesZona} listo{pendientesZona !== 1 ? 's' : ''}</span>}
+                      {pendientesZona > 0 && <span className="text-yellow-600">{pendientesZona} pendiente{pendientesZona !== 1 ? 's' : ''}</span>}
+                      {asignadosZona > 0 && <span className="text-amber-600">{asignadosZona} asignado{asignadosZona !== 1 ? 's' : ''}</span>}
                       {enCaminoZona > 0 && <span className="text-indigo-600">{enCaminoZona} en camino</span>}
                       {entregadosZona > 0 && <span className="text-gray-500">{entregadosZona} entregado{entregadosZona !== 1 ? 's' : ''}</span>}
                       {canceladosZona > 0 && <span className="text-red-500">{canceladosZona} cancelado{canceladosZona !== 1 ? 's' : ''}</span>}
@@ -341,7 +411,7 @@ export default function EntregasPage() {
                     {data.pedidos.map(pedido => (
                       <div
                         key={pedido.id}
-                        className={`rounded-md border p-2.5 transition-colors ${pedido.estado === EstadoPedido.Cancelado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
+                        className={`rounded-md border p-2.5 transition-colors ${pedido.estado === EstadoPedido.Cancelado || pedido.estado === EstadoPedido.NoEntregado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
@@ -373,6 +443,11 @@ export default function EntregasPage() {
                         {pedido.telefonoCliente && (
                           <p className="text-xs text-gray-400 mt-0.5">
                             Tel: {pedido.telefonoCliente}
+                          </p>
+                        )}
+                        {(pedido.estado === EstadoPedido.Cancelado || pedido.estado === EstadoPedido.NoEntregado) && pedido.motivoCancelacion && (
+                          <p className="text-xs text-red-600 mt-1 italic">
+                            {pedido.estado === EstadoPedido.NoEntregado ? 'Motivo no entrega' : 'Motivo cancelacion'}: {pedido.motivoCancelacion}
                           </p>
                         )}
                         <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-gray-200">
@@ -449,7 +524,7 @@ export default function EntregasPage() {
             <div className="px-6 py-4 space-y-3 max-h-64 overflow-y-auto">
               {Array.from(pedidosPorZona.entries()).filter(([zonaId]) => zonasPendientes.has(zonaId)).map(([zonaId, data]) => {
                 const rep = repartidores.find(r => r.id === asignaciones.get(zonaId));
-                const pendientes = data.pedidos.filter(p => p.estado === EstadoPedido.EnPreparacion);
+                const pendientes = data.pedidos.filter(p => p.estado === EstadoPedido.Pendiente);
                 const totalZona = pendientes.reduce((sum, p) => sum + p.total, 0);
                 return (
                   <div key={zonaId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -592,6 +667,12 @@ export default function EntregasPage() {
                       <div className="flex justify-between">
                         <span className="text-gray-500">Nota</span>
                         <span className="font-medium text-gray-800 text-right max-w-[250px]">{pedidoDetalle.notaInterna}</span>
+                      </div>
+                    )}
+                    {(pedidoDetalle.estado === EstadoPedido.Cancelado || pedidoDetalle.estado === EstadoPedido.NoEntregado) && pedidoDetalle.motivoCancelacion && (
+                      <div className="flex justify-between">
+                        <span className="text-red-500">{pedidoDetalle.estado === EstadoPedido.NoEntregado ? 'Motivo no entrega' : 'Motivo cancelacion'}</span>
+                        <span className="font-medium text-red-700 text-right max-w-[250px]">{pedidoDetalle.motivoCancelacion}</span>
                       </div>
                     )}
                   </div>

@@ -30,7 +30,9 @@ const OFERTAS_SEMANALES_CATEGORIA_ID = 17;
 // Estados activos para filtrar en el panel derecho (entregas se ven en pantalla Entregas)
 const estadosFiltro = [
   EstadoPedido.Pendiente,
-  EstadoPedido.EnPreparacion,
+  EstadoPedido.Entregado,
+  EstadoPedido.Cancelado,
+  EstadoPedido.NoEntregado,
 ];
 
 export default function PedidosPage() {
@@ -70,6 +72,7 @@ export default function PedidosPage() {
 
   // ===== MODAL CANCELAR PEDIDO =====
   const [pedidoCancelar, setPedidoCancelar] = useState<Pedido | null>(null);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
 
   // ===== MODAL PREPARAR TODOS =====
   const [mostrarPrepararTodos, setMostrarPrepararTodos] = useState(false);
@@ -229,7 +232,9 @@ export default function PedidosPage() {
   };
 
   // ===== VALIDACION =====
-  const formularioValido = carrito.length > 0 && direccion.trim() !== '' && telefono.trim() !== '' && !!zonaSeleccionada;
+  const telefonoDigitos = telefono.replace(/[^0-9]/g, '');
+  const telefonoValido = telefonoDigitos.length >= 8;
+  const formularioValido = carrito.length > 0 && direccion.trim() !== '' && telefonoValido && !!zonaSeleccionada;
 
   // ===== CREAR PEDIDO =====
   const handleCrearPedido = async () => {
@@ -292,13 +297,16 @@ export default function PedidosPage() {
 
   const handleCancelar = (pedido: Pedido) => {
     setPedidoCancelar(pedido);
+    setMotivoCancelacion('');
   };
 
   const confirmarCancelacion = async () => {
-    if (!pedidoCancelar) return;
+    if (!pedidoCancelar || !motivoCancelacion.trim()) return;
     const id = pedidoCancelar.id;
+    const motivo = motivoCancelacion.trim();
     setPedidoCancelar(null);
-    await cancelarPedido(id);
+    setMotivoCancelacion('');
+    await cancelarPedido(id, motivo);
     cargarPedidos();
     if (editandoPedido?.id === id) limpiarFormulario();
   };
@@ -311,11 +319,10 @@ export default function PedidosPage() {
 
   const hayPendientes = pedidos.some(p => p.estado === EstadoPedido.Pendiente);
 
-  const siguienteEstado = (estado: EstadoPedido): EstadoPedido | null => {
-    switch (estado) {
-      case EstadoPedido.Pendiente: return EstadoPedido.EnPreparacion;
-      default: return null;
-    }
+  const siguienteEstado = (_estado: EstadoPedido): EstadoPedido | null => {
+    // Ya no hay transición manual de estado desde PedidosPage
+    // Los pedidos pasan a Asignado desde EntregasPage (Empezar Reparto)
+    return null;
   };
 
   // ===== ASIGNAR REPARTIDOR =====
@@ -405,12 +412,20 @@ export default function PedidosPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
                   value={telefono}
-                  onChange={e => setTelefono(e.target.value)}
-                  placeholder="Telefono..."
-                  className={`${inputClass} pl-8`}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9\-+() ]/g, '');
+                    setTelefono(val);
+                  }}
+                  placeholder="Ej: 1155667788"
+                  maxLength={15}
+                  className={`${inputClass} pl-8${telefono.trim() !== '' && telefono.replace(/[^0-9]/g, '').length < 8 ? ' border-red-400 focus:ring-red-400' : ''}`}
                 />
+                {telefono.trim() !== '' && telefono.replace(/[^0-9]/g, '').length < 8 && (
+                  <p className="text-xs text-red-500 mt-1 pl-8">Minimo 8 digitos</p>
+                )}
               </div>
             </div>
 
@@ -739,14 +754,7 @@ export default function PedidosPage() {
                 {estadoLabels[est]}
               </button>
             ))}
-            {hayPendientes && (
-              <button
-                onClick={() => setMostrarPrepararTodos(true)}
-                className="ml-auto px-2 py-0.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors"
-              >
-                Preparar Todos
-              </button>
-            )}
+            {/* Preparar Todos eliminado - ya no se usa EnPreparacion */}
           </div>
 
           {/* Busqueda por ticket */}
@@ -822,7 +830,7 @@ export default function PedidosPage() {
                   )}
                 </div>
                 <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                  {siguienteEstado(p.estado) && p.estado !== EstadoPedido.Cancelado && p.estado !== EstadoPedido.Entregado && (
+                  {siguienteEstado(p.estado) && p.estado !== EstadoPedido.Cancelado && p.estado !== EstadoPedido.Entregado && p.estado !== EstadoPedido.NoEntregado && (
                     <button
                       onClick={() => handleCambiarEstado(p.id, siguienteEstado(p.estado)!)}
                       className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors font-medium"
@@ -838,7 +846,7 @@ export default function PedidosPage() {
                       Repartidor
                     </button>
                   )}
-                  {p.estado !== EstadoPedido.Cancelado && p.estado !== EstadoPedido.Entregado && (
+                  {p.estado !== EstadoPedido.Cancelado && p.estado !== EstadoPedido.Entregado && p.estado !== EstadoPedido.NoEntregado && (
                     <button
                       onClick={() => handleCancelar(p)}
                       className="text-[10px] bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded hover:bg-red-100 transition-colors font-medium"
@@ -853,6 +861,12 @@ export default function PedidosPage() {
               {p.repartidorNombre && (
                 <div className="text-[10px] text-purple-600 mt-0.5 font-medium">
                   Repartidor: {p.repartidorNombre}
+                </div>
+              )}
+              {/* Motivo cancelacion */}
+              {(p.estado === EstadoPedido.Cancelado || p.estado === EstadoPedido.NoEntregado) && p.motivoCancelacion && (
+                <div className="text-[10px] text-red-600 mt-0.5 italic">
+                  Motivo: {p.motivoCancelacion}
                 </div>
               )}
             </div>
@@ -919,26 +933,44 @@ export default function PedidosPage() {
       )}
 
       {/* ============ MODAL CANCELAR PEDIDO ============ */}
-      <ConfirmModal
-        visible={!!pedidoCancelar}
-        titulo="Cancelar pedido"
-        mensaje={pedidoCancelar ? `Se cancelara el pedido #${pedidoCancelar.numeroTicket}` : ''}
-        tipo="danger"
-        textoConfirmar="Cancelar pedido"
-        onConfirmar={confirmarCancelacion}
-        onCancelar={() => setPedidoCancelar(null)}
-      />
+      {pedidoCancelar && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setPedidoCancelar(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="bg-red-600 px-5 py-3 rounded-t-xl">
+              <h3 className="text-white font-bold">Cancelar pedido</h3>
+              <p className="text-red-100 text-sm">#{pedidoCancelar.numeroTicket}</p>
+            </div>
+            <div className="px-5 py-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Motivo de cancelacion *</label>
+              <textarea
+                value={motivoCancelacion}
+                onChange={e => setMotivoCancelacion(e.target.value)}
+                placeholder="Ingresa el motivo..."
+                rows={3}
+                className={`${inputClass} resize-none`}
+                autoFocus
+              />
+            </div>
+            <div className="px-5 py-3 flex gap-3 border-t border-gray-200">
+              <button
+                onClick={() => { setPedidoCancelar(null); setMotivoCancelacion(''); }}
+                className="flex-1 py-2 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Volver
+              </button>
+              <button
+                onClick={confirmarCancelacion}
+                disabled={!motivoCancelacion.trim()}
+                className="flex-1 py-2 rounded-lg font-bold text-sm bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                Cancelar pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* ============ MODAL PREPARAR TODOS ============ */}
-      <ConfirmModal
-        visible={mostrarPrepararTodos}
-        titulo="Preparar Todos"
-        mensaje="Se cambiaran todos los pedidos pendientes a En Preparacion"
-        tipo="info"
-        textoConfirmar="Preparar Todos"
-        onConfirmar={handlePrepararTodos}
-        onCancelar={() => setMostrarPrepararTodos(false)}
-      />
+      {/* Modal Preparar Todos eliminado */}
 
       {/* ============ MODAL ASIGNAR REPARTIDOR ============ */}
       {mostrarAsignarRepartidor && (

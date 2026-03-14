@@ -18,7 +18,8 @@ public record PedidoDto(
     bool EstaPago,
     List<LineaPedidoDto> Lineas,
     List<PagoPedidoDto>? Pagos = null,
-    string? ComprobanteEntrega = null);
+    string? ComprobanteEntrega = null,
+    string? MotivoCancelacion = null);
 
 public record LineaPedidoDto(
     int Id, int? ProductoId, int? ComboId, string Descripcion,
@@ -62,6 +63,7 @@ public record ActualizarPedidoDto(
     List<CrearPagoPedidoDto>? Pagos = null);
 
 public record CambiarEstadoDto(EstadoPedido NuevoEstado);
+public record CancelarPedidoDto(string Motivo);
 
 public record AsignarEntregaDto(int PedidoId, int RepartidorId);
 

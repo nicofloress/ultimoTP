@@ -146,6 +146,18 @@ public class PedidoService : IPedidoService
             pedido.Total = subtotal - dto.Descuento + recargo;
         }
 
+        // Si es Domicilio con zona, verificar si ya hay reparto activo en esa zona
+        if (dto.Tipo == TipoPedido.Domicilio && dto.ZonaId.HasValue)
+        {
+            var repartidorActivo = await _pedidoRepo.GetRepartidorActivoEnZonaHoyAsync(dto.ZonaId.Value);
+            if (repartidorActivo.HasValue)
+            {
+                pedido.RepartidorId = repartidorActivo.Value;
+                pedido.Estado = EstadoPedido.Asignado;
+                pedido.FechaAsignacion = ahora;
+            }
+        }
+
         // Asignar caja abierta si existe
         var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync();
         if (cajaAbierta is not null)
@@ -165,9 +177,9 @@ public class PedidoService : IPedidoService
         var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
         if (pedido is null) return null;
 
-        if (pedido.Estado != EstadoPedido.Pendiente && pedido.Estado != EstadoPedido.EnPreparacion)
+        if (pedido.Estado != EstadoPedido.Pendiente)
             throw new InvalidOperationException(
-                $"No se puede editar un pedido en estado '{pedido.Estado}'. Solo se permiten estados Pendiente o EnPreparacion.");
+                $"No se puede editar un pedido en estado '{pedido.Estado}'. Solo se permite en estado Pendiente.");
 
         if (dto.FechaProgramada.HasValue)
         {
@@ -312,9 +324,37 @@ public class PedidoService : IPedidoService
         return ToDto(pedido);
     }
 
-    public async Task<PedidoDto?> CancelarAsync(int id)
+    public async Task<PedidoDto?> CancelarAsync(int id, string motivoCancelacion)
     {
-        return await CambiarEstadoAsync(id, EstadoPedido.Cancelado);
+        if (string.IsNullOrWhiteSpace(motivoCancelacion))
+            throw new InvalidOperationException("El motivo de cancelación es obligatorio.");
+
+        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
+        if (pedido is null) return null;
+
+        pedido.Estado = EstadoPedido.Cancelado;
+        pedido.MotivoCancelacion = motivoCancelacion.Trim();
+        _pedidoRepo.Update(pedido);
+        await _pedidoRepo.SaveChangesAsync();
+        return ToDto(pedido);
+    }
+
+    public async Task<PedidoDto?> MarcarNoEntregadoAsync(int id, string motivo)
+    {
+        if (string.IsNullOrWhiteSpace(motivo))
+            throw new InvalidOperationException("El motivo de no entrega es obligatorio.");
+
+        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
+        if (pedido is null) return null;
+
+        if (pedido.Estado != EstadoPedido.EnCamino)
+            throw new InvalidOperationException("Solo se puede marcar como no entregado un pedido en camino.");
+
+        pedido.Estado = EstadoPedido.NoEntregado;
+        pedido.MotivoCancelacion = motivo.Trim();
+        _pedidoRepo.Update(pedido);
+        await _pedidoRepo.SaveChangesAsync();
+        return ToDto(pedido);
     }
 
     public async Task<TicketDto?> GetTicketAsync(int id)
@@ -408,7 +448,7 @@ public class PedidoService : IPedidoService
         var pedidos = await _pedidoRepo.GetListosParaRepartoHoyAsync();
         // Solo trabajar con pedidos que aún no fueron despachados
         var pedidosList = pedidos
-            .Where(p => p.Estado == EstadoPedido.EnPreparacion)
+            .Where(p => p.Estado == EstadoPedido.Pendiente)
             .ToList();
 
         if (!pedidosList.Any())
@@ -426,7 +466,7 @@ public class PedidoService : IPedidoService
             foreach (var pedido in pedidosDeZona)
             {
                 pedido.RepartidorId = asignacion.RepartidorId;
-                pedido.Estado = EstadoPedido.EnCamino;
+                pedido.Estado = EstadoPedido.Asignado;
                 pedido.FechaAsignacion = ahora;
                 _pedidoRepo.Update(pedido);
             }
@@ -444,22 +484,8 @@ public class PedidoService : IPedidoService
 
     public async Task<int> PrepararTodosAsync()
     {
-        var pedidosHoy = await _pedidoRepo.GetByFechaAsync(DateTime.Today);
-        var pendientes = pedidosHoy
-            .Where(p => p.Estado == EstadoPedido.Pendiente)
-            .ToList();
-
-        if (!pendientes.Any())
-            return 0;
-
-        foreach (var pedido in pendientes)
-        {
-            pedido.Estado = EstadoPedido.EnPreparacion;
-            _pedidoRepo.Update(pedido);
-        }
-
-        await _pedidoRepo.SaveChangesAsync();
-        return pendientes.Count;
+        // Ya no se usa EnPreparacion, este método no tiene efecto
+        return 0;
     }
 
     private static PagoPedidoDto MapPagoPedidoDto(PagoPedido p) => new(
@@ -487,6 +513,7 @@ public class PedidoService : IPedidoService
             p.EstaPago,
             p.Lineas.Select(l => new LineaPedidoDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
             pagos,
-            p.ComprobanteEntrega);
+            p.ComprobanteEntrega,
+            p.MotivoCancelacion);
     }
 }

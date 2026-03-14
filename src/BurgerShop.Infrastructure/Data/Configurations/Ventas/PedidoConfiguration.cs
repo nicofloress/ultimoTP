@@ -21,6 +21,7 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(p => p.Total).HasColumnType("decimal(18,2)");
         builder.Property(p => p.NotasEntrega).HasMaxLength(1000);
         builder.Property(p => p.NotaInterna).HasMaxLength(1000);
+        builder.Property(p => p.MotivoCancelacion).HasMaxLength(500);
 
         builder.HasOne(p => p.Cliente)
             .WithMany(c => c.Pedidos)

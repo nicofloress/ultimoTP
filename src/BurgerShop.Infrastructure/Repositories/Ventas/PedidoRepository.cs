@@ -66,7 +66,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             .Include(p => p.FormaPago)
             .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(p => p.Tipo == TipoPedido.Domicilio
-                && p.Estado == EstadoPedido.EnPreparacion
+                && p.Estado == EstadoPedido.Pendiente
                 && p.RepartidorId == null)
             .OrderBy(p => p.FechaCreacion)
             .ToListAsync();
@@ -81,7 +81,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             .Include(p => p.Zona)
             .Include(p => p.Repartidor)
             .Where(p => p.Tipo == TipoPedido.Domicilio
-                && p.Estado == EstadoPedido.EnPreparacion
+                && p.Estado == EstadoPedido.Pendiente
                 && p.ZonaId != null
                 && (p.FechaProgramada == null
                     ? p.FechaCreacion.Date == hoy
@@ -94,9 +94,10 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         var hoy = DateTime.Today;
         var estadosReparto = new[]
         {
-            EstadoPedido.EnPreparacion,
-            EstadoPedido.EnCamino, EstadoPedido.Entregado,
-            EstadoPedido.Cancelado
+            EstadoPedido.Pendiente,
+            EstadoPedido.Asignado, EstadoPedido.EnCamino,
+            EstadoPedido.Entregado, EstadoPedido.Cancelado,
+            EstadoPedido.NoEntregado
         };
         return await _dbSet
             .Include(p => p.Lineas)
@@ -130,12 +131,40 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return numero + 1;
     }
 
+    public async Task<int?> GetRepartidorActivoEnZonaHoyAsync(int zonaId)
+    {
+        var hoy = DateTime.Today;
+        var manana = hoy.AddDays(1);
+
+        // Buscar pedidos de hoy en esa zona con repartidor asignado
+        var pedidosZonaHoy = await _dbSet
+            .Where(p => p.ZonaId == zonaId
+                && p.RepartidorId != null
+                && p.FechaAsignacion != null
+                && p.FechaAsignacion >= hoy
+                && p.FechaAsignacion < manana)
+            .Select(p => new { p.RepartidorId, p.Estado })
+            .ToListAsync();
+
+        if (!pedidosZonaHoy.Any()) return null;
+
+        // Solo auto-asignar si hay al menos un pedido activo (no todos finalizados)
+        var hayActivos = pedidosZonaHoy.Any(p =>
+            p.Estado == EstadoPedido.Pendiente
+            || p.Estado == EstadoPedido.Asignado
+            || p.Estado == EstadoPedido.EnCamino);
+
+        if (!hayActivos) return null;
+
+        return pedidosZonaHoy.First().RepartidorId;
+    }
+
     public async Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId)
     {
         return await _dbSet
             .Include(p => p.FormaPago)
             .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.CierreCajaId == cierreCajaId && p.Estado != EstadoPedido.Cancelado)
+            .Where(p => p.CierreCajaId == cierreCajaId && p.Estado != EstadoPedido.Cancelado && p.Estado != EstadoPedido.NoEntregado)
             .ToListAsync();
     }
 }

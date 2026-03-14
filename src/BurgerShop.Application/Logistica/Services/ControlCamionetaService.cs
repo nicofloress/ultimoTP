@@ -40,7 +40,7 @@ public class ControlCamionetaService : IControlCamionetaService
         {
             if (pedido.ZonaId == null || !zonaRepartidor.TryGetValue(pedido.ZonaId.Value, out var repId))
                 continue;
-            if (pedido.Estado != EstadoPedido.EnPreparacion)
+            if (pedido.Estado != EstadoPedido.Pendiente)
                 continue;
 
             if (!pedidosPorRepartidor.ContainsKey(repId))

@@ -8,5 +8,6 @@ public enum EstadoPedido
     Asignado = 4,
     EnCamino = 5,
     Entregado = 6,
-    Cancelado = 7
+    Cancelado = 7,
+    NoEntregado = 8
 }

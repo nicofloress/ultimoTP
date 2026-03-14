@@ -70,12 +70,19 @@ public class PedidosController : ControllerBase
     }
 
     [HttpPut("{id}/cancelar")]
-    public async Task<ActionResult<PedidoDto>> Cancelar(int id)
+    public async Task<ActionResult<PedidoDto>> Cancelar(int id, [FromBody] CancelarPedidoDto dto)
     {
-        var pedido = await _service.CancelarAsync(id);
-        if (pedido is null) return NotFound();
-        await _notificaciones.NotificarPedidoCanceladoAsync(pedido.Id, pedido.NumeroTicket);
-        return Ok(pedido);
+        try
+        {
+            var pedido = await _service.CancelarAsync(id, dto.Motivo);
+            if (pedido is null) return NotFound();
+            await _notificaciones.NotificarPedidoCanceladoAsync(pedido.Id, pedido.NumeroTicket);
+            return Ok(pedido);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id}/ticket")]
