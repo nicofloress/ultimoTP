@@ -8,20 +8,17 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
 import { desactivarTracking } from '../../api/tracking';
+import { crearRendicion, RendicionDto } from '../../api/rendiciones';
 import { GoogleMap } from '../../components/GoogleMap';
-
-export default function RepartidorApp() {
-  return <RepartidorAppContent />;
-}
 
 type Tab = 'pendientes' | 'completados' | 'noEntregados';
 
-function RepartidorAppContent() {
+export default function RepartidorApp() {
   const { usuario, logout } = useAuth();
   const repartidorId = usuario?.repartidorId ?? null;
   const { entregas, pendingCount, refresh, lastRefresh, isRefreshing } = useNotifications(repartidorId);
   const { showToast } = useGlobalToast();
-  const { gpsStatus } = useGeoTracking(!!repartidorId);
+  const { gpsStatus, lastPosition } = useGeoTracking(!!repartidorId);
 
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
   const [modalPedido, setModalPedido] = useState<Pedido | null>(null);
@@ -31,7 +28,28 @@ function RepartidorAppContent() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
-  const [mostrarRuta, setMostrarRuta] = useState(false);
+  const abrirGoogleMapsRuta = () => {
+    const conDireccion = pendientes.filter(p => p.direccionEntrega);
+    if (conDireccion.length === 0) return;
+
+    const direcciones = conDireccion.map(p => encodeURIComponent(p.direccionEntrega!));
+
+    if (lastPosition) {
+      // Con GPS: origin = ubicacion actual, destination = ultima, waypoints = las demas
+      const origin = `${lastPosition.lat},${lastPosition.lng}`;
+      const destination = direcciones[direcciones.length - 1];
+      const waypoints = direcciones.slice(0, -1).join('|');
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
+      window.open(url, '_blank');
+    } else {
+      // Sin GPS: origin = primera direccion, destination = ultima, waypoints = intermedias
+      const origin = direcciones[0];
+      const destination = direcciones[direcciones.length - 1];
+      const waypoints = direcciones.slice(1, -1).join('|');
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
+      window.open(url, '_blank');
+    }
+  };
 
   // Polling mensajes no leidos
   useEffect(() => {
@@ -81,6 +99,13 @@ function RepartidorAppContent() {
   // Estado para lightbox comprobante
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
 
+  // Estado para rendicion de caja
+  const [rendicionAbierta, setRendicionAbierta] = useState(false);
+  const [efectivoDeclarado, setEfectivoDeclarado] = useState('');
+  const [observacionesRendicion, setObservacionesRendicion] = useState('');
+  const [rendicionLoading, setRendicionLoading] = useState(false);
+  const [rendicionEnviada, setRendicionEnviada] = useState<RendicionDto | null>(null);
+
   const handleCancelar = async () => {
     if (!cancelarPedido || !motivoCancelacion.trim()) return;
     setCancelLoading(true);
@@ -94,6 +119,44 @@ function RepartidorAppContent() {
       showToast('Error al cancelar entrega', 'error');
     } finally {
       setCancelLoading(false);
+    }
+  };
+
+  // Rendicion: calcular resumen
+  const puedeRendir = pendientes.length === 0 && (completados.length > 0 || noEntregados.length > 0);
+
+  const resumenRendicion = useMemo(() => {
+    const totalEfectivo = completados
+      .filter(p => p.formaPagoNombre?.toLowerCase() === 'efectivo')
+      .reduce((sum, p) => sum + p.total, 0);
+    const totalTransferencia = completados
+      .filter(p => p.formaPagoNombre?.toLowerCase() !== 'efectivo')
+      .reduce((sum, p) => sum + p.total, 0);
+    const totalNoEntregado = noEntregados.reduce((sum, p) => sum + p.total, 0);
+    return { totalEfectivo, totalTransferencia, totalNoEntregado };
+  }, [completados, noEntregados]);
+
+  const handleRendicion = async () => {
+    if (!repartidorId) return;
+    const monto = parseFloat(efectivoDeclarado);
+    if (isNaN(monto) || monto < 0) {
+      showToast('Ingresa un monto valido', 'error');
+      return;
+    }
+    setRendicionLoading(true);
+    try {
+      const result = await crearRendicion({
+        repartidorId,
+        efectivoDeclarado: monto,
+        observaciones: observacionesRendicion.trim() || undefined,
+      });
+      setRendicionEnviada(result);
+      setRendicionAbierta(false);
+      showToast('Rendicion enviada correctamente', 'success');
+    } catch {
+      showToast('Error al enviar rendicion', 'error');
+    } finally {
+      setRendicionLoading(false);
     }
   };
 
@@ -281,13 +344,13 @@ function RepartidorAppContent() {
             {/* Boton optimizar ruta */}
             {pendientes.filter(p => p.direccionEntrega).length >= 2 && (
               <button
-                onClick={() => setMostrarRuta(true)}
+                onClick={abrirGoogleMapsRuta}
                 className="w-full mb-3 bg-slate-700 hover:bg-slate-800 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                Optimizar ruta de entregas
+                Abrir ruta en Google Maps
               </button>
             )}
             <PendientesTab
@@ -312,8 +375,41 @@ function RepartidorAppContent() {
         {activeTab === 'noEntregados' && (
           <NoEntregadosTab
             pedidos={noEntregados}
-            formatTime={formatTime}
           />
+        )}
+
+        {/* Boton Rendir Caja - aparece cuando no hay pendientes y hay completados */}
+        {puedeRendir && !rendicionEnviada && (
+          <button
+            onClick={() => { setRendicionAbierta(true); setEfectivoDeclarado(''); setObservacionesRendicion(''); }}
+            className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-3 shadow-lg"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Rendir Caja
+          </button>
+        )}
+
+        {/* Mensaje post-rendicion */}
+        {rendicionEnviada && (
+          <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-5 text-center">
+            <p className="text-4xl mb-3">{'\u2705'}</p>
+            <h3 className="font-bold text-green-800 text-lg mb-1">Rendicion enviada</h3>
+            <p className="text-green-600 text-sm">Esperando aprobacion del admin</p>
+            <div className="mt-3 bg-white rounded-lg p-3 text-left text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Efectivo declarado:</span>
+                <span className="font-semibold text-gray-800">${rendicionEnviada.efectivoDeclarado.toLocaleString('es-AR')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Diferencia:</span>
+                <span className={`font-semibold ${rendicionEnviada.diferencia === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ${rendicionEnviada.diferencia.toLocaleString('es-AR')}
+                </span>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
@@ -331,14 +427,6 @@ function RepartidorAppContent() {
           onCancel={() => { setModalPedido(null); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
           loading={actionLoading === modalPedido.id}
           formatTime={formatTime}
-        />
-      )}
-
-      {/* Modal de ruta optimizada */}
-      {mostrarRuta && (
-        <RutaOptimizadaModal
-          pedidos={pendientes.filter(p => p.direccionEntrega)}
-          onCerrar={() => setMostrarRuta(false)}
         />
       )}
 
@@ -381,6 +469,117 @@ function RepartidorAppContent() {
                   <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   'Confirmar No Entregado'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Rendicion de Caja */}
+      {rendicionAbierta && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => !rendicionLoading && setRendicionAbierta(false)}>
+          <div className="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-amber-500 px-5 py-4 sm:rounded-t-xl rounded-t-xl">
+              <h3 className="text-white font-bold text-lg">Rendir Caja</h3>
+              <p className="text-amber-100 text-sm">Declara el efectivo que tenes en mano</p>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {/* Resumen automatico */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Resumen del dia</h4>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Pedidos Entregados:</span>
+                  <span className="font-semibold text-gray-800">{completados.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">En Efectivo:</span>
+                  <span className="font-semibold text-green-700">${resumenRendicion.totalEfectivo.toLocaleString('es-AR')}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">En Transferencia:</span>
+                  <span className="font-semibold text-blue-700">${resumenRendicion.totalTransferencia.toLocaleString('es-AR')}</span>
+                </div>
+                {noEntregados.length > 0 && (
+                  <div className="flex justify-between text-sm pt-1 border-t border-gray-200">
+                    <span className="text-gray-600">No Entregados ({noEntregados.length}):</span>
+                    <span className="font-semibold text-red-600">${resumenRendicion.totalNoEntregado.toLocaleString('es-AR')}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Input efectivo declarado */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Efectivo en mano *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={efectivoDeclarado}
+                    onChange={e => setEfectivoDeclarado(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Diferencia calculada */}
+              {efectivoDeclarado !== '' && !isNaN(parseFloat(efectivoDeclarado)) && (
+                <div className={`rounded-lg p-3 text-center ${
+                  parseFloat(efectivoDeclarado) === resumenRendicion.totalEfectivo
+                    ? 'bg-green-50 border border-green-200'
+                    : 'bg-red-50 border border-red-200'
+                }`}>
+                  <p className="text-xs text-gray-500 mb-1">Diferencia con efectivo esperado</p>
+                  <p className={`text-xl font-bold ${
+                    parseFloat(efectivoDeclarado) === resumenRendicion.totalEfectivo
+                      ? 'text-green-700'
+                      : 'text-red-700'
+                  }`}>
+                    ${(parseFloat(efectivoDeclarado) - resumenRendicion.totalEfectivo).toLocaleString('es-AR')}
+                  </p>
+                </div>
+              )}
+
+              {/* Observaciones */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observaciones (opcional)
+                </label>
+                <textarea
+                  value={observacionesRendicion}
+                  onChange={e => setObservacionesRendicion(e.target.value)}
+                  placeholder="Ej: Me dieron cambio de mas en un pedido..."
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div className="px-5 py-3 flex gap-3 border-t border-gray-200">
+              <button
+                onClick={() => setRendicionAbierta(false)}
+                disabled={rendicionLoading}
+                className="flex-1 py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRendicion}
+                disabled={rendicionLoading || efectivoDeclarado === '' || isNaN(parseFloat(efectivoDeclarado))}
+                className="flex-1 py-2.5 rounded-lg font-bold text-sm bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {rendicionLoading ? (
+                  <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  'Enviar Rendicion'
                 )}
               </button>
             </div>
@@ -689,10 +888,8 @@ function CompletadosTab({
 // ============================
 function NoEntregadosTab({
   pedidos,
-  formatTime,
 }: {
   pedidos: Pedido[];
-  formatTime: (s: string) => string;
 }) {
   if (pedidos.length === 0) {
     return (
@@ -934,238 +1131,6 @@ function EntregaModal({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ============================
-// Ruta Optimizada Modal
-// ============================
-function RutaOptimizadaModal({
-  pedidos,
-  onCerrar,
-}: {
-  pedidos: Pedido[];
-  onCerrar: () => void;
-}) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [ordenOptimo, setOrdenOptimo] = useState<Pedido[]>([]);
-  const [duracionTotal, setDuracionTotal] = useState('');
-  const [distanciaTotal, setDistanciaTotal] = useState('');
-
-  useEffect(() => {
-    if (!mapRef.current || !window.google?.maps) {
-      setError('Google Maps no disponible');
-      setCargando(false);
-      return;
-    }
-
-    const direcciones = pedidos.map(p => p.direccionEntrega!);
-    if (direcciones.length < 2) {
-      setError('Se necesitan al menos 2 direcciones');
-      setCargando(false);
-      return;
-    }
-
-    // Crear mapa
-    const map = new google.maps.Map(mapRef.current, {
-      center: { lat: -34.6037, lng: -58.3816 },
-      zoom: 12,
-      disableDefaultUI: true,
-      zoomControl: true,
-      gestureHandling: 'greedy',
-    });
-    mapInstanceRef.current = map;
-
-    // Configurar Directions
-    const directionsService = new google.maps.DirectionsService();
-    const directionsRenderer = new google.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-      polylineOptions: {
-        strokeColor: '#1e293b',
-        strokeWeight: 4,
-        strokeOpacity: 0.8,
-      },
-    });
-    directionsRendererRef.current = directionsRenderer;
-
-    // Origen = primera direccion, destino = ultima, waypoints = intermedias
-    // Con optimizeWaypoints Google reordena los waypoints para la ruta mas corta
-    const origin = direcciones[0];
-    const destination = direcciones[direcciones.length - 1];
-    const waypoints = direcciones.slice(1, -1).map(d => ({
-      location: d,
-      stopover: true,
-    }));
-
-    directionsService.route(
-      {
-        origin,
-        destination,
-        waypoints,
-        optimizeWaypoints: true,
-        travelMode: google.maps.TravelMode.DRIVING,
-        region: 'ar',
-      },
-      (result, status) => {
-        setCargando(false);
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          directionsRenderer.setDirections(result);
-
-          // Calcular orden optimo
-          const waypointOrder = result.routes[0].waypoint_order;
-          const pedidosOrdenados: Pedido[] = [pedidos[0]];
-          const intermedios = pedidos.slice(1, -1);
-          waypointOrder.forEach(idx => {
-            pedidosOrdenados.push(intermedios[idx]);
-          });
-          if (pedidos.length > 1) {
-            pedidosOrdenados.push(pedidos[pedidos.length - 1]);
-          }
-          setOrdenOptimo(pedidosOrdenados);
-
-          // Agregar marcadores numerados
-          const legs = result.routes[0].legs;
-          let totalDuration = 0;
-          let totalDistance = 0;
-
-          legs.forEach((leg, i) => {
-            totalDuration += leg.duration?.value || 0;
-            totalDistance += leg.distance?.value || 0;
-
-            // Marcador de inicio de cada leg
-            new google.maps.Marker({
-              position: leg.start_location,
-              map,
-              label: {
-                text: String(i + 1),
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '14px',
-              },
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 16,
-                fillColor: i === 0 ? '#16a34a' : '#1e293b',
-                fillOpacity: 1,
-                strokeColor: 'white',
-                strokeWeight: 2,
-              },
-            });
-
-            // Marcador del ultimo destino
-            if (i === legs.length - 1) {
-              new google.maps.Marker({
-                position: leg.end_location,
-                map,
-                label: {
-                  text: String(i + 2),
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                },
-                icon: {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 16,
-                  fillColor: '#dc2626',
-                  fillOpacity: 1,
-                  strokeColor: 'white',
-                  strokeWeight: 2,
-                },
-              });
-            }
-          });
-
-          const mins = Math.round(totalDuration / 60);
-          const km = (totalDistance / 1000).toFixed(1);
-          setDuracionTotal(`${mins} min`);
-          setDistanciaTotal(`${km} km`);
-        } else {
-          setError('No se pudo calcular la ruta. Verifica las direcciones.');
-        }
-      }
-    );
-
-    return () => {
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setMap(null);
-      }
-    };
-  }, [pedidos]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-md" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
-        <div className="flex items-center gap-2">
-          <button onClick={onCerrar} className="text-slate-400 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h3 className="font-bold text-sm">Ruta Optimizada</h3>
-            {duracionTotal && distanciaTotal && (
-              <p className="text-slate-400 text-xs">{distanciaTotal} - {duracionTotal} aprox.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mapa */}
-      <div className="flex-1 relative">
-        <div ref={mapRef} className="w-full h-full" />
-        {cargando && (
-          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-            <div className="text-center">
-              <span className="inline-block w-8 h-8 border-3 border-gray-300 border-t-slate-700 rounded-full animate-spin mb-2" />
-              <p className="text-gray-600 text-sm font-medium">Calculando ruta optima...</p>
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="absolute inset-0 bg-white/90 flex items-center justify-center p-4">
-            <div className="text-center">
-              <p className="text-red-500 font-semibold mb-2">{error}</p>
-              <button onClick={onCerrar} className="text-sm text-slate-600 underline">Volver</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Lista ordenada */}
-      {ordenOptimo.length > 0 && (
-        <div className="bg-white border-t border-gray-200 max-h-[35vh] overflow-y-auto flex-shrink-0">
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Orden de entrega sugerido</p>
-          </div>
-          {ordenOptimo.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-b-0">
-              <span
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${
-                  i === 0 ? 'bg-green-600' : i === ordenOptimo.length - 1 ? 'bg-red-600' : 'bg-slate-700'
-                }`}
-              >
-                {i + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">
-                  #{p.numeroTicket} {p.nombreCliente && `- ${p.nombreCliente}`}
-                </p>
-                <p className="text-xs text-gray-500 truncate">{p.direccionEntrega}</p>
-              </div>
-              <span className="text-sm font-bold text-amber-700 flex-shrink-0">
-                ${p.total.toLocaleString('es-AR')}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

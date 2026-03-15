@@ -1272,6 +1272,100 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.ToTable("Mensajes");
                 });
 
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RendicionDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FormaPago")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NumeroTicket")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("PedidoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RendicionId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PedidoId");
+
+                    b.HasIndex("RendicionId");
+
+                    b.ToTable("RendicionesDetalle");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RendicionRepartidor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Aprobada")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("CantidadEntregados")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CantidadNoEntregados")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Diferencia")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("EfectivoDeclarado")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("FechaAprobacion")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("RepartidorId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalEfectivo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalNoEntregado")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalTransferencia")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.HasIndex("RepartidorId");
+
+                    b.ToTable("RendicionesRepartidor");
+                });
+
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Repartidor", b =>
                 {
                     b.Property<int>("Id")
@@ -1957,6 +2051,36 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("Repartidor");
                 });
 
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RendicionDetalle", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Pedido", "Pedido")
+                        .WithMany()
+                        .HasForeignKey("PedidoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BurgerShop.Domain.Entities.Logistica.RendicionRepartidor", "Rendicion")
+                        .WithMany("Detalles")
+                        .HasForeignKey("RendicionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pedido");
+
+                    b.Navigation("Rendicion");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RendicionRepartidor", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Logistica.Repartidor", "Repartidor")
+                        .WithMany()
+                        .HasForeignKey("RepartidorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Repartidor");
+                });
+
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RepartidorZona", b =>
                 {
                     b.HasOne("BurgerShop.Domain.Entities.Logistica.Repartidor", "Repartidor")
@@ -2129,6 +2253,11 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("Detalles");
 
                     b.Navigation("Pedidos");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RendicionRepartidor", b =>
+                {
+                    b.Navigation("Detalles");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Repartidor", b =>

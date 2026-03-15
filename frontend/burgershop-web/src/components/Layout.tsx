@@ -40,12 +40,14 @@ const menuSections: MenuSection[] = [
       { to: '/catalogo/proveedores', label: 'Proveedores', adminOnly: true },
       { to: '/catalogo/tiposCliente', label: 'Tipos de Cliente', adminOnly: true },
       { to: '/catalogo/listasprecios', label: 'Listas de Precios', adminOnly: true },
+      { to: '/catalogo/usuarios', label: 'Usuarios', adminOnly: true },
     ],
   },
   {
     title: 'Finanzas',
     items: [
       { to: '/finanzas/caja', label: 'Caja Diaria', adminOnly: true },
+      { to: '/finanzas/rendiciones', label: 'Rendiciones', adminOnly: true },
     ],
   },
   {
@@ -67,7 +69,9 @@ function getPageTitle(pathname: string): string {
     '/catalogo/proveedores': 'Proveedores',
     '/catalogo/tiposCliente': 'Tipos de Cliente',
     '/catalogo/listasprecios': 'Listas de Precios',
+    '/catalogo/usuarios': 'Usuarios',
     '/finanzas/caja': 'Caja Diaria',
+    '/finanzas/rendiciones': 'Rendiciones',
     '/reparto': 'Entregas',
     '/tracking': 'Tracking en Vivo',
     '/config': 'Configuracion',

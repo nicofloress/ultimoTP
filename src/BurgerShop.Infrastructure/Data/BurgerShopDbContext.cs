@@ -33,6 +33,8 @@ public class BurgerShopDbContext : DbContext
     public DbSet<Mensaje> Mensajes => Set<Mensaje>();
     public DbSet<UbicacionRepartidor> UbicacionesRepartidor => Set<UbicacionRepartidor>();
     public DbSet<RepartoZona> RepartosZona => Set<RepartoZona>();
+    public DbSet<RendicionRepartidor> RendicionesRepartidor => Set<RendicionRepartidor>();
+    public DbSet<RendicionDetalle> RendicionesDetalle => Set<RendicionDetalle>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

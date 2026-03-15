@@ -28,7 +28,7 @@ export const cambiarEstado = (id: number, nuevoEstado: number) =>
 
 export const cancelarPedido = (id: number, motivo: string) => api.put<Pedido>(`/pedidos/${id}/cancelar`, { motivo }).then(r => r.data);
 
-export const actualizarPedido = (id: number, data: any) =>
+export const actualizarPedido = (id: number, data: Partial<Parameters<typeof crearPedido>[0]>) =>
   api.put<Pedido>(`/pedidos/${id}`, data).then(r => r.data);
 
 export const getTicket = (id: number) => api.get(`/pedidos/${id}/ticket`).then(r => r.data);

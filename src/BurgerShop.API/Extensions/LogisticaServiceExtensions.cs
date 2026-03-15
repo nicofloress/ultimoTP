@@ -14,12 +14,15 @@ public static class LogisticaServiceExtensions
         services.AddScoped<IMensajeRepository, MensajeRepository>();
         services.AddScoped<IUbicacionRepartidorRepository, UbicacionRepartidorRepository>();
 
+        services.AddScoped<IRendicionRepository, RendicionRepository>();
+
         // Services
         services.AddScoped<IZonaService, ZonaService>();
         services.AddScoped<IRepartidorService, RepartidorService>();
         services.AddScoped<IControlCamionetaService, ControlCamionetaService>();
         services.AddScoped<IMensajeService, MensajeService>();
         services.AddScoped<ITrackingService, TrackingService>();
+        services.AddScoped<IRendicionService, RendicionService>();
 
         return services;
     }

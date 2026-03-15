@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Zona, Repartidor, FormaPago } from '../../types';
-import { getZonas, createZona, updateZona, deleteZona, getRepartidores, createRepartidor, updateRepartidor, deleteRepartidor, asignarZonas } from '../../api/entregas';
+import { getZonas, createZona, updateZona, deleteZona } from '../../api/zonas';
+import { getRepartidores, crearRepartidor as createRepartidor, actualizarRepartidor as updateRepartidor, eliminarRepartidor as deleteRepartidor, asignarZonas } from '../../api/repartidores';
 import { getFormasPago, createFormaPago, updateFormaPago, deleteFormaPago } from '../../api/formasPago';
 import { ConfirmModal } from '../../components/ConfirmModal';
 

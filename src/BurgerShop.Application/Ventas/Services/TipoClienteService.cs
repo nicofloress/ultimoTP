@@ -11,10 +11,10 @@ public class TipoClienteService : ITipoClienteService
 
     public TipoClienteService(IRepository<TipoCliente> repo) => _repo = repo;
 
-    public async Task<List<TipoClienteDto>> GetAllAsync()
+    public async Task<IEnumerable<TipoClienteDto>> GetAllAsync()
     {
         var tipos = await _repo.GetAllAsync();
-        return tipos.Select(MapToDto).ToList();
+        return tipos.Select(MapToDto);
     }
 
     public async Task<TipoClienteDto?> GetByIdAsync(int id)

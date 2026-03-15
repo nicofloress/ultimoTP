@@ -13,7 +13,7 @@ public class ComboService : IComboService
 
     public async Task<IEnumerable<ComboDto>> GetAllAsync()
     {
-        var combos = await _repo.GetActivosAsync();
+        var combos = await _repo.GetAllAsync();
         return combos.Select(ToDto);
     }
 

@@ -4,7 +4,7 @@ import {
   Producto, Combo, Categoria, CarritoItem, TipoPedido,
   FormaPago, Zona, TipoFactura,
 } from '../../types';
-import { getPedidos, crearPedido, cambiarEstado, cancelarPedido, actualizarPedido, prepararTodos } from '../../api/pedidos';
+import { getPedidos, crearPedido, cambiarEstado, cancelarPedido, actualizarPedido } from '../../api/pedidos';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
@@ -12,7 +12,6 @@ import { getFormasPagoActivas } from '../../api/formasPago';
 import { getZonas } from '../../api/zonas';
 import { getRepartidores } from '../../api/repartidores';
 import { Repartidor } from '../../types/logistica';
-import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { GoogleMap } from '../../components/GoogleMap';
 import { Calendar } from '@/components/ui/calendar';
@@ -21,11 +20,10 @@ import { Button } from '@/components/ui/button';
 import { CalendarIcon } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import { addDays, format } from 'date-fns';
+import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
 
 const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
-
-const OFERTAS_SEMANALES_CATEGORIA_ID = 17;
 
 // Estados activos para filtrar en el panel derecho (entregas se ven en pantalla Entregas)
 const estadosFiltro = [
@@ -74,9 +72,6 @@ export default function PedidosPage() {
   const [pedidoCancelar, setPedidoCancelar] = useState<Pedido | null>(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
 
-  // ===== MODAL PREPARAR TODOS =====
-  const [mostrarPrepararTodos, setMostrarPrepararTodos] = useState(false);
-
   const busquedaRef = useRef<HTMLInputElement>(null);
   const direccionRef = useRef<HTMLInputElement>(null);
   const { sugerencias: sugerenciasDireccion, coordenadas, buscarDirecciones, limpiarSugerencias, geocodificar, geocodificarDireccion, limpiarCoordenadas } = useGooglePlaces();
@@ -89,7 +84,7 @@ export default function PedidosPage() {
     getCategorias().then(setCategorias);
     getFormasPagoActivas().then(setFormasPago);
     getZonas().then(setZonas);
-    getRepartidores().then(r => setRepartidores(r.data));
+    getRepartidores().then(setRepartidores);
   }, []);
 
   // ===== CARGAR PEDIDOS =====
@@ -269,19 +264,19 @@ export default function PedidosPage() {
       nombreCliente: editandoPedido.nombreCliente || undefined,
       telefonoCliente: telefono || undefined,
       direccionEntrega: direccion || undefined,
-      zonaId: zonaSeleccionada || null,
+      zonaId: zonaSeleccionada || undefined,
       descuento,
-      formaPagoId: formaPagoSeleccionada || null,
+      formaPagoId: formaPagoSeleccionada || undefined,
       notaInterna: notaInterna || undefined,
       tipoFactura: editandoPedido.tipoFactura,
-      fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : null,
+      fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : undefined,
       estaPago: yaPago,
       lineas: carrito.map(item => ({
-        productoId: item.productoId || null,
-        comboId: item.comboId || null,
+        productoId: item.productoId || undefined,
+        comboId: item.comboId || undefined,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
-        notas: item.notas || null,
+        notas: item.notas || undefined,
       })),
     });
     limpiarFormulario();
@@ -310,14 +305,6 @@ export default function PedidosPage() {
     cargarPedidos();
     if (editandoPedido?.id === id) limpiarFormulario();
   };
-
-  const handlePrepararTodos = async () => {
-    setMostrarPrepararTodos(false);
-    await prepararTodos();
-    cargarPedidos();
-  };
-
-  const hayPendientes = pedidos.some(p => p.estado === EstadoPedido.Pendiente);
 
   const siguienteEstado = (_estado: EstadoPedido): EstadoPedido | null => {
     // Ya no hay transición manual de estado desde PedidosPage

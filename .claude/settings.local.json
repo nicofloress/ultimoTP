@@ -9,7 +9,8 @@
       "Bash(npx tsc:*)",
       "Bash(dotnet ef:*)",
       "Bash(npx shadcn@latest:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(powershell:*)"
     ]
   }
 }

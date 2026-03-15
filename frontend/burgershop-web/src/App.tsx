@@ -16,10 +16,12 @@ import ProveedoresPage from './pages/catalogo/ProveedoresPage';
 import RepartidoresPage from './pages/catalogo/RepartidoresPage';
 import TiposClientePage from './pages/catalogo/TiposClientePage';
 import ListasPrecioPage from './pages/catalogo/ListasPrecioPage';
+import UsuariosPage from './pages/catalogo/UsuariosPage';
 import EntregasPage from './pages/entregas/EntregasPage';
 import TrackingMapaPage from './pages/entregas/TrackingMapaPage';
 import ConfigPage from './pages/config/ConfigPage';
 import CajaPage from './pages/finanzas/CajaPage';
+import RendicionesPage from './pages/finanzas/RendicionesPage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
 import { RolUsuario } from './types/auth';
 
@@ -55,10 +57,16 @@ export default function App() {
               <Route path="repartidores" element={<RepartidoresPage />} />
               <Route path="tiposCliente" element={<TiposClientePage />} />
               <Route path="listasprecios" element={<ListasPrecioPage />} />
+              <Route path="usuarios" element={<UsuariosPage />} />
             </Route>
             <Route path="/finanzas/caja" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}>
                 <CajaPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/finanzas/rendiciones" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}>
+                <RendicionesPage />
               </ProtectedRoute>
             } />
             <Route path="/reparto" element={

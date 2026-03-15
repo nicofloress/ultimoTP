@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { CierreCaja, EstadoCaja } from '../../types';
 import { getCajaAbierta, abrirCaja, cerrarCaja, getHistorialCajas } from '../../api/caja';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { Toast, useToast } from '../../components/Toast';
+import { useGlobalToast } from '../../components/Toast';
 
 export default function CajaPage() {
   const [cajaAbierta, setCajaAbierta] = useState<CierreCaja | null>(null);
@@ -13,7 +13,7 @@ export default function CajaPage() {
   const [observacionesCierre, setObservacionesCierre] = useState('');
   const [detalleExpandido, setDetalleExpandido] = useState<number | null>(null);
   const [mostrarConfirmCierre, setMostrarConfirmCierre] = useState(false);
-  const { toast, mostrarToast, cerrarToast } = useToast();
+  const { showToast } = useGlobalToast();
 
   const cargarDatos = async () => {
     setCargando(true);
@@ -40,7 +40,7 @@ export default function CajaPage() {
       setObservaciones('');
       await cargarDatos();
     } catch {
-      mostrarToast('Error al abrir la caja', 'error');
+      showToast('Error al abrir la caja', 'error');
     }
   };
 
@@ -57,7 +57,7 @@ export default function CajaPage() {
       setObservacionesCierre('');
       await cargarDatos();
     } catch {
-      mostrarToast('Error al cerrar la caja', 'error');
+      showToast('Error al cerrar la caja', 'error');
     }
   };
 
@@ -298,7 +298,6 @@ export default function CajaPage() {
         onConfirmar={confirmarCierreCaja}
         onCancelar={() => setMostrarConfirmCierre(false)}
       />
-      <Toast {...toast} onClose={cerrarToast} />
     </div>
   );
 }

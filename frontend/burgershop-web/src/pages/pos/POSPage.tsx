@@ -4,14 +4,13 @@ import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
 import { crearPedido, getTicket } from '../../api/pedidos';
-import TicketPrint from '../../components/TicketPrint';
+import TicketPrint, { TicketPrintProps } from '../../components/TicketPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { buscarClientes } from '../../api/clientes';
 import { getListasPrecios } from '../../api/listasPrecios';
 import PagoDivididoPanel from '../../components/PagoDivididoPanel';
 import { getCajaAbierta } from '../../api/caja';
-
-const OFERTAS_SEMANALES_CATEGORIA_ID = 17;
+import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
 
 export default function POSPage() {
   // Data
@@ -53,7 +52,7 @@ export default function POSPage() {
   // Estado post-creacion
   const [ticketCreado, setTicketCreado] = useState<string | null>(null);
   const [ultimoPedidoId, setUltimoPedidoId] = useState<number | null>(null);
-  const [ticketParaImprimir, setTicketParaImprimir] = useState<any>(null);
+  const [ticketParaImprimir, setTicketParaImprimir] = useState<TicketPrintProps['ticket'] | null>(null);
 
   const busquedaRef = useRef<HTMLInputElement>(null);
   const clienteInputRef = useRef<HTMLDivElement>(null);
@@ -669,7 +668,7 @@ export default function POSPage() {
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {listoParaGuardar ? 'Guardar' : 'Guardar'}
+              Guardar
             </button>
           </div>
         </div>

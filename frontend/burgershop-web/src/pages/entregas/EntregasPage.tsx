@@ -1,11 +1,14 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Pedido, Repartidor, EstadoPedido, estadoLabels, TipoPedido } from '../../types';
-import { getPedidosPorZona, getRepartidores, empezarReparto, descargarControlCamioneta, getZonas, finalizarRepartoZona, getZonasFinalizadas } from '../../api/entregas';
+import { getPedidosPorZona, empezarReparto, descargarControlCamioneta, finalizarRepartoZona, getZonasFinalizadas } from '../../api/entregas';
+import { getRepartidores } from '../../api/repartidores';
+import { getZonas } from '../../api/zonas';
 import { getProductos } from '../../api/productos';
-import { crearPedido, cambiarEstado, getPedido } from '../../api/pedidos';
-import { Toast, useToast } from '../../components/Toast';
+import { crearPedido, getPedido } from '../../api/pedidos';
+import { useGlobalToast } from '../../components/Toast';
 import AdminChat from './AdminChat';
 
+// Separate from shared estadoColores: entregas uses different colors for visual distinction in the delivery context
 const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
   [EstadoPedido.Pendiente]: 'bg-yellow-100 text-yellow-800',
   [EstadoPedido.Asignado]: 'bg-amber-100 text-amber-800',
@@ -28,7 +31,7 @@ export default function EntregasPage() {
   const [pedidoDetalle, setPedidoDetalle] = useState<Pedido | null>(null);
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  const { toast, mostrarToast, cerrarToast } = useToast();
+  const { showToast } = useGlobalToast();
   const [chatAbierto, setChatAbierto] = useState(false);
   const [zonasFinalizadas, setZonasFinalizadas] = useState<Set<number>>(new Set());
 
@@ -77,7 +80,7 @@ export default function EntregasPage() {
       const zonasActivas = zonas.filter(z => z.activa);
 
       if (productosActivos.length === 0 || zonasActivas.length === 0) {
-        mostrarToast('Necesitas productos y zonas activas para crear pedidos test', 'error');
+        showToast('Necesitas productos y zonas activas para crear pedidos test', 'error');
         return;
       }
 
@@ -97,7 +100,7 @@ export default function EntregasPage() {
           });
         }
         const zona = pick(zonasActivas);
-        const pedido = await crearPedido({
+        await crearPedido({
           tipo: TipoPedido.Domicilio,
           nombreCliente: nombres[i],
           telefonoCliente: `11${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -110,11 +113,11 @@ export default function EntregasPage() {
         // Pedido ya se crea en estado Pendiente, no hace falta cambiar
       }
 
-      mostrarToast('6 pedidos de prueba creados', 'success');
+      showToast('6 pedidos de prueba creados', 'success');
       await cargar();
     } catch (err) {
       console.error('Error creando pedidos test:', err);
-      mostrarToast('Error al crear pedidos test', 'error');
+      showToast('Error al crear pedidos test', 'error');
     } finally {
       setCreandoTest(false);
     }
@@ -198,7 +201,7 @@ export default function EntregasPage() {
       }
       await empezarReparto(asignacionesArray);
       setMostrarConfirmacion(false);
-      mostrarToast('Reparto iniciado con exito', 'success');
+      showToast('Reparto iniciado con exito', 'success');
       setAsignaciones(new Map());
       await cargar();
     } catch (err) {
@@ -220,7 +223,7 @@ export default function EntregasPage() {
       setPedidoDetalle(detalle);
     } catch (err) {
       console.error('Error cargando detalle:', err);
-      mostrarToast('Error al cargar detalle del pedido', 'error');
+      showToast('Error al cargar detalle del pedido', 'error');
     } finally {
       setCargandoDetalle(false);
     }
@@ -303,7 +306,6 @@ export default function EntregasPage() {
               const enCaminoZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnCamino).length;
               const entregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Entregado).length;
               const canceladosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Cancelado).length;
-              const noEntregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.NoEntregado).length;
               const tienePendientes = pendientesZona > 0;
               const repartidorDeZona = data.pedidos.find(p => p.repartidorNombre)?.repartidorNombre;
               // Zona completada: todos los pedidos en estado final y al menos uno fue despachado
@@ -385,10 +387,10 @@ export default function EntregasPage() {
                                   next.add(zonaId);
                                   return next;
                                 });
-                                mostrarToast(`Reparto de ${data.zona} finalizado`, 'success');
+                                showToast(`Reparto de ${data.zona} finalizado`, 'success');
                               } catch (err) {
                                 console.error('Error al finalizar reparto:', err);
-                                mostrarToast('Error al finalizar reparto', 'error');
+                                showToast('Error al finalizar reparto', 'error');
                               }
                             }}
                             className="w-full mt-1 py-2 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2"
@@ -801,8 +803,6 @@ export default function EntregasPage() {
         </div>
       )}
 
-      {/* Toast de exito */}
-      <Toast {...toast} onClose={cerrarToast} />
     </div>
   );
 }

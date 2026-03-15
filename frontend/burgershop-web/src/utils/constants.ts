@@ -1,0 +1,1 @@
+export const OFERTAS_SEMANALES_CATEGORIA_ID = 17;

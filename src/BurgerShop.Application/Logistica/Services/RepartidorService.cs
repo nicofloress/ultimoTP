@@ -13,7 +13,7 @@ public class RepartidorService : IRepartidorService
 
     public async Task<IEnumerable<RepartidorDto>> GetAllAsync()
     {
-        var repartidores = await _repo.GetActivosAsync();
+        var repartidores = await _repo.GetAllAsync();
         return repartidores.Select(ToDto);
     }
 
