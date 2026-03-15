@@ -4,7 +4,7 @@ import {
   Producto, Combo, Categoria, CarritoItem, TipoPedido,
   FormaPago, Zona, TipoFactura,
 } from '../../types';
-import { getPedidos, crearPedido, cambiarEstado, cancelarPedido, actualizarPedido, prepararTodos } from '../../api/pedidos';
+import { getPedidos, crearPedido, cambiarEstado, cancelarPedido, actualizarPedido } from '../../api/pedidos';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
@@ -12,7 +12,6 @@ import { getFormasPagoActivas } from '../../api/formasPago';
 import { getZonas } from '../../api/zonas';
 import { getRepartidores } from '../../api/repartidores';
 import { Repartidor } from '../../types/logistica';
-import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { GoogleMap } from '../../components/GoogleMap';
 import { Calendar } from '@/components/ui/calendar';
@@ -73,9 +72,6 @@ export default function PedidosPage() {
   // ===== MODAL CANCELAR PEDIDO =====
   const [pedidoCancelar, setPedidoCancelar] = useState<Pedido | null>(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
-
-  // ===== MODAL PREPARAR TODOS =====
-  const [mostrarPrepararTodos, setMostrarPrepararTodos] = useState(false);
 
   const busquedaRef = useRef<HTMLInputElement>(null);
   const direccionRef = useRef<HTMLInputElement>(null);
@@ -310,14 +306,6 @@ export default function PedidosPage() {
     cargarPedidos();
     if (editandoPedido?.id === id) limpiarFormulario();
   };
-
-  const handlePrepararTodos = async () => {
-    setMostrarPrepararTodos(false);
-    await prepararTodos();
-    cargarPedidos();
-  };
-
-  const hayPendientes = pedidos.some(p => p.estado === EstadoPedido.Pendiente);
 
   const siguienteEstado = (_estado: EstadoPedido): EstadoPedido | null => {
     // Ya no hay transición manual de estado desde PedidosPage

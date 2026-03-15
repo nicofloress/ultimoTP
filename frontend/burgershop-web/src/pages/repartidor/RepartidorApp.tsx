@@ -312,7 +312,6 @@ function RepartidorAppContent() {
         {activeTab === 'noEntregados' && (
           <NoEntregadosTab
             pedidos={noEntregados}
-            formatTime={formatTime}
           />
         )}
       </main>
@@ -690,10 +689,8 @@ function CompletadosTab({
 // ============================
 function NoEntregadosTab({
   pedidos,
-  formatTime,
 }: {
   pedidos: Pedido[];
-  formatTime: (s: string) => string;
 }) {
   if (pedidos.length === 0) {
     return (

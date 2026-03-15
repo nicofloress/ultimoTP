@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Pedido, Repartidor, EstadoPedido, estadoLabels, TipoPedido } from '../../types';
 import { getPedidosPorZona, getRepartidores, empezarReparto, descargarControlCamioneta, getZonas } from '../../api/entregas';
 import { getProductos } from '../../api/productos';
-import { crearPedido, cambiarEstado, getPedido } from '../../api/pedidos';
+import { crearPedido, getPedido } from '../../api/pedidos';
 import { Toast, useToast } from '../../components/Toast';
 import AdminChat from './AdminChat';
 
@@ -96,7 +96,7 @@ export default function EntregasPage() {
           });
         }
         const zona = pick(zonasActivas);
-        const pedido = await crearPedido({
+        await crearPedido({
           tipo: TipoPedido.Domicilio,
           nombreCliente: nombres[i],
           telefonoCliente: `11${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -302,7 +302,6 @@ export default function EntregasPage() {
               const enCaminoZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnCamino).length;
               const entregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Entregado).length;
               const canceladosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Cancelado).length;
-              const noEntregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.NoEntregado).length;
               const tienePendientes = pendientesZona > 0;
               const repartidorDeZona = data.pedidos.find(p => p.repartidorNombre)?.repartidorNombre;
               // Zona completada: todos los pedidos en estado final y al menos uno fue despachado
