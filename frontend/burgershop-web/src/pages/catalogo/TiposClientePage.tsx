@@ -12,7 +12,7 @@ export default function TiposClientePage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
-  const cargar = () => getTiposCliente().then(res => setTiposCliente(res.data));
+  const cargar = () => getTiposCliente().then(setTiposCliente);
 
   useEffect(() => { cargar(); }, []);
 

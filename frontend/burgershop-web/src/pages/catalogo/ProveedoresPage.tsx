@@ -12,7 +12,7 @@ export default function ProveedoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
-  const cargar = () => getProveedores().then(res => setProveedores(res.data));
+  const cargar = () => getProveedores().then(setProveedores);
 
   useEffect(() => { cargar(); }, []);
 

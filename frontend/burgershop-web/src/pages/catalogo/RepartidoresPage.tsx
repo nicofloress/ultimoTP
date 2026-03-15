@@ -12,7 +12,7 @@ export default function RepartidoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
-  const cargar = () => getRepartidores().then(res => setRepartidores(res.data));
+  const cargar = () => getRepartidores().then(setRepartidores);
 
   useEffect(() => { cargar(); }, []);
 

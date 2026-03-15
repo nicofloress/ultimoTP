@@ -30,7 +30,7 @@ export default function UsuariosPage() {
 
   const cargar = () => {
     getUsuarios().then(res => setUsuarios(res.data));
-    getRepartidores().then(res => setRepartidores(res.data));
+    getRepartidores().then(setRepartidores);
   };
 
   useEffect(() => { cargar(); }, []);

@@ -1,4 +1,4 @@
-interface TicketPrintProps {
+export interface TicketPrintProps {
   ticket: {
     numeroTicket: string;
     fecha: string;

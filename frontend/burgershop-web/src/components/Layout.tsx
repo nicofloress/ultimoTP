@@ -47,6 +47,7 @@ const menuSections: MenuSection[] = [
     title: 'Finanzas',
     items: [
       { to: '/finanzas/caja', label: 'Caja Diaria', adminOnly: true },
+      { to: '/finanzas/rendiciones', label: 'Rendiciones', adminOnly: true },
     ],
   },
   {
@@ -70,6 +71,7 @@ function getPageTitle(pathname: string): string {
     '/catalogo/listasprecios': 'Listas de Precios',
     '/catalogo/usuarios': 'Usuarios',
     '/finanzas/caja': 'Caja Diaria',
+    '/finanzas/rendiciones': 'Rendiciones',
     '/reparto': 'Entregas',
     '/tracking': 'Tracking en Vivo',
     '/config': 'Configuracion',

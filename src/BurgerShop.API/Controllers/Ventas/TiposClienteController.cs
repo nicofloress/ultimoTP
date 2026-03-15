@@ -15,7 +15,7 @@ public class TiposClienteController : ControllerBase
     public TiposClienteController(ITipoClienteService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<List<TipoClienteDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<TipoClienteDto>>> GetAll()
         => Ok(await _service.GetAllAsync());
 
     [HttpGet("{id}")]

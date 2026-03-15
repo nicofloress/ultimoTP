@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Repartidor, Mensaje } from '../../types';
-import { getRepartidores } from '../../api/entregas';
+import { getRepartidores } from '../../api/repartidores';
 import { getMensajesRepartidor, enviarMensajeAdmin, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 
 interface Props {

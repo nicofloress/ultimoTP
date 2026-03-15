@@ -21,6 +21,7 @@ import EntregasPage from './pages/entregas/EntregasPage';
 import TrackingMapaPage from './pages/entregas/TrackingMapaPage';
 import ConfigPage from './pages/config/ConfigPage';
 import CajaPage from './pages/finanzas/CajaPage';
+import RendicionesPage from './pages/finanzas/RendicionesPage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
 import { RolUsuario } from './types/auth';
 
@@ -61,6 +62,11 @@ export default function App() {
             <Route path="/finanzas/caja" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}>
                 <CajaPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/finanzas/rendiciones" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}>
+                <RendicionesPage />
               </ProtectedRoute>
             } />
             <Route path="/reparto" element={
