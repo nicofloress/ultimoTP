@@ -22,4 +22,6 @@ public interface IPedidoService
     Task<IEnumerable<PedidoDto>> GetListosParaRepartoHoyAsync();
     Task<IEnumerable<PedidoDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
     Task<int> PrepararTodosAsync();
+    Task FinalizarRepartoZonaAsync(int zonaId);
+    Task<List<int>> GetZonasRepartoFinalizadoHoyAsync();
 }

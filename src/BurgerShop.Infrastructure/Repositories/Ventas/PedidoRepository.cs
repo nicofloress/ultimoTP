@@ -1,3 +1,4 @@
+using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
@@ -134,29 +135,138 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     public async Task<int?> GetRepartidorActivoEnZonaHoyAsync(int zonaId)
     {
         var hoy = DateTime.Today;
-        var manana = hoy.AddDays(1);
 
-        // Buscar pedidos de hoy en esa zona con repartidor asignado
-        var pedidosZonaHoy = await _dbSet
-            .Where(p => p.ZonaId == zonaId
-                && p.RepartidorId != null
-                && p.FechaAsignacion != null
-                && p.FechaAsignacion >= hoy
-                && p.FechaAsignacion < manana)
-            .Select(p => new { p.RepartidorId, p.Estado })
+        // Buscar si hay un reparto activo (EnCurso) en esta zona hoy
+        var reparto = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId
+                && r.Fecha == hoy
+                && r.Estado == EstadoReparto.EnCurso);
+
+        if (reparto != null)
+            return reparto.RepartidorId;
+
+        return null;
+    }
+
+    // --- RepartoZona ---
+
+    public async Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalPedidos)
+    {
+        var hoy = DateTime.Today;
+
+        // Si ya existe un reparto para esta zona hoy, actualizarlo
+        var existente = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+
+        if (existente != null)
+        {
+            existente.RepartidorId = repartidorId;
+            existente.Estado = EstadoReparto.EnCurso;
+            existente.FechaInicio = DateTime.Now;
+            existente.FechaFinalizacion = null;
+            existente.TotalPedidos = totalPedidos;
+            existente.TotalEntregados = 0;
+            existente.TotalNoEntregados = 0;
+            existente.TotalCancelados = 0;
+            await _context.SaveChangesAsync();
+            return existente;
+        }
+
+        var reparto = new RepartoZona
+        {
+            ZonaId = zonaId,
+            RepartidorId = repartidorId,
+            Fecha = hoy,
+            FechaInicio = DateTime.Now,
+            Estado = EstadoReparto.EnCurso,
+            TotalPedidos = totalPedidos
+        };
+
+        _context.RepartosZona.Add(reparto);
+        await _context.SaveChangesAsync();
+        return reparto;
+    }
+
+    public async Task FinalizarRepartoZonaAsync(int zonaId)
+    {
+        var hoy = DateTime.Today;
+        var reparto = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+
+        if (reparto != null)
+        {
+            reparto.Estado = EstadoReparto.Finalizado;
+            reparto.FechaFinalizacion = DateTime.Now;
+
+            // Sincronizar contadores con datos reales de pedidos
+            var pedidosZona = await _dbSet
+                .Where(p => p.ZonaId == zonaId
+                    && p.RepartidorId != null
+                    && p.FechaCreacion.Date == hoy)
+                .ToListAsync();
+
+            reparto.TotalPedidos = pedidosZona.Count;
+            reparto.TotalEntregados = pedidosZona.Count(p => p.Estado == EstadoPedido.Entregado);
+            reparto.TotalNoEntregados = pedidosZona.Count(p => p.Estado == EstadoPedido.NoEntregado);
+            reparto.TotalCancelados = pedidosZona.Count(p => p.Estado == EstadoPedido.Cancelado);
+
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<List<int>> GetZonasRepartoFinalizadoHoyAsync()
+    {
+        var hoy = DateTime.Today;
+        return await _context.RepartosZona
+            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.Finalizado)
+            .Select(r => r.ZonaId)
             .ToListAsync();
+    }
 
-        if (!pedidosZonaHoy.Any()) return null;
+    public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
+    {
+        var hoy = DateTime.Today;
+        return await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId
+                && r.Fecha == hoy
+                && r.Estado == EstadoReparto.EnCurso);
+    }
 
-        // Solo auto-asignar si hay al menos un pedido activo (no todos finalizados)
-        var hayActivos = pedidosZonaHoy.Any(p =>
-            p.Estado == EstadoPedido.Pendiente
-            || p.Estado == EstadoPedido.Asignado
-            || p.Estado == EstadoPedido.EnCamino);
+    public async Task IncrementarContadorRepartoAsync(int zonaId, EstadoPedido estadoFinal)
+    {
+        var hoy = DateTime.Today;
+        var reparto = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
 
-        if (!hayActivos) return null;
+        if (reparto == null) return;
 
-        return pedidosZonaHoy.First().RepartidorId;
+        switch (estadoFinal)
+        {
+            case EstadoPedido.Entregado:
+                reparto.TotalEntregados++;
+                break;
+            case EstadoPedido.NoEntregado:
+                reparto.TotalNoEntregados++;
+                break;
+            case EstadoPedido.Cancelado:
+                reparto.TotalCancelados++;
+                break;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task IncrementarTotalPedidosRepartoAsync(int zonaId)
+    {
+        var hoy = DateTime.Today;
+        var reparto = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+
+        if (reparto != null)
+        {
+            reparto.TotalPedidos++;
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId)

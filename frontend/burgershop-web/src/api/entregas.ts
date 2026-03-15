@@ -25,6 +25,8 @@ export const marcarNoEntregado = (pedidoId: number, motivo: string) =>
   api.put<Pedido>(`/entregas/${pedidoId}/no-entregado`, { motivo }).then(r => r.data);
 
 export const getPedidosPorZona = () => api.get<Pedido[]>('/entregas/por-zona').then(r => r.data);
+export const finalizarRepartoZona = (zonaId: number) => api.post(`/entregas/finalizar-reparto/${zonaId}`).then(r => r.data);
+export const getZonasFinalizadas = () => api.get<number[]>('/entregas/zonas-finalizadas').then(r => r.data);
 export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number }[]) =>
   api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);
 

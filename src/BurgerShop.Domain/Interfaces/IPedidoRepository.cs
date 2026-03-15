@@ -1,3 +1,4 @@
+using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 
@@ -15,4 +16,12 @@ public interface IPedidoRepository : IRepository<Pedido>
     Task<int> GetSiguienteNumeroTicketAsync(DateTime fecha);
     Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId);
     Task<int?> GetRepartidorActivoEnZonaHoyAsync(int zonaId);
+
+    // RepartoZona
+    Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalPedidos);
+    Task FinalizarRepartoZonaAsync(int zonaId);
+    Task<List<int>> GetZonasRepartoFinalizadoHoyAsync();
+    Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
+    Task IncrementarContadorRepartoAsync(int zonaId, EstadoPedido estadoFinal);
+    Task IncrementarTotalPedidosRepartoAsync(int zonaId);
 }

@@ -168,6 +168,12 @@ public class PedidoService : IPedidoService
         await _pedidoRepo.AddAsync(pedido);
         await _pedidoRepo.SaveChangesAsync();
 
+        // Si se auto-asignó, incrementar contador del reparto
+        if (pedido.Estado == EstadoPedido.Asignado && pedido.ZonaId.HasValue)
+        {
+            await _pedidoRepo.IncrementarTotalPedidosRepartoAsync(pedido.ZonaId.Value);
+        }
+
         var created = await _pedidoRepo.GetByIdWithLineasAsync(pedido.Id);
         return ToDto(created!);
     }
@@ -336,6 +342,11 @@ public class PedidoService : IPedidoService
         pedido.MotivoCancelacion = motivoCancelacion.Trim();
         _pedidoRepo.Update(pedido);
         await _pedidoRepo.SaveChangesAsync();
+
+        // Incrementar contador en RepartoZona
+        if (pedido.ZonaId.HasValue)
+            await _pedidoRepo.IncrementarContadorRepartoAsync(pedido.ZonaId.Value, EstadoPedido.Cancelado);
+
         return ToDto(pedido);
     }
 
@@ -354,6 +365,11 @@ public class PedidoService : IPedidoService
         pedido.MotivoCancelacion = motivo.Trim();
         _pedidoRepo.Update(pedido);
         await _pedidoRepo.SaveChangesAsync();
+
+        // Incrementar contador en RepartoZona
+        if (pedido.ZonaId.HasValue)
+            await _pedidoRepo.IncrementarContadorRepartoAsync(pedido.ZonaId.Value, EstadoPedido.NoEntregado);
+
         return ToDto(pedido);
     }
 
@@ -433,6 +449,11 @@ public class PedidoService : IPedidoService
 
         _pedidoRepo.Update(pedido);
         await _pedidoRepo.SaveChangesAsync();
+
+        // Incrementar contador en RepartoZona
+        if (pedido.ZonaId.HasValue)
+            await _pedidoRepo.IncrementarContadorRepartoAsync(pedido.ZonaId.Value, EstadoPedido.Entregado);
+
         return ToDto(pedido);
     }
 
@@ -470,6 +491,15 @@ public class PedidoService : IPedidoService
                 pedido.FechaAsignacion = ahora;
                 _pedidoRepo.Update(pedido);
             }
+
+            // Crear registro RepartoZona para esta zona
+            if (pedidosDeZona.Any())
+            {
+                await _pedidoRepo.CrearRepartoZonaAsync(
+                    asignacion.ZonaId,
+                    asignacion.RepartidorId,
+                    pedidosDeZona.Count);
+            }
         }
 
         await _pedidoRepo.SaveChangesAsync();
@@ -486,6 +516,16 @@ public class PedidoService : IPedidoService
     {
         // Ya no se usa EnPreparacion, este método no tiene efecto
         return 0;
+    }
+
+    public async Task FinalizarRepartoZonaAsync(int zonaId)
+    {
+        await _pedidoRepo.FinalizarRepartoZonaAsync(zonaId);
+    }
+
+    public async Task<List<int>> GetZonasRepartoFinalizadoHoyAsync()
+    {
+        return await _pedidoRepo.GetZonasRepartoFinalizadoHoyAsync();
     }
 
     private static PagoPedidoDto MapPagoPedidoDto(PagoPedido p) => new(

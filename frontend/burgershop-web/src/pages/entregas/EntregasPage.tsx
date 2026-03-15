@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Pedido, Repartidor, EstadoPedido, estadoLabels, TipoPedido } from '../../types';
-import { getPedidosPorZona, getRepartidores, empezarReparto, descargarControlCamioneta, getZonas } from '../../api/entregas';
+import { getPedidosPorZona, getRepartidores, empezarReparto, descargarControlCamioneta, getZonas, finalizarRepartoZona, getZonasFinalizadas } from '../../api/entregas';
 import { getProductos } from '../../api/productos';
 import { crearPedido, cambiarEstado, getPedido } from '../../api/pedidos';
 import { Toast, useToast } from '../../components/Toast';
@@ -10,7 +10,7 @@ const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
   [EstadoPedido.Pendiente]: 'bg-yellow-100 text-yellow-800',
   [EstadoPedido.Asignado]: 'bg-amber-100 text-amber-800',
   [EstadoPedido.EnCamino]: 'bg-indigo-100 text-indigo-800',
-  [EstadoPedido.Entregado]: 'bg-gray-100 text-gray-600',
+  [EstadoPedido.Entregado]: 'bg-green-100 text-green-700',
   [EstadoPedido.Cancelado]: 'bg-red-100 text-red-700',
   [EstadoPedido.NoEntregado]: 'bg-rose-100 text-rose-700',
 };
@@ -35,9 +35,10 @@ export default function EntregasPage() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const [p, r] = await Promise.all([getPedidosPorZona(), getRepartidores()]);
+      const [p, r, finalizadas] = await Promise.all([getPedidosPorZona(), getRepartidores(), getZonasFinalizadas()]);
       setPedidos(p);
       setRepartidores(r.filter(rep => rep.activo));
+      setZonasFinalizadas(new Set(finalizadas));
 
       // Auto-asignar repartidores en zonas que ya tienen reparto activo
       setAsignaciones(prev => {
@@ -376,13 +377,19 @@ export default function EntregasPage() {
                         )}
                         {todosFinales ? (
                           <button
-                            onClick={() => {
-                              setZonasFinalizadas(prev => {
-                                const next = new Set(prev);
-                                next.add(zonaId);
-                                return next;
-                              });
-                              mostrarToast(`Reparto de ${data.zona} finalizado`, 'success');
+                            onClick={async () => {
+                              try {
+                                await finalizarRepartoZona(zonaId);
+                                setZonasFinalizadas(prev => {
+                                  const next = new Set(prev);
+                                  next.add(zonaId);
+                                  return next;
+                                });
+                                mostrarToast(`Reparto de ${data.zona} finalizado`, 'success');
+                              } catch (err) {
+                                console.error('Error al finalizar reparto:', err);
+                                mostrarToast('Error al finalizar reparto', 'error');
+                              }
                             }}
                             className="w-full mt-1 py-2 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2"
                           >
@@ -664,6 +671,19 @@ export default function EntregasPage() {
                         <span className="font-medium text-gray-800">{pedidoDetalle.repartidorNombre}</span>
                       </div>
                     )}
+                    {(pedidoDetalle.pagos && pedidoDetalle.pagos.length > 0) ? (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Forma de pago</span>
+                        <span className="font-medium text-gray-800">
+                          {pedidoDetalle.pagos.map(p => p.formaPagoNombre).join(', ')}
+                        </span>
+                      </div>
+                    ) : pedidoDetalle.formaPagoNombre ? (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Forma de pago</span>
+                        <span className="font-medium text-gray-800">{pedidoDetalle.formaPagoNombre}</span>
+                      </div>
+                    ) : null}
                     {pedidoDetalle.notaInterna && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Nota</span>

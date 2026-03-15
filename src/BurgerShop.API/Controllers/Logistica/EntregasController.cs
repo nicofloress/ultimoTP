@@ -100,6 +100,17 @@ public class EntregasController : ControllerBase
         }
     }
 
+    [HttpPost("finalizar-reparto/{zonaId}")]
+    public async Task<IActionResult> FinalizarReparto(int zonaId)
+    {
+        await _pedidoService.FinalizarRepartoZonaAsync(zonaId);
+        return Ok();
+    }
+
+    [HttpGet("zonas-finalizadas")]
+    public async Task<ActionResult<List<int>>> GetZonasFinalizadas()
+        => Ok(await _pedidoService.GetZonasRepartoFinalizadoHoyAsync());
+
     [HttpPost("control-camioneta")]
     public async Task<IActionResult> ControlCamioneta(EmpezarRepartoDto dto)
     {
