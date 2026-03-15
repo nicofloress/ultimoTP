@@ -21,7 +21,7 @@ function RepartidorAppContent() {
   const repartidorId = usuario?.repartidorId ?? null;
   const { entregas, pendingCount, refresh, lastRefresh, isRefreshing } = useNotifications(repartidorId);
   const { showToast } = useGlobalToast();
-  const { gpsStatus } = useGeoTracking(!!repartidorId);
+  const { gpsStatus, lastPosition } = useGeoTracking(!!repartidorId);
 
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
   const [modalPedido, setModalPedido] = useState<Pedido | null>(null);
@@ -338,6 +338,7 @@ function RepartidorAppContent() {
       {mostrarRuta && (
         <RutaOptimizadaModal
           pedidos={pendientes.filter(p => p.direccionEntrega)}
+          posicionRepartidor={lastPosition}
           onCerrar={() => setMostrarRuta(false)}
         />
       )}
@@ -943,9 +944,11 @@ function EntregaModal({
 // ============================
 function RutaOptimizadaModal({
   pedidos,
+  posicionRepartidor,
   onCerrar,
 }: {
   pedidos: Pedido[];
+  posicionRepartidor: { lat: number; lng: number } | null;
   onCerrar: () => void;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -964,16 +967,22 @@ function RutaOptimizadaModal({
       return;
     }
 
+    if (!posicionRepartidor) {
+      setError('No se pudo obtener tu ubicacion GPS. Asegurate de tener el GPS activado.');
+      setCargando(false);
+      return;
+    }
+
     const direcciones = pedidos.map(p => p.direccionEntrega!);
-    if (direcciones.length < 2) {
-      setError('Se necesitan al menos 2 direcciones');
+    if (direcciones.length === 0) {
+      setError('No hay direcciones de entrega');
       setCargando(false);
       return;
     }
 
     // Crear mapa
     const map = new google.maps.Map(mapRef.current, {
-      center: { lat: -34.6037, lng: -58.3816 },
+      center: posicionRepartidor,
       zoom: 12,
       disableDefaultUI: true,
       zoomControl: true,
@@ -994,11 +1003,12 @@ function RutaOptimizadaModal({
     });
     directionsRendererRef.current = directionsRenderer;
 
-    // Origen = primera direccion, destino = ultima, waypoints = intermedias
-    // Con optimizeWaypoints Google reordena los waypoints para la ruta mas corta
-    const origin = direcciones[0];
+    // Origen = ubicacion GPS del repartidor
+    // Destino = ultima direccion (Google no reordena el destino)
+    // Waypoints = todas las direcciones excepto la ultima, con optimizeWaypoints
+    const origin = new google.maps.LatLng(posicionRepartidor.lat, posicionRepartidor.lng);
     const destination = direcciones[direcciones.length - 1];
-    const waypoints = direcciones.slice(1, -1).map(d => ({
+    const waypoints = direcciones.slice(0, -1).map(d => ({
       location: d,
       stopover: true,
     }));
@@ -1017,16 +1027,12 @@ function RutaOptimizadaModal({
         if (status === google.maps.DirectionsStatus.OK && result) {
           directionsRenderer.setDirections(result);
 
-          // Calcular orden optimo
+          // Reconstruir orden optimo
+          // waypoint_order mapea indices de los waypoints (todas las direcciones menos la ultima)
           const waypointOrder = result.routes[0].waypoint_order;
-          const pedidosOrdenados: Pedido[] = [pedidos[0]];
-          const intermedios = pedidos.slice(1, -1);
-          waypointOrder.forEach(idx => {
-            pedidosOrdenados.push(intermedios[idx]);
-          });
-          if (pedidos.length > 1) {
-            pedidosOrdenados.push(pedidos[pedidos.length - 1]);
-          }
+          const pedidosSinUltimo = pedidos.slice(0, -1);
+          const pedidosOrdenados: Pedido[] = waypointOrder.map(idx => pedidosSinUltimo[idx]);
+          pedidosOrdenados.push(pedidos[pedidos.length - 1]);
           setOrdenOptimo(pedidosOrdenados);
 
           // Agregar marcadores numerados
@@ -1034,13 +1040,34 @@ function RutaOptimizadaModal({
           let totalDuration = 0;
           let totalDistance = 0;
 
+          // Marcador de origen (ubicacion del repartidor)
+          new google.maps.Marker({
+            position: legs[0].start_location,
+            map,
+            label: {
+              text: '\u2605',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '14px',
+            },
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 16,
+              fillColor: '#16a34a',
+              fillOpacity: 1,
+              strokeColor: 'white',
+              strokeWeight: 2,
+            },
+            title: 'Tu ubicacion',
+          });
+
           legs.forEach((leg, i) => {
             totalDuration += leg.duration?.value || 0;
             totalDistance += leg.distance?.value || 0;
 
-            // Marcador de inicio de cada leg
+            // Marcador del destino de cada leg (cada punto de entrega)
             new google.maps.Marker({
-              position: leg.start_location,
+              position: leg.end_location,
               map,
               label: {
                 text: String(i + 1),
@@ -1051,34 +1078,12 @@ function RutaOptimizadaModal({
               icon: {
                 path: google.maps.SymbolPath.CIRCLE,
                 scale: 16,
-                fillColor: i === 0 ? '#16a34a' : '#1e293b',
+                fillColor: i === legs.length - 1 ? '#dc2626' : '#1e293b',
                 fillOpacity: 1,
                 strokeColor: 'white',
                 strokeWeight: 2,
               },
             });
-
-            // Marcador del ultimo destino
-            if (i === legs.length - 1) {
-              new google.maps.Marker({
-                position: leg.end_location,
-                map,
-                label: {
-                  text: String(i + 2),
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                },
-                icon: {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 16,
-                  fillColor: '#dc2626',
-                  fillOpacity: 1,
-                  strokeColor: 'white',
-                  strokeWeight: 2,
-                },
-              });
-            }
           });
 
           const mins = Math.round(totalDuration / 60);
@@ -1096,7 +1101,7 @@ function RutaOptimizadaModal({
         directionsRendererRef.current.setMap(null);
       }
     };
-  }, [pedidos]);
+  }, [pedidos, posicionRepartidor]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">

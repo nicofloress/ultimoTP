@@ -16,6 +16,7 @@ import ProveedoresPage from './pages/catalogo/ProveedoresPage';
 import RepartidoresPage from './pages/catalogo/RepartidoresPage';
 import TiposClientePage from './pages/catalogo/TiposClientePage';
 import ListasPrecioPage from './pages/catalogo/ListasPrecioPage';
+import UsuariosPage from './pages/catalogo/UsuariosPage';
 import EntregasPage from './pages/entregas/EntregasPage';
 import TrackingMapaPage from './pages/entregas/TrackingMapaPage';
 import ConfigPage from './pages/config/ConfigPage';
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="repartidores" element={<RepartidoresPage />} />
               <Route path="tiposCliente" element={<TiposClientePage />} />
               <Route path="listasprecios" element={<ListasPrecioPage />} />
+              <Route path="usuarios" element={<UsuariosPage />} />
             </Route>
             <Route path="/finanzas/caja" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}>

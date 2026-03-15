@@ -12,6 +12,7 @@ public static class AuthServiceExtensions
     {
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         return services;
     }
