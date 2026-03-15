@@ -21,7 +21,7 @@ export function loadGoogleMapsScript(): Promise<void> {
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places,geocoding`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places,geocoding,directions`;
     script.async = true;
     script.onload = () => {
       scriptLoaded = true;

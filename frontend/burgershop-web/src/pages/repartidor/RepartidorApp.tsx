@@ -5,7 +5,7 @@ import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeid
 import { useAuth } from '../../context/AuthContext';
 import { useGlobalToast } from '../../components/Toast';
 import { useNotifications } from '../../hooks/useNotifications';
-import { useGooglePlaces } from '../../hooks/useGooglePlaces';
+import { useGooglePlaces, loadGoogleMapsScript } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
 import { desactivarTracking } from '../../api/tracking';
 import { GoogleMap } from '../../components/GoogleMap';
@@ -956,13 +956,19 @@ function RutaOptimizadaModal({
   const [ordenOptimo, setOrdenOptimo] = useState<Pedido[]>([]);
   const [duracionTotal, setDuracionTotal] = useState('');
   const [distanciaTotal, setDistanciaTotal] = useState('');
+  const [sdkListo, setSdkListo] = useState(!!window.google?.maps);
 
   useEffect(() => {
-    if (!mapRef.current || !window.google?.maps) {
-      setError('Google Maps no disponible');
-      setCargando(false);
-      return;
+    if (!sdkListo) {
+      loadGoogleMapsScript().then(() => setSdkListo(true)).catch(() => {
+        setError('No se pudo cargar Google Maps');
+        setCargando(false);
+      });
     }
+  }, [sdkListo]);
+
+  useEffect(() => {
+    if (!sdkListo || !mapRef.current) return;
 
     if (!posicionRepartidor) {
       setError('No se pudo obtener tu ubicacion GPS. Asegurate de tener el GPS activado.');
@@ -1098,7 +1104,7 @@ function RutaOptimizadaModal({
         directionsRendererRef.current.setMap(null);
       }
     };
-  }, [pedidos, posicionRepartidor]);
+  }, [pedidos, posicionRepartidor, sdkListo]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">
