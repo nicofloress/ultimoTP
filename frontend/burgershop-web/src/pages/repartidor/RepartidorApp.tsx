@@ -5,7 +5,7 @@ import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeid
 import { useAuth } from '../../context/AuthContext';
 import { useGlobalToast } from '../../components/Toast';
 import { useNotifications } from '../../hooks/useNotifications';
-import { useGooglePlaces, loadGoogleMapsScript } from '../../hooks/useGooglePlaces';
+import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
 import { desactivarTracking } from '../../api/tracking';
 import { GoogleMap } from '../../components/GoogleMap';
@@ -31,7 +31,28 @@ function RepartidorAppContent() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
-  const [mostrarRuta, setMostrarRuta] = useState(false);
+  const abrirGoogleMapsRuta = () => {
+    const conDireccion = pendientes.filter(p => p.direccionEntrega);
+    if (conDireccion.length === 0) return;
+
+    const direcciones = conDireccion.map(p => encodeURIComponent(p.direccionEntrega!));
+
+    if (lastPosition) {
+      // Con GPS: origin = ubicacion actual, destination = ultima, waypoints = las demas
+      const origin = `${lastPosition.lat},${lastPosition.lng}`;
+      const destination = direcciones[direcciones.length - 1];
+      const waypoints = direcciones.slice(0, -1).join('|');
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
+      window.open(url, '_blank');
+    } else {
+      // Sin GPS: origin = primera direccion, destination = ultima, waypoints = intermedias
+      const origin = direcciones[0];
+      const destination = direcciones[direcciones.length - 1];
+      const waypoints = direcciones.slice(1, -1).join('|');
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
+      window.open(url, '_blank');
+    }
+  };
 
   // Polling mensajes no leidos
   useEffect(() => {
@@ -281,13 +302,13 @@ function RepartidorAppContent() {
             {/* Boton optimizar ruta */}
             {pendientes.filter(p => p.direccionEntrega).length >= 2 && (
               <button
-                onClick={() => setMostrarRuta(true)}
+                onClick={abrirGoogleMapsRuta}
                 className="w-full mb-3 bg-slate-700 hover:bg-slate-800 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                Optimizar ruta de entregas
+                Abrir ruta en Google Maps
               </button>
             )}
             <PendientesTab
@@ -330,15 +351,6 @@ function RepartidorAppContent() {
           onCancel={() => { setModalPedido(null); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
           loading={actionLoading === modalPedido.id}
           formatTime={formatTime}
-        />
-      )}
-
-      {/* Modal de ruta optimizada */}
-      {mostrarRuta && (
-        <RutaOptimizadaModal
-          pedidos={pendientes.filter(p => p.direccionEntrega)}
-          posicionRepartidor={lastPosition}
-          onCerrar={() => setMostrarRuta(false)}
         />
       )}
 
@@ -932,248 +944,6 @@ function EntregaModal({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ============================
-// Ruta Optimizada Modal
-// ============================
-function RutaOptimizadaModal({
-  pedidos,
-  posicionRepartidor,
-  onCerrar,
-}: {
-  pedidos: Pedido[];
-  posicionRepartidor: { lat: number; lng: number } | null;
-  onCerrar: () => void;
-}) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [ordenOptimo, setOrdenOptimo] = useState<Pedido[]>([]);
-  const [duracionTotal, setDuracionTotal] = useState('');
-  const [distanciaTotal, setDistanciaTotal] = useState('');
-  const [sdkListo, setSdkListo] = useState(!!window.google?.maps);
-
-  useEffect(() => {
-    if (!sdkListo) {
-      loadGoogleMapsScript().then(() => setSdkListo(true)).catch(() => {
-        setError('No se pudo cargar Google Maps');
-        setCargando(false);
-      });
-    }
-  }, [sdkListo]);
-
-  useEffect(() => {
-    if (!sdkListo || !mapRef.current) return;
-
-    if (!posicionRepartidor) {
-      setError('No se pudo obtener tu ubicacion GPS. Asegurate de tener el GPS activado.');
-      setCargando(false);
-      return;
-    }
-
-    const direcciones = pedidos.map(p => p.direccionEntrega!);
-    if (direcciones.length === 0) {
-      setError('No hay direcciones de entrega');
-      setCargando(false);
-      return;
-    }
-
-    // Crear mapa
-    const map = new google.maps.Map(mapRef.current, {
-      center: posicionRepartidor,
-      zoom: 12,
-      disableDefaultUI: true,
-      zoomControl: true,
-      gestureHandling: 'greedy',
-    });
-    mapInstanceRef.current = map;
-
-    // Configurar Directions
-    const directionsService = new google.maps.DirectionsService();
-    const directionsRenderer = new google.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-      polylineOptions: {
-        strokeColor: '#1e293b',
-        strokeWeight: 4,
-        strokeOpacity: 0.8,
-      },
-    });
-    directionsRendererRef.current = directionsRenderer;
-
-    // Origen = ubicacion GPS del repartidor
-    // Destino = ultima direccion (Google no reordena el destino)
-    // Waypoints = todas las direcciones excepto la ultima, con optimizeWaypoints
-    const origin = new google.maps.LatLng(posicionRepartidor.lat, posicionRepartidor.lng);
-    const destination = direcciones[direcciones.length - 1];
-    const waypoints = direcciones.slice(0, -1).map(d => ({
-      location: d,
-      stopover: true,
-    }));
-
-    directionsService.route(
-      {
-        origin,
-        destination,
-        waypoints,
-        optimizeWaypoints: true,
-        travelMode: google.maps.TravelMode.DRIVING,
-        region: 'ar',
-      },
-      (result, status) => {
-        setCargando(false);
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          directionsRenderer.setDirections(result);
-
-          // Reconstruir orden optimo
-          // waypoint_order mapea indices de los waypoints (todas las direcciones menos la ultima)
-          const waypointOrder = result.routes[0].waypoint_order;
-          const pedidosSinUltimo = pedidos.slice(0, -1);
-          const pedidosOrdenados: Pedido[] = waypointOrder.map(idx => pedidosSinUltimo[idx]);
-          pedidosOrdenados.push(pedidos[pedidos.length - 1]);
-          setOrdenOptimo(pedidosOrdenados);
-
-          // Agregar marcadores numerados
-          const legs = result.routes[0].legs;
-          let totalDuration = 0;
-          let totalDistance = 0;
-
-          // Marcador de origen (ubicacion del repartidor)
-          new google.maps.Marker({
-            position: legs[0].start_location,
-            map,
-            label: {
-              text: '\u2605',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '14px',
-            },
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 16,
-              fillColor: '#16a34a',
-              fillOpacity: 1,
-              strokeColor: 'white',
-              strokeWeight: 2,
-            },
-            title: 'Tu ubicacion',
-          });
-
-          legs.forEach((leg, i) => {
-            totalDuration += leg.duration?.value || 0;
-            totalDistance += leg.distance?.value || 0;
-
-            // Marcador del destino de cada leg (cada punto de entrega)
-            new google.maps.Marker({
-              position: leg.end_location,
-              map,
-              label: {
-                text: String(i + 1),
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '14px',
-              },
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 16,
-                fillColor: i === legs.length - 1 ? '#dc2626' : '#1e293b',
-                fillOpacity: 1,
-                strokeColor: 'white',
-                strokeWeight: 2,
-              },
-            });
-          });
-
-          const mins = Math.round(totalDuration / 60);
-          const km = (totalDistance / 1000).toFixed(1);
-          setDuracionTotal(`${mins} min`);
-          setDistanciaTotal(`${km} km`);
-        } else {
-          setError('No se pudo calcular la ruta. Verifica las direcciones.');
-        }
-      }
-    );
-
-    return () => {
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setMap(null);
-      }
-    };
-  }, [pedidos, posicionRepartidor, sdkListo]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-md" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
-        <div className="flex items-center gap-2">
-          <button onClick={onCerrar} className="text-slate-400 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h3 className="font-bold text-sm">Ruta Optimizada</h3>
-            {duracionTotal && distanciaTotal && (
-              <p className="text-slate-400 text-xs">{distanciaTotal} - {duracionTotal} aprox.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mapa */}
-      <div className="flex-1 relative">
-        <div ref={mapRef} className="w-full h-full" />
-        {cargando && (
-          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-            <div className="text-center">
-              <span className="inline-block w-8 h-8 border-3 border-gray-300 border-t-slate-700 rounded-full animate-spin mb-2" />
-              <p className="text-gray-600 text-sm font-medium">Calculando ruta optima...</p>
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="absolute inset-0 bg-white/90 flex items-center justify-center p-4">
-            <div className="text-center">
-              <p className="text-red-500 font-semibold mb-2">{error}</p>
-              <button onClick={onCerrar} className="text-sm text-slate-600 underline">Volver</button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Lista ordenada */}
-      {ordenOptimo.length > 0 && (
-        <div className="bg-white border-t border-gray-200 max-h-[35vh] overflow-y-auto flex-shrink-0">
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Orden de entrega sugerido</p>
-          </div>
-          {ordenOptimo.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-b-0">
-              <span
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${
-                  i === 0 ? 'bg-green-600' : i === ordenOptimo.length - 1 ? 'bg-red-600' : 'bg-slate-700'
-                }`}
-              >
-                {i + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">
-                  #{p.numeroTicket} {p.nombreCliente && `- ${p.nombreCliente}`}
-                </p>
-                <p className="text-xs text-gray-500 truncate">{p.direccionEntrega}</p>
-              </div>
-              <span className="text-sm font-bold text-amber-700 flex-shrink-0">
-                ${p.total.toLocaleString('es-AR')}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
