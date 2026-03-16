@@ -332,6 +332,25 @@ export default function RendicionesPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Zonas del reparto */}
+              {detalle.zonas && detalle.zonas.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Zonas del reparto</h4>
+                  <div className="space-y-1.5">
+                    {detalle.zonas.map(z => (
+                      <div key={z.zonaId} className="flex items-center justify-between text-sm bg-blue-50 rounded px-3 py-2">
+                        <span className="font-medium text-gray-800">{z.zonaNombre}</span>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="text-green-600">{z.totalEntregados} entregados</span>
+                          <span className="text-red-600">{z.totalNoEntregados} no entreg.</span>
+                          <span className="text-gray-500">{z.totalPedidos} total</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer con acciones */}

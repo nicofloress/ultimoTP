@@ -24,4 +24,6 @@ public interface IPedidoRepository : IRepository<Pedido>
     Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task IncrementarContadorRepartoAsync(int zonaId, EstadoPedido estadoFinal);
     Task IncrementarTotalPedidosRepartoAsync(int zonaId);
+    Task<List<RepartoZona>> GetRepartosZonaByRepartidorHoyAsync(int repartidorId);
+    Task<List<RepartoZona>> GetRepartosZonaByRepartidorFechaAsync(int repartidorId, DateTime fecha);
 }

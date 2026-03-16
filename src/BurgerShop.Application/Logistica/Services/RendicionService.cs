@@ -36,6 +36,11 @@ public class RendicionService : IRendicionService
         if (tienePendientes)
             throw new InvalidOperationException("No se puede crear la rendicion. Existen pedidos en camino o asignados sin finalizar.");
 
+        // Validar que todas las zonas de reparto esten finalizadas
+        var repartosZona = await _pedidoRepo.GetRepartosZonaByRepartidorHoyAsync(dto.RepartidorId);
+        if (repartosZona.Any(r => r.Estado == EstadoReparto.EnCurso))
+            throw new InvalidOperationException("No se puede crear la rendicion. Hay zonas de reparto que aun no fueron finalizadas.");
+
         // Filtrar solo Entregados y NoEntregados
         var entregados = pedidos.Where(p => p.Estado == EstadoPedido.Entregado).ToList();
         var noEntregados = pedidos.Where(p => p.Estado == EstadoPedido.NoEntregado).ToList();
@@ -125,25 +130,39 @@ public class RendicionService : IRendicionService
 
         // Recargar con detalles completos
         var creada = await _rendicionRepo.GetByIdConDetallesAsync(rendicion.Id);
-        return ToDto(creada!);
+        return ToDto(creada!, repartosZona);
     }
 
     public async Task<IEnumerable<RendicionDto>> GetByRepartidorAsync(int repartidorId)
     {
         var rendiciones = await _rendicionRepo.GetByRepartidorAsync(repartidorId);
-        return rendiciones.Select(ToDto);
+        var result = new List<RendicionDto>();
+        foreach (var r in rendiciones)
+        {
+            var zonas = await _pedidoRepo.GetRepartosZonaByRepartidorFechaAsync(r.RepartidorId, r.Fecha);
+            result.Add(ToDto(r, zonas));
+        }
+        return result;
     }
 
     public async Task<IEnumerable<RendicionDto>> GetAllAsync(DateTime? fecha = null)
     {
         var rendiciones = await _rendicionRepo.GetAllConRepartidorAsync(fecha);
-        return rendiciones.Select(ToDto);
+        var result = new List<RendicionDto>();
+        foreach (var r in rendiciones)
+        {
+            var zonas = await _pedidoRepo.GetRepartosZonaByRepartidorFechaAsync(r.RepartidorId, r.Fecha);
+            result.Add(ToDto(r, zonas));
+        }
+        return result;
     }
 
     public async Task<RendicionDto?> GetByIdAsync(int id)
     {
         var rendicion = await _rendicionRepo.GetByIdConDetallesAsync(id);
-        return rendicion is null ? null : ToDto(rendicion);
+        if (rendicion is null) return null;
+        var zonas = await _pedidoRepo.GetRepartosZonaByRepartidorFechaAsync(rendicion.RepartidorId, rendicion.Fecha);
+        return ToDto(rendicion, zonas);
     }
 
     public async Task<RendicionDto?> AprobarAsync(int id, AprobarRendicionDto dto)
@@ -159,10 +178,25 @@ public class RendicionService : IRendicionService
         _rendicionRepo.Update(rendicion);
         await _rendicionRepo.SaveChangesAsync();
 
-        return ToDto(rendicion);
+        var zonas = await _pedidoRepo.GetRepartosZonaByRepartidorFechaAsync(rendicion.RepartidorId, rendicion.Fecha);
+        return ToDto(rendicion, zonas);
     }
 
-    private static RendicionDto ToDto(RendicionRepartidor r)
+    public async Task<EstadoRepartoRepartidorDto> GetEstadoRepartoAsync(int repartidorId)
+    {
+        var repartos = await _pedidoRepo.GetRepartosZonaByRepartidorHoyAsync(repartidorId);
+        var zonasFinalizadas = repartos.Count > 0 && repartos.All(r => r.Estado == EstadoReparto.Finalizado);
+        var zonas = repartos.Select(z => new RendicionZonaDto(
+            z.ZonaId,
+            z.Zona?.Nombre ?? string.Empty,
+            z.TotalPedidos,
+            z.TotalEntregados,
+            z.TotalNoEntregados,
+            z.TotalCancelados)).ToList();
+        return new EstadoRepartoRepartidorDto(zonasFinalizadas, zonas);
+    }
+
+    private static RendicionDto ToDto(RendicionRepartidor r, List<RepartoZona> repartosZona)
     {
         var detalles = r.Detalles.Select(d => new RendicionDetalleDto(
             d.Id,
@@ -171,6 +205,14 @@ public class RendicionService : IRendicionService
             d.Estado,
             d.FormaPago,
             d.Total)).ToList();
+
+        var zonas = repartosZona.Select(z => new RendicionZonaDto(
+            z.ZonaId,
+            z.Zona?.Nombre ?? string.Empty,
+            z.TotalPedidos,
+            z.TotalEntregados,
+            z.TotalNoEntregados,
+            z.TotalCancelados)).ToList();
 
         return new RendicionDto(
             r.Id,
@@ -187,6 +229,7 @@ public class RendicionService : IRendicionService
             r.Observaciones,
             r.Aprobada,
             r.FechaAprobacion,
-            detalles);
+            detalles,
+            zonas);
     }
 }

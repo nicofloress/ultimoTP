@@ -9,4 +9,5 @@ public interface IRendicionService
     Task<IEnumerable<RendicionDto>> GetAllAsync(DateTime? fecha = null);
     Task<RendicionDto?> GetByIdAsync(int id);
     Task<RendicionDto?> AprobarAsync(int id, AprobarRendicionDto dto);
+    Task<EstadoRepartoRepartidorDto> GetEstadoRepartoAsync(int repartidorId);
 }

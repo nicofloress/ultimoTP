@@ -8,7 +8,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
 import { desactivarTracking } from '../../api/tracking';
-import { crearRendicion, RendicionDto } from '../../api/rendiciones';
+import { crearRendicion, getEstadoRepartoRepartidor, RendicionDto } from '../../api/rendiciones';
 import { GoogleMap } from '../../components/GoogleMap';
 
 type Tab = 'pendientes' | 'completados' | 'noEntregados';
@@ -105,6 +105,7 @@ export default function RepartidorApp() {
   const [observacionesRendicion, setObservacionesRendicion] = useState('');
   const [rendicionLoading, setRendicionLoading] = useState(false);
   const [rendicionEnviada, setRendicionEnviada] = useState<RendicionDto | null>(null);
+  const [zonasFinalizadas, setZonasFinalizadas] = useState(false);
 
   const handleCancelar = async () => {
     if (!cancelarPedido || !motivoCancelacion.trim()) return;
@@ -122,8 +123,27 @@ export default function RepartidorApp() {
     }
   };
 
+  // Verificar estado de zonas para habilitar rendicion
+  useEffect(() => {
+    if (!repartidorId || pendientes.length > 0) {
+      setZonasFinalizadas(false);
+      return;
+    }
+    const checkZonas = async () => {
+      try {
+        const estado = await getEstadoRepartoRepartidor(repartidorId);
+        setZonasFinalizadas(estado.zonasFinalizadas);
+      } catch {
+        setZonasFinalizadas(false);
+      }
+    };
+    checkZonas();
+    const interval = setInterval(checkZonas, 10000);
+    return () => clearInterval(interval);
+  }, [repartidorId, pendientes.length]);
+
   // Rendicion: calcular resumen
-  const puedeRendir = pendientes.length === 0 && (completados.length > 0 || noEntregados.length > 0);
+  const puedeRendir = pendientes.length === 0 && (completados.length > 0 || noEntregados.length > 0) && zonasFinalizadas;
 
   const resumenRendicion = useMemo(() => {
     const totalEfectivo = completados
@@ -376,6 +396,14 @@ export default function RepartidorApp() {
           <NoEntregadosTab
             pedidos={noEntregados}
           />
+        )}
+
+        {/* Mensaje esperando finalizacion de zonas */}
+        {pendientes.length === 0 && (completados.length > 0 || noEntregados.length > 0) && !zonasFinalizadas && !rendicionEnviada && (
+          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-5 text-center">
+            <p className="text-yellow-600 font-semibold">Esperando finalizacion de zonas...</p>
+            <p className="text-yellow-500 text-sm mt-1">La rendicion se habilitara cuando todas las zonas esten finalizadas</p>
+          </div>
         )}
 
         {/* Boton Rendir Caja - aparece cuando no hay pendientes y hay completados */}

@@ -15,7 +15,8 @@ public record RendicionDto(
     string? Observaciones,
     bool Aprobada,
     DateTime? FechaAprobacion,
-    List<RendicionDetalleDto> Detalles);
+    List<RendicionDetalleDto> Detalles,
+    List<RendicionZonaDto> Zonas);
 
 public record RendicionDetalleDto(
     int Id,
@@ -33,3 +34,15 @@ public record CrearRendicionDto(
 public record AprobarRendicionDto(
     bool Aprobada,
     string? Observaciones);
+
+public record RendicionZonaDto(
+    int ZonaId,
+    string ZonaNombre,
+    int TotalPedidos,
+    int TotalEntregados,
+    int TotalNoEntregados,
+    int TotalCancelados);
+
+public record EstadoRepartoRepartidorDto(
+    bool ZonasFinalizadas,
+    List<RendicionZonaDto> Zonas);

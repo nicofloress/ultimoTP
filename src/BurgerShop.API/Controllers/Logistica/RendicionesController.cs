@@ -55,4 +55,11 @@ public class RendicionesController : ControllerBase
         var rendicion = await _service.AprobarAsync(id, dto);
         return rendicion is null ? NotFound() : Ok(rendicion);
     }
+
+    [HttpGet("estado-reparto/{repartidorId}")]
+    public async Task<ActionResult<EstadoRepartoRepartidorDto>> GetEstadoReparto(int repartidorId)
+    {
+        var estado = await _service.GetEstadoRepartoAsync(repartidorId);
+        return Ok(estado);
+    }
 }

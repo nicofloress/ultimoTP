@@ -269,6 +269,23 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         }
     }
 
+    public async Task<List<RepartoZona>> GetRepartosZonaByRepartidorHoyAsync(int repartidorId)
+    {
+        var hoy = DateTime.Today;
+        return await _context.RepartosZona
+            .Include(r => r.Zona)
+            .Where(r => r.RepartidorId == repartidorId && r.Fecha == hoy)
+            .ToListAsync();
+    }
+
+    public async Task<List<RepartoZona>> GetRepartosZonaByRepartidorFechaAsync(int repartidorId, DateTime fecha)
+    {
+        return await _context.RepartosZona
+            .Include(r => r.Zona)
+            .Where(r => r.RepartidorId == repartidorId && r.Fecha == fecha.Date)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId)
     {
         return await _dbSet

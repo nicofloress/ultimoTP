@@ -9,6 +9,15 @@ export interface RendicionDetalleDto {
   total: number;
 }
 
+export interface RendicionZonaDto {
+  zonaId: number;
+  zonaNombre: string;
+  totalPedidos: number;
+  totalEntregados: number;
+  totalNoEntregados: number;
+  totalCancelados: number;
+}
+
 export interface RendicionDto {
   id: number;
   repartidorId: number;
@@ -25,6 +34,7 @@ export interface RendicionDto {
   aprobada: boolean;
   fechaAprobacion?: string;
   detalles: RendicionDetalleDto[];
+  zonas: RendicionZonaDto[];
 }
 
 export const crearRendicion = (data: { repartidorId: number; efectivoDeclarado: number; observaciones?: string }) =>
@@ -41,3 +51,6 @@ export const getRendicion = (id: number) =>
 
 export const aprobarRendicion = (id: number, data: { aprobada: boolean; observaciones?: string }) =>
   api.put<RendicionDto>(`/rendiciones/${id}/aprobar`, data).then(r => r.data);
+
+export const getEstadoRepartoRepartidor = (repartidorId: number) =>
+  api.get<{ zonasFinalizadas: boolean; zonas: RendicionZonaDto[] }>(`/rendiciones/estado-reparto/${repartidorId}`).then(r => r.data);
