@@ -33,9 +33,10 @@ public class PedidosController : ControllerBase
     public async Task<ActionResult<IEnumerable<PedidoDto>>> GetAll(
         [FromQuery] DateTime? fecha, [FromQuery] EstadoPedido? estado)
     {
+        var pedidos = await _service.GetByFechaAsync(fecha ?? DateTime.Today);
         if (estado.HasValue)
-            return Ok(await _service.GetByEstadoAsync(estado.Value));
-        return Ok(await _service.GetByFechaAsync(fecha ?? DateTime.Today));
+            pedidos = pedidos.Where(p => p.Estado == estado.Value);
+        return Ok(pedidos);
     }
 
     [HttpGet("{id}")]

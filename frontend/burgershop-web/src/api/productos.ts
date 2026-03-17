@@ -1,8 +1,8 @@
 import api from './client';
 import { Producto } from '../types';
 
-export const getProductos = (categoriaId?: number, buscar?: string) =>
-  api.get<Producto[]>('/productos', { params: { ...(categoriaId ? { categoriaId } : {}), ...(buscar ? { buscar } : {}) } }).then(r => r.data);
+export const getProductos = (categoriaId?: number, buscar?: string, listaPrecioId?: number) =>
+  api.get<Producto[]>('/productos', { params: { ...(categoriaId ? { categoriaId } : {}), ...(buscar ? { buscar } : {}), ...(listaPrecioId ? { listaPrecioId } : {}) } }).then(r => r.data);
 
 export const getProducto = (id: number) => api.get<Producto>(`/productos/${id}`).then(r => r.data);
 

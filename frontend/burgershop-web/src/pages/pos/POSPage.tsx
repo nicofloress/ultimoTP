@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Producto, Combo, Categoria, CarritoItem, TipoPedido, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto } from '../../types';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
@@ -9,7 +9,7 @@ import { getFormasPagoActivas } from '../../api/formasPago';
 import { buscarClientes } from '../../api/clientes';
 import { getListasPrecios } from '../../api/listasPrecios';
 import PagoDivididoPanel from '../../components/PagoDivididoPanel';
-import { getCajaAbierta } from '../../api/caja';
+import { getCajaAbierta, abrirCaja } from '../../api/caja';
 import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
 
 export default function POSPage() {
@@ -25,7 +25,7 @@ export default function POSPage() {
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
 
   // Cliente
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteDto | null>(null);
@@ -48,6 +48,11 @@ export default function POSPage() {
   const [montoPagado, setMontoPagado] = useState(0);
   const [descuento, setDescuento] = useState(0);
   const [tipoDescuento, setTipoDescuento] = useState<'$' | '%'>('$');
+
+  // Modal abrir caja
+  const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
+  const [cajaMontoInicial, setCajaMontoInicial] = useState(0);
+  const [cajaObservaciones, setCajaObservaciones] = useState('');
 
   // Estado post-creacion
   const [ticketCreado, setTicketCreado] = useState<string | null>(null);
@@ -182,15 +187,39 @@ export default function POSPage() {
     return false;
   });
 
-  // Para el catalogo modal
-  const productosCatalogo = productos.filter(p => {
-    if (!p.activo) return false;
-    if (categoriaFiltro && categoriaFiltro > 0 && p.categoriaId !== categoriaFiltro) return false;
-    return true;
-  });
+  // ===== MEGA-CATEGORIAS PARA MODAL CATALOGO =====
+  const megaCategorias = useMemo(() => {
+    const econId = categorias.find(c => c.nombre === 'Económica')?.id;
+    const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
+    return [
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
+      { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
+      { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
+      { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
+    ];
+  }, [categorias]);
 
-  const categoriasNormales = categorias.filter(c => c.activa && c.id !== OFERTAS_SEMANALES_CATEGORIA_ID);
-  const categoriaOfertas = categorias.find(c => c.id === OFERTAS_SEMANALES_CATEGORIA_ID && c.activa);
+  const getMegaCatIds = (key: string) => megaCategorias.find(m => m.key === key)?.catIds ?? [];
+
+  const productosCatalogo = useMemo(() => {
+    const activos = productos.filter(p => p.activo);
+    if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
+    if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
+    const catIds = getMegaCatIds(categoriaFiltro);
+    return activos.filter(p => catIds.includes(p.categoriaId));
+  }, [productos, categoriaFiltro, megaCategorias, preciosLista]);
+
+  const combosCatalogo = useMemo(() => {
+    const activos = combos.filter(c => c.activo);
+    if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
+    if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
+    const catIds = getMegaCatIds(categoriaFiltro);
+    const prodIdsEnCat = new Set(productos.filter(p => catIds.includes(p.categoriaId)).map(p => p.id));
+    return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
+  }, [combos, productos, categoriaFiltro, megaCategorias]);
 
   // Auto-agregar producto si busca por codigo exacto y Enter
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -501,15 +530,20 @@ export default function POSPage() {
       {/* ============ PANEL DERECHO: CAJA ============ */}
       <div className="w-full lg:w-80 xl:w-[340px] bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-0 lg:max-h-full">
         {/* Caja info */}
-        <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white' : 'bg-red-700 text-white'}`}>
+        <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white' : 'bg-red-50 border-b border-red-200'}`}>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-400">Caja</div>
-            <div className="font-bold text-sm">
-              {cajaAbiertaId ? `Caja #${cajaAbiertaId}` : 'Sin caja abierta'}
+            <div className={`text-[10px] uppercase tracking-wider ${cajaAbiertaId ? 'text-slate-400' : 'text-red-400'}`}>Caja</div>
+            <div className={`font-bold text-sm ${cajaAbiertaId ? 'text-white' : 'text-red-600'}`}>
+              {cajaAbiertaId ? `Caja #${cajaAbiertaId}` : 'Caja Cerrada'}
             </div>
           </div>
           {!cajaAbiertaId && (
-            <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+            <button
+              onClick={() => setMostrarAbrirCaja(true)}
+              className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-green-700 transition-colors"
+            >
+              Abrir Caja
+            </button>
           )}
         </div>
 
@@ -685,51 +719,56 @@ export default function POSPage() {
               </button>
             </div>
 
-            {/* Filtro por categoria */}
+            {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
               <button onClick={() => setCategoriaFiltro(null)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
-              {categoriasNormales.map(c => (
-                <button key={c.id} onClick={() => setCategoriaFiltro(c.id)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === c.id ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c.nombre}</button>
-              ))}
-              {categoriaOfertas && (
+              {listaPrecioSeleccionada && (
                 <button
-                  onClick={() => setCategoriaFiltro(categoriaFiltro === OFERTAS_SEMANALES_CATEGORIA_ID ? null : OFERTAS_SEMANALES_CATEGORIA_ID)}
-                  className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === OFERTAS_SEMANALES_CATEGORIA_ID ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
+                  onClick={() => setCategoriaFiltro('descuento')}
+                  className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'descuento' ? 'bg-green-600 text-white shadow-sm' : 'bg-green-50 text-green-700 border border-green-300 hover:bg-green-100'}`}
                 >
-                  Ofertas
+                  Con Descuento
                 </button>
               )}
-              <button onClick={() => setCategoriaFiltro(-1)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === -1 ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
+              {megaCategorias.map(mc => (
+                <button key={mc.key} onClick={() => setCategoriaFiltro(mc.key)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+              ))}
+              <button
+                onClick={() => setCategoriaFiltro('ofertas')}
+                className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
+              >
+                Ofertas
+              </button>
+              <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
             </div>
 
-            {/* Grid de productos */}
+            {/* Grid de productos + combos relacionados */}
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">
-              {categoriaFiltro === -1 ? (
-                combos.map(c => (
-                  <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5 text-left hover:border-purple-400 hover:shadow-md active:bg-purple-100 transition-all group">
-                    <div className="font-medium text-sm text-gray-800 group-hover:text-purple-700">{c.nombre}</div>
-                    <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
-                  </button>
-                ))
-              ) : (
-                productosCatalogo.map(p => (
-                  <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
-                    p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
-                      ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
-                      : 'bg-white border-gray-200 hover:border-amber-400'
-                  }`}>
-                    {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
-                    <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
-                    <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
-                      ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
-                      {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
-                        <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
-                      )}
-                    </div>
-                  </button>
-                ))
-              )}
+              {/* Productos sueltos */}
+              {categoriaFiltro !== 'combos' && productosCatalogo.map(p => (
+                <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
+                  p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
+                    ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
+                    : 'bg-white border-gray-200 hover:border-amber-400'
+                }`}>
+                  {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
+                  <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
+                  <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
+                    ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
+                    {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
+                      <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+              {/* Combos (todos si chip Combos, o relacionados si mega-categoria) */}
+              {(categoriaFiltro === 'combos' ? combos.filter(c => c.activo) : combosCatalogo).map(c => (
+                <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5 text-left hover:border-purple-400 hover:shadow-md active:bg-purple-100 transition-all group">
+                  <div className="font-medium text-sm text-gray-800 group-hover:text-purple-700">{c.nombre}</div>
+                  <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -738,6 +777,64 @@ export default function POSPage() {
       {/* Modal de impresion */}
       {ticketParaImprimir && (
         <TicketPrint ticket={ticketParaImprimir} onClose={() => setTicketParaImprimir(null)} />
+      )}
+
+      {/* ============ MODAL ABRIR CAJA ============ */}
+      {mostrarAbrirCaja && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setMostrarAbrirCaja(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="bg-green-600 px-5 py-4 rounded-t-xl">
+              <h3 className="text-white font-bold text-lg">Abrir Caja</h3>
+              <p className="text-green-100 text-sm">Ingrese el monto inicial para comenzar</p>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const caja = await abrirCaja({ montoInicial: cajaMontoInicial, observaciones: cajaObservaciones || undefined });
+                setCajaAbiertaId(caja.id);
+                setCajaMontoInicial(0);
+                setCajaObservaciones('');
+                setMostrarAbrirCaja(false);
+              } catch {
+                // Si ya hay caja abierta, recargar
+                getCajaAbierta().then(c => { if (c) setCajaAbiertaId(c.id); });
+                setMostrarAbrirCaja(false);
+              }
+            }} className="px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto Inicial *</label>
+                <input
+                  type="number"
+                  value={cajaMontoInicial}
+                  onChange={e => setCajaMontoInicial(Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400"
+                  min={0}
+                  step={100}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                <textarea
+                  value={cajaObservaciones}
+                  onChange={e => setCajaObservaciones(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 resize-none"
+                  rows={2}
+                  placeholder="Observaciones opcionales..."
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
+                  Abrir Caja
+                </button>
+                <button type="button" onClick={() => setMostrarAbrirCaja(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

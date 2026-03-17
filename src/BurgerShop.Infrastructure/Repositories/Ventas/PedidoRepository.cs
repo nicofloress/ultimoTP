@@ -27,6 +27,8 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.Zona)
+            .Include(p => p.Repartidor)
             .Include(p => p.FormaPago)
             .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(p => p.FechaCreacion.Date == fecha.Date

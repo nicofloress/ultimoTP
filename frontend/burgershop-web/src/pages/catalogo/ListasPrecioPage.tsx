@@ -16,7 +16,6 @@ export default function ListasPrecioPage() {
   const [listas, setListas] = useState<ListaPrecio[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [nombre, setNombre] = useState('');
-  const [esDefault, setEsDefault] = useState(false);
   const [editando, setEditando] = useState<ListaPrecio | null>(null);
   const [seleccionada, setSeleccionada] = useState<ListaPrecio | null>(null);
 
@@ -49,12 +48,11 @@ export default function ListasPrecioPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editando) {
-      await actualizarListaPrecio(editando.id, { nombre, esDefault, activa: editando.activa });
+      await actualizarListaPrecio(editando.id, { nombre, esDefault: false, activa: editando.activa });
     } else {
-      await crearListaPrecio({ nombre, esDefault });
+      await crearListaPrecio({ nombre, esDefault: false });
     }
     setNombre('');
-    setEsDefault(false);
     setEditando(null);
     cargar();
   };
@@ -62,7 +60,6 @@ export default function ListasPrecioPage() {
   const handleEditar = (lista: ListaPrecio) => {
     setEditando(lista);
     setNombre(lista.nombre);
-    setEsDefault(lista.esDefault);
   };
 
   const handleEliminar = (id: number) => {
@@ -129,19 +126,11 @@ export default function ListasPrecioPage() {
             required
           />
         </div>
-        <label className="flex items-center gap-2 px-3 py-2">
-          <input
-            type="checkbox"
-            checked={esDefault}
-            onChange={e => setEsDefault(e.target.checked)}
-          />
-          <span className="text-sm">Default</span>
-        </label>
         <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
           {editando ? 'Actualizar' : 'Crear'}
         </button>
         {editando && (
-          <button type="button" onClick={() => { setEditando(null); setNombre(''); setEsDefault(false); }} className="bg-gray-400 text-white px-4 py-2 rounded">
+          <button type="button" onClick={() => { setEditando(null); setNombre(''); }} className="bg-gray-400 text-white px-4 py-2 rounded">
             Cancelar
           </button>
         )}
@@ -154,7 +143,6 @@ export default function ListasPrecioPage() {
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Default</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
@@ -169,11 +157,6 @@ export default function ListasPrecioPage() {
                 <td className="px-4 py-3 text-sm">{lista.id}</td>
                 <td className="px-4 py-3 text-sm font-medium">{lista.nombre}</td>
                 <td className="px-4 py-3 text-sm">
-                  {lista.esDefault && (
-                    <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">Default</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm">
                   <span className={`px-2 py-1 rounded text-xs ${lista.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {lista.activa ? 'Activa' : 'Inactiva'}
                   </span>
@@ -186,7 +169,7 @@ export default function ListasPrecioPage() {
             ))}
             {listas.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">No hay listas de precios</td>
+                <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">No hay listas de precios</td>
               </tr>
             )}
           </tbody>

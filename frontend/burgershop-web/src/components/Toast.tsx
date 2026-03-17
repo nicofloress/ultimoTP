@@ -53,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <GlobalToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '22rem', width: '100%' }}>
+      <div className={`fixed z-50 flex flex-col gap-2 pointer-events-none ${window.location.pathname.startsWith('/repartidor') ? 'bottom-6 left-1/2 -translate-x-1/2 items-center' : 'top-4 right-4'}`} style={{ maxWidth: '22rem', width: '100%' }}>
         {toasts.map(toast => (
           <GlobalToastItem key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
         ))}

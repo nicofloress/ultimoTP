@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Pedido, estadoLabels, estadoColores, TipoPedido } from '../../types';
+import { Pedido, EstadoPedido, estadoLabels, estadoColores, TipoPedido } from '../../types';
 import { getPedidos } from '../../api/pedidos';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -76,9 +76,12 @@ export default function HistorialPedidosPage() {
             className={selectClass}
           >
             <option value="">Todos los estados</option>
-            {Object.entries(estadoLabels).map(([val, label]) => (
-              <option key={val} value={val}>{label}</option>
-            ))}
+            <option value={EstadoPedido.Pendiente}>{estadoLabels[EstadoPedido.Pendiente]}</option>
+            <option value={EstadoPedido.Asignado}>{estadoLabels[EstadoPedido.Asignado]}</option>
+            <option value={EstadoPedido.EnCamino}>{estadoLabels[EstadoPedido.EnCamino]}</option>
+            <option value={EstadoPedido.Entregado}>{estadoLabels[EstadoPedido.Entregado]}</option>
+            <option value={EstadoPedido.Cancelado}>{estadoLabels[EstadoPedido.Cancelado]}</option>
+            <option value={EstadoPedido.NoEntregado}>{estadoLabels[EstadoPedido.NoEntregado]}</option>
           </select>
           <input
             type="text"

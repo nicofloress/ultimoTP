@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   Pedido, EstadoPedido, estadoLabels, estadoColores,
   Producto, Combo, Categoria, CarritoItem, TipoPedido,
-  FormaPago, Zona, TipoFactura,
+  FormaPago, Zona, TipoFactura, ListaPrecio,
 } from '../../types';
 import { getPedidos, crearPedido, cambiarEstado, cancelarPedido, actualizarPedido } from '../../api/pedidos';
 import { getProductos } from '../../api/productos';
@@ -11,6 +11,7 @@ import { getCategorias } from '../../api/categorias';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { getZonas } from '../../api/zonas';
 import { getRepartidores } from '../../api/repartidores';
+import { getListasPrecios } from '../../api/listasPrecios';
 import { Repartidor } from '../../types/logistica';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { GoogleMap } from '../../components/GoogleMap';
@@ -41,6 +42,9 @@ export default function PedidosPage() {
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
+  const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
+  const [listaPrecioSeleccionada, setListaPrecioSeleccionada] = useState<number | undefined>();
+  const [preciosLista, setPreciosLista] = useState<Map<number, number>>(new Map());
 
   // ===== PANEL DERECHO: PEDIDOS =====
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -53,7 +57,7 @@ export default function PedidosPage() {
   const [telefono, setTelefono] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
   const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState<number | undefined>();
   const [notaInterna, setNotaInterna] = useState('');
@@ -85,7 +89,22 @@ export default function PedidosPage() {
     getFormasPagoActivas().then(setFormasPago);
     getZonas().then(setZonas);
     getRepartidores().then(setRepartidores);
+    getListasPrecios().then(setListasPrecios);
   }, []);
+
+  // Precios segun lista seleccionada
+  useEffect(() => {
+    if (listaPrecioSeleccionada) {
+      const lista = listasPrecios.find(l => l.id === listaPrecioSeleccionada);
+      if (lista) {
+        const map = new Map<number, number>();
+        lista.detalles.forEach(d => map.set(d.productoId, d.precio));
+        setPreciosLista(map);
+      }
+    } else {
+      setPreciosLista(new Map());
+    }
+  }, [listaPrecioSeleccionada, listasPrecios]);
 
   // ===== CARGAR PEDIDOS =====
   const cargarPedidos = useCallback(() => {
@@ -104,15 +123,16 @@ export default function PedidosPage() {
 
   // ===== FUNCIONES DE CARRITO =====
   const agregarProducto = useCallback((p: Producto) => {
+    const precioFinal = preciosLista.get(p.id) ?? p.precio;
     const existente = carrito.find(i => i.productoId === p.id);
     if (existente) {
-      setCarrito(carrito.map(i => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i));
+      setCarrito(carrito.map(i => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1, precioUnitario: precioFinal } : i));
     } else {
-      setCarrito([...carrito, { productoId: p.id, nombre: p.nombre, cantidad: 1, precioUnitario: p.precio }]);
+      setCarrito([...carrito, { productoId: p.id, nombre: p.nombre, cantidad: 1, precioUnitario: precioFinal }]);
     }
     setBusqueda('');
     busquedaRef.current?.focus();
-  }, [carrito]);
+  }, [carrito, preciosLista]);
 
   const agregarCombo = (c: Combo) => {
     const existente = carrito.find(i => i.comboId === c.id);
@@ -147,14 +167,39 @@ export default function PedidosPage() {
     return false;
   });
 
-  const productosCatalogo = productos.filter(p => {
-    if (!p.activo) return false;
-    if (categoriaFiltro && categoriaFiltro > 0 && p.categoriaId !== categoriaFiltro) return false;
-    return true;
-  });
+  // ===== MEGA-CATEGORIAS PARA MODAL CATALOGO =====
+  const megaCategorias = useMemo(() => {
+    const econId = categorias.find(c => c.nombre === 'Económica')?.id;
+    const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
+    return [
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
+      { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
+      { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
+      { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
+    ];
+  }, [categorias]);
 
-  const categoriasNormales = categorias.filter(c => c.activa && c.id !== OFERTAS_SEMANALES_CATEGORIA_ID);
-  const categoriaOfertas = categorias.find(c => c.id === OFERTAS_SEMANALES_CATEGORIA_ID && c.activa);
+  const getMegaCatIds = (key: string) => megaCategorias.find(m => m.key === key)?.catIds ?? [];
+
+  const productosCatalogo = useMemo(() => {
+    const activos = productos.filter(p => p.activo);
+    if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
+    if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
+    const catIds = getMegaCatIds(categoriaFiltro);
+    return activos.filter(p => catIds.includes(p.categoriaId));
+  }, [productos, categoriaFiltro, megaCategorias, preciosLista]);
+
+  const combosCatalogo = useMemo(() => {
+    const activos = combos.filter(c => c.activo);
+    if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
+    if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
+    const catIds = getMegaCatIds(categoriaFiltro);
+    const prodIdsEnCat = new Set(productos.filter(p => catIds.includes(p.categoriaId)).map(p => p.id));
+    return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
+  }, [combos, productos, categoriaFiltro, megaCategorias]);
 
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && busqueda.trim()) {
@@ -543,11 +588,26 @@ export default function PedidosPage() {
                     {p.numeroInterno && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{p.numeroInterno}</span>}
                     <span className="text-gray-800">{p.nombre}</span>
                   </div>
-                  <span className="font-semibold text-amber-600">${p.precio.toLocaleString()}</span>
+                  <span className="font-semibold text-amber-600">${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}</span>
                 </button>
               ))}
             </div>
           )}
+
+          {/* Lista de precios */}
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Lista:</span>
+            <select
+              value={listaPrecioSeleccionada || ''}
+              onChange={e => setListaPrecioSeleccionada(Number(e.target.value) || undefined)}
+              className="border border-gray-300 rounded-md px-2 py-1 text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+            >
+              <option value="">Precio Base</option>
+              {listasPrecios.filter(l => l.activa).map(l => (
+                <option key={l.id} value={l.id}>{l.nombre}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Tabla del carrito (Detalle de productos) */}
@@ -865,55 +925,76 @@ export default function PedidosPage() {
       {mostrarCatalogo && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 lg:p-6" onClick={() => setMostrarCatalogo(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div className="flex items-center px-4 py-3 border-b border-gray-200">
               <h2 className="text-lg font-bold text-gray-800">Catalogo de Productos</h2>
+              <div className="flex items-center gap-2 mx-auto bg-amber-50 border-2 border-amber-400 rounded-lg px-4 py-1.5">
+                <span className="text-sm font-semibold text-amber-700 whitespace-nowrap">Lista de Precios:</span>
+                <select
+                  value={listaPrecioSeleccionada || ''}
+                  onChange={e => setListaPrecioSeleccionada(Number(e.target.value) || undefined)}
+                  className="border-2 border-amber-300 rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 min-w-[180px]"
+                >
+                  <option value="">Precio Base</option>
+                  {listasPrecios.filter(l => l.activa).map(l => (
+                    <option key={l.id} value={l.id}>{l.nombre}</option>
+                  ))}
+                </select>
+              </div>
               <button onClick={() => setMostrarCatalogo(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            {/* Filtro por categoria */}
+            {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
               <button onClick={() => setCategoriaFiltro(null)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
-              {categoriasNormales.map(c => (
-                <button key={c.id} onClick={() => setCategoriaFiltro(c.id)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === c.id ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{c.nombre}</button>
-              ))}
-              {categoriaOfertas && (
+              {listaPrecioSeleccionada && (
                 <button
-                  onClick={() => setCategoriaFiltro(categoriaFiltro === OFERTAS_SEMANALES_CATEGORIA_ID ? null : OFERTAS_SEMANALES_CATEGORIA_ID)}
-                  className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === OFERTAS_SEMANALES_CATEGORIA_ID ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
+                  onClick={() => setCategoriaFiltro('descuento')}
+                  className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'descuento' ? 'bg-green-600 text-white shadow-sm' : 'bg-green-50 text-green-700 border border-green-300 hover:bg-green-100'}`}
                 >
-                  Ofertas
+                  Con Descuento
                 </button>
               )}
-              <button onClick={() => setCategoriaFiltro(-1)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === -1 ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
+              {megaCategorias.map(mc => (
+                <button key={mc.key} onClick={() => setCategoriaFiltro(mc.key)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+              ))}
+              <button
+                onClick={() => setCategoriaFiltro('ofertas')}
+                className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
+              >
+                Ofertas
+              </button>
+              <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
             </div>
 
-            {/* Grid de productos */}
+            {/* Grid de productos + combos relacionados */}
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">
-              {categoriaFiltro === -1 ? (
-                combos.map(c => (
-                  <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5 text-left hover:border-purple-400 hover:shadow-md active:bg-purple-100 transition-all group">
-                    <div className="font-medium text-sm text-gray-800 group-hover:text-purple-700">{c.nombre}</div>
-                    <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
-                  </button>
-                ))
-              ) : (
-                productosCatalogo.map(p => (
-                  <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
-                    p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
-                      ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
-                      : 'bg-white border-gray-200 hover:border-amber-400'
-                  }`}>
-                    {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
-                    <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
-                    <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
-                      ${p.precio.toLocaleString()}
-                    </div>
-                  </button>
-                ))
-              )}
+              {/* Productos sueltos */}
+              {categoriaFiltro !== 'combos' && productosCatalogo.map(p => (
+                <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
+                  p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
+                    ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
+                    : 'bg-white border-gray-200 hover:border-amber-400'
+                }`}>
+                  {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
+                  <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
+                  <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
+                    ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
+                    {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
+                      <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+              {/* Combos (todos si chip Combos, o relacionados si mega-categoria) */}
+              {(categoriaFiltro === 'combos' ? combos.filter(c => c.activo) : combosCatalogo).map(c => (
+                <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5 text-left hover:border-purple-400 hover:shadow-md active:bg-purple-100 transition-all group">
+                  <div className="font-medium text-sm text-gray-800 group-hover:text-purple-700">{c.nombre}</div>
+                  <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
