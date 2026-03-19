@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Pedido, Repartidor, EstadoPedido, estadoLabels, TipoPedido } from '../../types';
-import { getPedidosPorZona, empezarReparto, descargarControlCamioneta, finalizarRepartoZona, getZonasFinalizadas } from '../../api/entregas';
+import { getPedidosPorZona, empezarReparto, descargarControlCamioneta, finalizarRepartoZona } from '../../api/entregas';
 import { getRepartidores } from '../../api/repartidores';
 import { getZonas } from '../../api/zonas';
 import { getProductos } from '../../api/productos';
@@ -33,30 +33,23 @@ export default function EntregasPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { showToast } = useGlobalToast();
   const [chatAbierto, setChatAbierto] = useState(false);
-  const [zonasFinalizadas, setZonasFinalizadas] = useState<Set<number>>(new Set());
 
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const [p, r, finalizadas] = await Promise.all([getPedidosPorZona(), getRepartidores(), getZonasFinalizadas()]);
+      const [p, r] = await Promise.all([getPedidosPorZona(), getRepartidores()]);
       setPedidos(p);
       setRepartidores(r.filter(rep => rep.activo));
-      setZonasFinalizadas(new Set(finalizadas));
 
-      // Auto-asignar repartidores en zonas que ya tienen reparto activo
+      // Auto-asignar repartidores en zonas que ya tienen repartidor activo
       setAsignaciones(prev => {
         const next = new Map(prev);
-        const zonaRepartidor = new Map<number, number>();
         p.forEach(ped => {
           if (ped.zonaId && ped.repartidorId &&
             (ped.estado === EstadoPedido.Asignado || ped.estado === EstadoPedido.EnCamino)) {
-            zonaRepartidor.set(ped.zonaId, ped.repartidorId);
-          }
-        });
-        // Pre-llenar zonas que no tienen asignacion manual pero ya tienen repartidor activo
-        zonaRepartidor.forEach((repId, zonaId) => {
-          if (!next.has(zonaId)) {
-            next.set(zonaId, repId);
+            if (!next.has(ped.zonaId)) {
+              next.set(ped.zonaId, ped.repartidorId);
+            }
           }
         });
         return next;
@@ -129,17 +122,22 @@ export default function EntregasPage() {
     return () => clearInterval(interval);
   }, [cargar]);
 
-  // Agrupar pedidos por zona
+  // Agrupar pedidos simplemente por zonaId
   const pedidosPorZona = useMemo(() => {
-    const map = new Map<number, { zona: string; pedidos: Pedido[] }>();
+    const map = new Map<number, { zonaId: number; zona: string; pedidos: Pedido[] }>();
+
     pedidos.forEach(p => {
-      if (p.zonaId) {
-        if (!map.has(p.zonaId)) {
-          map.set(p.zonaId, { zona: p.zonaNombre || 'Sin nombre', pedidos: [] });
-        }
-        map.get(p.zonaId)!.pedidos.push(p);
+      if (!p.zonaId) return;
+      if (!map.has(p.zonaId)) {
+        map.set(p.zonaId, {
+          zonaId: p.zonaId,
+          zona: p.zonaNombre || 'Sin nombre',
+          pedidos: [],
+        });
       }
+      map.get(p.zonaId)!.pedidos.push(p);
     });
+
     return map;
   }, [pedidos]);
 
@@ -151,21 +149,25 @@ export default function EntregasPage() {
     [pedidos]
   );
 
-  // Zonas que tienen pedidos pendientes de despacho
-  const zonasPendientes = useMemo(() => {
+  // Zona IDs que tienen pedidos pendientes de despacho
+  const zonasPendientesDespacho = useMemo(() => {
     const ids = new Set<number>();
-    pedidosPendientes.forEach(p => { if (p.zonaId) ids.add(p.zonaId); });
+    for (const [zonaId, data] of pedidosPorZona.entries()) {
+      if (data.pedidos.some(p => p.estado === EstadoPedido.Pendiente)) {
+        ids.add(zonaId);
+      }
+    }
     return ids;
-  }, [pedidosPendientes]);
+  }, [pedidosPorZona]);
 
   // Validacion del boton: solo zonas con pedidos pendientes necesitan repartidor
   const todasZonasAsignadas = useMemo(() => {
-    if (zonasPendientes.size === 0) return false;
-    for (const zonaId of zonasPendientes) {
+    if (zonasPendientesDespacho.size === 0) return false;
+    for (const zonaId of zonasPendientesDespacho) {
       if (!asignaciones.has(zonaId)) return false;
     }
     return true;
-  }, [zonasPendientes, asignaciones]);
+  }, [zonasPendientesDespacho, asignaciones]);
 
   const puedeEmpezar = pedidosPendientes.length > 0 && todasZonasAsignadas && !enviando;
 
@@ -189,10 +191,13 @@ export default function EntregasPage() {
   const confirmarReparto = async () => {
     setEnviando(true);
     try {
-      const asignacionesArray = Array.from(asignaciones.entries()).map(([zonaId, repartidorId]) => ({
-        zonaId,
-        repartidorId,
-      }));
+      // Solo enviar asignaciones de zonas que tienen pedidos pendientes
+      const asignacionesArray = Array.from(asignaciones.entries())
+        .filter(([zonaId]) => zonasPendientesDespacho.has(zonaId))
+        .map(([zonaId, repartidorId]) => ({
+          zonaId,
+          repartidorId,
+        }));
       // Descargar Excel de Control Camionetas antes de empezar reparto
       try {
         await descargarControlCamioneta(asignacionesArray);
@@ -206,6 +211,7 @@ export default function EntregasPage() {
       await cargar();
     } catch (err) {
       console.error('Error al empezar reparto:', err);
+      showToast('Error al empezar reparto', 'error');
       setMostrarConfirmacion(false);
     } finally {
       setEnviando(false);
@@ -311,30 +317,6 @@ export default function EntregasPage() {
               // Zona completada: todos los pedidos en estado final y al menos uno fue despachado
               const todosFinales = data.pedidos.length > 0
                 && data.pedidos.every(p => p.estado === EstadoPedido.Entregado || p.estado === EstadoPedido.Cancelado || p.estado === EstadoPedido.NoEntregado);
-              const zonaFinalizada = zonasFinalizadas.has(zonaId);
-
-              // Si la zona fue finalizada, mostrar colapsada
-              if (zonaFinalizada) {
-                return (
-                  <div
-                    key={zonaId}
-                    className="bg-gray-50 rounded-lg border border-gray-200 shadow-sm p-3 opacity-60"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="font-bold text-gray-500 text-base">{data.zona}</h2>
-                        <span className="text-xs text-gray-400">
-                          Reparto finalizado · {data.pedidos.length} pedido{data.pedidos.length !== 1 ? 's' : ''} · ${totalZona.toLocaleString('es-AR')}
-                        </span>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
-                        Finalizado
-                      </span>
-                    </div>
-                  </div>
-                );
-              }
-
               return (
                 <div
                   key={zonaId}
@@ -381,13 +363,11 @@ export default function EntregasPage() {
                           <button
                             onClick={async () => {
                               try {
-                                await finalizarRepartoZona(zonaId);
-                                setZonasFinalizadas(prev => {
-                                  const next = new Set(prev);
-                                  next.add(zonaId);
-                                  return next;
-                                });
+                                const repIdFin = data.pedidos.find(p => p.repartidorId)?.repartidorId;
+                                if (!repIdFin) return;
+                                await finalizarRepartoZona(data.zonaId, repIdFin);
                                 showToast(`Reparto de ${data.zona} finalizado`, 'success');
+                                await cargar();
                               } catch (err) {
                                 console.error('Error al finalizar reparto:', err);
                                 showToast('Error al finalizar reparto', 'error');
@@ -532,7 +512,7 @@ export default function EntregasPage() {
 
             {/* Detalle de asignaciones */}
             <div className="px-6 py-4 space-y-3 max-h-64 overflow-y-auto">
-              {Array.from(pedidosPorZona.entries()).filter(([zonaId]) => zonasPendientes.has(zonaId)).map(([zonaId, data]) => {
+              {Array.from(pedidosPorZona.entries()).filter(([zonaId]) => zonasPendientesDespacho.has(zonaId)).map(([zonaId, data]) => {
                 const rep = repartidores.find(r => r.id === asignaciones.get(zonaId));
                 const pendientes = data.pedidos.filter(p => p.estado === EstadoPedido.Pendiente);
                 const totalZona = pendientes.reduce((sum, p) => sum + p.total, 0);

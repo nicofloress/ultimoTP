@@ -19,7 +19,8 @@ public record PedidoDto(
     List<LineaPedidoDto> Lineas,
     List<PagoPedidoDto>? Pagos = null,
     string? ComprobanteEntrega = null,
-    string? MotivoCancelacion = null);
+    string? MotivoCancelacion = null,
+    int? RepartoZonaId = null);
 
 public record LineaPedidoDto(
     int Id, int? ProductoId, int? ComboId, string Descripcion,
@@ -74,6 +75,7 @@ public record MarcarEntregadoDto(
 
 public record EmpezarRepartoDto(List<AsignacionZonaDto> Asignaciones);
 public record AsignacionZonaDto(int ZonaId, int RepartidorId);
+public record FinalizarRepartoDto(int ZonaId, int RepartidorId);
 
 public record TicketDto(
     string NumeroTicket, DateTime Fecha, TipoPedido Tipo,

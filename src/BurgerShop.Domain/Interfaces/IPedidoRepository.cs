@@ -19,11 +19,11 @@ public interface IPedidoRepository : IRepository<Pedido>
 
     // RepartoZona
     Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalPedidos);
-    Task FinalizarRepartoZonaAsync(int zonaId);
-    Task<List<int>> GetZonasRepartoFinalizadoHoyAsync();
-    Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
+    Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
+Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task IncrementarContadorRepartoAsync(int zonaId, EstadoPedido estadoFinal);
     Task IncrementarTotalPedidosRepartoAsync(int zonaId);
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorHoyAsync(int repartidorId);
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorFechaAsync(int repartidorId, DateTime fecha);
+    Task<List<RepartoZona>> GetRepartosZonaFinalizadosHoyAsync();
 }

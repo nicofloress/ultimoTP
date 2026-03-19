@@ -1,5 +1,6 @@
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
+using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
@@ -149,12 +150,13 @@ public class PedidoService : IPedidoService
         // Si es Domicilio con zona, verificar si ya hay reparto activo en esa zona
         if (dto.Tipo == TipoPedido.Domicilio && dto.ZonaId.HasValue)
         {
-            var repartidorActivo = await _pedidoRepo.GetRepartidorActivoEnZonaHoyAsync(dto.ZonaId.Value);
-            if (repartidorActivo.HasValue)
+            var repartoActivo = await _pedidoRepo.GetRepartoZonaActivoHoyAsync(dto.ZonaId.Value);
+            if (repartoActivo != null)
             {
-                pedido.RepartidorId = repartidorActivo.Value;
+                pedido.RepartidorId = repartoActivo.RepartidorId;
                 pedido.Estado = EstadoPedido.Asignado;
                 pedido.FechaAsignacion = ahora;
+                pedido.RepartoZonaId = repartoActivo.Id;
             }
         }
 
@@ -484,21 +486,25 @@ public class PedidoService : IPedidoService
                 .Where(p => p.ZonaId == asignacion.ZonaId)
                 .ToList();
 
+            // Crear/reutilizar registro RepartoZona ANTES de asignar pedidos
+            // para poder asociar el RepartoZonaId en cada pedido
+            RepartoZona? repartoZona = null;
+            if (pedidosDeZona.Any())
+            {
+                repartoZona = await _pedidoRepo.CrearRepartoZonaAsync(
+                    asignacion.ZonaId,
+                    asignacion.RepartidorId,
+                    pedidosDeZona.Count);
+            }
+
             foreach (var pedido in pedidosDeZona)
             {
                 pedido.RepartidorId = asignacion.RepartidorId;
                 pedido.Estado = EstadoPedido.Asignado;
                 pedido.FechaAsignacion = ahora;
+                if (repartoZona != null)
+                    pedido.RepartoZonaId = repartoZona.Id;
                 _pedidoRepo.Update(pedido);
-            }
-
-            // Crear registro RepartoZona para esta zona
-            if (pedidosDeZona.Any())
-            {
-                await _pedidoRepo.CrearRepartoZonaAsync(
-                    asignacion.ZonaId,
-                    asignacion.RepartidorId,
-                    pedidosDeZona.Count);
             }
         }
 
@@ -518,14 +524,9 @@ public class PedidoService : IPedidoService
         return 0;
     }
 
-    public async Task FinalizarRepartoZonaAsync(int zonaId)
+    public async Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId)
     {
-        await _pedidoRepo.FinalizarRepartoZonaAsync(zonaId);
-    }
-
-    public async Task<List<int>> GetZonasRepartoFinalizadoHoyAsync()
-    {
-        return await _pedidoRepo.GetZonasRepartoFinalizadoHoyAsync();
+        await _pedidoRepo.FinalizarRepartoZonaAsync(zonaId, repartidorId);
     }
 
     private static PagoPedidoDto MapPagoPedidoDto(PagoPedido p) => new(
@@ -554,6 +555,7 @@ public class PedidoService : IPedidoService
             p.Lineas.Select(l => new LineaPedidoDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
             pagos,
             p.ComprobanteEntrega,
-            p.MotivoCancelacion);
+            p.MotivoCancelacion,
+            p.RepartoZonaId);
     }
 }

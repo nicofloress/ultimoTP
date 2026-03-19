@@ -8,7 +8,6 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
 import { desactivarTracking } from '../../api/tracking';
-import { crearRendicion, getEstadoRepartoRepartidor, RendicionDto } from '../../api/rendiciones';
 import { GoogleMap } from '../../components/GoogleMap';
 
 type Tab = 'pendientes' | 'completados' | 'noEntregados';
@@ -99,13 +98,6 @@ export default function RepartidorApp() {
   // Estado para lightbox comprobante
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
 
-  // Estado para rendicion de caja
-  const [rendicionAbierta, setRendicionAbierta] = useState(false);
-  const [efectivoDeclarado, setEfectivoDeclarado] = useState('');
-  const [observacionesRendicion, setObservacionesRendicion] = useState('');
-  const [rendicionLoading, setRendicionLoading] = useState(false);
-  const [rendicionEnviada, setRendicionEnviada] = useState<RendicionDto | null>(null);
-  const [zonasFinalizadas, setZonasFinalizadas] = useState(false);
 
   const handleCancelar = async () => {
     if (!cancelarPedido || !motivoCancelacion.trim()) return;
@@ -123,62 +115,6 @@ export default function RepartidorApp() {
     }
   };
 
-  // Verificar estado de zonas para habilitar rendicion
-  useEffect(() => {
-    if (!repartidorId || pendientes.length > 0) {
-      setZonasFinalizadas(false);
-      return;
-    }
-    const checkZonas = async () => {
-      try {
-        const estado = await getEstadoRepartoRepartidor(repartidorId);
-        setZonasFinalizadas(estado.zonasFinalizadas);
-      } catch {
-        setZonasFinalizadas(false);
-      }
-    };
-    checkZonas();
-    const interval = setInterval(checkZonas, 10000);
-    return () => clearInterval(interval);
-  }, [repartidorId, pendientes.length]);
-
-  // Rendicion: calcular resumen
-  const puedeRendir = pendientes.length === 0 && (completados.length > 0 || noEntregados.length > 0) && zonasFinalizadas;
-
-  const resumenRendicion = useMemo(() => {
-    const totalEfectivo = completados
-      .filter(p => p.formaPagoNombre?.toLowerCase() === 'efectivo')
-      .reduce((sum, p) => sum + p.total, 0);
-    const totalTransferencia = completados
-      .filter(p => p.formaPagoNombre?.toLowerCase() !== 'efectivo')
-      .reduce((sum, p) => sum + p.total, 0);
-    const totalNoEntregado = noEntregados.reduce((sum, p) => sum + p.total, 0);
-    return { totalEfectivo, totalTransferencia, totalNoEntregado };
-  }, [completados, noEntregados]);
-
-  const handleRendicion = async () => {
-    if (!repartidorId) return;
-    const monto = parseFloat(efectivoDeclarado);
-    if (isNaN(monto) || monto < 0) {
-      showToast('Ingresa un monto valido', 'error');
-      return;
-    }
-    setRendicionLoading(true);
-    try {
-      const result = await crearRendicion({
-        repartidorId,
-        efectivoDeclarado: monto,
-        observaciones: observacionesRendicion.trim() || undefined,
-      });
-      setRendicionEnviada(result);
-      setRendicionAbierta(false);
-      showToast('Rendicion enviada correctamente', 'success');
-    } catch {
-      showToast('Error al enviar rendicion', 'error');
-    } finally {
-      setRendicionLoading(false);
-    }
-  };
 
   const handleEnCamino = async (pedido: Pedido) => {
     setActionLoading(pedido.id);
@@ -398,47 +334,6 @@ export default function RepartidorApp() {
           />
         )}
 
-        {/* Mensaje esperando finalizacion de zonas */}
-        {pendientes.length === 0 && (completados.length > 0 || noEntregados.length > 0) && !zonasFinalizadas && !rendicionEnviada && (
-          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-5 text-center">
-            <p className="text-yellow-600 font-semibold">Esperando finalizacion de zonas...</p>
-            <p className="text-yellow-500 text-sm mt-1">La rendicion se habilitara cuando todas las zonas esten finalizadas</p>
-          </div>
-        )}
-
-        {/* Boton Rendir Caja - aparece cuando no hay pendientes y hay completados */}
-        {puedeRendir && !rendicionEnviada && (
-          <button
-            onClick={() => { setRendicionAbierta(true); setEfectivoDeclarado(''); setObservacionesRendicion(''); }}
-            className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white py-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-3 shadow-lg"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            Rendir Caja
-          </button>
-        )}
-
-        {/* Mensaje post-rendicion */}
-        {rendicionEnviada && (
-          <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-5 text-center">
-            <p className="text-4xl mb-3">{'\u2705'}</p>
-            <h3 className="font-bold text-green-800 text-lg mb-1">Rendicion enviada</h3>
-            <p className="text-green-600 text-sm">Esperando aprobacion del admin</p>
-            <div className="mt-3 bg-white rounded-lg p-3 text-left text-sm space-y-1">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Efectivo declarado:</span>
-                <span className="font-semibold text-gray-800">${rendicionEnviada.efectivoDeclarado.toLocaleString('es-AR')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Diferencia:</span>
-                <span className={`font-semibold ${rendicionEnviada.diferencia === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${rendicionEnviada.diferencia.toLocaleString('es-AR')}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Modal de confirmacion de entrega */}
@@ -504,116 +399,6 @@ export default function RepartidorApp() {
         </div>
       )}
 
-      {/* Modal de Rendicion de Caja */}
-      {rendicionAbierta && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => !rendicionLoading && setRendicionAbierta(false)}>
-          <div className="bg-white w-full sm:max-w-md sm:rounded-xl rounded-t-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="bg-amber-500 px-5 py-4 sm:rounded-t-xl rounded-t-xl">
-              <h3 className="text-white font-bold text-lg">Rendir Caja</h3>
-              <p className="text-amber-100 text-sm">Declara el efectivo que tenes en mano</p>
-            </div>
-
-            <div className="px-5 py-4 space-y-4">
-              {/* Resumen automatico */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Resumen del dia</h4>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Pedidos Entregados:</span>
-                  <span className="font-semibold text-gray-800">{completados.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">En Efectivo:</span>
-                  <span className="font-semibold text-green-700">${resumenRendicion.totalEfectivo.toLocaleString('es-AR')}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">En Transferencia:</span>
-                  <span className="font-semibold text-blue-700">${resumenRendicion.totalTransferencia.toLocaleString('es-AR')}</span>
-                </div>
-                {noEntregados.length > 0 && (
-                  <div className="flex justify-between text-sm pt-1 border-t border-gray-200">
-                    <span className="text-gray-600">No Entregados ({noEntregados.length}):</span>
-                    <span className="font-semibold text-red-600">${resumenRendicion.totalNoEntregado.toLocaleString('es-AR')}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Input efectivo declarado */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Efectivo en mano *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={efectivoDeclarado}
-                    onChange={e => setEfectivoDeclarado(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              {/* Diferencia calculada */}
-              {efectivoDeclarado !== '' && !isNaN(parseFloat(efectivoDeclarado)) && (
-                <div className={`rounded-lg p-3 text-center ${
-                  parseFloat(efectivoDeclarado) === resumenRendicion.totalEfectivo
-                    ? 'bg-green-50 border border-green-200'
-                    : 'bg-red-50 border border-red-200'
-                }`}>
-                  <p className="text-xs text-gray-500 mb-1">Diferencia con efectivo esperado</p>
-                  <p className={`text-xl font-bold ${
-                    parseFloat(efectivoDeclarado) === resumenRendicion.totalEfectivo
-                      ? 'text-green-700'
-                      : 'text-red-700'
-                  }`}>
-                    ${(parseFloat(efectivoDeclarado) - resumenRendicion.totalEfectivo).toLocaleString('es-AR')}
-                  </p>
-                </div>
-              )}
-
-              {/* Observaciones */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Observaciones (opcional)
-                </label>
-                <textarea
-                  value={observacionesRendicion}
-                  onChange={e => setObservacionesRendicion(e.target.value)}
-                  placeholder="Ej: Me dieron cambio de mas en un pedido..."
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Acciones */}
-            <div className="px-5 py-3 flex gap-3 border-t border-gray-200">
-              <button
-                onClick={() => setRendicionAbierta(false)}
-                disabled={rendicionLoading}
-                className="flex-1 py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleRendicion}
-                disabled={rendicionLoading || efectivoDeclarado === '' || isNaN(parseFloat(efectivoDeclarado))}
-                className="flex-1 py-2.5 rounded-lg font-bold text-sm bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {rendicionLoading ? (
-                  <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  'Enviar Rendicion'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Lightbox comprobante */}
       {comprobanteSrc && (

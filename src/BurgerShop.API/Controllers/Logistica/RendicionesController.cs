@@ -29,9 +29,9 @@ public class RendicionesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RendicionDto>>> GetAll([FromQuery] DateTime? fecha)
+    public async Task<ActionResult<IEnumerable<RendicionDto>>> GetAll([FromQuery] DateTime? fechaDesde, [FromQuery] DateTime? fechaHasta)
     {
-        var rendiciones = await _service.GetAllAsync(fecha);
+        var rendiciones = await _service.GetAllAsync(fechaDesde, fechaHasta);
         return Ok(rendiciones);
     }
 
@@ -61,5 +61,12 @@ public class RendicionesController : ControllerBase
     {
         var estado = await _service.GetEstadoRepartoAsync(repartidorId);
         return Ok(estado);
+    }
+
+    [HttpGet("repartidores-pendientes")]
+    public async Task<ActionResult<IEnumerable<RepartidorPendienteRendicionDto>>> GetRepartidoresPendientes()
+    {
+        var result = await _service.GetRepartidoresPendientesAsync();
+        return Ok(result);
     }
 }

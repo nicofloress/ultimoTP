@@ -100,16 +100,12 @@ public class EntregasController : ControllerBase
         }
     }
 
-    [HttpPost("finalizar-reparto/{zonaId}")]
-    public async Task<IActionResult> FinalizarReparto(int zonaId)
+    [HttpPost("finalizar-reparto")]
+    public async Task<IActionResult> FinalizarReparto([FromBody] FinalizarRepartoDto dto)
     {
-        await _pedidoService.FinalizarRepartoZonaAsync(zonaId);
+        await _pedidoService.FinalizarRepartoZonaAsync(dto.ZonaId, dto.RepartidorId);
         return Ok();
     }
-
-    [HttpGet("zonas-finalizadas")]
-    public async Task<ActionResult<List<int>>> GetZonasFinalizadas()
-        => Ok(await _pedidoService.GetZonasRepartoFinalizadoHoyAsync());
 
     [HttpPost("control-camioneta")]
     public async Task<IActionResult> ControlCamioneta(EmpezarRepartoDto dto)

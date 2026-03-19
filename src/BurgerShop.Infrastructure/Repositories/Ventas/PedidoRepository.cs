@@ -95,13 +95,13 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     public async Task<IEnumerable<Pedido>> GetListosParaRepartoHoyAsync()
     {
         var hoy = DateTime.Today;
-        var estadosReparto = new[]
-        {
-            EstadoPedido.Pendiente,
-            EstadoPedido.Asignado, EstadoPedido.EnCamino,
-            EstadoPedido.Entregado, EstadoPedido.Cancelado,
-            EstadoPedido.NoEntregado
-        };
+
+        // IDs de repartos EnCurso de hoy
+        var repartosEnCursoIds = await _context.RepartosZona
+            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso)
+            .Select(r => r.Id)
+            .ToListAsync();
+
         return await _dbSet
             .Include(p => p.Lineas)
             .Include(p => p.Zona)
@@ -109,11 +109,16 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             .Include(p => p.Repartidor)
             .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(p => p.Tipo == TipoPedido.Domicilio
-                && estadosReparto.Contains(p.Estado)
                 && p.ZonaId != null
                 && (p.FechaProgramada == null
                     ? p.FechaCreacion.Date == hoy
-                    : p.FechaProgramada.Value.Date <= hoy))
+                    : p.FechaProgramada.Value.Date <= hoy)
+                && (
+                    // Pedidos nuevos sin reparto asignado
+                    (p.Estado == EstadoPedido.Pendiente && p.RepartoZonaId == null)
+                    // Pedidos de repartos EnCurso (cualquier estado)
+                    || (p.RepartoZonaId != null && repartosEnCursoIds.Contains(p.RepartoZonaId.Value))
+                ))
             .OrderBy(p => p.ZonaId)
             .ThenBy(p => p.FechaCreacion)
             .ToListAsync();
@@ -156,16 +161,14 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         var hoy = DateTime.Today;
 
-        // Si ya existe un reparto para esta zona hoy, actualizarlo
+        // Solo reutilizar si hay un reparto EnCurso (no finalizado)
         var existente = await _context.RepartosZona
-            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
         if (existente != null)
         {
             existente.RepartidorId = repartidorId;
-            existente.Estado = EstadoReparto.EnCurso;
             existente.FechaInicio = DateTime.Now;
-            existente.FechaFinalizacion = null;
             existente.TotalPedidos = totalPedidos;
             existente.TotalEntregados = 0;
             existente.TotalNoEntregados = 0;
@@ -174,6 +177,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             return existente;
         }
 
+        // Si el existente está Finalizado (o no existe), crear un nuevo registro
         var reparto = new RepartoZona
         {
             ZonaId = zonaId,
@@ -189,22 +193,21 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return reparto;
     }
 
-    public async Task FinalizarRepartoZonaAsync(int zonaId)
+    public async Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId)
     {
         var hoy = DateTime.Today;
+        // Finalizar el reparto EnCurso filtrando por zona Y repartidor para evitar colisiones
         var reparto = await _context.RepartosZona
-            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.RepartidorId == repartidorId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
         if (reparto != null)
         {
             reparto.Estado = EstadoReparto.Finalizado;
             reparto.FechaFinalizacion = DateTime.Now;
 
-            // Sincronizar contadores con datos reales de pedidos
+            // Sincronizar contadores usando la FK RepartoZonaId para precisión exacta
             var pedidosZona = await _dbSet
-                .Where(p => p.ZonaId == zonaId
-                    && p.RepartidorId != null
-                    && p.FechaCreacion.Date == hoy)
+                .Where(p => p.RepartoZonaId == reparto.Id)
                 .ToListAsync();
 
             reparto.TotalPedidos = pedidosZona.Count;
@@ -216,16 +219,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         }
     }
 
-    public async Task<List<int>> GetZonasRepartoFinalizadoHoyAsync()
-    {
-        var hoy = DateTime.Today;
-        return await _context.RepartosZona
-            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.Finalizado)
-            .Select(r => r.ZonaId)
-            .ToListAsync();
-    }
-
-    public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
+public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
     {
         var hoy = DateTime.Today;
         return await _context.RepartosZona
@@ -237,8 +231,9 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     public async Task IncrementarContadorRepartoAsync(int zonaId, EstadoPedido estadoFinal)
     {
         var hoy = DateTime.Today;
+        // Solo incrementar en el reparto EnCurso de la zona
         var reparto = await _context.RepartosZona
-            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
         if (reparto == null) return;
 
@@ -261,8 +256,9 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     public async Task IncrementarTotalPedidosRepartoAsync(int zonaId)
     {
         var hoy = DateTime.Today;
+        // Solo incrementar en el reparto EnCurso de la zona
         var reparto = await _context.RepartosZona
-            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy);
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
         if (reparto != null)
         {
@@ -285,6 +281,16 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return await _context.RepartosZona
             .Include(r => r.Zona)
             .Where(r => r.RepartidorId == repartidorId && r.Fecha == fecha.Date)
+            .ToListAsync();
+    }
+
+    public async Task<List<RepartoZona>> GetRepartosZonaFinalizadosHoyAsync()
+    {
+        var hoy = DateTime.Today;
+        return await _context.RepartosZona
+            .Include(r => r.Zona)
+            .Include(r => r.Repartidor)
+            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.Finalizado)
             .ToListAsync();
     }
 

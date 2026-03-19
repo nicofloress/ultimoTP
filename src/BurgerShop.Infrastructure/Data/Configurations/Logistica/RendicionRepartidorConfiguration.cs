@@ -38,7 +38,13 @@ public class RendicionRepartidorConfiguration : IEntityTypeConfiguration<Rendici
             .HasForeignKey(r => r.RepartidorId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(r => r.RepartoZona)
+            .WithMany()
+            .HasForeignKey(r => r.RepartoZonaId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(r => r.RepartidorId);
         builder.HasIndex(r => r.Fecha);
+        builder.HasIndex(r => r.RepartoZonaId);
     }
 }

@@ -147,11 +147,23 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-migrate on startup
+// Auto-migrate on startup + backfill RepartoZonaId
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     db.Database.Migrate();
+
+    // Backfill: vincular pedidos existentes que tienen repartidor/zona con su RepartoZona
+    db.Database.ExecuteSqlRaw(@"
+        UPDATE ""Pedidos"" p
+        SET ""RepartoZonaId"" = rz.""Id""
+        FROM ""RepartosZona"" rz
+        WHERE p.""RepartoZonaId"" IS NULL
+          AND p.""ZonaId"" = rz.""ZonaId""
+          AND p.""RepartidorId"" = rz.""RepartidorId""
+          AND rz.""Fecha"" = CURRENT_DATE
+          AND p.""FechaAsignacion""::date = CURRENT_DATE
+    ");
 }
 
 if (app.Environment.IsDevelopment())

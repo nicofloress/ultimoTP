@@ -36,9 +36,11 @@ public class Pedido
     public bool EstaPago { get; set; }
     public string? ComprobanteEntrega { get; set; }
     public string? MotivoCancelacion { get; set; }
+    public int? RepartoZonaId { get; set; }
 
     public Cliente? Cliente { get; set; }
     public Zona? Zona { get; set; }
+    public RepartoZona? RepartoZona { get; set; }
     public FormaPago? FormaPago { get; set; }
     public Repartidor? Repartidor { get; set; }
     public CierreCaja? CierreCaja { get; set; }

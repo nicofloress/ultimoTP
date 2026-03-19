@@ -9,7 +9,7 @@ public class RepartoZonaConfiguration : IEntityTypeConfiguration<RepartoZona>
     public void Configure(EntityTypeBuilder<RepartoZona> builder)
     {
         builder.HasKey(r => r.Id);
-        builder.HasIndex(r => new { r.ZonaId, r.Fecha }).IsUnique();
+        builder.HasIndex(r => new { r.ZonaId, r.Fecha });
         builder.Property(r => r.Fecha).HasColumnType("date");
 
         builder.HasOne(r => r.Zona)

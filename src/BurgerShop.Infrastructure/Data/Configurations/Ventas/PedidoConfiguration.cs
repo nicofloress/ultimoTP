@@ -48,6 +48,12 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
             .HasForeignKey(p => p.CierreCajaId)
             .IsRequired(false);
 
+        builder.HasOne(p => p.RepartoZona)
+            .WithMany()
+            .HasForeignKey(p => p.RepartoZonaId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
         builder.Property(p => p.FechaProgramada).IsRequired(false);
 
         builder.HasIndex(p => p.NumeroTicket).IsUnique();

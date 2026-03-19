@@ -16,7 +16,8 @@ public record RendicionDto(
     bool Aprobada,
     DateTime? FechaAprobacion,
     List<RendicionDetalleDto> Detalles,
-    List<RendicionZonaDto> Zonas);
+    List<RendicionZonaDto> Zonas,
+    int? RepartoZonaId);
 
 public record RendicionDetalleDto(
     int Id,
@@ -24,10 +25,14 @@ public record RendicionDetalleDto(
     string NumeroTicket,
     string Estado,
     string? FormaPago,
-    decimal Total);
+    decimal Total,
+    string? NombreCliente,
+    string? DireccionEntrega,
+    string? ZonaNombre);
 
 public record CrearRendicionDto(
     int RepartidorId,
+    int RepartoZonaId,
     decimal EfectivoDeclarado,
     string? Observaciones);
 
@@ -46,3 +51,15 @@ public record RendicionZonaDto(
 public record EstadoRepartoRepartidorDto(
     bool ZonasFinalizadas,
     List<RendicionZonaDto> Zonas);
+
+public record RepartidorPendienteRendicionDto(
+    int RepartidorId,
+    string RepartidorNombre,
+    int RepartoZonaId,
+    string ZonaNombre,
+    List<RendicionZonaDto> Zonas,
+    int TotalEntregados,
+    int TotalNoEntregados,
+    decimal TotalEfectivo,
+    decimal TotalTransferencia,
+    decimal TotalNoEntregado);

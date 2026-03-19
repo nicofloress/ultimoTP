@@ -3,6 +3,7 @@ using System;
 using BurgerShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BurgerShop.Infrastructure.Migrations
 {
     [DbContext(typeof(BurgerShopDbContext))]
-    partial class BurgerShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318124432_AddRepartoZonaIdToPedido")]
+    partial class AddRepartoZonaIdToPedido
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1348,9 +1351,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Property<int>("RepartidorId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("RepartoZonaId")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("TotalEfectivo")
                         .HasColumnType("decimal(18,2)");
 
@@ -1365,8 +1365,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("Fecha");
 
                     b.HasIndex("RepartidorId");
-
-                    b.HasIndex("RepartoZonaId");
 
                     b.ToTable("RendicionesRepartidor");
                 });
@@ -2087,14 +2085,7 @@ namespace BurgerShop.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BurgerShop.Domain.Entities.Logistica.RepartoZona", "RepartoZona")
-                        .WithMany()
-                        .HasForeignKey("RepartoZonaId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Repartidor");
-
-                    b.Navigation("RepartoZona");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.RepartidorZona", b =>
