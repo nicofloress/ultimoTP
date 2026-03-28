@@ -101,8 +101,8 @@ export default function MovimientosPage() {
     }
     // Ordenar
     lista.sort((a, b) => {
-      const valA = (a as Record<string, unknown>)[ordenCol];
-      const valB = (b as Record<string, unknown>)[ordenCol];
+      const valA = (a as unknown as Record<string, unknown>)[ordenCol];
+      const valB = (b as unknown as Record<string, unknown>)[ordenCol];
       let cmp = 0;
       if (typeof valA === 'string' && typeof valB === 'string') cmp = valA.localeCompare(valB);
       else if (typeof valA === 'number' && typeof valB === 'number') cmp = valA - valB;

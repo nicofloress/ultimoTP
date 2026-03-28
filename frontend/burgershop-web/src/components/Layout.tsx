@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { RolUsuario } from '../types/auth';
 
@@ -70,35 +70,9 @@ const menuSections: MenuSection[] = [
   },
 ];
 
-function getPageTitle(pathname: string): string {
-  const map: Record<string, string> = {
-    '/': 'Punto de Venta',
-    '/pedidos': 'Alta de Pedidos',
-    '/historial': 'Historial de Pedidos',
-    '/catalogo/categorias': 'Categorias',
-    '/catalogo/productos': 'Articulos',
-    '/catalogo/combos': 'Combos',
-    '/catalogo/repartidores': 'Repartidores',
-    '/catalogo/proveedores': 'Proveedores',
-    '/catalogo/tiposCliente': 'Tipos de Cliente',
-    '/catalogo/listasprecios': 'Listas de Precios',
-    '/catalogo/usuarios': 'Usuarios',
-    '/finanzas/caja': 'Caja Diaria',
-    '/finanzas/rendiciones': 'Rendiciones',
-    '/reparto': 'Entregas',
-    '/control-camionetas': 'Control Camionetas',
-    '/tracking': 'Tracking en Vivo',
-    '/inventario/movimientos': 'Movimientos',
-    '/sistema/logs': 'Logs del Sistema',
-    '/config': 'Configuracion',
-  };
-  return map[pathname] || 'Gestion HLP';
-}
-
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { usuario, logout } = useAuth();
-  const location = useLocation();
 
   const esAdmin = usuario?.rol === RolUsuario.Administrador;
 
@@ -109,7 +83,6 @@ export default function Layout() {
     }))
     .filter((section) => section.items.length > 0);
 
-  const pageTitle = getPageTitle(location.pathname);
 
   return (
     <div className="min-h-screen bg-gray-100">

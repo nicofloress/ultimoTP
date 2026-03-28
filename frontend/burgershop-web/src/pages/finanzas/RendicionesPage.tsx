@@ -37,7 +37,7 @@ export default function RendicionesPage() {
   const [efectivoDeclarado, setEfectivoDeclarado] = useState('');
   const [obsNueva, setObsNueva] = useState('');
   const [creandoRendicion, setCreandoRendicion] = useState(false);
-  const [mostrarPedidosReparto, setMostrarPedidosReparto] = useState(false);
+  const [, setMostrarPedidosReparto] = useState(false);
 
   // Detalle de pedido expandido dentro del modal de rendición
   const [pedidoExpandidoId, setPedidoExpandidoId] = useState<number | null>(null);
