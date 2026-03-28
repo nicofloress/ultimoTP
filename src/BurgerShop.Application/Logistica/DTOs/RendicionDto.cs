@@ -52,6 +52,15 @@ public record EstadoRepartoRepartidorDto(
     bool ZonasFinalizadas,
     List<RendicionZonaDto> Zonas);
 
+public record PedidoPendienteRendicionDto(
+    int Id,
+    string NumeroTicket,
+    string Estado,
+    string? NombreCliente,
+    string? DireccionEntrega,
+    string? FormaPago,
+    decimal Total);
+
 public record RepartidorPendienteRendicionDto(
     int RepartidorId,
     string RepartidorNombre,
@@ -62,4 +71,5 @@ public record RepartidorPendienteRendicionDto(
     int TotalNoEntregados,
     decimal TotalEfectivo,
     decimal TotalTransferencia,
-    decimal TotalNoEntregado);
+    decimal TotalNoEntregado,
+    List<PedidoPendienteRendicionDto> Pedidos);

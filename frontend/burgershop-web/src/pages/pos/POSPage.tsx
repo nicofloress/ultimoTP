@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { Producto, Combo, Categoria, CarritoItem, TipoPedido, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto } from '../../types';
+import { Producto, Combo, Categoria, CarritoItem, TipoPedido, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto, TipoCliente } from '../../types';
+import { Zona } from '../../types/logistica';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
@@ -8,11 +9,16 @@ import TicketPrint, { TicketPrintProps } from '../../components/TicketPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { buscarClientes } from '../../api/clientes';
 import { getListasPrecios } from '../../api/listasPrecios';
+import { getZonas } from '../../api/zonas';
+import { getTiposCliente } from '../../api/tiposCliente';
+import { useGooglePlaces } from '../../hooks/useGooglePlaces';
+import { useGlobalToast } from '../../components/Toast';
 import PagoDivididoPanel from '../../components/PagoDivididoPanel';
 import { getCajaAbierta, abrirCaja } from '../../api/caja';
 import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
 
 export default function POSPage() {
+  const { showToast } = useGlobalToast();
   // Data
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -26,6 +32,8 @@ export default function POSPage() {
   const [busqueda, setBusqueda] = useState('');
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
+  const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
+  const [marcaFiltro, setMarcaFiltro] = useState<string | null>(null);
 
   // Cliente
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteDto | null>(null);
@@ -49,6 +57,19 @@ export default function POSPage() {
   const [descuento, setDescuento] = useState(0);
   const [tipoDescuento, setTipoDescuento] = useState<'$' | '%'>('$');
 
+  // Tipo de cliente
+  const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
+  const [tipoClienteSeleccionado, setTipoClienteSeleccionado] = useState<number | undefined>(1);
+
+  // Envio a domicilio
+  const [envioADomicilio, setEnvioADomicilio] = useState(false);
+  const [direccionEnvio, setDireccionEnvio] = useState('');
+  const [zonas, setZonas] = useState<Zona[]>([]);
+  const [zonaSeleccionada, setZonaSeleccionada] = useState<number | undefined>();
+  const [fechaProgramada, setFechaProgramada] = useState('');
+  const [mostrarSugerenciasDireccion, setMostrarSugerenciasDireccion] = useState(false);
+  const { sugerencias: sugerenciasDireccion, buscarDirecciones, limpiarSugerencias } = useGooglePlaces();
+
   // Modal abrir caja
   const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
   const [cajaMontoInicial, setCajaMontoInicial] = useState(0);
@@ -68,6 +89,8 @@ export default function POSPage() {
     getCategorias().then(setCategorias);
     getFormasPagoActivas().then(setFormasPago);
     getListasPrecios().then(setListasPrecios);
+    getZonas().then(setZonas);
+    getTiposCliente().then(setTiposCliente);
     getCajaAbierta().then(caja => setCajaAbiertaId(caja?.id ?? null));
   }, []);
 
@@ -93,6 +116,20 @@ export default function POSPage() {
     }, 300);
     return () => clearTimeout(timeout);
   }, [busquedaCliente]);
+
+  // Auto-seleccionar lista de precios segun tipo de cliente
+  useEffect(() => {
+    if (!tipoClienteSeleccionado) {
+      setListaPrecioSeleccionada(undefined);
+      return;
+    }
+    const tipo = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
+    if (tipo?.listaPrecioId) {
+      setListaPrecioSeleccionada(tipo.listaPrecioId);
+    } else {
+      setListaPrecioSeleccionada(undefined);
+    }
+  }, [tipoClienteSeleccionado, tiposCliente]);
 
   // Precios segun lista seleccionada
   useEffect(() => {
@@ -187,6 +224,11 @@ export default function POSPage() {
     return false;
   });
 
+  const combosFiltrados = combos.filter(c => {
+    if (!c.activo || !busqueda) return false;
+    return c.nombre.toLowerCase().includes(busqueda.toLowerCase());
+  });
+
   // ===== MEGA-CATEGORIAS PARA MODAL CATALOGO =====
   const megaCategorias = useMemo(() => {
     const econId = categorias.find(c => c.nombre === 'Económica')?.id;
@@ -198,10 +240,33 @@ export default function POSPage() {
       { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
       { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
       { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
+      { key: 'snacks', label: 'Snacks', catIds: categorias.filter(c => c.nombre === 'Snacks').map(c => c.id) },
     ];
   }, [categorias]);
 
   const getMegaCatIds = (key: string) => megaCategorias.find(m => m.key === key)?.catIds ?? [];
+
+  const tieneSubfiltros = categoriaFiltro === 'eco' || categoriaFiltro === 'premium' || categoriaFiltro === 'snacks';
+
+  const gramajesDisponibles = useMemo(() => {
+    if (!tieneSubfiltros) return [];
+    const catIds = getMegaCatIds(categoriaFiltro!);
+    return productos
+      .filter(p => p.activo && catIds.includes(p.categoriaId) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
+      .map(p => p.pesoGramos!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort((a, b) => a - b);
+  }, [productos, categoriaFiltro, marcaFiltro, megaCategorias]);
+
+  const marcasDisponibles = useMemo(() => {
+    if (!tieneSubfiltros) return [];
+    const catIds = getMegaCatIds(categoriaFiltro!);
+    return productos
+      .filter(p => p.activo && catIds.includes(p.categoriaId) && p.marca)
+      .map(p => p.marca!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort();
+  }, [productos, categoriaFiltro, megaCategorias]);
 
   const productosCatalogo = useMemo(() => {
     const activos = productos.filter(p => p.activo);
@@ -209,17 +274,31 @@ export default function POSPage() {
     if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
-    return activos.filter(p => catIds.includes(p.categoriaId));
-  }, [productos, categoriaFiltro, megaCategorias, preciosLista]);
+    let filtered = activos.filter(p => catIds.includes(p.categoriaId));
+    if (tieneSubfiltros && marcaFiltro) {
+      filtered = filtered.filter(p => p.marca === marcaFiltro);
+    }
+    if (tieneSubfiltros && gramajesFiltro) {
+      filtered = filtered.filter(p => p.pesoGramos === gramajesFiltro);
+    }
+    return filtered;
+  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista]);
 
   const combosCatalogo = useMemo(() => {
     const activos = combos.filter(c => c.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
     if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
-    const prodIdsEnCat = new Set(productos.filter(p => catIds.includes(p.categoriaId)).map(p => p.id));
+    let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
+    if (tieneSubfiltros && marcaFiltro) {
+      prodsEnCat = prodsEnCat.filter(p => p.marca === marcaFiltro);
+    }
+    if (tieneSubfiltros && gramajesFiltro) {
+      prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
+    }
+    const prodIdsEnCat = new Set(prodsEnCat.map(p => p.id));
     return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
-  }, [combos, productos, categoriaFiltro, megaCategorias]);
+  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias]);
 
   // Auto-agregar producto si busca por codigo exacto y Enter
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -242,41 +321,56 @@ export default function POSPage() {
   // --- Crear pedido ---
   const handleCrearPedido = async () => {
     if (carrito.length === 0) return;
-    const pedido = await crearPedido({
-      tipo: TipoPedido.ParaLlevar,
-      nombreCliente: nombreCliente || undefined,
-      telefonoCliente: telefonoCliente || undefined,
-      descuento: descuentoCalculado,
-      formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
-      clienteId: clienteSeleccionado?.id,
-      notaInterna: notaInterna || undefined,
-      tipoFactura,
-      pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
-      lineas: carrito.map(item => ({
-        productoId: item.productoId,
-        comboId: item.comboId,
-        cantidad: item.cantidad,
-        precioUnitario: item.precioUnitario,
-        notas: item.notas,
-      })),
-    });
-    setTicketCreado(pedido.numeroTicket);
-    setUltimoPedidoId(pedido.id);
-    // Reset
-    setCarrito([]);
-    setNombreCliente('');
-    setTelefonoCliente('');
-    setDescuento(0);
-    setTipoDescuento('$');
-    setFormaPagoSeleccionada(undefined);
-    setNotaInterna('');
-    setTipoFactura(TipoFactura.FacturaB);
-    setClienteSeleccionado(null);
-    setBusquedaCliente('');
-    setModoPago('total');
-    setPagosDivididos([]);
-    setListaPrecioSeleccionada(undefined);
-    setMontoPagado(0);
+    try {
+      const pedido = await crearPedido({
+        tipo: envioADomicilio ? TipoPedido.Domicilio : TipoPedido.ParaLlevar,
+        nombreCliente: nombreCliente || undefined,
+        telefonoCliente: telefonoCliente || undefined,
+        direccionEntrega: envioADomicilio ? (direccionEnvio || undefined) : undefined,
+        zonaId: envioADomicilio ? (zonaSeleccionada || undefined) : undefined,
+        fechaProgramada: envioADomicilio && fechaProgramada ? fechaProgramada : undefined,
+        descuento: descuentoCalculado,
+        formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
+        clienteId: clienteSeleccionado?.id,
+        notaInterna: notaInterna || undefined,
+        tipoFactura,
+        estaPago: true,
+        pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
+        lineas: carrito.map(item => ({
+          productoId: item.productoId,
+          comboId: item.comboId,
+          cantidad: item.cantidad,
+          precioUnitario: item.precioUnitario,
+          notas: item.notas,
+        })),
+      });
+      setTicketCreado(pedido.numeroTicket);
+      setUltimoPedidoId(pedido.id);
+      showToast('Venta registrada correctamente', 'success');
+      // Reset
+      setCarrito([]);
+      setNombreCliente('');
+      setTelefonoCliente('');
+      setDescuento(0);
+      setTipoDescuento('$');
+      setFormaPagoSeleccionada(undefined);
+      setNotaInterna('');
+      setTipoFactura(TipoFactura.FacturaB);
+      setClienteSeleccionado(null);
+      setBusquedaCliente('');
+      setModoPago('total');
+      setPagosDivididos([]);
+      setListaPrecioSeleccionada(undefined);
+      setMontoPagado(0);
+      setEnvioADomicilio(false);
+      setDireccionEnvio('');
+      setZonaSeleccionada(undefined);
+      setFechaProgramada('');
+      setTipoClienteSeleccionado(1);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al registrar la venta';
+      showToast(msg, 'error');
+    }
   };
 
   const handleCancelar = () => {
@@ -294,6 +388,11 @@ export default function POSPage() {
     setMontoPagado(0);
     setTicketCreado(null);
     setUltimoPedidoId(null);
+    setEnvioADomicilio(false);
+    setDireccionEnvio('');
+    setZonaSeleccionada(undefined);
+    setFechaProgramada('');
+    setTipoClienteSeleccionado(1);
     busquedaRef.current?.focus();
   };
 
@@ -314,6 +413,9 @@ export default function POSPage() {
     <div className="flex flex-col lg:flex-row gap-2 h-[calc(100vh-7.5rem)] overflow-hidden">
       {/* ============ PANEL IZQUIERDO ============ */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-1.5">
+          <h2 className="text-lg font-bold text-white">Punto de Venta</h2>
+        </div>
         {/* Header: Cliente + Factura */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 mb-1.5">
           <div className="flex items-center gap-2">
@@ -357,6 +459,18 @@ export default function POSPage() {
               )}
             </div>
 
+            {/* Tipo Cliente */}
+            <select
+              value={tipoClienteSeleccionado || ''}
+              onChange={e => setTipoClienteSeleccionado(Number(e.target.value) || undefined)}
+              className={`${selectClass} w-auto min-w-[120px] font-medium`}
+            >
+              <option value="">Tipo Cliente...</option>
+              {tiposCliente.filter(tc => tc.activo).map(tc => (
+                <option key={tc.id} value={tc.id}>{tc.nombre}</option>
+              ))}
+            </select>
+
             {/* Tipo Factura */}
             <select
               value={tipoFactura}
@@ -397,11 +511,11 @@ export default function POSPage() {
           </div>
 
           {/* Resultados de busqueda rapida */}
-          {busqueda && productosFiltrados.length > 0 && (
-            <div className="mt-1.5 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
-              {productosFiltrados.slice(0, 8).map(p => (
+          {busqueda && (productosFiltrados.length > 0 || combosFiltrados.length > 0) && (
+            <div className="mt-1.5 border border-gray-200 rounded-md max-h-48 overflow-y-auto shadow-sm">
+              {productosFiltrados.slice(0, 6).map(p => (
                 <button
-                  key={p.id}
+                  key={`p-${p.id}`}
                   onClick={() => agregarProducto(p)}
                   className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 active:bg-amber-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
                 >
@@ -410,6 +524,19 @@ export default function POSPage() {
                     <span className="text-gray-800">{p.nombre}</span>
                   </div>
                   <span className="font-semibold text-amber-600">${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}</span>
+                </button>
+              ))}
+              {combosFiltrados.slice(0, 6).map(c => (
+                <button
+                  key={`c-${c.id}`}
+                  onClick={() => agregarCombo(c)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
+                    <span className="text-gray-800">{c.nombre}</span>
+                  </div>
+                  <span className="font-semibold text-purple-600">${c.precio.toLocaleString()}</span>
                 </button>
               ))}
             </div>
@@ -528,9 +655,9 @@ export default function POSPage() {
       </div>
 
       {/* ============ PANEL DERECHO: CAJA ============ */}
-      <div className="w-full lg:w-80 xl:w-[340px] bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-0 lg:max-h-full">
+      <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 lg:max-h-full">
         {/* Caja info */}
-        <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white' : 'bg-red-50 border-b border-red-200'}`}>
+        <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white shadow-lg border-b-2 border-amber-500' : 'bg-red-50 border-b border-red-200'}`}>
           <div>
             <div className={`text-[10px] uppercase tracking-wider ${cajaAbiertaId ? 'text-slate-400' : 'text-red-400'}`}>Caja</div>
             <div className={`font-bold text-sm ${cajaAbiertaId ? 'text-white' : 'text-red-600'}`}>
@@ -540,7 +667,7 @@ export default function POSPage() {
           {!cajaAbiertaId && (
             <button
               onClick={() => setMostrarAbrirCaja(true)}
-              className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-green-700 transition-colors"
+              className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-green-700 transition-colors shadow-md shadow-green-600/20"
             >
               Abrir Caja
             </button>
@@ -641,7 +768,7 @@ export default function POSPage() {
         </div>
 
         {/* Resumen de totales */}
-        <div className="border-t-2 border-gray-200 bg-gray-50 px-3 py-1.5 space-y-0 flex-shrink-0">
+        <div className="border-t-4 border-amber-400 bg-gradient-to-t from-gray-100 to-gray-50 shadow-[0_-2px_6px_rgba(0,0,0,0.06)] px-3 py-1.5 space-y-0 flex-shrink-0">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Subtotal</span>
             <span className="font-medium text-gray-700">${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
@@ -670,7 +797,88 @@ export default function POSPage() {
               ${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="text-xs text-amber-600 font-medium mt-0.5">Retiro en el local</div>
+          {/* Toggle envio a domicilio */}
+          <div className="mt-1.5 pt-1.5 border-t border-gray-200">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={envioADomicilio}
+                onChange={e => {
+                  setEnvioADomicilio(e.target.checked);
+                  if (!e.target.checked) {
+                    setDireccionEnvio('');
+                    setZonaSeleccionada(undefined);
+                    setFechaProgramada('');
+                  }
+                }}
+                className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
+              />
+              <span className="text-sm font-medium text-gray-700">Enviar a domicilio</span>
+            </label>
+            {envioADomicilio && (
+              <div className="mt-2 space-y-1.5">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={direccionEnvio}
+                    onChange={e => {
+                      setDireccionEnvio(e.target.value);
+                      buscarDirecciones(e.target.value);
+                      setMostrarSugerenciasDireccion(true);
+                    }}
+                    onFocus={() => { if (sugerenciasDireccion.length > 0) setMostrarSugerenciasDireccion(true); }}
+                    onBlur={() => { setTimeout(() => setMostrarSugerenciasDireccion(false), 200); }}
+                    placeholder="Direccion de entrega..."
+                    className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                  />
+                  {mostrarSugerenciasDireccion && sugerenciasDireccion.length > 0 && direccionEnvio.length >= 3 && (
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
+                      {sugerenciasDireccion.map(s => (
+                        <button
+                          key={s.placeId}
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => {
+                            setDireccionEnvio(s.descripcion);
+                            setMostrarSugerenciasDireccion(false);
+                            limpiarSugerencias();
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-50 active:bg-amber-100 text-sm text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-gray-700 truncate">{s.descripcion}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  <select
+                    value={zonaSeleccionada || ''}
+                    onChange={e => setZonaSeleccionada(Number(e.target.value) || undefined)}
+                    className="flex-1 border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                  >
+                    <option value="">Zona...</option>
+                    {zonas.filter(z => z.activa).map(z => (
+                      <option key={z.id} value={z.id}>{z.nombre}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={fechaProgramada}
+                    onChange={e => setFechaProgramada(e.target.value)}
+                    className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                    placeholder="Fecha..."
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <div className={`text-xs font-medium mt-1 ${envioADomicilio ? 'text-blue-600' : 'text-amber-600'}`}>
+            {envioADomicilio ? 'Envio a domicilio' : 'Retiro en el local'}
+          </div>
         </div>
 
         {/* Botones + Deuda */}
@@ -712,8 +920,21 @@ export default function POSPage() {
       {mostrarCatalogo && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 lg:p-6" onClick={() => setMostrarCatalogo(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <div className="flex items-center px-4 py-3 border-b border-gray-200">
               <h2 className="text-lg font-bold text-gray-800">Catalogo de Productos</h2>
+              <div className="flex items-center gap-2 mx-auto bg-amber-50 border-2 border-amber-400 rounded-lg px-4 py-1.5">
+                <span className="text-sm font-semibold text-amber-700 whitespace-nowrap">Lista de Precios:</span>
+                <select
+                  value={listaPrecioSeleccionada || ''}
+                  onChange={e => setListaPrecioSeleccionada(Number(e.target.value) || undefined)}
+                  className="border-2 border-amber-300 rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 min-w-[180px]"
+                >
+                  <option value="">Precio Base</option>
+                  {listasPrecios.filter(l => l.activa).map(l => (
+                    <option key={l.id} value={l.id}>{l.nombre}</option>
+                  ))}
+                </select>
+              </div>
               <button onClick={() => setMostrarCatalogo(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -721,7 +942,7 @@ export default function POSPage() {
 
             {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
-              <button onClick={() => setCategoriaFiltro(null)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+              <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
               {listaPrecioSeleccionada && (
                 <button
                   onClick={() => setCategoriaFiltro('descuento')}
@@ -731,7 +952,7 @@ export default function POSPage() {
                 </button>
               )}
               {megaCategorias.map(mc => (
-                <button key={mc.key} onClick={() => setCategoriaFiltro(mc.key)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
               ))}
               <button
                 onClick={() => setCategoriaFiltro('ofertas')}
@@ -741,6 +962,52 @@ export default function POSPage() {
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
             </div>
+
+            {/* Sub-filtros: marca y gramaje */}
+            {tieneSubfiltros && (marcasDisponibles.length > 1 || gramajesDisponibles.length > 0) && (
+              <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-x-4 gap-y-1.5 items-center">
+                {marcasDisponibles.length > 1 && (
+                  <div className="flex gap-1.5 items-center">
+                    <span className="text-xs text-gray-500 font-medium mr-1">Marca:</span>
+                    <button
+                      onClick={() => { setMarcaFiltro(null); setGramajesFiltro(null); }}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!marcaFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Todas
+                    </button>
+                    {marcasDisponibles.map(m => (
+                      <button
+                        key={m}
+                        onClick={() => { setMarcaFiltro(m); setGramajesFiltro(null); }}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${marcaFiltro === m ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {gramajesDisponibles.length > 0 && (
+                  <div className="flex gap-1.5 items-center">
+                    <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
+                    <button
+                      onClick={() => setGramajesFiltro(null)}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!gramajesFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Todos
+                    </button>
+                    {gramajesDisponibles.map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setGramajesFiltro(g)}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      >
+                        {g}gr
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Grid de productos + combos relacionados */}
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">

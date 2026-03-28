@@ -1,5 +1,6 @@
 using System.Text;
 using BurgerShop.API.Extensions;
+using BurgerShop.API.Middleware;
 using BurgerShop.Application.Notificaciones;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Infrastructure.Data;
@@ -55,6 +56,8 @@ builder.Services.AddCatalogoServices();
 builder.Services.AddVentasServices();
 builder.Services.AddLogisticaServices();
 builder.Services.AddFinanzasServices();
+builder.Services.AddSistemaServices();
+builder.Services.AddInventarioServices();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -175,6 +178,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.MapControllers();
 app.MapHub<NotificacionHub>("/hubs/notificaciones");
 

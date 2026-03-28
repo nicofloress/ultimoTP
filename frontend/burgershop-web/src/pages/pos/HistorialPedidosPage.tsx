@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Pedido, EstadoPedido, estadoLabels, estadoColores, TipoPedido } from '../../types';
-import { getPedidos } from '../../api/pedidos';
+import { getPedidos, getPedidoStats, PedidoStats } from '../../api/pedidos';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -17,27 +17,50 @@ function formatFecha(fecha: string) {
   });
 }
 
-function getAyer(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+function getHoy(): string {
+  const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function StatItem({ label, value, porcentaje }: { label: string; value: number; porcentaje?: number }) {
+  const pctColor = porcentaje === undefined ? '' : porcentaje > 0 ? 'text-green-400' : porcentaje < 0 ? 'text-red-400' : 'text-slate-400';
+  const pctArrow = porcentaje === undefined ? '' : porcentaje > 0 ? '\u25B2' : porcentaje < 0 ? '\u25BC' : '';
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className="text-xs text-slate-200">{label}</span>
+      <span className="text-sm font-bold text-white">{value.toLocaleString('es-AR')}</span>
+      {porcentaje !== undefined && (
+        <span className={`text-xs font-medium ${pctColor}`}>
+          {pctArrow}{Math.abs(Math.round(porcentaje))}%
+        </span>
+      )}
+    </div>
+  );
 }
 
 export default function HistorialPedidosPage() {
-  const [fecha, setFecha] = useState(getAyer());
+  const [fechaDesde, setFechaDesde] = useState(getHoy());
+  const [fechaHasta, setFechaHasta] = useState(getHoy());
   const [estadoFiltro, setEstadoFiltro] = useState<number | ''>('');
   const [busqueda, setBusqueda] = useState('');
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(false);
   const [seleccionado, setSeleccionado] = useState<Pedido | null>(null);
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
+  const [stats, setStats] = useState<PedidoStats | null>(null);
+  const [ordenCol, setOrdenCol] = useState<string>('fechaCreacion');
+  const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    getPedidoStats(fechaDesde).then(setStats).catch(() => {});
+  }, [fechaDesde]);
 
   useEffect(() => {
     const cargar = async () => {
       setCargando(true);
       try {
         const estado = estadoFiltro !== '' ? estadoFiltro : undefined;
-        const data = await getPedidos(fecha, estado);
+        const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
+        const data = await getPedidos(fechaDesde, estado, hasta);
         setPedidos(data);
       } catch (err) {
         console.error('Error cargando historial:', err);
@@ -46,30 +69,97 @@ export default function HistorialPedidosPage() {
       }
     };
     cargar();
-  }, [fecha, estadoFiltro]);
+  }, [fechaDesde, fechaHasta, estadoFiltro]);
+
+  const toggleOrden = (col: string) => {
+    if (ordenCol === col) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setOrdenCol(col); setOrdenDir('asc'); }
+  };
 
   const pedidosFiltrados = useMemo(() => {
-    if (!busqueda.trim()) return pedidos;
-    const q = busqueda.toLowerCase();
-    return pedidos.filter(p =>
-      p.numeroTicket.toLowerCase().includes(q) ||
-      p.nombreCliente?.toLowerCase().includes(q) ||
-      p.direccionEntrega?.toLowerCase().includes(q)
-    );
-  }, [pedidos, busqueda]);
+    let lista = pedidos;
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      lista = lista.filter(p =>
+        p.numeroTicket.toLowerCase().includes(q) ||
+        p.nombreCliente?.toLowerCase().includes(q) ||
+        p.direccionEntrega?.toLowerCase().includes(q)
+      );
+    }
+    const dir = ordenDir === 'asc' ? 1 : -1;
+    return [...lista].sort((a, b) => {
+      let va: string | number, vb: string | number;
+      switch (ordenCol) {
+        case 'numeroTicket': va = a.numeroTicket; vb = b.numeroTicket; break;
+        case 'fechaCreacion': va = a.fechaCreacion; vb = b.fechaCreacion; break;
+        case 'tipo': va = a.tipo; vb = b.tipo; break;
+        case 'nombreCliente': va = a.nombreCliente || ''; vb = b.nombreCliente || ''; break;
+        case 'direccionEntrega': va = a.direccionEntrega || ''; vb = b.direccionEntrega || ''; break;
+        case 'zonaNombre': va = a.zonaNombre || ''; vb = b.zonaNombre || ''; break;
+        case 'repartidorNombre': va = a.repartidorNombre || ''; vb = b.repartidorNombre || ''; break;
+        case 'estado': va = a.estado; vb = b.estado; break;
+        case 'total': va = a.total; vb = b.total; break;
+        case 'estaPago': va = a.estaPago ? 1 : 0; vb = b.estaPago ? 1 : 0; break;
+        default: return 0;
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }, [pedidos, busqueda, ordenCol, ordenDir]);
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] overflow-hidden gap-4">
       {/* Lista */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Panel de estadisticas */}
+        {stats && (
+          <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg mb-3 flex-shrink-0">
+            {/* Fila 1: Comparativas */}
+            <div className="flex items-center gap-6 px-4 py-2.5">
+              <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide mr-2">Nro. total de pedidos</span>
+              <StatItem label="Hoy" value={stats.pedidosHoy} porcentaje={stats.porcentajeVariacionAyer} />
+              <StatItem label="Ayer" value={stats.pedidosAyer} />
+              <StatItem label="Ult. 7 dias" value={stats.pedidosUltimos7Dias} porcentaje={stats.porcentajeVariacion7Dias} />
+              <StatItem label="Ano pasado" value={stats.pedidosAnioAnterior} porcentaje={stats.porcentajeVariacionAnio} />
+            </div>
+            {/* Fila 2: Resumen de la fecha */}
+            <div className="flex items-center gap-6 px-4 py-2.5 border-t border-slate-600">
+              <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide mr-2">Pedidos</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xs text-slate-200">Pedidos</span>
+                <span className="text-sm font-bold text-white">{stats.totalPedidosFecha.toLocaleString('es-AR')}</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xs text-slate-200">Ticket promedio</span>
+                <span className="text-sm font-bold text-white">${stats.ticketPromedio.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xs text-slate-200">Total bruto</span>
+                <span className="text-sm font-bold text-amber-400">${stats.totalBruto.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-3 pb-3 flex-shrink-0">
-          <input
-            type="date"
-            value={fecha}
-            onChange={e => setFecha(e.target.value)}
-            className={inputClass}
-          />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500 font-medium">Desde</span>
+            <input
+              type="date"
+              value={fechaDesde}
+              onChange={e => setFechaDesde(e.target.value)}
+              className={inputClass}
+            />
+            <span className="text-xs text-gray-500 font-medium">Hasta</span>
+            <input
+              type="date"
+              value={fechaHasta}
+              onChange={e => setFechaHasta(e.target.value)}
+              className={inputClass}
+            />
+          </div>
           <select
             value={estadoFiltro}
             onChange={e => setEstadoFiltro(e.target.value === '' ? '' : Number(e.target.value))}
@@ -102,7 +192,7 @@ export default function HistorialPedidosPage() {
         </div>
 
         {/* Tabla */}
-        <div className="flex-1 overflow-y-auto min-h-0 bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="flex-1 overflow-y-auto min-h-0 bg-white rounded-lg border-2 border-gray-300 shadow-xl">
           {pedidosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,17 +202,31 @@ export default function HistorialPedidosPage() {
             </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
                 <tr className="text-left text-gray-500 text-xs uppercase tracking-wider">
-                  <th className="px-4 py-3 font-semibold">Ticket</th>
-                  <th className="px-4 py-3 font-semibold">Hora</th>
-                  <th className="px-4 py-3 font-semibold">Tipo</th>
-                  <th className="px-4 py-3 font-semibold">Cliente</th>
-                  <th className="px-4 py-3 font-semibold">Direccion</th>
-                  <th className="px-4 py-3 font-semibold">Zona</th>
-                  <th className="px-4 py-3 font-semibold">Estado</th>
-                  <th className="px-4 py-3 font-semibold text-right">Total</th>
-                  <th className="px-4 py-3 font-semibold text-center">Pago</th>
+                  {([
+                    ['numeroTicket', 'Ticket', ''],
+                    ['fechaCreacion', 'Hora', ''],
+                    ['tipo', 'Tipo', ''],
+                    ['nombreCliente', 'Cliente', ''],
+                    ['direccionEntrega', 'Direccion', ''],
+                    ['zonaNombre', 'Zona', ''],
+                    ['repartidorNombre', 'Repartidor', ''],
+                    ['estado', 'Estado', ''],
+                    ['total', 'Total', 'text-right'],
+                    ['estaPago', 'Pago', 'text-center'],
+                  ] as [string, string, string][]).map(([col, label, align]) => (
+                    <th
+                      key={col}
+                      onClick={() => toggleOrden(col)}
+                      className={`px-4 py-3 font-semibold cursor-pointer select-none hover:text-gray-700 transition-colors ${align}`}
+                    >
+                      {label}
+                      {ordenCol === col && (
+                        <span className="ml-1 text-amber-600">{ordenDir === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -138,6 +242,7 @@ export default function HistorialPedidosPage() {
                     <td className="px-4 py-2.5 text-gray-700">{p.nombreCliente || '-'}</td>
                     <td className="px-4 py-2.5 text-gray-600 max-w-[200px] truncate">{p.direccionEntrega || '-'}</td>
                     <td className="px-4 py-2.5 text-gray-600">{p.zonaNombre || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{p.repartidorNombre || '-'}</td>
                     <td className="px-4 py-2.5">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${estadoColores[p.estado] || 'bg-gray-100 text-gray-800'}`}>
                         {estadoLabels[p.estado]}
@@ -160,9 +265,9 @@ export default function HistorialPedidosPage() {
 
         {/* Totales */}
         {pedidosFiltrados.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-2 bg-white border border-gray-200 rounded-lg mt-2 text-sm flex-shrink-0">
-            <span className="text-gray-500">{pedidosFiltrados.length} pedido{pedidosFiltrados.length !== 1 ? 's' : ''}</span>
-            <span className="font-bold text-gray-800">
+          <div className="flex items-center justify-between px-4 py-2 bg-slate-700 rounded-lg mt-2 text-sm flex-shrink-0 shadow-lg">
+            <span className="text-slate-400">{pedidosFiltrados.length} pedido{pedidosFiltrados.length !== 1 ? 's' : ''}</span>
+            <span className="font-bold text-amber-400">
               Total: ${pedidosFiltrados.reduce((sum, p) => sum + p.total, 0).toLocaleString('es-AR')}
             </span>
           </div>
@@ -171,18 +276,18 @@ export default function HistorialPedidosPage() {
 
       {/* Panel detalle */}
       {seleccionado && (
-        <div className="w-96 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden flex-shrink-0">
+        <div className="w-96 bg-white rounded-lg border-2 border-slate-300 shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
           {/* Header detalle */}
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50 flex-shrink-0">
+          <div className="px-4 py-3 border-b-2 border-amber-500 flex items-center justify-between bg-slate-700 shadow-lg flex-shrink-0">
             <div>
-              <span className="font-bold text-gray-800 text-lg">{seleccionado.numeroTicket}</span>
+              <span className="font-bold text-white text-lg">{seleccionado.numeroTicket}</span>
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${estadoColores[seleccionado.estado]}`}>
                 {estadoLabels[seleccionado.estado]}
               </span>
             </div>
             <button
               onClick={() => setSeleccionado(null)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-slate-300 hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -300,7 +405,7 @@ export default function HistorialPedidosPage() {
           </div>
 
           {/* Footer totales */}
-          <div className="border-t border-gray-200 px-4 py-3 space-y-1 bg-gray-50 flex-shrink-0">
+          <div className="border-t border-gray-200 px-4 py-3 space-y-1 bg-gray-50 flex-shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.05)]">
             <div className="flex justify-between text-sm text-gray-500">
               <span>Subtotal</span>
               <span>${seleccionado.subtotal.toLocaleString('es-AR')}</span>

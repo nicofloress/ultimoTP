@@ -146,6 +146,9 @@ export default function TrackingMapaPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-7rem)]">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+        <h2 className="text-lg font-bold text-white">Tracking en Vivo</h2>
+      </div>
       {/* Header con stats */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">

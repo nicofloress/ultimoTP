@@ -118,7 +118,9 @@ export default function ConfigPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Configuracion</h1>
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+        <h2 className="text-lg font-bold text-white">Configuracion</h2>
+      </div>
       <div className="flex gap-2 mb-6">
         <button onClick={() => setTab('zonas')} className={`px-4 py-2 rounded font-medium ${tab === 'zonas' ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}>Zonas</button>
         <button onClick={() => setTab('repartidores')} className={`px-4 py-2 rounded font-medium ${tab === 'repartidores' ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}>Repartidores</button>

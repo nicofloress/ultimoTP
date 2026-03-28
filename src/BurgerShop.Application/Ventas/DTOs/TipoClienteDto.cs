@@ -5,6 +5,7 @@ public class TipoClienteDto
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
+    public int? ListaPrecioId { get; set; }
     public bool Activo { get; set; }
 }
 
@@ -12,10 +13,12 @@ public class CrearTipoClienteDto
 {
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
+    public int? ListaPrecioId { get; set; }
 }
 
 public class ActualizarTipoClienteDto
 {
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
+    public int? ListaPrecioId { get; set; }
 }

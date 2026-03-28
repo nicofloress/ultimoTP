@@ -1,3 +1,4 @@
+using BurgerShop.Application.Logistica.DTOs;
 using BurgerShop.Application.Logistica.Interfaces;
 using BurgerShop.Application.Notificaciones;
 using BurgerShop.Application.Ventas.DTOs;
@@ -106,6 +107,10 @@ public class EntregasController : ControllerBase
         await _pedidoService.FinalizarRepartoZonaAsync(dto.ZonaId, dto.RepartidorId);
         return Ok();
     }
+
+    [HttpGet("control-camioneta")]
+    public async Task<ActionResult<ControlCamionetaDto>> GetControlCamioneta()
+        => Ok(await _controlCamionetaService.GetTalliesActivosHoyAsync());
 
     [HttpPost("control-camioneta")]
     public async Task<IActionResult> ControlCamioneta(EmpezarRepartoDto dto)

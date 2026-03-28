@@ -26,6 +26,7 @@ const menuSections: MenuSection[] = [
     items: [
       { to: '/pedidos', label: 'Alta de Pedidos' },
       { to: '/reparto', label: 'Entregas', adminOnly: true },
+      { to: '/control-camionetas', label: 'Control Camionetas', adminOnly: true },
       { to: '/tracking', label: 'Tracking', adminOnly: true },
       { to: '/historial', label: 'Historial' },
     ],
@@ -51,6 +52,18 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
+    title: 'Inventario',
+    items: [
+      { to: '/inventario/movimientos', label: 'Movimientos', adminOnly: true },
+    ],
+  },
+  {
+    title: 'Sistema',
+    items: [
+      { to: '/sistema/logs', label: 'Logs', adminOnly: true },
+    ],
+  },
+  {
     items: [
       { to: '/config', label: 'Configuracion', adminOnly: true },
     ],
@@ -73,7 +86,10 @@ function getPageTitle(pathname: string): string {
     '/finanzas/caja': 'Caja Diaria',
     '/finanzas/rendiciones': 'Rendiciones',
     '/reparto': 'Entregas',
+    '/control-camionetas': 'Control Camionetas',
     '/tracking': 'Tracking en Vivo',
+    '/inventario/movimientos': 'Movimientos',
+    '/sistema/logs': 'Logs del Sistema',
     '/config': 'Configuracion',
   };
   return map[pathname] || 'Gestion HLP';
@@ -97,20 +113,76 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Sidebar */}
+      {/* Header fijo - siempre arriba, todo el ancho */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-600 border-b border-slate-700 flex items-center px-4">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 rounded hover:bg-slate-600 transition-colors text-slate-200"
+          aria-label="Toggle sidebar"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+        <div className="ml-3 flex items-center gap-2">
+          {/* Icono hamburguesa */}
+          <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
+            {/* Pan superior (dome) */}
+            <path d="M4 14h24c0-6-5.4-10-12-10S4 8 4 14z" fill="#F59E0B" />
+            {/* Sesamo */}
+            <ellipse cx="11" cy="9" rx="1.2" ry="0.8" fill="#FEF3C7" />
+            <ellipse cx="17" cy="7.5" rx="1.2" ry="0.8" fill="#FEF3C7" />
+            <ellipse cx="22" cy="10" rx="1.2" ry="0.8" fill="#FEF3C7" />
+            {/* Lechuga */}
+            <path d="M3 14.5c1.5 1.5 3 0 4.5 1.5s3 0 4.5 1.5 3 0 4.5 1.5 3 0 4.5-1.5 3 0 4.5-1.5" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" />
+            {/* Carne */}
+            <rect x="3.5" y="17" width="25" height="3.5" rx="1.5" fill="#92400E" />
+            {/* Queso */}
+            <path d="M3 17l2-1.5h22l2 1.5" fill="#FBBF24" />
+            {/* Pan inferior */}
+            <rect x="4" y="21" width="24" height="4" rx="2" fill="#D97706" />
+          </svg>
+          <span className="text-base font-bold text-white tracking-tight">
+            Gestion HLP
+          </span>
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-bold">
+            {usuario?.nombreCompleto?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-white leading-tight">{usuario?.nombreCompleto}</div>
+            <div className="text-xs text-slate-300 leading-tight">{usuario?.rolNombre}</div>
+          </div>
+        </div>
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Salir
+        </button>
+      </header>
+
+      {/* Sidebar - debajo del header */}
       <aside
-        className={`fixed top-0 left-0 h-screen bg-slate-800 text-gray-300 z-40 flex flex-col transition-all duration-300 ${
+        className={`fixed top-14 left-0 bottom-0 bg-gradient-to-b from-slate-600 to-slate-900 shadow-2xl text-gray-300 z-40 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden`}
       >
         <div className="flex-1 flex flex-col min-w-[16rem]">
-          {/* Sidebar Header */}
-          <div className="h-16 flex items-center px-5 border-b border-slate-700">
-            <span className="text-white font-bold text-lg tracking-tight">
-              Gestion HLP
-            </span>
-          </div>
-
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-3">
             {filteredSections.map((section, sIdx) => (
@@ -142,60 +214,15 @@ export default function Layout() {
               </div>
             ))}
           </nav>
-
         </div>
       </aside>
 
-      {/* Main content area */}
+      {/* Main content area - debajo del header, al lado del sidebar */}
       <div
-        className={`transition-all duration-300 ${
+        className={`pt-14 transition-all duration-300 ${
           sidebarOpen ? 'ml-64' : 'ml-0'
         }`}
       >
-        {/* Topbar */}
-        <header className="sticky top-0 z-30 h-16 bg-white shadow-md flex items-center px-4">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
-            aria-label="Toggle sidebar"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-          <h1 className="ml-3 text-lg font-semibold text-gray-800">
-            {pageTitle}
-          </h1>
-          <div className="flex-1 flex items-center justify-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-bold">
-              {usuario?.nombreCompleto?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-gray-700 leading-tight">{usuario?.nombreCompleto}</div>
-              <div className="text-xs text-gray-400 leading-tight">{usuario?.rolNombre}</div>
-            </div>
-          </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Salir
-          </button>
-        </header>
-
         {/* Page content */}
         <main className="p-4">
           <Outlet />

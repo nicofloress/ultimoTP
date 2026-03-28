@@ -1,3 +1,4 @@
+using BurgerShop.Application.Logistica.DTOs;
 using BurgerShop.Application.Logistica.Interfaces;
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Ventas;
@@ -68,13 +69,60 @@ public class ControlCamionetaService : IControlCamionetaService
         return ms.ToArray();
     }
 
+    public async Task<ControlCamionetaDto> GetTalliesActivosHoyAsync()
+    {
+        var pedidos = (await _pedidoRepo.GetTodosConProductosPorRepartidorHoyAsync()).ToList();
+
+        var result = new ControlCamionetaDto();
+
+        var porRepartidor = pedidos.GroupBy(p => p.RepartidorId!.Value);
+
+        foreach (var grupo in porRepartidor)
+        {
+            var repartidor = grupo.First().Repartidor;
+            var tallies = CalcularTallies(grupo.ToList());
+            var todosTerminales = grupo.All(p =>
+                p.Estado == EstadoPedido.Entregado ||
+                p.Estado == EstadoPedido.Cancelado ||
+                p.Estado == EstadoPedido.NoEntregado);
+
+            var dto = new RepartidorTallyDto
+            {
+                RepartidorId = grupo.Key,
+                Nombre = repartidor?.Nombre ?? "Desconocido",
+                Vehiculo = repartidor?.Vehiculo,
+                Fecha = DateTime.Today.ToString("d/M/yyyy"),
+                TotalPedidos = grupo.Count(),
+                Medallones = tallies.Medallones
+                    .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
+                    .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
+                Premium = tallies.Premium
+                    .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
+                    .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
+                SalchichaCorta = new CompletaMediaDto { Completa = tallies.SalchichaCorta.Completa, Media = tallies.SalchichaCorta.Media, Sueltos = tallies.SalchichaCorta.Sueltos },
+                SalchichaLarga = new CompletaMediaDto { Completa = tallies.SalchichaLarga.Completa, Media = tallies.SalchichaLarga.Media, Sueltos = tallies.SalchichaLarga.Sueltos },
+                PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                PanMaxi = tallies.PanMaxi.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
+                Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
+                Finalizado = todosTerminales
+            };
+
+            result.Repartidores.Add(dto);
+        }
+
+        return result;
+    }
+
     #region Tally Calculation
 
     private class TallyData
     {
-        // Carnes: PesoGramos → (Completa, Media)
+        // Carnes: PesoGramos → (Completa, Media, Sueltos)
         // Medallones económicos: 55, 69, 80, 110
-        public Dictionary<int, (int Completa, int Media)> Medallones { get; } = new()
+        public Dictionary<int, (int Completa, int Media, int Sueltos)> Medallones { get; } = new()
         {
             [55] = default,
             [69] = default,
@@ -83,7 +131,7 @@ public class ControlCamionetaService : IControlCamionetaService
         };
 
         // Premium: 80, 110, 120, 160, 198 (no existe 69gr Premium)
-        public Dictionary<int, (int Completa, int Media)> Premium { get; } = new()
+        public Dictionary<int, (int Completa, int Media, int Sueltos)> Premium { get; } = new()
         {
             [80] = default,
             [110] = default,
@@ -92,9 +140,9 @@ public class ControlCamionetaService : IControlCamionetaService
             [198] = default
         };
 
-        // Salchichas: (Completa, Media)
-        public (int Completa, int Media) SalchichaCorta { get; set; }
-        public (int Completa, int Media) SalchichaLarga { get; set; }
+        // Salchichas: (Completa, Media, Sueltos)
+        public (int Completa, int Media, int Sueltos) SalchichaCorta { get; set; }
+        public (int Completa, int Media, int Sueltos) SalchichaLarga { get; set; }
 
         // Panes: la cantidad del combo ES la key → palotes (1 palote = 1 paquete de esa cantidad)
         // Las keys se generan dinámicamente según lo que aparezca
@@ -106,7 +154,7 @@ public class ControlCamionetaService : IControlCamionetaService
         // Aderezos: nombre del producto → cantidad total
         public Dictionary<string, int> Aderezos { get; } = new();
 
-        public int Otros { get; set; }
+        public Dictionary<string, int> Otros { get; } = new();
     }
 
     private TallyData CalcularTallies(List<Pedido> pedidos)
@@ -121,9 +169,11 @@ public class ControlCamionetaService : IControlCamionetaService
                 {
                     // Los combos ya incluyen panes y aderezos como ComboDetalle explícito
                     // No auto-agregar nada: contar exactamente lo que viene
+                    // EXCEPCIÓN: los aderezos del combo NO se contabilizan — solo los sueltos
                     foreach (var detalle in linea.Combo.Detalles)
                     {
-                        if (detalle.Producto != null)
+                        if (detalle.Producto != null
+                            && (detalle.Producto.Categoria?.SeccionCamioneta ?? SeccionCamioneta.Otro) != SeccionCamioneta.Aderezo)
                             ProcesarProducto(data, detalle.Producto, linea.Cantidad * detalle.Cantidad);
                     }
                 }
@@ -161,16 +211,16 @@ public class ControlCamionetaService : IControlCamionetaService
 
             case SeccionCamioneta.SalchichaCorta:
             {
-                var (c, m) = ContarCompletaMediaSimple(cantidad, bulto, media);
-                data.SalchichaCorta = (data.SalchichaCorta.Completa + c, data.SalchichaCorta.Media + m);
+                var (c, m, s) = ContarCompletaMediaSimple(cantidad, bulto, media);
+                data.SalchichaCorta = (data.SalchichaCorta.Completa + c, data.SalchichaCorta.Media + m, data.SalchichaCorta.Sueltos + s);
                 // NO auto-agregar panes Pancho
                 break;
             }
 
             case SeccionCamioneta.SalchichaLarga:
             {
-                var (c, m) = ContarCompletaMediaSimple(cantidad, bulto, media);
-                data.SalchichaLarga = (data.SalchichaLarga.Completa + c, data.SalchichaLarga.Media + m);
+                var (c, m, s) = ContarCompletaMediaSimple(cantidad, bulto, media);
+                data.SalchichaLarga = (data.SalchichaLarga.Completa + c, data.SalchichaLarga.Media + m, data.SalchichaLarga.Sueltos + s);
                 // NO auto-agregar SuperPanchos
                 break;
             }
@@ -199,7 +249,8 @@ public class ControlCamionetaService : IControlCamionetaService
                 break;
 
             default:
-                data.Otros += cantidad;
+                var nombreOtro = producto.Nombre;
+                data.Otros[nombreOtro] = data.Otros.GetValueOrDefault(nombreOtro) + cantidad;
                 break;
         }
     }
@@ -209,7 +260,7 @@ public class ControlCamionetaService : IControlCamionetaService
     /// en la cantidad recibida y las acumula en el diccionario bajo la key dada.
     /// </summary>
     private static void ContarCompletaMedia(
-        Dictionary<int, (int Completa, int Media)> dict,
+        Dictionary<int, (int Completa, int Media, int Sueltos)> dict,
         int key,
         int cantidad,
         int unidadesPorBulto,
@@ -217,27 +268,27 @@ public class ControlCamionetaService : IControlCamionetaService
     {
         if (!dict.ContainsKey(key)) return;
 
-        var (completa, mediaCnt) = ContarCompletaMediaSimple(cantidad, unidadesPorBulto, unidadesPorMedia);
+        var (completa, mediaCnt, sueltos) = ContarCompletaMediaSimple(cantidad, unidadesPorBulto, unidadesPorMedia);
         var anterior = dict[key];
-        dict[key] = (anterior.Completa + completa, anterior.Media + mediaCnt);
+        dict[key] = (anterior.Completa + completa, anterior.Media + mediaCnt, anterior.Sueltos + sueltos);
     }
 
     /// <summary>
-    /// Calcula cuántas completas y medias entran en una cantidad de unidades,
-    /// dado el tamaño de bulto y media.
-    /// Ejemplo: cantidad=30, bulto=60, media=30 → 0 completas, 1 media.
-    ///          cantidad=60, bulto=60, media=30 → 1 completa, 0 medias.
-    ///          cantidad=90, bulto=60, media=30 → 1 completa, 1 media.
+    /// Calcula cuántas completas, medias y sueltos entran en una cantidad de unidades.
+    /// Ejemplo: cantidad=12, bulto=40, media=20 → 0 completas, 0 medias, 12 sueltos.
+    ///          cantidad=30, bulto=60, media=30 → 0 completas, 1 media, 0 sueltos.
+    ///          cantidad=50, bulto=40, media=20 → 1 completa, 0 medias, 10 sueltos.
     /// </summary>
-    private static (int Completa, int Media) ContarCompletaMediaSimple(int cantidad, int bulto, int media)
+    private static (int Completa, int Media, int Sueltos) ContarCompletaMediaSimple(int cantidad, int bulto, int media)
     {
-        if (bulto <= 0) return (0, 0);
+        if (bulto <= 0) return (0, 0, cantidad);
 
         var completas = cantidad / bulto;
         var restante = cantidad % bulto;
         var medias = (media > 0 && restante > 0) ? restante / media : 0;
+        var sueltos = (media > 0) ? restante % media : restante;
 
-        return (completas, medias);
+        return (completas, medias, sueltos);
     }
 
     /// <summary>
@@ -447,8 +498,17 @@ public class ControlCamionetaService : IControlCamionetaService
             ws.Cell(29, col).Style.Font.Bold = true;
         }
         ws.Cell(29, 3).Value = "OTROS";
-        if (t.Otros > 0)
-            ws.Cell(29, 4).Value = FormatPalotes(t.Otros);
+        if (t.Otros.Count > 0)
+        {
+            // Concatenar cada item como "NombreProducto (palotes)" separados por " | "
+            var otrosTexto = string.Join(" | ", t.Otros
+                .OrderBy(kv => kv.Key)
+                .Select(kv => $"{kv.Key}: {FormatPalotes(kv.Value)}"));
+            ws.Cell(29, 4).Value = otrosTexto;
+            ws.Cell(29, 4).Style.Font.FontSize = fs;
+            ws.Cell(29, 4).Style.Font.Bold = true;
+            ws.Cell(29, 4).Style.Font.FontColor = XLColor.White;
+        }
 
         // ════════════════════════════════════════════════════════════════════
         // BORDES Y FORMATO VISUAL

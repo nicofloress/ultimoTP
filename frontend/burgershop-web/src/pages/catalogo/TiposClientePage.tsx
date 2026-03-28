@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { TipoCliente } from '../../types/ventas';
+import { ListaPrecio } from '../../types/catalogo';
 import { getTiposCliente, crearTipoCliente, actualizarTipoCliente, eliminarTipoCliente } from '../../api/tiposCliente';
+import { getListasPrecios } from '../../api/listasPrecios';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
-const emptyForm = { nombre: '', descripcion: '' };
+const emptyForm = { nombre: '', descripcion: '', listaPrecioId: '' as string };
 
 export default function TiposClientePage() {
   const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
@@ -11,16 +13,18 @@ export default function TiposClientePage() {
   const [editando, setEditando] = useState<TipoCliente | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
 
   const cargar = () => getTiposCliente().then(setTiposCliente);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); getListasPrecios().then(setListasPrecios); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
       nombre: form.nombre,
       descripcion: form.descripcion || undefined,
+      listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
     };
     if (editando) {
       await actualizarTipoCliente(editando.id, data);
@@ -38,6 +42,7 @@ export default function TiposClientePage() {
     setForm({
       nombre: tc.nombre,
       descripcion: tc.descripcion || '',
+      listaPrecioId: tc.listaPrecioId ? String(tc.listaPrecioId) : '',
     });
     setShowForm(true);
   };
@@ -54,11 +59,11 @@ export default function TiposClientePage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Tipos de Clientes</h1>
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-white">Tipos de Cliente</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+          className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors"
         >
           {showForm ? 'Cerrar' : 'Nuevo Tipo de Cliente'}
         </button>
@@ -81,6 +86,16 @@ export default function TiposClientePage() {
             placeholder="Descripcion"
             className="border rounded px-3 py-2"
           />
+          <select
+            value={form.listaPrecioId}
+            onChange={e => setForm({ ...form, listaPrecioId: e.target.value })}
+            className="border rounded px-3 py-2"
+          >
+            <option value="">Precio Base (sin lista)</option>
+            {listasPrecios.filter(l => l.activa).map(l => (
+              <option key={l.id} value={l.id}>{l.nombre}</option>
+            ))}
+          </select>
           <div className="col-span-2 flex gap-2">
             <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
               {editando ? 'Actualizar' : 'Crear'}
@@ -98,6 +113,7 @@ export default function TiposClientePage() {
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista de Precios</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
@@ -106,6 +122,7 @@ export default function TiposClientePage() {
               <tr key={tc.id}>
                 <td className="px-4 py-3 text-sm font-medium">{tc.nombre}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{tc.descripcion || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{tc.listaPrecioId ? listasPrecios.find(l => l.id === tc.listaPrecioId)?.nombre || '-' : 'Precio Base'}</td>
                 <td className="px-4 py-3 text-sm text-right">
                   <button onClick={() => handleEditar(tc)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => handleEliminar(tc.id)} className="text-red-600 hover:underline">Eliminar</button>
@@ -114,7 +131,7 @@ export default function TiposClientePage() {
             ))}
             {tiposCliente.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td>
+                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td>
               </tr>
             )}
           </tbody>

@@ -78,7 +78,7 @@ export default function RepartidorApp() {
   }, [entregas]);
 
   const completados = useMemo(() => {
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
     return entregas
       .filter(e => e.estado === EstadoPedido.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy)
       .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
@@ -198,7 +198,7 @@ export default function RepartidorApp() {
       {/* Header sticky - estilo panel admin */}
       <header className="sticky top-0 z-40">
         {/* Barra superior slate */}
-        <div className="bg-slate-800 text-gray-300" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="bg-gradient-to-b from-slate-500 to-slate-800 text-gray-300" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0">

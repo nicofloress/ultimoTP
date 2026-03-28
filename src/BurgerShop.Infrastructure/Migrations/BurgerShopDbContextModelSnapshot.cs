@@ -277,6 +277,13 @@ namespace BurgerShop.Infrastructure.Migrations
                             Activa = true,
                             Nombre = "Aderezos",
                             SeccionCamioneta = 8
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Activa = true,
+                            Nombre = "Snacks",
+                            SeccionCamioneta = 9
                         });
                 });
 
@@ -1130,8 +1137,369 @@ namespace BurgerShop.Infrastructure.Migrations
                             Activo = true,
                             CategoriaId = 16,
                             Marca = "Benidor",
-                            Nombre = "Aderezo Benidor",
+                            Nombre = "Mayonesa 250gr",
+                            PesoGramos = 250,
                             Precio = 2500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Mayonesa 500gr",
+                            PesoGramos = 500,
+                            Precio = 4000m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Ketchup 250gr",
+                            PesoGramos = 250,
+                            Precio = 2500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Ketchup 500gr",
+                            PesoGramos = 500,
+                            Precio = 4000m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Mostaza 250gr",
+                            PesoGramos = 250,
+                            Precio = 2500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Mostaza 500gr",
+                            PesoGramos = 500,
+                            Precio = 4000m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Cheddar 500gr",
+                            PesoGramos = 500,
+                            Precio = 4500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Parmesano 500gr",
+                            PesoGramos = 500,
+                            Precio = 4500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Activo = true,
+                            CategoriaId = 16,
+                            Marca = "Benidor",
+                            Nombre = "Barbacoa 500gr",
+                            PesoGramos = 500,
+                            Precio = 4500m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Combo con papa 600gr",
+                            PesoGramos = 600,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Combo con papa 350gr",
+                            PesoGramos = 350,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Combo 600gr SIN MANI",
+                            PesoGramos = 600,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Combo 350gr SIN MANI",
+                            PesoGramos = 350,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Maicitos 400gr",
+                            PesoGramos = 400,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Bastoncito Queso 300gr",
+                            PesoGramos = 300,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Papas Cheddar 350gr",
+                            PesoGramos = 350,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Papas Americanas 600gr",
+                            PesoGramos = 600,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Papas fritas comunes 600gr",
+                            PesoGramos = 600,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Mani Krachitos 500gr",
+                            PesoGramos = 500,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Mani cervecero 500gr",
+                            PesoGramos = 500,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Palitos de Queso 500gr",
+                            PesoGramos = 500,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Krachitos",
+                            Nombre = "Krachitos Palitos 800gr",
+                            PesoGramos = 800,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Combo Palitos 330gr+Papas 460gr+Palitos 400gr 1kg",
+                            PesoGramos = 1000,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Palitos 400gr",
+                            PesoGramos = 400,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Chizitos 330gr",
+                            PesoGramos = 330,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Chizitos 1kg",
+                            PesoGramos = 1000,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Papas pay 500gr",
+                            PesoGramos = 500,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Papas tradicionales 1kg",
+                            PesoGramos = 1000,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Papas tradicionales 460gr",
+                            PesoGramos = 460,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 45,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Papas Cheddar 460gr",
+                            PesoGramos = 460,
+                            Precio = 0m,
+                            UnidadesPorBulto = 1,
+                            UnidadesPorMedia = 0
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Activo = true,
+                            CategoriaId = 19,
+                            Marca = "Riquitos",
+                            Nombre = "Riquitos Papas Jamon Serrano 400gr",
+                            PesoGramos = 400,
+                            Precio = 0m,
                             UnidadesPorBulto = 1,
                             UnidadesPorMedia = 0
                         });
@@ -1236,6 +1604,285 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("FormaPagoId");
 
                     b.ToTable("CierresCajaDetalle");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Inventario.ArtiStock", b =>
+                {
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LocalId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("EgresoLocal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("EsPuntoVenta")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("IngresoLocal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("StockFinal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("StockMinimo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UltimaModificacion")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal>("VentaLocal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("ProductoId", "LocalId");
+
+                    b.HasIndex("LocalId");
+
+                    b.ToTable("ArtiStock");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Inventario.CodigoAccion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Signo")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TipoAfectacion")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("CodigosAccion");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Activo = true,
+                            Codigo = "EGR_VTA",
+                            Nombre = "Egreso por Venta",
+                            Signo = -1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Activo = true,
+                            Codigo = "ING_VTA",
+                            Nombre = "Ingreso por Venta",
+                            Signo = 1,
+                            TipoAfectacion = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Activo = true,
+                            Codigo = "ING_CMP",
+                            Nombre = "Ingreso por Compra",
+                            Signo = 1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Activo = true,
+                            Codigo = "EGR_CMP",
+                            Nombre = "Egreso por Compra",
+                            Signo = -1,
+                            TipoAfectacion = 2
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Activo = true,
+                            Codigo = "EGR_MRM",
+                            Nombre = "Egreso por Merma",
+                            Signo = -1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Activo = true,
+                            Codigo = "AJU_POS",
+                            Nombre = "Ajuste Positivo Stock",
+                            Signo = 1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Activo = true,
+                            Codigo = "AJU_NEG",
+                            Nombre = "Ajuste Negativo Stock",
+                            Signo = -1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Activo = true,
+                            Codigo = "DEV_CLI",
+                            Nombre = "Devolucion Cliente",
+                            Signo = 1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Activo = true,
+                            Codigo = "DEV_PRV",
+                            Nombre = "Devolucion a Proveedor",
+                            Signo = -1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Activo = true,
+                            Codigo = "ING_TRF",
+                            Nombre = "Ingreso por Transferencia",
+                            Signo = 1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Activo = true,
+                            Codigo = "EGR_TRF",
+                            Nombre = "Egreso por Transferencia",
+                            Signo = -1,
+                            TipoAfectacion = 1
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Activo = true,
+                            Codigo = "EGR_CNS",
+                            Nombre = "Egreso por Consumo Interno",
+                            Signo = -1,
+                            TipoAfectacion = 1
+                        });
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Inventario.Local", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("EsPuntoVenta")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Locales");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Activo = true,
+                            EsPuntoVenta = true,
+                            Nombre = "Local Principal"
+                        });
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Inventario.Movimiento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cantidad")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CodigoAccionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaMovimiento")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("FechaProceso")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("LocalId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MontoTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("PedidoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("ProductoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("UsuarioId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoAccionId");
+
+                    b.HasIndex("FechaMovimiento");
+
+                    b.HasIndex("FechaProceso");
+
+                    b.HasIndex("LocalId");
+
+                    b.HasIndex("PedidoId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("ProductoId", "LocalId");
+
+                    b.ToTable("Movimientos");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Mensaje", b =>
@@ -1598,6 +2245,78 @@ namespace BurgerShop.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Sistema.LogEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<long?>("DuracionMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("HttpMethod")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("IP")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Nivel")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Rol")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Ruta")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("StackTrace")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("UsuarioId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UsuarioNombre")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fecha");
+
+                    b.HasIndex("Nivel");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("LogEntries");
+                });
+
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Cliente", b =>
                 {
                     b.Property<int>("Id")
@@ -1788,6 +2507,41 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.ToTable("PagosPedido");
                 });
 
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.PagoVenta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("FormaPagoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Monto")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PorcentajeRecargo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Recargo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalACobrar")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VentaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FormaPagoId");
+
+                    b.HasIndex("VentaId");
+
+                    b.ToTable("PagosVenta");
+                });
+
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Pedido", b =>
                 {
                     b.Property<int>("Id")
@@ -1923,12 +2677,17 @@ namespace BurgerShop.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int?>("ListaPrecioId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ListaPrecioId");
 
                     b.ToTable("TiposCliente");
 
@@ -1951,6 +2710,135 @@ namespace BurgerShop.Infrastructure.Migrations
                             Activo = true,
                             Nombre = "Empleado"
                         });
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Venta", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ClienteId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Descuento")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("EstaPago")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("FormaPagoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LocalId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NombreCliente")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NumeroVenta")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("PedidoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Recargo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TelefonoCliente")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("TipoVenta")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("UsuarioId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("Fecha");
+
+                    b.HasIndex("FormaPagoId");
+
+                    b.HasIndex("LocalId");
+
+                    b.HasIndex("NumeroVenta")
+                        .IsUnique();
+
+                    b.HasIndex("PedidoId")
+                        .IsUnique()
+                        .HasFilter("\"PedidoId\" IS NOT NULL");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Ventas");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.VentaDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ComboId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notas")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("ProductoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VentaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComboId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("VentaId");
+
+                    b.ToTable("VentaDetalles");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Auth.Usuario", b =>
@@ -2047,6 +2935,65 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("CierreCaja");
 
                     b.Navigation("FormaPago");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Inventario.ArtiStock", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Inventario.Local", "Local")
+                        .WithMany()
+                        .HasForeignKey("LocalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Local");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Inventario.Movimiento", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Inventario.CodigoAccion", "CodigoAccion")
+                        .WithMany()
+                        .HasForeignKey("CodigoAccionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BurgerShop.Domain.Entities.Inventario.Local", "Local")
+                        .WithMany()
+                        .HasForeignKey("LocalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Pedido", "Pedido")
+                        .WithMany()
+                        .HasForeignKey("PedidoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Auth.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CodigoAccion");
+
+                    b.Navigation("Local");
+
+                    b.Navigation("Pedido");
+
+                    b.Navigation("Producto");
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Logistica.Mensaje", b =>
@@ -2209,6 +3156,25 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("Pedido");
                 });
 
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.PagoVenta", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.FormaPago", "FormaPago")
+                        .WithMany()
+                        .HasForeignKey("FormaPagoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Venta", "Venta")
+                        .WithMany("Pagos")
+                        .HasForeignKey("VentaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FormaPago");
+
+                    b.Navigation("Venta");
+                });
+
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Pedido", b =>
                 {
                     b.HasOne("BurgerShop.Domain.Entities.Finanzas.CierreCaja", "CierreCaja")
@@ -2247,6 +3213,79 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("RepartoZona");
 
                     b.Navigation("Zona");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.TipoCliente", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.ListaPrecio", "ListaPrecio")
+                        .WithMany()
+                        .HasForeignKey("ListaPrecioId");
+
+                    b.Navigation("ListaPrecio");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Venta", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.FormaPago", "FormaPago")
+                        .WithMany()
+                        .HasForeignKey("FormaPagoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Inventario.Local", "Local")
+                        .WithMany()
+                        .HasForeignKey("LocalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Pedido", "Pedido")
+                        .WithOne()
+                        .HasForeignKey("BurgerShop.Domain.Entities.Ventas.Venta", "PedidoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Auth.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Cliente");
+
+                    b.Navigation("FormaPago");
+
+                    b.Navigation("Local");
+
+                    b.Navigation("Pedido");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.VentaDetalle", b =>
+                {
+                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Combo", "Combo")
+                        .WithMany()
+                        .HasForeignKey("ComboId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Venta", "Venta")
+                        .WithMany("Detalles")
+                        .HasForeignKey("VentaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Combo");
+
+                    b.Navigation("Producto");
+
+                    b.Navigation("Venta");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Categoria", b =>
@@ -2303,6 +3342,13 @@ namespace BurgerShop.Infrastructure.Migrations
             modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Pedido", b =>
                 {
                     b.Navigation("Lineas");
+
+                    b.Navigation("Pagos");
+                });
+
+            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.Venta", b =>
+                {
+                    b.Navigation("Detalles");
 
                     b.Navigation("Pagos");
                 });

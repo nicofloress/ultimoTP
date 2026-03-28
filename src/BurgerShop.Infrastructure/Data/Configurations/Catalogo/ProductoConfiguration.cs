@@ -68,8 +68,42 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
             // Cat 15 - Pan Super Pancho (paquete de 6 unidades)
             new Producto { Id = 15, Nombre = "Pan Super Pancho",           Precio = 1400m,  CategoriaId = 15, Activo = true, Marca = null,           PesoGramos = null, UnidadesPorBulto = 6,  UnidadesPorMedia = 0 },
 
-            // Cat 16 - Aderezos
-            new Producto { Id = 16, Nombre = "Aderezo Benidor",            Precio = 2500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = null, UnidadesPorBulto = 1,  UnidadesPorMedia = 0 }
+            // Cat 16 - Aderezos Benidor
+            new Producto { Id = 16, Nombre = "Mayonesa 250gr",             Precio = 2500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 250,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 17, Nombre = "Mayonesa 500gr",             Precio = 4000m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 500,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 18, Nombre = "Ketchup 250gr",              Precio = 2500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 250,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 19, Nombre = "Ketchup 500gr",              Precio = 4000m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 500,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 20, Nombre = "Mostaza 250gr",              Precio = 2500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 250,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 21, Nombre = "Mostaza 500gr",              Precio = 4000m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 500,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 22, Nombre = "Cheddar 500gr",              Precio = 4500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 500,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 23, Nombre = "Parmesano 500gr",            Precio = 4500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 500,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+            new Producto { Id = 24, Nombre = "Barbacoa 500gr",             Precio = 4500m,  CategoriaId = 16, Activo = true, Marca = "Benidor",      PesoGramos = 500,  UnidadesPorBulto = 1,  UnidadesPorMedia = 0 },
+
+            // Cat 19 - Snacks Krachitos (13 productos)
+            new Producto { Id = 25, Nombre = "Krachitos Combo con papa 600gr",     Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 600,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 26, Nombre = "Krachitos Combo con papa 350gr",     Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 350,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 27, Nombre = "Krachitos Combo 600gr SIN MANI",     Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 600,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 28, Nombre = "Krachitos Combo 350gr SIN MANI",     Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 350,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 29, Nombre = "Krachitos Maicitos 400gr",            Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 400,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 30, Nombre = "Krachitos Bastoncito Queso 300gr",   Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 300,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 31, Nombre = "Krachitos Papas Cheddar 350gr",      Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 350,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 32, Nombre = "Krachitos Papas Americanas 600gr",   Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 600,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 33, Nombre = "Krachitos Papas fritas comunes 600gr", Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 600, UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 34, Nombre = "Krachitos Mani Krachitos 500gr",     Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 500,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 35, Nombre = "Krachitos Mani cervecero 500gr",     Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 500,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 36, Nombre = "Krachitos Palitos de Queso 500gr",   Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 500,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 37, Nombre = "Krachitos Palitos 800gr",            Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Krachitos", PesoGramos = 800,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+
+            // Cat 19 - Snacks Riquitos (9 productos)
+            new Producto { Id = 38, Nombre = "Riquitos Combo Palitos 330gr+Papas 460gr+Palitos 400gr 1kg", Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 1000, UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 39, Nombre = "Riquitos Palitos 400gr",             Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 400,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 40, Nombre = "Riquitos Chizitos 330gr",            Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 330,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 41, Nombre = "Riquitos Chizitos 1kg",              Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 1000, UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 42, Nombre = "Riquitos Papas pay 500gr",           Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 500,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 43, Nombre = "Riquitos Papas tradicionales 1kg",   Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 1000, UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 44, Nombre = "Riquitos Papas tradicionales 460gr", Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 460,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 45, Nombre = "Riquitos Papas Cheddar 460gr",       Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 460,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 },
+            new Producto { Id = 46, Nombre = "Riquitos Papas Jamon Serrano 400gr", Precio = 0m, CategoriaId = 19, Activo = true, Marca = "Riquitos", PesoGramos = 400,  UnidadesPorBulto = 1, UnidadesPorMedia = 0 }
         );
     }
 }

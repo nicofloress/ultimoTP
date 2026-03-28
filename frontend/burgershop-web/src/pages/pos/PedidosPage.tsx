@@ -22,6 +22,7 @@ import { CalendarIcon } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import { addDays, format } from 'date-fns';
 import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
+import { useGlobalToast } from '../../components/Toast';
 
 const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -35,6 +36,7 @@ const estadosFiltro = [
 ];
 
 export default function PedidosPage() {
+  const { showToast: addToast } = useGlobalToast();
   // ===== DATA =====
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -53,11 +55,14 @@ export default function PedidosPage() {
 
   // ===== PANEL IZQUIERDO: FORMULARIO =====
   const [editandoPedido, setEditandoPedido] = useState<Pedido | null>(null);
+  const esEdicionLimitada = editandoPedido?.estado === EstadoPedido.Asignado;
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
+  const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
+  const [marcaFiltro, setMarcaFiltro] = useState<string | null>(null);
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
   const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState<number | undefined>();
   const [notaInterna, setNotaInterna] = useState('');
@@ -178,10 +183,34 @@ export default function PedidosPage() {
       { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
       { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
       { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
+      { key: 'snacks', label: 'Snacks', catIds: categorias.filter(c => c.nombre === 'Snacks').map(c => c.id) },
     ];
   }, [categorias]);
 
   const getMegaCatIds = (key: string) => megaCategorias.find(m => m.key === key)?.catIds ?? [];
+
+  const tieneSubfiltros = categoriaFiltro === 'eco' || categoriaFiltro === 'premium' || categoriaFiltro === 'snacks';
+
+  const gramajesDisponibles = useMemo(() => {
+    if (!tieneSubfiltros) return [];
+    const catIds = getMegaCatIds(categoriaFiltro!);
+    const pesos = productos
+      .filter(p => p.activo && catIds.includes(p.categoriaId) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
+      .map(p => p.pesoGramos!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort((a, b) => a - b);
+    return pesos;
+  }, [productos, categoriaFiltro, marcaFiltro, megaCategorias]);
+
+  const marcasDisponibles = useMemo(() => {
+    if (!tieneSubfiltros) return [];
+    const catIds = getMegaCatIds(categoriaFiltro!);
+    return productos
+      .filter(p => p.activo && catIds.includes(p.categoriaId) && p.marca)
+      .map(p => p.marca!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort();
+  }, [productos, categoriaFiltro, megaCategorias]);
 
   const productosCatalogo = useMemo(() => {
     const activos = productos.filter(p => p.activo);
@@ -189,17 +218,31 @@ export default function PedidosPage() {
     if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
-    return activos.filter(p => catIds.includes(p.categoriaId));
-  }, [productos, categoriaFiltro, megaCategorias, preciosLista]);
+    let filtered = activos.filter(p => catIds.includes(p.categoriaId));
+    if (tieneSubfiltros && marcaFiltro) {
+      filtered = filtered.filter(p => p.marca === marcaFiltro);
+    }
+    if (tieneSubfiltros && gramajesFiltro) {
+      filtered = filtered.filter(p => p.pesoGramos === gramajesFiltro);
+    }
+    return filtered;
+  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista]);
 
   const combosCatalogo = useMemo(() => {
     const activos = combos.filter(c => c.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
     if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
-    const prodIdsEnCat = new Set(productos.filter(p => catIds.includes(p.categoriaId)).map(p => p.id));
+    let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
+    if (tieneSubfiltros && marcaFiltro) {
+      prodsEnCat = prodsEnCat.filter(p => p.marca === marcaFiltro);
+    }
+    if (tieneSubfiltros && gramajesFiltro) {
+      prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
+    }
+    const prodIdsEnCat = new Set(prodsEnCat.map(p => p.id));
     return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
-  }, [combos, productos, categoriaFiltro, megaCategorias]);
+  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias]);
 
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && busqueda.trim()) {
@@ -219,6 +262,10 @@ export default function PedidosPage() {
 
   // ===== CARGAR PEDIDO EN FORMULARIO (EDITAR) =====
   const cargarPedidoEnFormulario = (pedido: Pedido) => {
+    if (pedido.estado !== EstadoPedido.Pendiente && pedido.estado !== EstadoPedido.Asignado) {
+      addToast('Solo se pueden editar pedidos en estado Pendiente o Asignado', 'info');
+      return;
+    }
     setEditandoPedido(pedido);
     setDireccion(pedido.direccionEntrega || '');
     setTelefono(pedido.telefonoCliente || '');
@@ -274,7 +321,9 @@ export default function PedidosPage() {
   // ===== VALIDACION =====
   const telefonoDigitos = telefono.replace(/[^0-9]/g, '');
   const telefonoValido = telefonoDigitos.length >= 8;
-  const formularioValido = carrito.length > 0 && direccion.trim() !== '' && telefonoValido && !!zonaSeleccionada;
+  const formularioValido = esEdicionLimitada
+    ? true
+    : carrito.length > 0 && direccion.trim() !== '' && telefonoValido && !!zonaSeleccionada;
 
   // ===== CREAR PEDIDO =====
   const handleCrearPedido = async () => {
@@ -305,27 +354,33 @@ export default function PedidosPage() {
   // ===== GUARDAR CAMBIOS (EDITAR) =====
   const handleGuardarCambios = async () => {
     if (!editandoPedido || !formularioValido) return;
-    await actualizarPedido(editandoPedido.id, {
-      nombreCliente: editandoPedido.nombreCliente || undefined,
-      telefonoCliente: telefono || undefined,
-      direccionEntrega: direccion || undefined,
-      zonaId: zonaSeleccionada || undefined,
-      descuento,
-      formaPagoId: formaPagoSeleccionada || undefined,
-      notaInterna: notaInterna || undefined,
-      tipoFactura: editandoPedido.tipoFactura,
-      fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : undefined,
-      estaPago: yaPago,
-      lineas: carrito.map(item => ({
-        productoId: item.productoId || undefined,
-        comboId: item.comboId || undefined,
-        cantidad: item.cantidad,
-        precioUnitario: item.precioUnitario,
-        notas: item.notas || undefined,
-      })),
-    });
-    limpiarFormulario();
-    cargarPedidos();
+    try {
+      await actualizarPedido(editandoPedido.id, {
+        nombreCliente: editandoPedido.nombreCliente || undefined,
+        telefonoCliente: telefono || undefined,
+        direccionEntrega: direccion || undefined,
+        zonaId: zonaSeleccionada || undefined,
+        descuento,
+        formaPagoId: formaPagoSeleccionada || undefined,
+        notaInterna: notaInterna || undefined,
+        tipoFactura: editandoPedido.tipoFactura,
+        fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : undefined,
+        estaPago: yaPago,
+        lineas: carrito.map(item => ({
+          productoId: item.productoId || undefined,
+          comboId: item.comboId || undefined,
+          cantidad: item.cantidad,
+          precioUnitario: item.precioUnitario,
+          notas: item.notas || undefined,
+        })),
+      });
+      addToast('Pedido actualizado correctamente', 'success');
+      limpiarFormulario();
+      cargarPedidos();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al guardar cambios';
+      addToast(msg, 'error');
+    }
   };
 
   // ===== CAMBIAR ESTADO =====
@@ -374,11 +429,11 @@ export default function PedidosPage() {
           {/* Columna izquierda: Header + Direccion + Telefono + Programar */}
           <div className="flex-1 flex flex-col gap-1.5 min-w-0">
             {/* Header: Nro Pedido + Estado */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-3 py-2">
+            <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-800">
+                <h2 className="text-lg font-bold text-white">
                   {editandoPedido
-                    ? <span>Pedido <span className="text-amber-600">#{editandoPedido.numeroTicket}</span></span>
+                    ? <span>Pedido <span className="text-amber-400">#{editandoPedido.numeroTicket}</span></span>
                     : 'Nuevo Pedido'
                   }
                 </h2>
@@ -388,6 +443,11 @@ export default function PedidosPage() {
                   </span>
                 )}
               </div>
+              {esEdicionLimitada && (
+                <p className="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1 mt-1">
+                  Solo se puede editar: telefono, si esta pago y forma de pago
+                </p>
+              )}
             </div>
 
             {/* Direccion */}
@@ -409,7 +469,8 @@ export default function PedidosPage() {
                   onFocus={() => { if (sugerenciasDireccion.length > 0) setMostrarSugerenciasDireccion(true); }}
                   onBlur={() => { setTimeout(() => setMostrarSugerenciasDireccion(false), 200); }}
                   placeholder="Domicilio / Direccion de entrega..."
-                  className={`${inputClass} pl-8`}
+                  disabled={esEdicionLimitada}
+                  className={`${inputClass} pl-8${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 />
                 {mostrarSugerenciasDireccion && sugerenciasDireccion.length > 0 && direccion.length >= 3 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
@@ -464,7 +525,7 @@ export default function PedidosPage() {
             {/* Programar para otro dia */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
               <div className="flex items-center gap-3 flex-wrap">
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <label className={`flex items-center gap-1.5 select-none ${esEdicionLimitada ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     checked={esProgramado}
@@ -475,6 +536,7 @@ export default function PedidosPage() {
                         setPopoverCalendarioAbierto(false);
                       }
                     }}
+                    disabled={esEdicionLimitada}
                     className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
                   />
                   <span className="text-sm text-gray-700 font-medium">Programar</span>
@@ -563,13 +625,15 @@ export default function PedidosPage() {
                 onChange={e => setBusqueda(e.target.value)}
                 onKeyDown={handleBusquedaKeyDown}
                 placeholder="Codigo / Buscar producto..."
-                className={`${inputClass} pl-8 text-base`}
+                disabled={esEdicionLimitada}
+                className={`${inputClass} pl-8 text-base${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 autoFocus
               />
             </div>
             <button
               onClick={() => setMostrarCatalogo(true)}
-              className="bg-amber-50 text-amber-700 border border-amber-300 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-amber-100 active:bg-amber-200 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-amber-400"
+              disabled={esEdicionLimitada}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-amber-400 ${esEdicionLimitada ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 active:bg-amber-200'}`}
             >
               Ver catalogo
             </button>
@@ -611,7 +675,7 @@ export default function PedidosPage() {
         </div>
 
         {/* Tabla del carrito (Detalle de productos) */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden min-h-0">
+        <div className="bg-white rounded-lg shadow-lg border-2 border-gray-300 flex-1 flex flex-col overflow-hidden min-h-0">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -653,7 +717,8 @@ export default function PedidosPage() {
                             type="number"
                             value={item.cantidad}
                             onChange={e => actualizarItem(i, 'cantidad', Math.max(1, Number(e.target.value)))}
-                            className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                            disabled={esEdicionLimitada}
+                            className={`w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                             min={1}
                           />
                         </td>
@@ -662,7 +727,8 @@ export default function PedidosPage() {
                             type="number"
                             value={item.precioUnitario}
                             onChange={e => actualizarItem(i, 'precioUnitario', Number(e.target.value))}
-                            className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                            disabled={esEdicionLimitada}
+                            className={`w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                             min={0}
                             step={100}
                           />
@@ -671,9 +737,11 @@ export default function PedidosPage() {
                           ${(item.precioUnitario * item.cantidad).toLocaleString()}
                         </td>
                         <td className="px-1 py-1.5 w-7">
+                          {!esEdicionLimitada && (
                           <button onClick={() => eliminarItem(i)} className="text-gray-300 hover:text-red-500 transition-colors p-0.5 rounded hover:bg-red-50">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                           </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -691,7 +759,8 @@ export default function PedidosPage() {
             <select
               value={zonaSeleccionada || ''}
               onChange={e => setZonaSeleccionada(Number(e.target.value) || undefined)}
-              className={`${selectClass} w-48`}
+              disabled={esEdicionLimitada}
+              className={`${selectClass} w-48${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
             >
               <option value="">Zona...</option>
               {zonas.filter(z => z.activa).map(z => (
@@ -702,11 +771,26 @@ export default function PedidosPage() {
               <input
                 type="checkbox"
                 checked={yaPago}
-                onChange={e => setYaPago(e.target.checked)}
+                onChange={e => {
+                  setYaPago(e.target.checked);
+                  if (!e.target.checked) setFormaPagoSeleccionada(undefined);
+                }}
                 className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-400"
               />
               <span className="text-sm text-gray-700 font-medium whitespace-nowrap">Ya esta pago</span>
             </label>
+            {yaPago && (
+              <select
+                value={formaPagoSeleccionada || ''}
+                onChange={e => setFormaPagoSeleccionada(Number(e.target.value) || undefined)}
+                className={`${selectClass} w-40`}
+              >
+                <option value="">Forma de pago...</option>
+                {formasPago.map(fp => (
+                  <option key={fp.id} value={fp.id}>{fp.nombre}</option>
+                ))}
+              </select>
+            )}
             {/* Icono expandir extras (nota + descuento) */}
             <button
               onClick={() => setMostrarExtras(!mostrarExtras)}
@@ -732,7 +816,8 @@ export default function PedidosPage() {
                   type="number"
                   value={descuento}
                   onChange={e => setDescuento(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  disabled={esEdicionLimitada}
+                  className={`border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-amber-400${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                   min={0}
                   step={100}
                 />
@@ -741,7 +826,8 @@ export default function PedidosPage() {
                 value={notaInterna}
                 onChange={e => setNotaInterna(e.target.value)}
                 placeholder="Nota interna..."
-                className={`${inputClass} flex-1`}
+                disabled={esEdicionLimitada}
+                className={`${inputClass} flex-1${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
               />
             </div>
           )}
@@ -770,12 +856,12 @@ export default function PedidosPage() {
       </div>
 
       {/* ============ PANEL DERECHO: PEDIDOS DEL DIA ============ */}
-      <div className="w-full lg:w-96 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-0">
+      <div className="w-full lg:w-96 bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0">
         {/* Header con fecha */}
-        <div className="px-3 py-2 border-b border-gray-200 flex-shrink-0">
+        <div className="px-3 py-2 border-b-2 border-amber-500 flex-shrink-0 bg-gradient-to-b from-slate-500 to-slate-700 rounded-t-lg shadow-lg">
           <div className="flex items-center justify-between mb-1.5">
-            <h2 className="text-sm font-bold text-gray-800">Pedidos del dia</h2>
-            <span className="text-xs text-gray-500 font-medium">
+            <h2 className="text-sm font-bold text-white">Pedidos del dia</h2>
+            <span className="text-xs text-slate-300 font-medium">
               {new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
@@ -785,7 +871,7 @@ export default function PedidosPage() {
             <button
               onClick={() => setFiltroEstado(null)}
               className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
-                !filtroEstado ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                !filtroEstado ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-600 text-slate-200 hover:bg-slate-500'
               }`}
             >
               Todos
@@ -795,7 +881,7 @@ export default function PedidosPage() {
                 key={est}
                 onClick={() => setFiltroEstado(filtroEstado === est ? null : est)}
                 className={`px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
-                  filtroEstado === est ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  filtroEstado === est ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-600 text-slate-200 hover:bg-slate-500'
                 }`}
               >
                 {estadoLabels[est]}
@@ -806,7 +892,7 @@ export default function PedidosPage() {
 
           {/* Busqueda por ticket */}
           <div className="relative">
-            <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -814,7 +900,7 @@ export default function PedidosPage() {
               value={busquedaTicket}
               onChange={e => setBusquedaTicket(e.target.value)}
               placeholder="Buscar ticket..."
-              className="w-full border border-gray-300 rounded-md pl-7 pr-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+              className="w-full border border-slate-500 bg-slate-600 text-white placeholder-slate-400 rounded-md pl-7 pr-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
             />
           </div>
         </div>
@@ -829,7 +915,7 @@ export default function PedidosPage() {
               key={p.id}
               onClick={() => cargarPedidoEnFormulario(p)}
               className={`bg-white rounded-lg border p-2.5 cursor-pointer hover:border-amber-400 transition-all ${
-                editandoPedido?.id === p.id ? 'border-amber-500 ring-2 ring-amber-200 bg-amber-50/30' : 'border-gray-200 hover:shadow-sm'
+                editandoPedido?.id === p.id ? 'border-amber-500 ring-2 ring-amber-200 bg-amber-50/30' : 'border-gray-200 shadow-sm hover:shadow-md'
               }`}
             >
               {/* Fila 1: Ticket + Estado + Hora */}
@@ -947,7 +1033,7 @@ export default function PedidosPage() {
 
             {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
-              <button onClick={() => setCategoriaFiltro(null)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+              <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
               {listaPrecioSeleccionada && (
                 <button
                   onClick={() => setCategoriaFiltro('descuento')}
@@ -957,7 +1043,7 @@ export default function PedidosPage() {
                 </button>
               )}
               {megaCategorias.map(mc => (
-                <button key={mc.key} onClick={() => setCategoriaFiltro(mc.key)} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
               ))}
               <button
                 onClick={() => setCategoriaFiltro('ofertas')}
@@ -967,6 +1053,52 @@ export default function PedidosPage() {
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
             </div>
+
+            {/* Sub-filtros: marca y gramaje */}
+            {tieneSubfiltros && (marcasDisponibles.length > 1 || gramajesDisponibles.length > 0) && (
+              <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-x-4 gap-y-1.5 items-center">
+                {marcasDisponibles.length > 1 && (
+                  <div className="flex gap-1.5 items-center">
+                    <span className="text-xs text-gray-500 font-medium mr-1">Marca:</span>
+                    <button
+                      onClick={() => { setMarcaFiltro(null); setGramajesFiltro(null); }}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!marcaFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Todas
+                    </button>
+                    {marcasDisponibles.map(m => (
+                      <button
+                        key={m}
+                        onClick={() => { setMarcaFiltro(m); setGramajesFiltro(null); }}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${marcaFiltro === m ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {gramajesDisponibles.length > 0 && (
+                  <div className="flex gap-1.5 items-center">
+                    <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
+                    <button
+                      onClick={() => setGramajesFiltro(null)}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!gramajesFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Todos
+                    </button>
+                    {gramajesDisponibles.map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setGramajesFiltro(g)}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      >
+                        {g}gr
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Grid de productos + combos relacionados */}
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">

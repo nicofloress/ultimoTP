@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Pedido, Repartidor, EstadoPedido, estadoLabels, TipoPedido } from '../../types';
-import { getPedidosPorZona, empezarReparto, descargarControlCamioneta, finalizarRepartoZona } from '../../api/entregas';
+import { getPedidosPorZona, empezarReparto, finalizarRepartoZona } from '../../api/entregas';
 import { getRepartidores } from '../../api/repartidores';
 import { getZonas } from '../../api/zonas';
 import { getProductos } from '../../api/productos';
@@ -198,12 +198,6 @@ export default function EntregasPage() {
           zonaId,
           repartidorId,
         }));
-      // Descargar Excel de Control Camionetas antes de empezar reparto
-      try {
-        await descargarControlCamioneta(asignacionesArray);
-      } catch (excelErr) {
-        console.error('Error al descargar control camionetas:', excelErr);
-      }
       await empezarReparto(asignacionesArray);
       setMostrarConfirmacion(false);
       showToast('Reparto iniciado con exito', 'success');
@@ -238,14 +232,14 @@ export default function EntregasPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-7.5rem)] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-1 pb-3 flex-shrink-0">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-gray-800">Reparto</h1>
-          <span className="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-sm font-semibold">
+          <h2 className="text-lg font-bold text-white">Entregas</h2>
+          <span className="bg-amber-400/20 text-amber-200 px-2.5 py-0.5 rounded-full text-sm font-semibold">
             {totalPedidos} pedido{totalPedidos !== 1 ? 's' : ''}
           </span>
           {cargando && (
-            <svg className="animate-spin w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
@@ -256,7 +250,7 @@ export default function EntregasPage() {
             <button
               onClick={crearPedidosTest}
               disabled={creandoTest}
-              className="text-sm text-orange-500 hover:text-orange-700 flex items-center gap-1 transition-colors disabled:opacity-50"
+              className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
             >
               {creandoTest ? (
                 <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -273,7 +267,7 @@ export default function EntregasPage() {
           )}
           <button
             onClick={() => setChatAbierto(true)}
-            className="text-sm text-amber-600 hover:text-amber-800 flex items-center gap-1 transition-colors"
+            className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -282,7 +276,7 @@ export default function EntregasPage() {
           </button>
           <button
             onClick={cargar}
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+            className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -320,10 +314,10 @@ export default function EntregasPage() {
               return (
                 <div
                   key={zonaId}
-                  className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col max-h-[calc(100vh-16rem)]"
+                  className="bg-white rounded-lg border-2 border-gray-300 shadow-xl flex flex-col max-h-[calc(100vh-16rem)]"
                 >
                   {/* Header de zona - sticky */}
-                  <div className="sticky top-0 bg-white rounded-t-lg border-b border-gray-200 p-3 flex-shrink-0 z-10">
+                  <div className="sticky top-0 bg-white rounded-t-lg border-b border-gray-200 p-3 flex-shrink-0 z-10 shadow-md">
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="font-bold text-gray-800 text-base">{data.zona}</h2>
                       <span className="text-lg" role="img" aria-label="moto">🏍</span>
@@ -373,7 +367,7 @@ export default function EntregasPage() {
                                 showToast('Error al finalizar reparto', 'error');
                               }
                             }}
-                            className="w-full mt-1 py-2 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2"
+                            className="w-full mt-1 py-2 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 shadow-md shadow-green-600/25"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -401,7 +395,7 @@ export default function EntregasPage() {
                     {data.pedidos.map(pedido => (
                       <div
                         key={pedido.id}
-                        className={`rounded-md border p-2.5 transition-colors ${pedido.estado === EstadoPedido.Cancelado || pedido.estado === EstadoPedido.NoEntregado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
+                        className={`rounded-md border p-2.5 transition-colors shadow-sm ${pedido.estado === EstadoPedido.Cancelado || pedido.estado === EstadoPedido.NoEntregado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">

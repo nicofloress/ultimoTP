@@ -28,7 +28,8 @@ public class TipoClienteService : ITipoClienteService
         var tipo = new TipoCliente
         {
             Nombre = dto.Nombre,
-            Descripcion = dto.Descripcion
+            Descripcion = dto.Descripcion,
+            ListaPrecioId = dto.ListaPrecioId
         };
         await _repo.AddAsync(tipo);
         await _repo.SaveChangesAsync();
@@ -42,6 +43,7 @@ public class TipoClienteService : ITipoClienteService
 
         tipo.Nombre = dto.Nombre;
         tipo.Descripcion = dto.Descripcion;
+        tipo.ListaPrecioId = dto.ListaPrecioId;
         _repo.Update(tipo);
         await _repo.SaveChangesAsync();
         return MapToDto(tipo);
@@ -63,6 +65,7 @@ public class TipoClienteService : ITipoClienteService
         Id = t.Id,
         Nombre = t.Nombre,
         Descripcion = t.Descripcion,
+        ListaPrecioId = t.ListaPrecioId,
         Activo = t.Activo
     };
 }

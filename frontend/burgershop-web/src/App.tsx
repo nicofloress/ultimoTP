@@ -18,11 +18,14 @@ import TiposClientePage from './pages/catalogo/TiposClientePage';
 import ListasPrecioPage from './pages/catalogo/ListasPrecioPage';
 import UsuariosPage from './pages/catalogo/UsuariosPage';
 import EntregasPage from './pages/entregas/EntregasPage';
+import ControlCamionetasPage from './pages/entregas/ControlCamionetasPage';
 import TrackingMapaPage from './pages/entregas/TrackingMapaPage';
 import ConfigPage from './pages/config/ConfigPage';
 import CajaPage from './pages/finanzas/CajaPage';
 import RendicionesPage from './pages/finanzas/RendicionesPage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
+import MovimientosPage from './pages/inventario/MovimientosPage';
+import LogsPage from './pages/sistema/LogsPage';
 import { RolUsuario } from './types/auth';
 
 export default function App() {
@@ -74,9 +77,24 @@ export default function App() {
                 <EntregasPage />
               </ProtectedRoute>
             } />
+            <Route path="/control-camionetas" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}>
+                <ControlCamionetasPage />
+              </ProtectedRoute>
+            } />
             <Route path="/tracking" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}>
                 <TrackingMapaPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/inventario/movimientos" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}>
+                <MovimientosPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/sistema/logs" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}>
+                <LogsPage />
               </ProtectedRoute>
             } />
             <Route path="/config" element={

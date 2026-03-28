@@ -106,12 +106,12 @@ export default function ProductosPage() {
   return (
     <div className="h-[calc(100vh-7.5rem)] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-2xl font-bold">Catálogo de Artículos</h1>
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-white">Articulos</h2>
         <div className="flex items-center gap-3">
           {/* Selector de lista de precios */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-600">Lista de precios:</label>
+            <label className="text-sm font-medium text-gray-200">Lista de precios:</label>
             <select
               value={listaPrecioId ?? ''}
               onChange={e => setListaPrecioId(e.target.value ? Number(e.target.value) : null)}
@@ -126,7 +126,7 @@ export default function ProductosPage() {
             </select>
           </div>
           {esAdmin && (
-            <button onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }} className="bg-amber-600 text-white px-4 py-1.5 rounded-lg hover:bg-amber-700 text-sm">
+            <button onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }} className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors">
               {showForm ? 'Cerrar' : 'Nuevo Producto'}
             </button>
           )}

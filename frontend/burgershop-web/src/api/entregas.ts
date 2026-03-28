@@ -18,6 +18,37 @@ export const finalizarRepartoZona = (zonaId: number, repartidorId: number) => ap
 export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number }[]) =>
   api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);
 
+export interface CompletaMedia {
+  completa: number;
+  media: number;
+  sueltos: number;
+}
+
+export interface RepartidorTally {
+  repartidorId: number;
+  nombre: string;
+  vehiculo: string | null;
+  fecha: string;
+  totalPedidos: number;
+  medallones: Record<string, CompletaMedia>;
+  premium: Record<string, CompletaMedia>;
+  salchichaCorta: CompletaMedia;
+  salchichaLarga: CompletaMedia;
+  panTradicional: Record<string, number>;
+  panMaxi: Record<string, number>;
+  panPancho: Record<string, number>;
+  panSuperPancho: Record<string, number>;
+  aderezos: Record<string, number>;
+  otros: Record<string, number>;
+  finalizado: boolean;
+}
+
+export interface ControlCamionetaData {
+  repartidores: RepartidorTally[];
+}
+
+export const getControlCamioneta = () => api.get<ControlCamionetaData>('/entregas/control-camioneta').then(r => r.data);
+
 export const descargarControlCamioneta = async (asignaciones: { zonaId: number; repartidorId: number }[]) => {
   const response = await api.post('/entregas/control-camioneta', { asignaciones }, { responseType: 'blob' });
   const url = window.URL.createObjectURL(new Blob([response.data]));

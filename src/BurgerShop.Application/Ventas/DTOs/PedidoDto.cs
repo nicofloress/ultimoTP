@@ -86,3 +86,15 @@ public record TicketDto(
     string? NotaInterna,
     TipoFactura TipoFactura,
     List<PagoPedidoDto>? Pagos = null);
+
+public record PedidoStatsDto(
+    int PedidosHoy,
+    int PedidosAyer,
+    decimal PorcentajeVariacionAyer,
+    int PedidosUltimos7Dias,
+    decimal PorcentajeVariacion7Dias,
+    int PedidosAnioAnterior,
+    decimal PorcentajeVariacionAnio,
+    int TotalPedidosFecha,
+    decimal TicketPromedio,
+    decimal TotalBruto);

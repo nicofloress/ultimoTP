@@ -8,11 +8,14 @@ public interface IPedidoRepository : IRepository<Pedido>
 {
     Task<Pedido?> GetByIdWithLineasAsync(int id);
     Task<IEnumerable<Pedido>> GetByFechaAsync(DateTime fecha);
+    Task<IEnumerable<Pedido>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);
     Task<IEnumerable<Pedido>> GetByEstadoAsync(EstadoPedido estado);
     Task<IEnumerable<Pedido>> GetByRepartidorHoyAsync(int repartidorId);
     Task<IEnumerable<Pedido>> GetPendientesEntregaAsync();
     Task<IEnumerable<Pedido>> GetListosParaRepartoHoyAsync();
     Task<IEnumerable<Pedido>> GetListosParaRepartoConProductosAsync();
+    Task<IEnumerable<Pedido>> GetActivosConProductosPorRepartidorHoyAsync();
+    Task<IEnumerable<Pedido>> GetTodosConProductosPorRepartidorHoyAsync();
     Task<int> GetSiguienteNumeroTicketAsync(DateTime fecha);
     Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId);
     Task<int?> GetRepartidorActivoEnZonaHoyAsync(int zonaId);
@@ -26,4 +29,9 @@ Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorHoyAsync(int repartidorId);
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorFechaAsync(int repartidorId, DateTime fecha);
     Task<List<RepartoZona>> GetRepartosZonaFinalizadosHoyAsync();
+
+    // Stats
+    Task<int> GetCountByFechaAsync(DateTime fecha);
+    Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta);
+    Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha);
 }

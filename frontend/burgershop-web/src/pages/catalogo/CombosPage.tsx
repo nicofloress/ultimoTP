@@ -57,10 +57,10 @@ export default function CombosPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Combos</h1>
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-white">Combos</h2>
         {esAdmin && (
-          <button onClick={() => { setShowForm(!showForm); resetForm(); }} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
+          <button onClick={() => { setShowForm(!showForm); resetForm(); }} className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors">
             {showForm ? 'Cerrar' : 'Nuevo Combo'}
           </button>
         )}

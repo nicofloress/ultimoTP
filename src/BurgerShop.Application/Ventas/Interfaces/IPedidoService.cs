@@ -9,6 +9,7 @@ public interface IPedidoService
     Task<PedidoDto?> UpdateAsync(int id, ActualizarPedidoDto dto);
     Task<PedidoDto?> GetByIdAsync(int id);
     Task<IEnumerable<PedidoDto>> GetByFechaAsync(DateTime fecha);
+    Task<IEnumerable<PedidoDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);
     Task<IEnumerable<PedidoDto>> GetByEstadoAsync(EstadoPedido estado);
     Task<PedidoDto?> CambiarEstadoAsync(int id, EstadoPedido nuevoEstado);
     Task<PedidoDto?> CancelarAsync(int id, string motivoCancelacion);
@@ -23,4 +24,5 @@ public interface IPedidoService
     Task<IEnumerable<PedidoDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
     Task<int> PrepararTodosAsync();
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
+    Task<PedidoStatsDto> GetStatsAsync(DateTime fecha);
 }

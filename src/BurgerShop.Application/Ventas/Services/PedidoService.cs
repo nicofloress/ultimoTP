@@ -1,3 +1,4 @@
+using BurgerShop.Application.Inventario.Interfaces;
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Entities.Logistica;
@@ -16,19 +17,22 @@ public class PedidoService : IPedidoService
     private readonly IComboRepository _comboRepo;
     private readonly IRepository<FormaPago> _formaPagoRepo;
     private readonly ICierreCajaRepository _cajaRepo;
+    private readonly IMovimientoService _movimientoService;
 
     public PedidoService(
         IPedidoRepository pedidoRepo,
         IProductoRepository productoRepo,
         IComboRepository comboRepo,
         IRepository<FormaPago> formaPagoRepo,
-        ICierreCajaRepository cajaRepo)
+        ICierreCajaRepository cajaRepo,
+        IMovimientoService movimientoService)
     {
         _pedidoRepo = pedidoRepo;
         _productoRepo = productoRepo;
         _comboRepo = comboRepo;
         _formaPagoRepo = formaPagoRepo;
         _cajaRepo = cajaRepo;
+        _movimientoService = movimientoService;
     }
 
     public async Task<PedidoDto> CreateAsync(CrearPedidoDto dto)
@@ -40,11 +44,11 @@ public class PedidoService : IPedidoService
         if (dto.FechaProgramada.HasValue)
         {
             var fechaProg = dto.FechaProgramada.Value.Date;
-            var manana = ahora.Date.AddDays(1);
-            var maxFecha = ahora.Date.AddDays(14);
-            if (fechaProg < manana || fechaProg > maxFecha)
+            var hoyDate = ahora.Date;
+            var maxFecha = hoyDate.AddDays(14);
+            if (fechaProg < hoyDate || fechaProg > maxFecha)
                 throw new InvalidOperationException(
-                    "La fecha programada debe ser a partir de mañana y no mayor a 14 días desde hoy.");
+                    "La fecha programada debe ser desde hoy y no mayor a 14 días.");
         }
 
         var pedido = new Pedido
@@ -185,9 +189,70 @@ public class PedidoService : IPedidoService
         var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
         if (pedido is null) return null;
 
-        if (pedido.Estado != EstadoPedido.Pendiente)
+        if (pedido.Estado != EstadoPedido.Pendiente && pedido.Estado != EstadoPedido.Asignado)
             throw new InvalidOperationException(
-                $"No se puede editar un pedido en estado '{pedido.Estado}'. Solo se permite en estado Pendiente.");
+                $"No se puede editar un pedido en estado '{pedido.Estado}'. Solo se permite en estado Pendiente o Asignado.");
+
+        // En estado Asignado solo se permite editar teléfono, estaPago y formaPago
+        if (pedido.Estado == EstadoPedido.Asignado)
+        {
+            pedido.TelefonoCliente = dto.TelefonoCliente;
+            pedido.EstaPago = dto.EstaPago;
+
+            // Recalcular recargo si cambia la forma de pago
+            if (dto.Pagos is { Count: > 0 })
+            {
+                pedido.Pagos.Clear();
+                decimal recargoTotal = 0;
+                pedido.FormaPagoId = null;
+
+                foreach (var pagoDto in dto.Pagos)
+                {
+                    var formaPago = await _formaPagoRepo.GetByIdAsync(pagoDto.FormaPagoId);
+                    var porcentaje = formaPago?.PorcentajeRecargo ?? 0m;
+                    var recargoPago = pagoDto.Monto * porcentaje / 100m;
+                    var totalACobrar = pagoDto.Monto + recargoPago;
+
+                    pedido.Pagos.Add(new PagoPedido
+                    {
+                        FormaPagoId = pagoDto.FormaPagoId,
+                        Monto = pagoDto.Monto,
+                        PorcentajeRecargo = porcentaje,
+                        Recargo = recargoPago,
+                        TotalACobrar = totalACobrar
+                    });
+
+                    recargoTotal += recargoPago;
+                }
+
+                pedido.Recargo = recargoTotal;
+                pedido.Total = pedido.Subtotal - pedido.Descuento + recargoTotal;
+            }
+            else
+            {
+                pedido.Pagos.Clear();
+                pedido.FormaPagoId = dto.FormaPagoId;
+                decimal recargo = 0;
+
+                if (dto.FormaPagoId.HasValue)
+                {
+                    var formaPago = await _formaPagoRepo.GetByIdAsync(dto.FormaPagoId.Value);
+                    if (formaPago is not null && formaPago.PorcentajeRecargo > 0)
+                    {
+                        recargo = (pedido.Subtotal - pedido.Descuento) * formaPago.PorcentajeRecargo / 100m;
+                    }
+                }
+
+                pedido.Recargo = recargo;
+                pedido.Total = pedido.Subtotal - pedido.Descuento + recargo;
+            }
+
+            _pedidoRepo.Update(pedido);
+            await _pedidoRepo.SaveChangesAsync();
+
+            var updatedAsignado = await _pedidoRepo.GetByIdWithLineasAsync(pedido.Id);
+            return ToDto(updatedAsignado!);
+        }
 
         if (dto.FechaProgramada.HasValue)
         {
@@ -312,6 +377,12 @@ public class PedidoService : IPedidoService
     public async Task<IEnumerable<PedidoDto>> GetByFechaAsync(DateTime fecha)
     {
         var pedidos = await _pedidoRepo.GetByFechaAsync(fecha);
+        return pedidos.Select(ToDto);
+    }
+
+    public async Task<IEnumerable<PedidoDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta)
+    {
+        var pedidos = await _pedidoRepo.GetByRangoFechasAsync(desde, hasta);
         return pedidos.Select(ToDto);
     }
 
@@ -527,6 +598,73 @@ public class PedidoService : IPedidoService
     public async Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId)
     {
         await _pedidoRepo.FinalizarRepartoZonaAsync(zonaId, repartidorId);
+
+        // Generar movimientos de stock (EGR_VTA) para todos los pedidos entregados del reparto
+        try
+        {
+            var repartosZona = await _pedidoRepo.GetRepartosZonaByRepartidorHoyAsync(repartidorId);
+            var reparto = repartosZona.FirstOrDefault(r => r.ZonaId == zonaId);
+            if (reparto != null)
+            {
+                var pedidos = await _pedidoRepo.GetByRepartidorHoyAsync(repartidorId);
+                var entregados = pedidos
+                    .Where(p => p.RepartoZonaId == reparto.Id && p.Estado == EstadoPedido.Entregado)
+                    .ToList();
+
+                foreach (var pedido in entregados)
+                {
+                    try
+                    {
+                        await _movimientoService.RegistrarMovimientosVentaStockAsync(pedido.Id, 1, null);
+                    }
+                    catch
+                    {
+                        // No bloquear la finalización si falla un movimiento individual
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // No bloquear la finalización del reparto
+        }
+    }
+
+    public async Task<PedidoStatsDto> GetStatsAsync(DateTime fecha)
+    {
+        var hoy = DateTime.Today;
+        var ayer = hoy.AddDays(-1);
+        var hace7Dias = hoy.AddDays(-6);           // hoy inclusive = 7 días
+        var hace14Dias = hoy.AddDays(-13);          // 7 días anteriores
+        var hace8Dias = hoy.AddDays(-7);            // inicio del período anterior
+        var mismoHaceUnAnio = hoy.AddYears(-1);
+
+        // Conteos comparativos (siempre relativos a hoy)
+        var pedidosHoy = await _pedidoRepo.GetCountByFechaAsync(hoy);
+        var pedidosAyer = await _pedidoRepo.GetCountByFechaAsync(ayer);
+        var pedidosUltimos7Dias = await _pedidoRepo.GetCountByRangoAsync(hace7Dias, hoy);
+        var pedidos7DiasAnteriores = await _pedidoRepo.GetCountByRangoAsync(hace14Dias, hace8Dias);
+        var pedidosAnioAnterior = await _pedidoRepo.GetCountByFechaAsync(mismoHaceUnAnio);
+
+        // Totales para la fecha seleccionada
+        var (totalBruto, totalPedidosFecha) = await _pedidoRepo.GetTotalesByFechaAsync(fecha);
+        var ticketPromedio = totalPedidosFecha > 0 ? totalBruto / totalPedidosFecha : 0m;
+
+        // Cálculo de porcentajes: ((actual - anterior) / anterior) * 100. Si anterior = 0 → 0
+        static decimal Porcentaje(int actual, int anterior) =>
+            anterior == 0 ? 0m : Math.Round(((decimal)(actual - anterior) / anterior) * 100m, 1);
+
+        return new PedidoStatsDto(
+            PedidosHoy: pedidosHoy,
+            PedidosAyer: pedidosAyer,
+            PorcentajeVariacionAyer: Porcentaje(pedidosHoy, pedidosAyer),
+            PedidosUltimos7Dias: pedidosUltimos7Dias,
+            PorcentajeVariacion7Dias: Porcentaje(pedidosUltimos7Dias, pedidos7DiasAnteriores),
+            PedidosAnioAnterior: pedidosAnioAnterior,
+            PorcentajeVariacionAnio: Porcentaje(pedidosHoy, pedidosAnioAnterior),
+            TotalPedidosFecha: totalPedidosFecha,
+            TicketPromedio: Math.Round(ticketPromedio, 2),
+            TotalBruto: Math.Round(totalBruto, 2));
     }
 
     private static PagoPedidoDto MapPagoPedidoDto(PagoPedido p) => new(

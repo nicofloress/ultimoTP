@@ -43,7 +43,8 @@ public class CategoriaConfiguration : IEntityTypeConfiguration<Categoria>
             new Categoria { Id = 13, Nombre = "Pan Maxi",                    Activa = true, SeccionCamioneta = SeccionCamioneta.PanMaxi,            CategoriaPadreId = null },
             new Categoria { Id = 14, Nombre = "Pan Pancho",                  Activa = true, SeccionCamioneta = SeccionCamioneta.PanPancho,          CategoriaPadreId = null },
             new Categoria { Id = 15, Nombre = "Pan Super Pancho",            Activa = true, SeccionCamioneta = SeccionCamioneta.PanSuperPancho,     CategoriaPadreId = null },
-            new Categoria { Id = 16, Nombre = "Aderezos",                    Activa = true, SeccionCamioneta = SeccionCamioneta.Aderezo,            CategoriaPadreId = null }
+            new Categoria { Id = 16, Nombre = "Aderezos",                    Activa = true, SeccionCamioneta = SeccionCamioneta.Aderezo,            CategoriaPadreId = null },
+            new Categoria { Id = 19, Nombre = "Snacks",                      Activa = true, SeccionCamioneta = SeccionCamioneta.Otro,                CategoriaPadreId = null }
         );
     }
 }

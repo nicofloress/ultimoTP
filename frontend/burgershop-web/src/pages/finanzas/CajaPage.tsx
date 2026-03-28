@@ -81,8 +81,11 @@ export default function CajaPage() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+        <h2 className="text-lg font-bold text-white">Caja Diaria</h2>
+      </div>
       {/* Estado de la Caja */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow-xl border-2 border-gray-300 p-6">
         <h2 className="text-lg font-bold mb-4">Estado de la Caja</h2>
 
         {!cajaAbierta ? (
@@ -115,7 +118,7 @@ export default function CajaPage() {
             </div>
             <button
               type="submit"
-              className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+              className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md shadow-green-600/20"
             >
               Abrir Caja
             </button>
@@ -126,19 +129,19 @@ export default function CajaPage() {
               <p className="text-green-800 font-medium">Caja abierta</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Fecha Apertura</div>
                 <div className="text-sm font-semibold mt-1">{formatFecha(cajaAbierta.fechaApertura)}</div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Monto Inicial</div>
                 <div className="text-sm font-semibold mt-1">${cajaAbierta.montoInicial.toLocaleString()}</div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Cant. Pedidos</div>
                 <div className="text-sm font-semibold mt-1">{cajaAbierta.cantidadPedidos}</div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Total Ventas</div>
                 <div className="text-lg font-bold mt-1 text-green-600">${cajaAbierta.totalVentas.toLocaleString()}</div>
               </div>
@@ -165,7 +168,7 @@ export default function CajaPage() {
                           <td className="px-4 py-2 text-sm text-right font-medium">${d.montoTotal.toLocaleString()}</td>
                         </tr>
                       ))}
-                      <tr className="bg-gray-50 font-bold">
+                      <tr className="bg-amber-50 font-bold border-t-2 border-amber-200">
                         <td className="px-4 py-2 text-sm">Total</td>
                         <td className="px-4 py-2 text-sm text-right">
                           {cajaAbierta.detalles.reduce((s, d) => s + d.cantidadOperaciones, 0)}
@@ -199,7 +202,7 @@ export default function CajaPage() {
               </div>
               <button
                 onClick={handleCerrarCaja}
-                className="bg-red-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                className="bg-red-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors shadow-md shadow-red-600/20"
               >
                 Cerrar Caja
               </button>
@@ -209,7 +212,7 @@ export default function CajaPage() {
       </div>
 
       {/* Historial de Cierres */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow-xl border-2 border-gray-300 p-6">
         <h2 className="text-lg font-bold mb-4">Historial de Cierres</h2>
         {historial.length === 0 ? (
           <p className="text-gray-400 text-center py-8">No hay registros de caja</p>

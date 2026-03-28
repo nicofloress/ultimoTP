@@ -17,12 +17,14 @@ public static class VentasServiceExtensions
         services.AddScoped<IRepository<FormaPago>, Repository<FormaPago>>();
         services.AddScoped<IRepository<TipoCliente>, Repository<TipoCliente>>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
+        services.AddScoped<IVentaRepository, VentaRepository>();
 
         // Services
         services.AddScoped<IPedidoService, PedidoService>();
         services.AddScoped<IFormaPagoService, FormaPagoService>();
         services.AddScoped<ITipoClienteService, TipoClienteService>();
         services.AddScoped<IClienteService, ClienteService>();
+        services.AddScoped<IVentaService, VentaService>();
 
         return services;
     }

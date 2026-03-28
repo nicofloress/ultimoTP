@@ -31,9 +31,14 @@ public class PedidosController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PedidoDto>>> GetAll(
-        [FromQuery] DateTime? fecha, [FromQuery] EstadoPedido? estado)
+        [FromQuery] DateTime? fecha, [FromQuery] DateTime? fechaHasta, [FromQuery] EstadoPedido? estado)
     {
-        var pedidos = await _service.GetByFechaAsync(fecha ?? DateTime.Today);
+        IEnumerable<PedidoDto> pedidos;
+        if (fechaHasta.HasValue)
+            pedidos = await _service.GetByRangoFechasAsync(fecha ?? DateTime.Today, fechaHasta.Value);
+        else
+            pedidos = await _service.GetByFechaAsync(fecha ?? DateTime.Today);
+
         if (estado.HasValue)
             pedidos = pedidos.Where(p => p.Estado == estado.Value);
         return Ok(pedidos);
@@ -98,5 +103,12 @@ public class PedidosController : ControllerBase
     {
         var count = await _service.PrepararTodosAsync();
         return Ok(new { actualizados = count });
+    }
+
+    [HttpGet("stats")]
+    public async Task<ActionResult<PedidoStatsDto>> GetStats([FromQuery] DateTime? fecha)
+    {
+        var stats = await _service.GetStatsAsync(fecha ?? DateTime.Today);
+        return Ok(stats);
     }
 }

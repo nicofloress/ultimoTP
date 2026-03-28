@@ -59,6 +59,16 @@ export const aprobarRendicion = (id: number, data: { aprobada: boolean; observac
 export const getEstadoRepartoRepartidor = (repartidorId: number) =>
   api.get<{ zonasFinalizadas: boolean; zonas: RendicionZonaDto[] }>(`/rendiciones/estado-reparto/${repartidorId}`).then(r => r.data);
 
+export interface PedidoPendienteRendicionDto {
+  id: number;
+  numeroTicket: string;
+  estado: string;
+  nombreCliente?: string;
+  direccionEntrega?: string;
+  formaPago?: string;
+  total: number;
+}
+
 export interface RepartidorPendienteRendicionDto {
   repartidorId: number;
   repartidorNombre: string;
@@ -70,6 +80,7 @@ export interface RepartidorPendienteRendicionDto {
   totalEfectivo: number;
   totalTransferencia: number;
   totalNoEntregado: number;
+  pedidos: PedidoPendienteRendicionDto[];
 }
 
 export const getRepartidoresPendientes = () =>

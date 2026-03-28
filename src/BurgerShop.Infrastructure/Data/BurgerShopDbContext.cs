@@ -1,7 +1,9 @@
 using BurgerShop.Domain.Entities.Auth;
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Finanzas;
+using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Entities.Logistica;
+using BurgerShop.Domain.Entities.Sistema;
 using BurgerShop.Domain.Entities.Ventas;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +30,9 @@ public class BurgerShopDbContext : DbContext
     public DbSet<ListaPrecio> ListasPrecios => Set<ListaPrecio>();
     public DbSet<ListaPrecioDetalle> ListasPreciosDetalle => Set<ListaPrecioDetalle>();
     public DbSet<PagoPedido> PagosPedido => Set<PagoPedido>();
+    public DbSet<Venta> Ventas => Set<Venta>();
+    public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
+    public DbSet<PagoVenta> PagosVenta => Set<PagoVenta>();
     public DbSet<CierreCaja> CierresCaja => Set<CierreCaja>();
     public DbSet<CierreCajaDetalle> CierresCajaDetalle => Set<CierreCajaDetalle>();
     public DbSet<Mensaje> Mensajes => Set<Mensaje>();
@@ -35,6 +40,13 @@ public class BurgerShopDbContext : DbContext
     public DbSet<RepartoZona> RepartosZona => Set<RepartoZona>();
     public DbSet<RendicionRepartidor> RendicionesRepartidor => Set<RendicionRepartidor>();
     public DbSet<RendicionDetalle> RendicionesDetalle => Set<RendicionDetalle>();
+    public DbSet<LogEntry> LogEntries => Set<LogEntry>();
+
+    // Inventario
+    public DbSet<Local> Locales => Set<Local>();
+    public DbSet<CodigoAccion> CodigosAccion => Set<CodigoAccion>();
+    public DbSet<Movimiento> Movimientos => Set<Movimiento>();
+    public DbSet<ArtiStock> ArtiStock => Set<ArtiStock>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

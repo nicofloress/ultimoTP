@@ -17,9 +17,11 @@ type FiltroEstado = 'todas' | 'pendientes' | 'aprobadas' | 'rechazadas';
 export default function RendicionesPage() {
   const [rendiciones, setRendiciones] = useState<RendicionDto[]>([]);
   const [cargando, setCargando] = useState(true);
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   const [filtroFechaDesde, setFiltroFechaDesde] = useState(hoy);
   const [filtroFechaHasta, setFiltroFechaHasta] = useState(hoy);
+  const [ordenCol, setOrdenCol] = useState<string>('fecha');
+  const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>('todas');
   const [detalleId, setDetalleId] = useState<number | null>(null);
   const [accionPendiente, setAccionPendiente] = useState<{ id: number; aprobar: boolean } | null>(null);
@@ -35,6 +37,7 @@ export default function RendicionesPage() {
   const [efectivoDeclarado, setEfectivoDeclarado] = useState('');
   const [obsNueva, setObsNueva] = useState('');
   const [creandoRendicion, setCreandoRendicion] = useState(false);
+  const [mostrarPedidosReparto, setMostrarPedidosReparto] = useState(false);
 
   // Detalle de pedido expandido dentro del modal de rendición
   const [pedidoExpandidoId, setPedidoExpandidoId] = useState<number | null>(null);
@@ -112,6 +115,7 @@ export default function RendicionesPage() {
     setRepartidorSeleccionado(null);
     setEfectivoDeclarado('');
     setObsNueva('');
+    setMostrarPedidosReparto(false);
   };
 
   const seleccionarRepartidor = (r: RepartidorPendienteRendicionDto) => {
@@ -124,6 +128,7 @@ export default function RendicionesPage() {
     setRepartidorSeleccionado(null);
     setEfectivoDeclarado('');
     setObsNueva('');
+    setMostrarPedidosReparto(false);
   };
 
   const efectivoDeclaradoNum = parseFloat(efectivoDeclarado) || 0;
@@ -152,15 +157,40 @@ export default function RendicionesPage() {
     }
   };
 
+  const toggleOrden = (col: string) => {
+    if (ordenCol === col) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setOrdenCol(col); setOrdenDir('asc'); }
+  };
+
   const rendicionesFiltradas = useMemo(() => {
-    if (filtroEstado === 'todas') return rendiciones;
-    return rendiciones.filter(r => {
-      if (filtroEstado === 'pendientes') return !r.aprobada && !r.fechaAprobacion;
-      if (filtroEstado === 'aprobadas') return r.aprobada;
-      if (filtroEstado === 'rechazadas') return !r.aprobada && !!r.fechaAprobacion;
-      return true;
+    let lista = rendiciones;
+    if (filtroEstado !== 'todas') {
+      lista = lista.filter(r => {
+        if (filtroEstado === 'pendientes') return !r.aprobada && !r.fechaAprobacion;
+        if (filtroEstado === 'aprobadas') return r.aprobada;
+        if (filtroEstado === 'rechazadas') return !r.aprobada && !!r.fechaAprobacion;
+        return true;
+      });
+    }
+    const dir = ordenDir === 'asc' ? 1 : -1;
+    return [...lista].sort((a, b) => {
+      let va: string | number, vb: string | number;
+      switch (ordenCol) {
+        case 'fecha': va = a.fecha; vb = b.fecha; break;
+        case 'repartidorNombre': va = a.repartidorNombre; vb = b.repartidorNombre; break;
+        case 'pedidos': va = a.cantidadEntregados + a.cantidadNoEntregados; vb = b.cantidadEntregados + b.cantidadNoEntregados; break;
+        case 'efectivo': va = a.totalEfectivo; vb = b.totalEfectivo; break;
+        case 'transferencia': va = a.totalTransferencia; vb = b.totalTransferencia; break;
+        case 'declarado': va = a.efectivoDeclarado; vb = b.efectivoDeclarado; break;
+        case 'diferencia': va = a.diferencia; vb = b.diferencia; break;
+        case 'estado': va = a.aprobada ? 2 : a.fechaAprobacion ? 0 : 1; vb = b.aprobada ? 2 : b.fechaAprobacion ? 0 : 1; break;
+        default: return 0;
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
     });
-  }, [rendiciones, filtroEstado]);
+  }, [rendiciones, filtroEstado, ordenCol, ordenDir]);
 
   const resumen = useMemo(() => {
     const pendientes = rendiciones.filter(r => !r.aprobada && !r.fechaAprobacion);
@@ -228,47 +258,40 @@ export default function RendicionesPage() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+        <h2 className="text-lg font-bold text-white">Rendiciones</h2>
+      </div>
       {/* Resumen */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Pendientes</div>
-          <div className="text-2xl font-bold mt-1 text-yellow-600">{resumen.pendientes}</div>
+        <div className="bg-slate-700 rounded-lg shadow-lg p-4">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Pendientes</div>
+          <div className="text-2xl font-bold mt-1 text-yellow-400">{resumen.pendientes}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Aprobadas</div>
-          <div className="text-2xl font-bold mt-1 text-green-600">{resumen.aprobadas}</div>
+        <div className="bg-slate-700 rounded-lg shadow-lg p-4">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Aprobadas</div>
+          <div className="text-2xl font-bold mt-1 text-green-400">{resumen.aprobadas}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Total Efectivo</div>
-          <div className="text-lg font-bold mt-1 text-gray-800">${resumen.totalEfectivo.toLocaleString('es-AR')}</div>
+        <div className="bg-slate-700 rounded-lg shadow-lg p-4">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Total Efectivo</div>
+          <div className="text-lg font-bold mt-1 text-white">${resumen.totalEfectivo.toLocaleString('es-AR')}</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Total Transferencia</div>
-          <div className="text-lg font-bold mt-1 text-gray-800">${resumen.totalTransferencia.toLocaleString('es-AR')}</div>
+        <div className="bg-slate-700 rounded-lg shadow-lg p-4">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Total Transferencia</div>
+          <div className="text-lg font-bold mt-1 text-white">${resumen.totalTransferencia.toLocaleString('es-AR')}</div>
         </div>
       </div>
 
       {/* Banner pendientes */}
       {cantPendientes > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 rounded-full p-1.5">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-green-800">
-                {cantPendientes === 1 ? 'Hay 1 reparto pendiente de rendicion' : `Hay ${cantPendientes} repartos pendientes de rendicion`}
-              </span>
-            </div>
+        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3">
+          <div className="bg-green-100 rounded-full p-1.5">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <button
-            onClick={abrirNuevaRendicion}
-            className="px-3 py-1.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Crear rendicion
-          </button>
+          <span className="text-sm font-semibold text-green-800">
+            {cantPendientes === 1 ? 'Hay 1 reparto pendiente de rendicion' : `Hay ${cantPendientes} repartos pendientes de rendicion`}
+          </span>
         </div>
       )}
 
@@ -316,15 +339,6 @@ export default function RendicionesPage() {
           </div>
           <div className="ml-auto flex items-end gap-3">
             <button
-              onClick={cargarDatos}
-              className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Actualizar
-            </button>
-            <button
               onClick={abrirNuevaRendicion}
               className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
             >
@@ -342,7 +356,6 @@ export default function RendicionesPage() {
 
       {/* Lista de rendiciones */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-bold mb-4">Rendiciones de Repartidores</h2>
         {rendicionesFiltradas.length === 0 ? (
           <p className="text-gray-400 text-center py-8">No hay rendiciones para mostrar</p>
         ) : (
@@ -350,14 +363,27 @@ export default function RendicionesPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Fecha</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Repartidor</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Pedidos</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Efectivo</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Transferencia</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Declarado</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Diferencia</th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+                  {([
+                    ['fecha', 'Fecha', 'text-left'],
+                    ['repartidorNombre', 'Repartidor', 'text-left'],
+                    ['pedidos', 'Pedidos', 'text-right'],
+                    ['efectivo', 'Efectivo', 'text-right'],
+                    ['transferencia', 'Transferencia', 'text-right'],
+                    ['declarado', 'Declarado', 'text-right'],
+                    ['diferencia', 'Diferencia', 'text-right'],
+                    ['estado', 'Estado', 'text-center'],
+                  ] as [string, string, string][]).map(([col, label, align]) => (
+                    <th
+                      key={col}
+                      onClick={() => toggleOrden(col)}
+                      className={`${align} px-4 py-3 text-sm font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
+                    >
+                      {label}
+                      {ordenCol === col && (
+                        <span className="ml-1 text-amber-600">{ordenDir === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </th>
+                  ))}
                   <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
                 </tr>
               </thead>
@@ -687,217 +713,253 @@ export default function RendicionesPage() {
       {/* Modal Nueva Rendicion */}
       {mostrarNuevaRendicion && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={cerrarNuevaRendicion}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="px-6 py-4 bg-amber-600 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                {repartidorSeleccionado && (
-                  <button
-                    onClick={volverASeleccion}
-                    className="text-white/80 hover:text-white transition-colors p-1"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                )}
-                <h3 className="font-bold text-lg text-white">
-                  {repartidorSeleccionado ? 'Crear Rendicion' : 'Nueva Rendicion'}
-                </h3>
-              </div>
-              <button
-                onClick={cerrarNuevaRendicion}
-                className="text-white/70 hover:text-white transition-colors p-1"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto">
-              {!repartidorSeleccionado ? (
-                /* Step 1: Seleccionar repartidor */
-                <div className="p-6">
-                  <p className="text-sm text-gray-500 mb-4">
-                    Selecciona un reparto finalizado para crear la rendicion:
-                  </p>
-                  {cargandoPendientes ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="text-gray-400">Cargando repartidores...</div>
-                    </div>
-                  ) : repartidoresPendientes.length === 0 ? (
-                    <div className="text-center py-12">
-                      <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className={`flex gap-4 max-h-[85vh] ${repartidorSeleccionado ? 'w-full max-w-4xl' : 'w-full max-w-xl'}`} onClick={e => e.stopPropagation()}>
+            {/* Panel izquierdo: Formulario */}
+            <div className={`bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col ${repartidorSeleccionado ? 'w-1/2' : 'w-full'}`}>
+              {/* Header */}
+              <div className="px-6 py-4 bg-slate-700 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  {repartidorSeleccionado && (
+                    <button
+                      onClick={volverASeleccion}
+                      className="text-white/80 hover:text-white transition-colors p-1"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
-                      <p className="text-gray-400 font-medium">No hay repartidores pendientes de rendicion</p>
-                      <p className="text-gray-300 text-sm mt-1">Todos los repartidores ya tienen su rendicion de hoy o no finalizaron sus zonas</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {repartidoresPendientes.map(rp => (
-                        <button
-                          key={rp.repartoZonaId}
-                          onClick={() => seleccionarRepartidor(rp)}
-                          className="w-full text-left bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-300 rounded-lg p-4 transition-colors group"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold text-gray-800 group-hover:text-amber-800">
-                                {rp.repartidorNombre}
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
-                                <span className="text-blue-600 font-medium">{rp.zonaNombre}</span>
-                                <span className="text-green-600">{rp.totalEntregados} entregados</span>
-                                {rp.totalNoEntregados > 0 && (
-                                  <span className="text-red-500">{rp.totalNoEntregados} no entreg.</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-semibold text-gray-700">
-                                ${(rp.totalEfectivo + rp.totalTransferencia).toLocaleString('es-AR')}
-                              </div>
-                              <div className="text-[10px] text-gray-400 uppercase tracking-wider">Total</div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                    </button>
                   )}
+                  <h3 className="font-bold text-lg text-white">
+                    {repartidorSeleccionado ? 'Crear Rendicion' : 'Nueva Rendicion'}
+                  </h3>
                 </div>
-              ) : (
-                /* Step 2: Preview + Efectivo Declarado */
-                <div className="p-6 space-y-5">
-                  {/* Repartidor info */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                    <div className="font-semibold text-amber-900">{repartidorSeleccionado.repartidorNombre}</div>
-                    <div className="text-xs text-amber-700 mt-0.5">
-                      {repartidorSeleccionado.zonas.map(z => z.zonaNombre).join(', ')}
-                    </div>
-                  </div>
+                <button
+                  onClick={cerrarNuevaRendicion}
+                  className="text-white/70 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
 
-                  {/* Zonas breakdown */}
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Zonas del reparto</h4>
-                    <div className="space-y-1.5">
-                      {repartidorSeleccionado.zonas.map(z => (
-                        <div key={z.zonaId} className="flex items-center justify-between text-sm bg-blue-50 rounded px-3 py-2">
-                          <span className="font-medium text-gray-800">{z.zonaNombre}</span>
-                          <div className="flex items-center gap-3 text-xs">
-                            <span className="text-green-600">{z.totalEntregados} entregados</span>
-                            <span className="text-red-600">{z.totalNoEntregados} no entreg.</span>
-                            <span className="text-gray-500">{z.totalPedidos} total</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto">
+                {!repartidorSeleccionado ? (
+                  /* Step 1: Seleccionar repartidor */
+                  <div className="p-6">
+                    <p className="text-sm text-gray-500 mb-4">
+                      Selecciona un reparto finalizado para crear la rendicion:
+                    </p>
+                    {cargandoPendientes ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-gray-400">Cargando repartidores...</div>
+                      </div>
+                    ) : repartidoresPendientes.length === 0 ? (
+                      <div className="text-center py-12">
+                        <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-gray-400 font-medium">No hay repartidores pendientes de rendicion</p>
+                        <p className="text-gray-300 text-sm mt-1">Todos los repartidores ya tienen su rendicion de hoy o no finalizaron sus zonas</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {repartidoresPendientes.map(rp => (
+                          <button
+                            key={rp.repartoZonaId}
+                            onClick={() => seleccionarRepartidor(rp)}
+                            className="w-full text-left bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-300 rounded-lg p-4 transition-colors group"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold text-gray-800 group-hover:text-amber-800">
+                                  {rp.repartidorNombre}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
+                                  <span className="text-blue-600 font-medium">{rp.zonaNombre}</span>
+                                  <span className="text-green-600">{rp.totalEntregados} entregados</span>
+                                  {rp.totalNoEntregados > 0 && (
+                                    <span className="text-red-500">{rp.totalNoEntregados} no entreg.</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-semibold text-gray-700">
+                                  ${(rp.totalEfectivo + rp.totalTransferencia).toLocaleString('es-AR')}
+                                </div>
+                                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Total</div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-
-                  {/* Summary stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider">Entregados</div>
-                      <div className="text-lg font-bold mt-1 text-green-700">{repartidorSeleccionado.totalEntregados}</div>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider">No Entregados</div>
-                      <div className="text-lg font-bold mt-1 text-red-600">{repartidorSeleccionado.totalNoEntregados}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider">Total Efectivo</div>
-                      <div className="text-lg font-bold mt-1 text-gray-800">${repartidorSeleccionado.totalEfectivo.toLocaleString('es-AR')}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider">Total Transferencia</div>
-                      <div className="text-lg font-bold mt-1 text-gray-800">${repartidorSeleccionado.totalTransferencia.toLocaleString('es-AR')}</div>
-                    </div>
-                  </div>
-
-                  {/* Total No Entregado */}
-                  {repartidorSeleccionado.totalNoEntregado > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-amber-800">Total No Entregado</span>
-                        <span className="text-lg font-bold text-amber-700">${repartidorSeleccionado.totalNoEntregado.toLocaleString('es-AR')}</span>
+                ) : (
+                  /* Step 2: Preview + Efectivo Declarado */
+                  <div className="p-5 space-y-4">
+                    {/* Repartidor info */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                      <div className="font-semibold text-amber-900">{repartidorSeleccionado.repartidorNombre}</div>
+                      <div className="text-xs text-amber-700 mt-0.5">
+                        {repartidorSeleccionado.zonas.map(z => z.zonaNombre).join(', ')}
                       </div>
                     </div>
-                  )}
 
-                  {/* Efectivo Declarado input */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Efectivo Declarado</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">$</span>
-                      <input
-                        type="number"
-                        value={efectivoDeclarado}
-                        onChange={e => setEfectivoDeclarado(e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-10 pr-4 py-4 text-2xl font-bold border-2 border-gray-300 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-right"
-                        min={0}
-                        step="0.01"
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-green-50 rounded-lg p-2.5">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">Entregados</div>
+                        <div className="text-base font-bold mt-0.5 text-green-700">{repartidorSeleccionado.totalEntregados}</div>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-2.5">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">No Entregados</div>
+                        <div className="text-base font-bold mt-0.5 text-red-600">{repartidorSeleccionado.totalNoEntregados}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2.5">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">Total Efectivo</div>
+                        <div className="text-base font-bold mt-0.5 text-gray-800">${repartidorSeleccionado.totalEfectivo.toLocaleString('es-AR')}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2.5">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">Total Transferencia</div>
+                        <div className="text-base font-bold mt-0.5 text-gray-800">${repartidorSeleccionado.totalTransferencia.toLocaleString('es-AR')}</div>
+                      </div>
+                    </div>
+
+                    {/* Total No Entregado */}
+                    {repartidorSeleccionado.totalNoEntregado > 0 && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-amber-800">Total No Entregado</span>
+                          <span className="text-lg font-bold text-amber-700">${repartidorSeleccionado.totalNoEntregado.toLocaleString('es-AR')}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Efectivo Declarado input */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Efectivo Declarado</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">$</span>
+                        <input
+                          type="number"
+                          value={efectivoDeclarado}
+                          onChange={e => setEfectivoDeclarado(e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-10 pr-4 py-4 text-2xl font-bold border-2 border-gray-300 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-right"
+                          min={0}
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Diferencia en vivo */}
+                    {efectivoDeclarado !== '' && (
+                      <div className={`rounded-xl p-4 border-2 ${
+                        diferenciaPreview === 0
+                          ? 'bg-green-50 border-green-300'
+                          : 'bg-red-50 border-red-300'
+                      }`}>
+                        <div className="flex justify-between items-center">
+                          <span className={`text-sm font-medium ${diferenciaPreview === 0 ? 'text-green-700' : 'text-red-700'}`}>
+                            Diferencia
+                          </span>
+                          <span className={`text-xl font-bold ${diferenciaPreview === 0 ? 'text-green-700' : 'text-red-700'}`}>
+                            {diferenciaPreview > 0 ? '+' : ''}${diferenciaPreview.toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                        {diferenciaPreview !== 0 && (
+                          <p className="text-xs mt-1 text-red-500">
+                            {diferenciaPreview > 0 ? 'Sobra efectivo respecto al esperado' : 'Falta efectivo respecto al esperado'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Observaciones */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones (opcional)</label>
+                      <textarea
+                        value={obsNueva}
+                        onChange={e => setObsNueva(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 outline-none"
+                        rows={2}
+                        placeholder="Notas adicionales sobre esta rendicion..."
                       />
                     </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Diferencia en vivo */}
-                  {efectivoDeclarado !== '' && (
-                    <div className={`rounded-xl p-4 border-2 ${
-                      diferenciaPreview === 0
-                        ? 'bg-green-50 border-green-300'
-                        : 'bg-red-50 border-red-300'
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-sm font-medium ${diferenciaPreview === 0 ? 'text-green-700' : 'text-red-700'}`}>
-                          Diferencia
-                        </span>
-                        <span className={`text-xl font-bold ${diferenciaPreview === 0 ? 'text-green-700' : 'text-red-700'}`}>
-                          {diferenciaPreview > 0 ? '+' : ''}${diferenciaPreview.toLocaleString('es-AR')}
-                        </span>
-                      </div>
-                      {diferenciaPreview !== 0 && (
-                        <p className="text-xs mt-1 text-red-500">
-                          {diferenciaPreview > 0 ? 'Sobra efectivo respecto al esperado' : 'Falta efectivo respecto al esperado'}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Observaciones */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones (opcional)</label>
-                    <textarea
-                      value={obsNueva}
-                      onChange={e => setObsNueva(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:border-amber-500 focus:ring-1 focus:ring-amber-200 outline-none"
-                      rows={2}
-                      placeholder="Notas adicionales sobre esta rendicion..."
-                    />
-                  </div>
+              {/* Footer */}
+              {repartidorSeleccionado && (
+                <div className="px-6 py-4 border-t border-gray-200 flex gap-3 flex-shrink-0 bg-gray-50">
+                  <button
+                    onClick={cerrarNuevaRendicion}
+                    className="flex-1 py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                    disabled={creandoRendicion}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleCrearRendicion}
+                    disabled={creandoRendicion || efectivoDeclarado === ''}
+                    className="flex-[1.5] py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white hover:bg-amber-700 transition-colors shadow-md shadow-amber-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creandoRendicion ? 'Creando...' : 'Crear Rendicion'}
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Footer */}
-            {repartidorSeleccionado && (
-              <div className="px-6 py-4 border-t border-gray-200 flex gap-3 flex-shrink-0 bg-gray-50">
-                <button
-                  onClick={cerrarNuevaRendicion}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
-                  disabled={creandoRendicion}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleCrearRendicion}
-                  disabled={creandoRendicion || efectivoDeclarado === ''}
-                  className="flex-[1.5] py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white hover:bg-amber-700 transition-colors shadow-md shadow-amber-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creandoRendicion ? 'Creando...' : 'Crear Rendicion'}
-                </button>
+            {/* Panel derecho: Pedidos del reparto */}
+            {repartidorSeleccionado && repartidorSeleccionado.pedidos && repartidorSeleccionado.pedidos.length > 0 && (
+              <div className="bg-white rounded-xl shadow-2xl w-1/2 overflow-hidden flex flex-col">
+                {/* Header panel pedidos */}
+                <div className="px-5 py-4 bg-slate-700 flex-shrink-0">
+                  <h3 className="font-bold text-white text-sm">
+                    Pedidos del Reparto ({repartidorSeleccionado.pedidos.length})
+                  </h3>
+                  <p className="text-slate-300 text-xs mt-0.5">{repartidorSeleccionado.zonaNombre}</p>
+                </div>
+                {/* Lista de pedidos */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {repartidorSeleccionado.pedidos.map(p => (
+                    <div key={p.id} className="bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-gray-700">#{p.numeroTicket}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                            p.estado === 'Entregado' ? 'bg-green-100 text-green-700' :
+                            p.estado === 'NoEntregado' ? 'bg-red-100 text-red-700' :
+                            p.estado === 'Cancelado' ? 'bg-gray-100 text-gray-500' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>{p.estado}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {p.formaPago && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              p.formaPago.toLowerCase().includes('efectivo')
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>{p.formaPago}</span>
+                          )}
+                          <span className="text-sm font-bold text-gray-800">${p.total.toLocaleString('es-AR')}</span>
+                        </div>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                        <span>{p.nombreCliente || 'Sin cliente'}</span>
+                        {p.direccionEntrega && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <span className="truncate">{p.direccionEntrega}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

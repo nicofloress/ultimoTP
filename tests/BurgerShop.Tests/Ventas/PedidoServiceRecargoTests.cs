@@ -6,6 +6,7 @@ using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Domain.Interfaces.Catalogo;
 using BurgerShop.Domain.Interfaces.Finanzas;
+using BurgerShop.Application.Inventario.Interfaces;
 using Moq;
 
 namespace BurgerShop.Tests.Ventas;
@@ -45,7 +46,8 @@ public class PedidoServiceRecargoTests
             _productoRepoMock.Object,
             _comboRepoMock.Object,
             _formaPagoRepoMock.Object,
-            _cajaRepoMock.Object);
+            _cajaRepoMock.Object,
+            new Mock<IMovimientoService>().Object);
 
         // Setup genérico: GetSiguienteNumeroTicketAsync devuelve 1
         _pedidoRepoMock

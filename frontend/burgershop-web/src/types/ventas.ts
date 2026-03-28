@@ -92,17 +92,20 @@ export interface TipoCliente {
   id: number;
   nombre: string;
   descripcion?: string;
+  listaPrecioId?: number;
   activo: boolean;
 }
 
 export interface CrearTipoClienteDto {
   nombre: string;
   descripcion?: string;
+  listaPrecioId?: number;
 }
 
 export interface ActualizarTipoClienteDto {
   nombre: string;
   descripcion?: string;
+  listaPrecioId?: number;
 }
 
 export enum TipoFactura {

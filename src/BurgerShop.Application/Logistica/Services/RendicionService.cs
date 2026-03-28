@@ -1,5 +1,7 @@
+using BurgerShop.Application.Inventario.Interfaces;
 using BurgerShop.Application.Logistica.DTOs;
 using BurgerShop.Application.Logistica.Interfaces;
+using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
@@ -11,11 +13,15 @@ public class RendicionService : IRendicionService
 {
     private readonly IRendicionRepository _rendicionRepo;
     private readonly IPedidoRepository _pedidoRepo;
+    private readonly IMovimientoService _movimientoService;
+    private readonly IVentaService _ventaService;
 
-    public RendicionService(IRendicionRepository rendicionRepo, IPedidoRepository pedidoRepo)
+    public RendicionService(IRendicionRepository rendicionRepo, IPedidoRepository pedidoRepo, IMovimientoService movimientoService, IVentaService ventaService)
     {
         _rendicionRepo = rendicionRepo;
         _pedidoRepo = pedidoRepo;
+        _movimientoService = movimientoService;
+        _ventaService = ventaService;
     }
 
     public async Task<RendicionDto> CrearRendicionAsync(CrearRendicionDto dto)
@@ -182,6 +188,40 @@ public class RendicionService : IRendicionService
         _rendicionRepo.Update(rendicion);
         await _rendicionRepo.SaveChangesAsync();
 
+        // Al aprobar, generar movimientos de CAJA (ING_VTA) para los pedidos entregados
+        if (dto.Aprobada)
+        {
+            var pedidosEntregados = rendicion.Detalles
+                .Where(d => d.Estado == "Entregado")
+                .Select(d => d.PedidoId)
+                .ToList();
+
+            foreach (var pedidoId in pedidosEntregados)
+            {
+                try
+                {
+                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(pedidoId, 1, null);
+                }
+                catch
+                {
+                    // No bloquear la aprobación si falla un movimiento individual
+                }
+            }
+
+            // Crear Ventas de tipo Domicilio para cada pedido entregado
+            foreach (var pedidoId in pedidosEntregados)
+            {
+                try
+                {
+                    await _ventaService.CrearVentaDomicilioAsync(pedidoId, 1, null);
+                }
+                catch
+                {
+                    // No bloquear la aprobación
+                }
+            }
+        }
+
         var zonas = await GetZonasParaRendicionAsync(rendicion);
         return ToDto(rendicion, zonas);
     }
@@ -253,6 +293,22 @@ public class RendicionService : IRendicionService
 
             var nombreRepartidor = reparto.Repartidor?.Nombre ?? string.Empty;
 
+            var pedidosDto = pedidos.Select(p =>
+            {
+                string? formaPago = p.Pagos.Any()
+                    ? p.Pagos.FirstOrDefault()?.FormaPago?.Nombre
+                    : p.FormaPago?.Nombre;
+
+                return new PedidoPendienteRendicionDto(
+                    p.Id,
+                    p.NumeroTicket ?? "",
+                    p.Estado.ToString(),
+                    p.Cliente?.Nombre,
+                    p.DireccionEntrega,
+                    formaPago,
+                    p.Total);
+            }).ToList();
+
             resultado.Add(new RepartidorPendienteRendicionDto(
                 reparto.RepartidorId,
                 nombreRepartidor,
@@ -263,7 +319,8 @@ public class RendicionService : IRendicionService
                 noEntregados.Count,
                 totalEfectivo,
                 totalTransferencia,
-                totalNoEntregado));
+                totalNoEntregado,
+                pedidosDto));
         }
 
         return resultado;

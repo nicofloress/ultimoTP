@@ -1,8 +1,8 @@
 import api from './client';
 import { Pedido, TipoPedido } from '../types';
 
-export const getPedidos = (fecha?: string, estado?: number) =>
-  api.get<Pedido[]>('/pedidos', { params: { fecha, estado } }).then(r => r.data);
+export const getPedidos = (fecha?: string, estado?: number, fechaHasta?: string) =>
+  api.get<Pedido[]>('/pedidos', { params: { fecha, fechaHasta, estado } }).then(r => r.data);
 
 export const getPedido = (id: number) => api.get<Pedido>(`/pedidos/${id}`).then(r => r.data);
 
@@ -34,3 +34,19 @@ export const actualizarPedido = (id: number, data: Partial<Parameters<typeof cre
 export const getTicket = (id: number) => api.get(`/pedidos/${id}/ticket`).then(r => r.data);
 
 export const prepararTodos = () => api.put('/pedidos/preparar-todos').then(r => r.data);
+
+export interface PedidoStats {
+  pedidosHoy: number;
+  pedidosAyer: number;
+  porcentajeVariacionAyer: number;
+  pedidosUltimos7Dias: number;
+  porcentajeVariacion7Dias: number;
+  pedidosAnioAnterior: number;
+  porcentajeVariacionAnio: number;
+  totalPedidosFecha: number;
+  ticketPromedio: number;
+  totalBruto: number;
+}
+
+export const getPedidoStats = (fecha?: string) =>
+  api.get<PedidoStats>('/pedidos/stats', { params: { fecha } }).then(r => r.data);

@@ -112,7 +112,9 @@ export default function ListasPrecioPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Listas de Precios</h1>
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+        <h2 className="text-lg font-bold text-white">Listas de Precios</h2>
+      </div>
 
       {/* Formulario crear/editar */}
       <form onSubmit={handleSubmit} className="flex gap-2 mb-6 items-end">
