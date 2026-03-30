@@ -5,7 +5,7 @@ import { getTiposCliente, crearTipoCliente, actualizarTipoCliente, eliminarTipoC
 import { getListasPrecios } from '../../api/listasPrecios';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
-const emptyForm = { nombre: '', descripcion: '', listaPrecioId: '' as string };
+const emptyForm = { nombre: '', descripcion: '', listaPrecioId: '' as string, permiteCuentaCorriente: false };
 
 export default function TiposClientePage() {
   const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
@@ -25,6 +25,7 @@ export default function TiposClientePage() {
       nombre: form.nombre,
       descripcion: form.descripcion || undefined,
       listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
+      permiteCuentaCorriente: form.permiteCuentaCorriente,
     };
     if (editando) {
       await actualizarTipoCliente(editando.id, data);
@@ -43,6 +44,7 @@ export default function TiposClientePage() {
       nombre: tc.nombre,
       descripcion: tc.descripcion || '',
       listaPrecioId: tc.listaPrecioId ? String(tc.listaPrecioId) : '',
+      permiteCuentaCorriente: tc.permiteCuentaCorriente,
     });
     setShowForm(true);
   };
@@ -96,6 +98,15 @@ export default function TiposClientePage() {
               <option key={l.id} value={l.id}>{l.nombre}</option>
             ))}
           </select>
+          <label className="flex items-center gap-2 col-span-2">
+            <input
+              type="checkbox"
+              checked={form.permiteCuentaCorriente}
+              onChange={e => setForm({ ...form, permiteCuentaCorriente: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
+            />
+            <span className="text-sm font-medium text-gray-700">Permite Cuenta Corriente</span>
+          </label>
           <div className="col-span-2 flex gap-2">
             <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
               {editando ? 'Actualizar' : 'Crear'}
@@ -114,6 +125,7 @@ export default function TiposClientePage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista de Precios</th>
+              <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Cta Cte</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
@@ -123,6 +135,12 @@ export default function TiposClientePage() {
                 <td className="px-4 py-3 text-sm font-medium">{tc.nombre}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{tc.descripcion || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{tc.listaPrecioId ? listasPrecios.find(l => l.id === tc.listaPrecioId)?.nombre || '-' : 'Precio Base'}</td>
+                <td className="px-4 py-3 text-sm text-center">
+                  {tc.permiteCuentaCorriente
+                    ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>
+                    : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No</span>
+                  }
+                </td>
                 <td className="px-4 py-3 text-sm text-right">
                   <button onClick={() => handleEditar(tc)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => handleEliminar(tc.id)} className="text-red-600 hover:underline">Eliminar</button>
@@ -131,7 +149,7 @@ export default function TiposClientePage() {
             ))}
             {tiposCliente.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td>
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td>
               </tr>
             )}
           </tbody>

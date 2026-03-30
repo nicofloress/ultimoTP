@@ -181,6 +181,23 @@ public class PedidoService : IPedidoService
         }
 
         var created = await _pedidoRepo.GetByIdWithLineasAsync(pedido.Id);
+
+        // Ventas POS (ParaLlevar): generar movimientos de stock + caja inmediatamente
+        if (dto.Tipo == TipoPedido.ParaLlevar)
+        {
+            try
+            {
+                await _movimientoService.RegistrarMovimientosVentaStockAsync(pedido.Id, 1, null);
+                // Solo generar ingreso de caja si está pago (no es cuenta corriente)
+                if (dto.EstaPago)
+                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(pedido.Id, 1, null);
+            }
+            catch
+            {
+                // No bloquear la creación del pedido si falla el registro de movimientos
+            }
+        }
+
         return ToDto(created!);
     }
 

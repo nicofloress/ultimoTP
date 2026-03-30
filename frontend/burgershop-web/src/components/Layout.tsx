@@ -34,6 +34,7 @@ const menuSections: MenuSection[] = [
   {
     title: 'Administracion',
     items: [
+      { to: '/catalogo/clientes', label: 'Clientes', adminOnly: true },
       { to: '/catalogo/categorias', label: 'Categorias' },
       { to: '/catalogo/productos', label: 'Articulos' },
       { to: '/catalogo/combos', label: 'Combos' },
@@ -49,6 +50,7 @@ const menuSections: MenuSection[] = [
     items: [
       { to: '/finanzas/caja', label: 'Caja Diaria', adminOnly: true },
       { to: '/finanzas/rendiciones', label: 'Rendiciones', adminOnly: true },
+      { to: '/finanzas/cuenta-corriente', label: 'Cuenta Corriente', adminOnly: true },
     ],
   },
   {
@@ -157,14 +159,14 @@ export default function Layout() {
       >
         <div className="flex-1 flex flex-col min-w-[16rem]">
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto py-3">
+          <nav className="flex-1 overflow-y-auto py-2 sidebar-scroll">
             {filteredSections.map((section, sIdx) => (
               <div key={sIdx}>
                 {sIdx > 0 && (
-                  <div className="mx-4 my-2 border-t border-slate-700" />
+                  <div className="mx-4 my-1 border-t border-slate-700" />
                 )}
                 {section.title && (
-                  <div className="px-5 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <div className="px-5 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                     {section.title}
                   </div>
                 )}
@@ -174,7 +176,7 @@ export default function Layout() {
                     to={item.to}
                     end={item.end}
                     className={({ isActive }) =>
-                      `block mx-2 px-3 py-2.5 rounded text-sm font-medium transition-colors ${
+                      `block mx-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                         isActive
                           ? 'bg-slate-700 text-white border-l-4 border-amber-500 pl-2'
                           : 'hover:bg-slate-700/60 hover:text-white border-l-4 border-transparent pl-2'

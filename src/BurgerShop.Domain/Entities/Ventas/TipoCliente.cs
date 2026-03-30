@@ -8,7 +8,8 @@ public class TipoCliente
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
     public int? ListaPrecioId { get; set; }
-    public bool Activo { get; set; } = true;
+    public bool Activo                  { get; set; } = true;
+    public bool PermiteCuentaCorriente  { get; set; } = false;
 
     public ListaPrecio? ListaPrecio { get; set; }
 }

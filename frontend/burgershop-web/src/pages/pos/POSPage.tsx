@@ -12,6 +12,7 @@ import { getListasPrecios } from '../../api/listasPrecios';
 import { getZonas } from '../../api/zonas';
 import { getTiposCliente } from '../../api/tiposCliente';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
+import { registrarCargo } from '../../api/cuentaCorriente';
 import { useGlobalToast } from '../../components/Toast';
 import PagoDivididoPanel from '../../components/PagoDivididoPanel';
 import { getCajaAbierta, abrirCaja } from '../../api/caja';
@@ -51,7 +52,7 @@ export default function POSPage() {
 
   // Pago
   const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState<number | undefined>();
-  const [modoPago, setModoPago] = useState<'total' | 'dividido'>('total');
+  const [modoPago, setModoPago] = useState<'total' | 'dividido' | 'cuentaCorriente'>('total');
   const [pagosDivididos, setPagosDivididos] = useState<CrearPagoDto[]>([]);
   const [montoPagado, setMontoPagado] = useState(0);
   const [descuento, setDescuento] = useState(0);
@@ -74,6 +75,9 @@ export default function POSPage() {
   const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
   const [cajaMontoInicial, setCajaMontoInicial] = useState(0);
   const [cajaObservaciones, setCajaObservaciones] = useState('');
+
+  // Loading
+  const [guardando, setGuardando] = useState(false);
 
   // Estado post-creacion
   const [ticketCreado, setTicketCreado] = useState<string | null>(null);
@@ -129,6 +133,10 @@ export default function POSPage() {
     } else {
       setListaPrecioSeleccionada(undefined);
     }
+    // Si el tipo no permite Cta Cte y estaba en ese modo, resetear
+    if (!tipo?.permiteCuentaCorriente) {
+      setModoPago(prev => prev === 'cuentaCorriente' ? 'total' : prev);
+    }
   }, [tipoClienteSeleccionado, tiposCliente]);
 
   // Precios segun lista seleccionada
@@ -150,6 +158,7 @@ export default function POSPage() {
     setClienteSeleccionado(cliente);
     setNombreCliente(cliente.nombre);
     setTelefonoCliente(cliente.telefono || '');
+    if (cliente.tipoClienteId) setTipoClienteSeleccionado(cliente.tipoClienteId);
     if (cliente.listaPrecioId) setListaPrecioSeleccionada(cliente.listaPrecioId);
     setBusquedaCliente(cliente.nombre + (cliente.telefono ? ` - ${cliente.telefono}` : ''));
     setMostrarSugerencias(false);
@@ -320,7 +329,12 @@ export default function POSPage() {
 
   // --- Crear pedido ---
   const handleCrearPedido = async () => {
-    if (carrito.length === 0) return;
+    if (carrito.length === 0 || guardando) return;
+    if (modoPago === 'cuentaCorriente' && !clienteSeleccionado) {
+      showToast('Debe seleccionar un cliente para venta a cuenta corriente', 'error');
+      return;
+    }
+    setGuardando(true);
     try {
       const pedido = await crearPedido({
         tipo: envioADomicilio ? TipoPedido.Domicilio : TipoPedido.ParaLlevar,
@@ -332,7 +346,9 @@ export default function POSPage() {
         descuento: descuentoCalculado,
         formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
         clienteId: clienteSeleccionado?.id,
-        notaInterna: notaInterna || undefined,
+        notaInterna: modoPago === 'cuentaCorriente'
+          ? `[CTA CTE] ${notaInterna || `Venta a crédito - ${clienteSeleccionado?.nombre || ''}`}`
+          : (notaInterna || undefined),
         tipoFactura,
         estaPago: true,
         pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
@@ -344,9 +360,22 @@ export default function POSPage() {
           notas: item.notas,
         })),
       });
+      // Si es cuenta corriente, registrar cargo
+      if (modoPago === 'cuentaCorriente' && clienteSeleccionado) {
+        try {
+          await registrarCargo({
+            clienteId: clienteSeleccionado.id,
+            monto: pedido.total,
+            pedidoId: pedido.id,
+            observaciones: `Venta a crédito - ${pedido.numeroTicket}`,
+          });
+        } catch {
+          showToast('Venta creada pero error al cargar a cuenta corriente', 'error');
+        }
+      }
       setTicketCreado(pedido.numeroTicket);
       setUltimoPedidoId(pedido.id);
-      showToast('Venta registrada correctamente', 'success');
+      showToast(modoPago === 'cuentaCorriente' ? 'Venta a crédito registrada' : 'Venta registrada correctamente', 'success');
       // Reset
       setCarrito([]);
       setNombreCliente('');
@@ -370,6 +399,8 @@ export default function POSPage() {
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al registrar la venta';
       showToast(msg, 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -402,7 +433,9 @@ export default function POSPage() {
     setTicketParaImprimir(ticket);
   };
 
-  const listoParaGuardar = carrito.length > 0 && deuda <= 0;
+  const tipoClienteActual = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
+  const permiteCuentaCorriente = !!tipoClienteActual?.permiteCuentaCorriente;
+  const listoParaGuardar = carrito.length > 0 && (modoPago === 'cuentaCorriente' || deuda <= 0);
 
   // Shared input class for consistent sizing
   const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
@@ -416,66 +449,64 @@ export default function POSPage() {
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-1.5">
           <h2 className="text-lg font-bold text-white">Punto de Venta</h2>
         </div>
-        {/* Header: Cliente + Factura */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 mb-1.5">
-          <div className="flex items-center gap-2">
-            {/* Buscar cliente */}
-            <div className="flex-1 relative" ref={clienteInputRef}>
-              <div className="relative">
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <input
-                  type="text"
-                  value={clienteSeleccionado ? `${clienteSeleccionado.nombre}${clienteSeleccionado.telefono ? ` - ${clienteSeleccionado.telefono}` : ''}` : busquedaCliente}
-                  onChange={e => {
-                    if (clienteSeleccionado) setClienteSeleccionado(null);
-                    setBusquedaCliente(e.target.value);
-                    setNombreCliente(e.target.value);
-                    setMostrarSugerencias(true);
-                  }}
-                  onFocus={() => clientesSugeridos.length > 0 && setMostrarSugerencias(true)}
-                  placeholder="Buscar cliente..."
-                  className={`${inputClass} pl-8 ${clienteSeleccionado ? 'bg-amber-50 border-amber-300' : ''}`}
-                />
-                {clienteSeleccionado && (
-                  <button onClick={limpiarCliente} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-0.5">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                )}
-              </div>
-              {mostrarSugerencias && clientesSugeridos.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-b-md shadow-lg max-h-48 overflow-y-auto">
-                  {clientesSugeridos.map(c => (
-                    <button key={c.id} onClick={() => seleccionarCliente(c)} className="w-full text-left px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors">
-                      <div className="font-medium text-gray-800">{c.nombre}</div>
-                      <div className="flex gap-3 text-xs text-gray-500">
-                        {c.telefono && <span>{c.telefono}</span>}
-                        {c.direccion && <span className="truncate">{c.direccion}</span>}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+        {/* Header: Cliente + Tipo + Factura */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 mb-1.5 space-y-2">
+          {/* Fila 1: Buscador de cliente */}
+          <div className="relative" ref={clienteInputRef}>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <input
+                type="text"
+                value={clienteSeleccionado ? `${clienteSeleccionado.nombre}${clienteSeleccionado.telefono ? ` - ${clienteSeleccionado.telefono}` : ''}` : busquedaCliente}
+                onChange={e => {
+                  if (clienteSeleccionado) setClienteSeleccionado(null);
+                  setBusquedaCliente(e.target.value);
+                  setNombreCliente(e.target.value);
+                  setMostrarSugerencias(true);
+                }}
+                onFocus={() => clientesSugeridos.length > 0 && setMostrarSugerencias(true)}
+                placeholder="Buscar cliente por nombre o telefono..."
+                className={`w-full border-2 rounded-lg px-3 py-2.5 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors ${clienteSeleccionado ? 'bg-amber-50 border-amber-400 font-medium' : 'border-gray-300'}`}
+              />
+              {clienteSeleccionado && (
+                <button onClick={limpiarCliente} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               )}
             </div>
+            {mostrarSugerencias && clientesSugeridos.length > 0 && (
+              <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
+                {clientesSugeridos.map(c => (
+                  <button key={c.id} onClick={() => seleccionarCliente(c)} className="w-full text-left px-3 py-2.5 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors">
+                    <div className="font-medium text-gray-800">{c.nombre}</div>
+                    <div className="flex gap-3 text-xs text-gray-500">
+                      {c.telefono && <span>{c.telefono}</span>}
+                      {c.direccion && <span className="truncate">{c.direccion}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* Tipo Cliente */}
+          {/* Fila 2: Tipo Cliente + Factura */}
+          <div className="flex items-center gap-2">
             <select
               value={tipoClienteSeleccionado || ''}
               onChange={e => setTipoClienteSeleccionado(Number(e.target.value) || undefined)}
-              className={`${selectClass} w-auto min-w-[120px] font-medium`}
+              className={`${selectClass} flex-1 font-medium`}
             >
               <option value="">Tipo Cliente...</option>
               {tiposCliente.filter(tc => tc.activo).map(tc => (
                 <option key={tc.id} value={tc.id}>{tc.nombre}</option>
               ))}
             </select>
-
-            {/* Tipo Factura */}
             <select
               value={tipoFactura}
               onChange={e => setTipoFactura(Number(e.target.value))}
-              className={`${selectClass} w-auto min-w-[120px] font-medium`}
+              className={`${selectClass} flex-1 font-medium`}
             >
               <option value={TipoFactura.FacturaA}>Factura A</option>
               <option value={TipoFactura.FacturaB}>Factura B</option>
@@ -691,6 +722,14 @@ export default function POSPage() {
               >
                 Dividido
               </button>
+              {permiteCuentaCorriente && (
+                <button
+                  onClick={() => setModoPago('cuentaCorriente')}
+                  className={`flex-1 py-1.5 text-sm font-medium transition-all border-l border-gray-300 ${modoPago === 'cuentaCorriente' ? 'bg-purple-600 text-white shadow-inner' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Cta Cte
+                </button>
+              )}
             </div>
           </div>
 
@@ -733,13 +772,25 @@ export default function POSPage() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : modoPago === 'dividido' ? (
             <PagoDivididoPanel
               formasPago={formasPago}
               totalVenta={subtotal - descuentoCalculado}
               pagos={pagosDivididos}
               onChange={setPagosDivididos}
             />
+          ) : (
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-3 space-y-1">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <span className="text-sm font-semibold text-purple-800">Cuenta Corriente</span>
+              </div>
+              <p className="text-xs text-purple-600">
+                Se cargará ${total.toLocaleString('es-AR')} a la cuenta de {clienteSeleccionado?.nombre || nombreCliente || 'cliente'}
+              </p>
+            </div>
           )}
 
           {/* Descuento */}
@@ -901,20 +952,44 @@ export default function POSPage() {
             </button>
             <button
               onClick={handleCrearPedido}
-              disabled={carrito.length === 0}
+              disabled={carrito.length === 0 || guardando}
               className={`flex-[1.5] py-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                listoParaGuardar
-                  ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800 focus:ring-green-500 shadow-md shadow-green-600/20'
-                  : carrito.length > 0
-                    ? 'bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 focus:ring-amber-500'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                guardando
+                  ? 'bg-slate-500 text-white cursor-wait'
+                  : listoParaGuardar
+                    ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800 focus:ring-green-500 shadow-md shadow-green-600/20'
+                    : carrito.length > 0
+                      ? 'bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 focus:ring-amber-500'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
-              Guardar
+              {guardando ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Procesando...
+                </span>
+              ) : 'Guardar'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* ============ OVERLAY PROCESANDO ============ */}
+      {guardando && (
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
+            <svg className="animate-spin w-10 h-10 text-amber-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-lg font-semibold text-gray-700">Procesando venta...</span>
+            <span className="text-sm text-gray-400">Por favor espere</span>
+          </div>
+        </div>
+      )}
 
       {/* ============ MODAL CATALOGO ============ */}
       {mostrarCatalogo && (

@@ -93,6 +93,7 @@ export interface TipoCliente {
   nombre: string;
   descripcion?: string;
   listaPrecioId?: number;
+  permiteCuentaCorriente: boolean;
   activo: boolean;
 }
 
@@ -100,12 +101,14 @@ export interface CrearTipoClienteDto {
   nombre: string;
   descripcion?: string;
   listaPrecioId?: number;
+  permiteCuentaCorriente: boolean;
 }
 
 export interface ActualizarTipoClienteDto {
   nombre: string;
   descripcion?: string;
   listaPrecioId?: number;
+  permiteCuentaCorriente: boolean;
 }
 
 export enum TipoFactura {
@@ -147,4 +150,5 @@ export interface CrearClienteDto {
   direccion?: string;
   zonaId?: number;
   tipoClienteId?: number;
+  listaPrecioId?: number;
 }

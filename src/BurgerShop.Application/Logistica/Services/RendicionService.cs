@@ -15,13 +15,15 @@ public class RendicionService : IRendicionService
     private readonly IPedidoRepository _pedidoRepo;
     private readonly IMovimientoService _movimientoService;
     private readonly IVentaService _ventaService;
+    private readonly ICuentaCorrienteService _cuentaCorrienteService;
 
-    public RendicionService(IRendicionRepository rendicionRepo, IPedidoRepository pedidoRepo, IMovimientoService movimientoService, IVentaService ventaService)
+    public RendicionService(IRendicionRepository rendicionRepo, IPedidoRepository pedidoRepo, IMovimientoService movimientoService, IVentaService ventaService, ICuentaCorrienteService cuentaCorrienteService)
     {
         _rendicionRepo = rendicionRepo;
         _pedidoRepo = pedidoRepo;
         _movimientoService = movimientoService;
         _ventaService = ventaService;
+        _cuentaCorrienteService = cuentaCorrienteService;
     }
 
     public async Task<RendicionDto> CrearRendicionAsync(CrearRendicionDto dto)
@@ -57,10 +59,16 @@ public class RendicionService : IRendicionService
         // Calcular totales por forma de pago para entregados
         decimal totalEfectivo = 0;
         decimal totalTransferencia = 0;
+        decimal totalCuentaCorriente = 0;
 
         foreach (var pedido in entregados)
         {
-            if (pedido.Pagos.Any())
+            // Pedidos de cuenta corriente: estaPago=true pero sin forma de pago (nota con [CTA CTE])
+            if (pedido.EstaPago && pedido.NotaInterna?.Contains("[CTA CTE]") == true)
+            {
+                totalCuentaCorriente += pedido.Total;
+            }
+            else if (pedido.Pagos.Any())
             {
                 foreach (var pago in pedido.Pagos)
                 {
@@ -90,6 +98,7 @@ public class RendicionService : IRendicionService
             Fecha = DateTime.Now,
             TotalEfectivo = totalEfectivo,
             TotalTransferencia = totalTransferencia,
+            TotalCuentaCorriente = totalCuentaCorriente,
             TotalNoEntregado = totalNoEntregado,
             CantidadEntregados = entregados.Count,
             CantidadNoEntregados = noEntregados.Count,
@@ -214,6 +223,19 @@ public class RendicionService : IRendicionService
                 try
                 {
                     await _ventaService.CrearVentaDomicilioAsync(pedidoId, 1, null);
+                }
+                catch
+                {
+                    // No bloquear la aprobación
+                }
+            }
+
+            // Saldar cuentas corrientes si el pedido fue cobrado en la entrega
+            foreach (var pedidoId in pedidosEntregados)
+            {
+                try
+                {
+                    await _cuentaCorrienteService.SaldarCargoPorPedidoAsync(pedidoId, null);
                 }
                 catch
                 {
@@ -376,6 +398,7 @@ public class RendicionService : IRendicionService
             r.Fecha,
             r.TotalEfectivo,
             r.TotalTransferencia,
+            r.TotalCuentaCorriente,
             r.TotalNoEntregado,
             r.CantidadEntregados,
             r.CantidadNoEntregados,

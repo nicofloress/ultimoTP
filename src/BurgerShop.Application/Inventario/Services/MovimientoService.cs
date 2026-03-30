@@ -47,7 +47,7 @@ public class MovimientoService : IMovimientoService
         var movimiento = new Movimiento
         {
             FechaMovimiento = dto.FechaMovimiento,
-            FechaProceso    = DateTime.UtcNow,
+            FechaProceso    = DateTime.Now,
             CodigoAccionId  = dto.CodigoAccionId,
             ProductoId      = dto.ProductoId,
             LocalId         = dto.LocalId,
@@ -87,7 +87,7 @@ public class MovimientoService : IMovimientoService
             ?? throw new InvalidOperationException("Código ING_VTA (Id=2) no encontrado en la base de datos.");
 
         var movimientos = new List<(Movimiento Movimiento, CodigoAccion Codigo)>();
-        var ahora       = DateTime.UtcNow;
+        var ahora       = DateTime.Now;
         var hoy         = ahora.Date;
 
         // Un movimiento EGR_VTA por cada producto o componente de combo
@@ -98,45 +98,39 @@ public class MovimientoService : IMovimientoService
                 // Producto suelto
                 var mov = CrearEgrVta(linea.ProductoId.Value, localId,
                     linea.Cantidad, linea.PrecioUnitario, linea.Subtotal,
-                    pedidoId, usuarioId, hoy, ahora);
+                    pedidoId, usuarioId, ahora, ahora);
 
                 movimientos.Add((mov, codigoEgr));
                 await ActualizarArtiStockVentaAsync(linea.ProductoId.Value, localId, linea.Cantidad);
             }
             else if (linea.ComboId.HasValue)
             {
-                // Expandir combo: un movimiento por cada producto del combo
-                var combo = await _comboRepo.GetByIdAsync(linea.ComboId.Value);
-                if (combo?.Detalles != null && combo.Detalles.Any())
+                var combo = await _comboRepo.GetByIdWithDetallesAsync(linea.ComboId.Value);
+                // 1 solo movimiento con el nombre del combo
+                var mov = new Movimiento
+                {
+                    FechaMovimiento = ahora,
+                    FechaProceso    = ahora,
+                    CodigoAccionId  = codigoEgr.Id,
+                    ProductoId      = null,
+                    LocalId         = localId,
+                    Cantidad        = linea.Cantidad,
+                    PrecioUnitario  = linea.PrecioUnitario,
+                    MontoTotal      = linea.Subtotal,
+                    PedidoId        = pedidoId,
+                    UsuarioId       = usuarioId,
+                    Observaciones   = combo?.Nombre ?? $"Combo #{linea.ComboId}"
+                };
+                movimientos.Add((mov, codigoEgr));
+
+                // Actualizar stock de cada producto componente
+                if (combo?.Detalles != null)
                 {
                     foreach (var detalle in combo.Detalles)
                     {
                         var cantidadTotal = linea.Cantidad * detalle.Cantidad;
-                        var mov = CrearEgrVta(detalle.ProductoId, localId,
-                            cantidadTotal, 0m, 0m,
-                            pedidoId, usuarioId, hoy, ahora);
-
-                        movimientos.Add((mov, codigoEgr));
                         await ActualizarArtiStockVentaAsync(detalle.ProductoId, localId, cantidadTotal);
                     }
-                }
-                else
-                {
-                    // Combo sin detalles: registrar sin ProductoId
-                    var mov = new Movimiento
-                    {
-                        FechaMovimiento = hoy,
-                        FechaProceso    = ahora,
-                        CodigoAccionId  = codigoEgr.Id,
-                        ProductoId      = null,
-                        LocalId         = localId,
-                        Cantidad        = linea.Cantidad,
-                        PrecioUnitario  = linea.PrecioUnitario,
-                        MontoTotal      = linea.Subtotal,
-                        PedidoId        = pedidoId,
-                        UsuarioId       = usuarioId
-                    };
-                    movimientos.Add((mov, codigoEgr));
                 }
             }
         }
@@ -144,7 +138,7 @@ public class MovimientoService : IMovimientoService
         // Un movimiento ING_VTA por el total del pedido (ingreso de caja)
         var movIngreso = new Movimiento
         {
-            FechaMovimiento = hoy,
+            FechaMovimiento = ahora,
             FechaProceso    = ahora,
             CodigoAccionId  = codigoIng.Id,
             ProductoId      = null,
@@ -178,7 +172,7 @@ public class MovimientoService : IMovimientoService
         var codigoEgr = await _codigoRepo.GetByIdAsync(1); // EGR_VTA
         if (codigoEgr is null) return;
 
-        var ahora = DateTime.UtcNow;
+        var ahora = DateTime.Now;
         var hoy = ahora.Date;
 
         foreach (var linea in pedido.Lineas)
@@ -187,22 +181,36 @@ public class MovimientoService : IMovimientoService
             {
                 var mov = CrearEgrVta(linea.ProductoId.Value, localId,
                     linea.Cantidad, linea.PrecioUnitario, linea.Subtotal,
-                    pedidoId, usuarioId, hoy, ahora);
+                    pedidoId, usuarioId, ahora, ahora);
                 await _movRepo.AddAsync(mov);
                 await ActualizarArtiStockVentaAsync(linea.ProductoId.Value, localId, linea.Cantidad);
             }
             else if (linea.ComboId.HasValue)
             {
-                var combo = await _comboRepo.GetByIdAsync(linea.ComboId.Value);
+                var combo = await _comboRepo.GetByIdWithDetallesAsync(linea.ComboId.Value);
+                // 1 solo movimiento con el nombre del combo
+                var mov = new Movimiento
+                {
+                    FechaMovimiento = ahora,
+                    FechaProceso    = ahora,
+                    CodigoAccionId  = 1, // EGR_VTA
+                    ProductoId      = null,
+                    LocalId         = localId,
+                    Cantidad        = linea.Cantidad,
+                    PrecioUnitario  = linea.PrecioUnitario,
+                    MontoTotal      = linea.Subtotal,
+                    PedidoId        = pedidoId,
+                    UsuarioId       = usuarioId,
+                    Observaciones   = combo?.Nombre ?? $"Combo #{linea.ComboId}"
+                };
+                await _movRepo.AddAsync(mov);
+
+                // Actualizar stock de cada producto componente
                 if (combo?.Detalles != null)
                 {
                     foreach (var detalle in combo.Detalles)
                     {
                         var cantidadTotal = linea.Cantidad * detalle.Cantidad;
-                        var mov = CrearEgrVta(detalle.ProductoId, localId,
-                            cantidadTotal, 0m, 0m,
-                            pedidoId, usuarioId, hoy, ahora);
-                        await _movRepo.AddAsync(mov);
                         await ActualizarArtiStockVentaAsync(detalle.ProductoId, localId, cantidadTotal);
                     }
                 }
@@ -224,7 +232,7 @@ public class MovimientoService : IMovimientoService
         var codigoIng = await _codigoRepo.GetByIdAsync(2); // ING_VTA
         if (codigoIng is null) return;
 
-        var ahora = DateTime.UtcNow;
+        var ahora = DateTime.Now;
 
         var movIngreso = new Movimiento
         {
@@ -250,7 +258,7 @@ public class MovimientoService : IMovimientoService
     public async Task AnularMovimientosVentaAsync(int pedidoId, int? usuarioId)
     {
         var originales = await _movRepo.GetByPedidoAsync(pedidoId);
-        var ahora      = DateTime.UtcNow;
+        var ahora      = DateTime.Now;
         var hoy        = ahora.Date;
 
         foreach (var orig in originales)
@@ -265,7 +273,7 @@ public class MovimientoService : IMovimientoService
 
             var anulacion = new Movimiento
             {
-                FechaMovimiento = hoy,
+                FechaMovimiento = ahora,
                 FechaProceso    = ahora,
                 CodigoAccionId  = codigoInverso.Id,
                 ProductoId      = orig.ProductoId,
@@ -361,7 +369,7 @@ public class MovimientoService : IMovimientoService
             stock.EgresoLocal += cantidad;
 
         stock.StockFinal         = stock.IngresoLocal - stock.EgresoLocal - stock.VentaLocal;
-        stock.UltimaModificacion = DateTime.UtcNow;
+        stock.UltimaModificacion = DateTime.Now;
 
         await _stockRepo.AddOrUpdateAsync(stock);
     }
@@ -372,7 +380,7 @@ public class MovimientoService : IMovimientoService
 
         stock.VentaLocal         += cantidad;
         stock.StockFinal          = stock.IngresoLocal - stock.EgresoLocal - stock.VentaLocal;
-        stock.UltimaModificacion  = DateTime.UtcNow;
+        stock.UltimaModificacion  = DateTime.Now;
 
         await _stockRepo.AddOrUpdateAsync(stock);
     }
@@ -391,7 +399,7 @@ public class MovimientoService : IMovimientoService
             stock.EgresoLocal  = Math.Max(0, stock.EgresoLocal  - cantidad);
 
         stock.StockFinal         = stock.IngresoLocal - stock.EgresoLocal - stock.VentaLocal;
-        stock.UltimaModificacion = DateTime.UtcNow;
+        stock.UltimaModificacion = DateTime.Now;
 
         await _stockRepo.AddOrUpdateAsync(stock);
     }
@@ -407,7 +415,7 @@ public class MovimientoService : IMovimientoService
                 EgresoLocal        = 0,
                 VentaLocal         = 0,
                 StockFinal         = 0,
-                UltimaModificacion = DateTime.UtcNow
+                UltimaModificacion = DateTime.Now
             };
     }
 

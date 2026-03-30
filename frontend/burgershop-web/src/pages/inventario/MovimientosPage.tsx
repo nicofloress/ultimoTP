@@ -311,7 +311,7 @@ export default function MovimientosPage() {
                     <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaProceso)}</td>
                     <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{m.codigoAccionCodigo}</td>
                     <td className="px-3 py-2">{m.codigoAccionNombre}</td>
-                    <td className="px-3 py-2">{m.productoNombre || '-'}</td>
+                    <td className="px-3 py-2">{m.productoNombre || m.observaciones || '-'}</td>
                     <td
                       className={`px-3 py-2 font-semibold whitespace-nowrap ${
                         esPositivo ? 'text-green-600' : 'text-red-600'

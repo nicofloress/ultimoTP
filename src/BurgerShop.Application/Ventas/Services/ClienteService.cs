@@ -40,7 +40,8 @@ public class ClienteService : IClienteService
             Telefono = dto.Telefono,
             Direccion = dto.Direccion,
             ZonaId = dto.ZonaId,
-            TipoClienteId = dto.TipoClienteId
+            TipoClienteId = dto.TipoClienteId,
+            ListaPrecioId = dto.ListaPrecioId
         };
 
         await _repo.AddAsync(cliente);
@@ -61,6 +62,7 @@ public class ClienteService : IClienteService
         cliente.Direccion = dto.Direccion;
         cliente.ZonaId = dto.ZonaId;
         cliente.TipoClienteId = dto.TipoClienteId;
+        cliente.ListaPrecioId = dto.ListaPrecioId;
 
         _repo.Update(cliente);
         await _repo.SaveChangesAsync();
@@ -88,5 +90,7 @@ public class ClienteService : IClienteService
         c.ZonaId,
         c.Zona?.Nombre,
         c.TipoClienteId,
-        c.TipoCliente?.Nombre);
+        c.TipoCliente?.Nombre,
+        c.ListaPrecioId,
+        c.ListaPrecio?.Nombre);
 }

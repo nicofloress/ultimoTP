@@ -571,8 +571,20 @@ function PedidoCard({
           ))}
         </div>
 
-        {/* Total */}
-        <p className="font-bold text-amber-700 text-lg mb-3">${pedido.total.toLocaleString('es-AR')}</p>
+        {/* Total + Badge Cta Cte */}
+        <div className="flex items-center gap-2 mb-3">
+          <p className="font-bold text-amber-700 text-lg">${pedido.total.toLocaleString('es-AR')}</p>
+          {pedido.estaPago && pedido.notaInterna?.includes('[CTA CTE]') && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-300">
+              Cuenta Corriente
+            </span>
+          )}
+          {pedido.estaPago && !pedido.notaInterna?.includes('[CTA CTE]') && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
+              Pagado
+            </span>
+          )}
+        </div>
 
         {/* Acciones */}
         {isAsignado && (
@@ -825,12 +837,19 @@ function EntregaModal({
 
           {/* Estado de pago */}
           {pedido.estaPago ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center gap-2">
-              <span className="text-green-600 font-semibold text-sm">{'\u2705'} Pedido ya pagado</span>
-              {pedido.formaPagoNombre && (
-                <span className="text-green-500 text-xs">({pedido.formaPagoNombre})</span>
-              )}
-            </div>
+            pedido.notaInterna?.includes('[CTA CTE]') ? (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 flex items-center gap-2">
+                <span className="text-purple-700 font-semibold text-sm">{'\uD83D\uDCB3'} Pagado por Cuenta Corriente</span>
+                <span className="text-purple-500 text-xs">No cobrar al cliente</span>
+              </div>
+            ) : (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center gap-2">
+                <span className="text-green-600 font-semibold text-sm">{'\u2705'} Pedido ya pagado</span>
+                {pedido.formaPagoNombre && (
+                  <span className="text-green-500 text-xs">({pedido.formaPagoNombre})</span>
+                )}
+              </div>
+            )
           ) : (
             <div className="mb-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">

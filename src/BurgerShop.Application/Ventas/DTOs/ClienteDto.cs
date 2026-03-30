@@ -8,18 +8,22 @@ public record ClienteDto(
     int? ZonaId,
     string? ZonaNombre,
     int? TipoClienteId,
-    string? TipoClienteNombre);
+    string? TipoClienteNombre,
+    int? ListaPrecioId,
+    string? ListaPrecioNombre);
 
 public record CrearClienteDto(
     string Nombre,
     string? Telefono,
     string? Direccion,
     int? ZonaId,
-    int? TipoClienteId);
+    int? TipoClienteId,
+    int? ListaPrecioId);
 
 public record ActualizarClienteDto(
     string Nombre,
     string? Telefono,
     string? Direccion,
     int? ZonaId,
-    int? TipoClienteId);
+    int? TipoClienteId,
+    int? ListaPrecioId);

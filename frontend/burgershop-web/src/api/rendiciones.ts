@@ -28,6 +28,7 @@ export interface RendicionDto {
   fecha: string;
   totalEfectivo: number;
   totalTransferencia: number;
+  totalCuentaCorriente: number;
   totalNoEntregado: number;
   cantidadEntregados: number;
   cantidadNoEntregados: number;

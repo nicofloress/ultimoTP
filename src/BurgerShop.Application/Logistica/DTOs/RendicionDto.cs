@@ -7,6 +7,7 @@ public record RendicionDto(
     DateTime Fecha,
     decimal TotalEfectivo,
     decimal TotalTransferencia,
+    decimal TotalCuentaCorriente,
     decimal TotalNoEntregado,
     int CantidadEntregados,
     int CantidadNoEntregados,

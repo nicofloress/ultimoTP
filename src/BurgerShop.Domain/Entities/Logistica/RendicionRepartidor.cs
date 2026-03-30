@@ -10,6 +10,7 @@ public class RendicionRepartidor
     // Totales calculados
     public decimal TotalEfectivo { get; set; }
     public decimal TotalTransferencia { get; set; }
+    public decimal TotalCuentaCorriente { get; set; }
     public decimal TotalNoEntregado { get; set; }
     public int CantidadEntregados { get; set; }
     public int CantidadNoEntregados { get; set; }

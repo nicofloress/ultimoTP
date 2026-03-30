@@ -27,7 +27,9 @@ public class CodigoAccionConfiguration : IEntityTypeConfiguration<CodigoAccion>
             new CodigoAccion { Id = 9,  Codigo = "DEV_PRV", Nombre = "Devolucion a Proveedor",         Signo = -1, TipoAfectacion = TipoAfectacion.Stock, Activo = true },
             new CodigoAccion { Id = 10, Codigo = "ING_TRF", Nombre = "Ingreso por Transferencia",      Signo =  1, TipoAfectacion = TipoAfectacion.Stock, Activo = true },
             new CodigoAccion { Id = 11, Codigo = "EGR_TRF", Nombre = "Egreso por Transferencia",       Signo = -1, TipoAfectacion = TipoAfectacion.Stock, Activo = true },
-            new CodigoAccion { Id = 12, Codigo = "EGR_CNS", Nombre = "Egreso por Consumo Interno",     Signo = -1, TipoAfectacion = TipoAfectacion.Stock, Activo = true }
+            new CodigoAccion { Id = 12, Codigo = "EGR_CNS", Nombre = "Egreso por Consumo Interno",     Signo = -1, TipoAfectacion = TipoAfectacion.Stock, Activo = true },
+            new CodigoAccion { Id = 13, Codigo = "PAG_CTA", Nombre = "Pago Cuenta Corriente",           Signo =  1, TipoAfectacion = TipoAfectacion.Caja,  Activo = true },
+            new CodigoAccion { Id = 14, Codigo = "NTC_CTA", Nombre = "Nota de Credito Cta Cte",         Signo = -1, TipoAfectacion = TipoAfectacion.Caja,  Activo = true }
         );
     }
 }

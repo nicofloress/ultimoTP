@@ -18,6 +18,7 @@ public static class VentasServiceExtensions
         services.AddScoped<IRepository<TipoCliente>, Repository<TipoCliente>>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IVentaRepository, VentaRepository>();
+        services.AddScoped<ICuentaCorrienteRepository, CuentaCorrienteRepository>();
 
         // Services
         services.AddScoped<IPedidoService, PedidoService>();
@@ -25,6 +26,7 @@ public static class VentasServiceExtensions
         services.AddScoped<ITipoClienteService, TipoClienteService>();
         services.AddScoped<IClienteService, ClienteService>();
         services.AddScoped<IVentaService, VentaService>();
+        services.AddScoped<ICuentaCorrienteService, CuentaCorrienteService>();
 
         return services;
     }

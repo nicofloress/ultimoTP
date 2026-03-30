@@ -14,6 +14,7 @@ public class ClienteRepository : Repository<Cliente>, IClienteRepository
         return await _dbSet
             .Include(c => c.Zona)
             .Include(c => c.TipoCliente)
+            .Include(c => c.ListaPrecio)
             .OrderBy(c => c.Nombre)
             .ToListAsync();
     }
@@ -23,6 +24,7 @@ public class ClienteRepository : Repository<Cliente>, IClienteRepository
         return await _dbSet
             .Include(c => c.Zona)
             .Include(c => c.TipoCliente)
+            .Include(c => c.ListaPrecio)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
@@ -33,6 +35,7 @@ public class ClienteRepository : Repository<Cliente>, IClienteRepository
         return await _dbSet
             .Include(c => c.Zona)
             .Include(c => c.TipoCliente)
+            .Include(c => c.ListaPrecio)
             .Where(c => c.Nombre.ToLower().Contains(termLower)
                      || (c.Telefono != null && c.Telefono.ToLower().Contains(termLower)))
             .OrderBy(c => c.Nombre)
