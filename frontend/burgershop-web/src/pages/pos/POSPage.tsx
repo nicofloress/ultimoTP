@@ -327,6 +327,22 @@ export default function POSPage() {
   // --- Crear pedido ---
   const handleCrearPedido = async () => {
     if (carrito.length === 0 || guardando) return;
+    if (!cajaAbiertaId) {
+      showToast('Debe abrir la caja antes de registrar una venta', 'error');
+      return;
+    }
+    if (modoPago === 'total' && !formaPagoSeleccionada) {
+      showToast('Debe seleccionar una forma de pago', 'error');
+      return;
+    }
+    if (modoPago === 'dividido' && pagosDivididos.length === 0) {
+      showToast('Debe agregar al menos un pago en modo dividido', 'error');
+      return;
+    }
+    if (modoPago === 'dividido' && deuda > 0) {
+      showToast(`Faltan $${deuda.toLocaleString('es-AR')} por cubrir en pago dividido`, 'error');
+      return;
+    }
     if (modoPago === 'cuentaCorriente' && !clienteSeleccionado) {
       showToast('Debe seleccionar un cliente para venta a cuenta corriente', 'error');
       return;
@@ -344,6 +360,10 @@ export default function POSPage() {
     }
     if (envioADomicilio && !direccionEnvio.trim()) {
       showToast('Debe ingresar una dirección de entrega', 'error');
+      return;
+    }
+    if (envioADomicilio && !zonaSeleccionada) {
+      showToast('Debe seleccionar una zona para el envío', 'error');
       return;
     }
 

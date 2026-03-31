@@ -266,40 +266,57 @@ public class VentaService : IVentaService
     // ----------------------------------------------------------------
     private async Task RegistrarMovimientosStockVentaAsync(Venta venta, int? usuarioId)
     {
-        var hoy = DateTime.Now.Date;
+        // Usar el método de MovimientoService que ya maneja combos como 1 movimiento
+        // y actualiza ArtiStock de cada componente internamente
+        // Para eso necesitamos un PedidoId, pero la venta no tiene pedido.
+        // Generamos los movimientos manualmente siguiendo la misma lógica.
+        var ahora = DateTime.Now;
 
         foreach (var detalle in venta.Detalles)
         {
             if (detalle.ProductoId.HasValue)
             {
-                // Producto suelto: un movimiento EGR_VTA
                 await _movimientoService.RegistrarMovimientoAsync(new CrearMovimientoDto(
                     CodigoAccionId: 1, // EGR_VTA
                     ProductoId: detalle.ProductoId.Value,
                     LocalId: venta.LocalId,
                     Cantidad: detalle.Cantidad,
                     PrecioUnitario: detalle.PrecioUnitario,
-                    FechaMovimiento: hoy,
+                    FechaMovimiento: ahora,
                     Observaciones: $"Venta {venta.NumeroVenta}"),
                     usuarioId);
             }
             else if (detalle.ComboId.HasValue)
             {
-                // Combo: expandir sus productos y registrar uno por cada componente
                 var combo = await _comboRepo.GetByIdWithDetallesAsync(detalle.ComboId.Value);
-                if (combo?.Detalles != null && combo.Detalles.Any())
+
+                // 1 movimiento visible con nombre del combo (sin ProductoId, no afecta stock)
+                await _movimientoService.RegistrarMovimientoAsync(new CrearMovimientoDto(
+                    CodigoAccionId: 1, // EGR_VTA
+                    ProductoId: null,
+                    LocalId: venta.LocalId,
+                    Cantidad: detalle.Cantidad,
+                    PrecioUnitario: detalle.PrecioUnitario,
+                    FechaMovimiento: ahora,
+                    Observaciones: combo?.Nombre ?? $"Combo #{detalle.ComboId} - Venta {venta.NumeroVenta}"),
+                    usuarioId);
+
+                // Actualizar ArtiStock de cada componente via MovimientoService
+                // Usamos RegistrarMovimientosVentaStockAsync si hay un pedido vinculado,
+                // pero como no hay pedido, actualizamos directamente con movimientos individuales
+                // que tienen Observaciones = null para distinguirlos visualmente
+                if (combo?.Detalles != null)
                 {
-                    foreach (var componenteCombo in combo.Detalles)
+                    foreach (var comp in combo.Detalles)
                     {
-                        var cantidadTotal = detalle.Cantidad * componenteCombo.Cantidad;
                         await _movimientoService.RegistrarMovimientoAsync(new CrearMovimientoDto(
-                            CodigoAccionId: 1, // EGR_VTA
-                            ProductoId: componenteCombo.ProductoId,
+                            CodigoAccionId: 1,
+                            ProductoId: comp.ProductoId,
                             LocalId: venta.LocalId,
-                            Cantidad: cantidadTotal,
+                            Cantidad: detalle.Cantidad * comp.Cantidad,
                             PrecioUnitario: 0m,
-                            FechaMovimiento: hoy,
-                            Observaciones: $"Venta {venta.NumeroVenta} - Combo"),
+                            FechaMovimiento: ahora,
+                            Observaciones: $"[COMBO] {combo.Nombre}"),
                             usuarioId);
                     }
                 }
@@ -309,15 +326,13 @@ public class VentaService : IVentaService
 
     private async Task RegistrarMovimientoCajaVentaAsync(Venta venta, int? usuarioId)
     {
-        var hoy = DateTime.Now.Date;
-
         await _movimientoService.RegistrarMovimientoAsync(new CrearMovimientoDto(
             CodigoAccionId: 2, // ING_VTA
             ProductoId: null,
             LocalId: venta.LocalId,
             Cantidad: 1,
             PrecioUnitario: venta.Total,
-            FechaMovimiento: hoy,
+            FechaMovimiento: DateTime.Now,
             Observaciones: $"Venta {venta.NumeroVenta}"),
             usuarioId);
     }

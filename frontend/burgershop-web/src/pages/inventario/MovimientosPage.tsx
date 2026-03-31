@@ -78,7 +78,8 @@ export default function MovimientosPage() {
     try {
       const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
       const data = await getMovimientosPorLocal(1, fechaDesde, hasta);
-      setMovimientos(data);
+      // Ocultar movimientos internos de combos (desglose de stock)
+      setMovimientos(data.filter(m => !m.observaciones?.startsWith('[COMBO]')));
     } catch (err) {
       console.error('Error cargando movimientos:', err);
       showToast('Error al cargar movimientos', 'error');
