@@ -12,10 +12,6 @@ import { FormaPago } from '../../types/ventas';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { useGlobalToast } from '../../components/Toast';
 
-const hoy = (() => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-})();
 
 const formatFecha = (f: string) => {
   if (!f) return '-';
