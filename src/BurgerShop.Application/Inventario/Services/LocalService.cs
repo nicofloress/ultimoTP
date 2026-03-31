@@ -27,8 +27,9 @@ public class LocalService : ILocalService
     {
         var local = new Local
         {
-            Nombre       = dto.Nombre,
-            Direccion    = dto.Direccion,
+            Nombre = dto.Nombre,
+            Direccion = dto.Direccion,
+            EmpresaId = dto.EmpresaId,
             EsPuntoVenta = dto.EsPuntoVenta
         };
         await _repo.AddAsync(local);
@@ -41,10 +42,11 @@ public class LocalService : ILocalService
         var local = await _repo.GetByIdAsync(id)
             ?? throw new InvalidOperationException($"Local {id} no encontrado.");
 
-        local.Nombre       = dto.Nombre;
-        local.Direccion    = dto.Direccion;
+        local.Nombre = dto.Nombre;
+        local.Direccion = dto.Direccion;
+        local.EmpresaId = dto.EmpresaId;
         local.EsPuntoVenta = dto.EsPuntoVenta;
-        local.Activo       = dto.Activo;
+        local.Activo = dto.Activo;
 
         _repo.Update(local);
         await _repo.SaveChangesAsync();
@@ -61,7 +63,6 @@ public class LocalService : ILocalService
         await _repo.SaveChangesAsync();
     }
 
-    // ---------------------------------------------------------------
     private static LocalDto ToDto(Local l) =>
-        new(l.Id, l.Nombre, l.Direccion, l.EsPuntoVenta, l.Activo);
+        new(l.Id, l.Nombre, l.Direccion, l.EmpresaId, l.Empresa?.NombreFantasia ?? l.Empresa?.RazonSocial, l.EsPuntoVenta, l.Activo);
 }

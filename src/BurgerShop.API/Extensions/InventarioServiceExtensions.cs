@@ -14,6 +14,7 @@ public static class InventarioServiceExtensions
         services.AddScoped<IArtiStockRepository, ArtiStockRepository>();
 
         // Servicios
+        services.AddScoped<IEmpresaService, EmpresaService>();
         services.AddScoped<ILocalService, LocalService>();
         services.AddScoped<IMovimientoService, MovimientoService>();
         services.AddScoped<IArtiStockService, ArtiStockService>();
