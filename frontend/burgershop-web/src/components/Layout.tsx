@@ -35,14 +35,15 @@ const menuSections: MenuSection[] = [
     title: 'Administracion',
     items: [
       { to: '/catalogo/clientes', label: 'Clientes', adminOnly: true },
-      { to: '/catalogo/categorias', label: 'Categorias' },
+
       { to: '/catalogo/productos', label: 'Articulos' },
       { to: '/catalogo/combos', label: 'Combos' },
       { to: '/catalogo/repartidores', label: 'Repartidores', adminOnly: true },
       { to: '/catalogo/proveedores', label: 'Proveedores', adminOnly: true },
-      { to: '/catalogo/tiposCliente', label: 'Tipos de Cliente', adminOnly: true },
+
       { to: '/catalogo/listasprecios', label: 'Listas de Precios', adminOnly: true },
       { to: '/catalogo/usuarios', label: 'Usuarios', adminOnly: true },
+
     ],
   },
   {

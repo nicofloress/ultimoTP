@@ -1,16 +1,506 @@
 import { useEffect, useState } from 'react';
-import { Zona, Repartidor, FormaPago } from '../../types';
+import { Zona, Repartidor, FormaPago, Categoria } from '../../types';
+import { TipoCliente } from '../../types/ventas';
 import { getZonas, createZona, updateZona, deleteZona } from '../../api/zonas';
 import { getRepartidores, crearRepartidor as createRepartidor, actualizarRepartidor as updateRepartidor, eliminarRepartidor as deleteRepartidor, asignarZonas } from '../../api/repartidores';
 import { getFormasPago, createFormaPago, updateFormaPago, deleteFormaPago } from '../../api/formasPago';
+import { getTiposCliente, crearTipoCliente, actualizarTipoCliente, eliminarTipoCliente } from '../../api/tiposCliente';
+import { getCategorias, createCategoria, updateCategoria, deleteCategoria } from '../../api/categorias';
+import { EmpresaDto, getEmpresas, crearEmpresa, actualizarEmpresa, eliminarEmpresa } from '../../api/empresas';
+import { LocalDto, getLocales, crearLocal, actualizarLocal, eliminarLocal } from '../../api/locales';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
+type TabType = 'zonas' | 'repartidores' | 'formasPago' | 'tiposCliente' | 'categorias' | 'empresas' | 'locales';
+
+// ─── Tipos Cliente Tab ───────────────────────────────────────
+const tcEmptyForm = { nombre: '', descripcion: '', permiteCuentaCorriente: false };
+
+function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombre: string) => void }) {
+  const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
+  const [form, setForm] = useState(tcEmptyForm);
+  const [editando, setEditando] = useState<TipoCliente | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const cargar = () => getTiposCliente().then(setTiposCliente);
+  useEffect(() => { cargar(); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data = {
+      nombre: form.nombre,
+      descripcion: form.descripcion || undefined,
+      permiteCuentaCorriente: form.permiteCuentaCorriente,
+    };
+    if (editando) {
+      await actualizarTipoCliente(editando.id, data);
+    } else {
+      await crearTipoCliente(data);
+    }
+    setForm(tcEmptyForm);
+    setEditando(null);
+    setShowForm(false);
+    cargar();
+  };
+
+  const handleEditar = (tc: TipoCliente) => {
+    setEditando(tc);
+    setForm({ nombre: tc.nombre, descripcion: tc.descripcion || '', permiteCuentaCorriente: tc.permiteCuentaCorriente });
+    setShowForm(true);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Tipos de Cliente</h2>
+        <button
+          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(tcEmptyForm); }}
+          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+        >
+          {showForm ? 'Cerrar' : 'Nuevo Tipo de Cliente'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
+          <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2" required />
+          <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2" />
+          <label className="flex items-center gap-2 col-span-2">
+            <input type="checkbox" checked={form.permiteCuentaCorriente} onChange={e => setForm({ ...form, permiteCuentaCorriente: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400" />
+            <span className="text-sm font-medium text-gray-700">Permite Cuenta Corriente</span>
+          </label>
+          <div className="col-span-2 flex gap-2">
+            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
+              <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Cta Cte</th>
+              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {tiposCliente.map(tc => (
+              <tr key={tc.id}>
+                <td className="px-4 py-3 text-sm font-medium">{tc.nombre}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{tc.descripcion || '-'}</td>
+                <td className="px-4 py-3 text-sm text-center">
+                  {tc.permiteCuentaCorriente
+                    ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>
+                    : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No</span>
+                  }
+                </td>
+                <td className="px-4 py-3 text-sm text-right">
+                  <button onClick={() => handleEditar(tc)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                  <button onClick={() => onConfirm('tipoCliente', tc.id, tc.nombre)} className="text-red-600 hover:underline">Eliminar</button>
+                </td>
+              </tr>
+            ))}
+            {tiposCliente.length === 0 && (
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Categorias Tab ──────────────────────────────────────────
+function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombre: string) => void }) {
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [nombre, setNombre] = useState('');
+  const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);
+  const [editando, setEditando] = useState<Categoria | null>(null);
+
+  const cargar = () => getCategorias().then(setCategorias);
+  useEffect(() => { cargar(); }, []);
+
+  const categoriasPadre = categorias.filter(c => !c.categoriaPadreId);
+
+  const categoriasOrdenadas = () => {
+    const padres = categorias.filter(c => !c.categoriaPadreId);
+    const result: Categoria[] = [];
+    for (const padre of padres) {
+      result.push(padre);
+      const hijas = categorias.filter(c => c.categoriaPadreId === padre.id);
+      result.push(...hijas);
+    }
+    const idsEnResult = new Set(result.map(c => c.id));
+    for (const cat of categorias) {
+      if (!idsEnResult.has(cat.id)) result.push(cat);
+    }
+    return result;
+  };
+
+  const opcionesPadre = () => {
+    if (!editando) return categoriasPadre;
+    return categoriasPadre.filter(c => c.id !== editando.id);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editando) {
+      await updateCategoria(editando.id, { nombre, activa: editando.activa, categoriaPadreId });
+    } else {
+      await createCategoria({ nombre, categoriaPadreId });
+    }
+    setNombre('');
+    setCategoriaPadreId(null);
+    setEditando(null);
+    cargar();
+  };
+
+  const handleEditar = (cat: Categoria) => {
+    setEditando(cat);
+    setNombre(cat.nombre);
+    setCategoriaPadreId(cat.categoriaPadreId ?? null);
+  };
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-6 items-end">
+        <div className="flex-1">
+          <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la categoria" className="border rounded px-3 py-2 w-full" required />
+        </div>
+        <div className="w-56">
+          <select value={categoriaPadreId ?? ''} onChange={e => setCategoriaPadreId(e.target.value ? Number(e.target.value) : null)} className="border rounded px-3 py-2 w-full">
+            <option value="">Sin categoria padre</option>
+            {opcionesPadre().map(c => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+        {editando && (
+          <button type="button" onClick={() => { setEditando(null); setNombre(''); setCategoriaPadreId(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+        )}
+      </form>
+
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Categoria Padre</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {categoriasOrdenadas().map(cat => {
+              const esHija = !!cat.categoriaPadreId;
+              return (
+                <tr key={cat.id} className={esHija ? 'bg-gray-50/50' : ''}>
+                  <td className="px-4 py-3 text-sm">{cat.id}</td>
+                  <td className={`px-4 py-3 text-sm ${esHija ? 'pl-10' : 'font-semibold'}`}>
+                    {esHija && <span className="text-gray-400 mr-1">--</span>}
+                    {cat.nombre}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{cat.categoriaPadreNombre ?? '-'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={`px-2 py-1 rounded text-xs ${cat.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {cat.activa ? 'Activa' : 'Inactiva'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right">
+                    <button onClick={() => handleEditar(cat)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                    <button onClick={() => onConfirm('categoria', cat.id, cat.nombre)} className="text-red-600 hover:underline">Desactivar</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Empresas Tab ────────────────────────────────────────────
+const condicionesIva = [
+  'Responsable Inscripto',
+  'Monotributista',
+  'Exento',
+  'Consumidor Final',
+  'Responsable No Inscripto',
+];
+
+const empEmptyForm = {
+  razonSocial: '',
+  nombreFantasia: '',
+  cuit: '',
+  condicionIva: '',
+  direccionFiscal: '',
+  localidad: '',
+  provincia: '',
+  codigoPostal: '',
+  telefono: '',
+  email: '',
+  ingresosBrutos: '',
+  inicioActividades: '',
+  puntoVenta: '',
+};
+
+function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombre: string) => void }) {
+  const [empresas, setEmpresas] = useState<EmpresaDto[]>([]);
+  const [form, setForm] = useState(empEmptyForm);
+  const [editando, setEditando] = useState<EmpresaDto | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const cargar = () => getEmpresas().then(setEmpresas);
+  useEffect(() => { cargar(); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data = {
+      razonSocial: form.razonSocial,
+      nombreFantasia: form.nombreFantasia || undefined,
+      cuit: form.cuit,
+      condicionIva: form.condicionIva,
+      direccionFiscal: form.direccionFiscal || undefined,
+      localidad: form.localidad || undefined,
+      provincia: form.provincia || undefined,
+      codigoPostal: form.codigoPostal || undefined,
+      telefono: form.telefono || undefined,
+      email: form.email || undefined,
+      ingresosBrutos: form.ingresosBrutos || undefined,
+      inicioActividades: form.inicioActividades || undefined,
+      puntoVenta: form.puntoVenta ? Number(form.puntoVenta) : undefined,
+    };
+    if (editando) {
+      await actualizarEmpresa(editando.id, { ...data, activa: editando.activa });
+    } else {
+      await crearEmpresa(data);
+    }
+    setForm(empEmptyForm);
+    setEditando(null);
+    setShowForm(false);
+    cargar();
+  };
+
+  const handleEditar = (emp: EmpresaDto) => {
+    setEditando(emp);
+    setForm({
+      razonSocial: emp.razonSocial,
+      nombreFantasia: emp.nombreFantasia || '',
+      cuit: emp.cuit,
+      condicionIva: emp.condicionIva,
+      direccionFiscal: emp.direccionFiscal || '',
+      localidad: emp.localidad || '',
+      provincia: emp.provincia || '',
+      codigoPostal: emp.codigoPostal || '',
+      telefono: emp.telefono || '',
+      email: emp.email || '',
+      ingresosBrutos: emp.ingresosBrutos || '',
+      inicioActividades: emp.inicioActividades || '',
+      puntoVenta: emp.puntoVenta ? String(emp.puntoVenta) : '',
+    });
+    setShowForm(true);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Empresas</h2>
+        <button
+          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(empEmptyForm); }}
+          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+        >
+          {showForm ? 'Cerrar' : 'Nueva Empresa'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-3 gap-4">
+          <input type="text" value={form.razonSocial} onChange={e => setForm({ ...form, razonSocial: e.target.value })} placeholder="Razon Social" className="border rounded px-3 py-2" required />
+          <input type="text" value={form.nombreFantasia} onChange={e => setForm({ ...form, nombreFantasia: e.target.value })} placeholder="Nombre Fantasia" className="border rounded px-3 py-2" />
+          <input type="text" value={form.cuit} onChange={e => setForm({ ...form, cuit: e.target.value })} placeholder="CUIT (ej: 20-12345678-9)" className="border rounded px-3 py-2" required />
+          <select value={form.condicionIva} onChange={e => setForm({ ...form, condicionIva: e.target.value })} className="border rounded px-3 py-2" required>
+            <option value="">Condicion IVA...</option>
+            {condicionesIva.map(c => (<option key={c} value={c}>{c}</option>))}
+          </select>
+          <input type="text" value={form.direccionFiscal} onChange={e => setForm({ ...form, direccionFiscal: e.target.value })} placeholder="Direccion Fiscal" className="border rounded px-3 py-2" />
+          <input type="text" value={form.localidad} onChange={e => setForm({ ...form, localidad: e.target.value })} placeholder="Localidad" className="border rounded px-3 py-2" />
+          <input type="text" value={form.provincia} onChange={e => setForm({ ...form, provincia: e.target.value })} placeholder="Provincia" className="border rounded px-3 py-2" />
+          <input type="text" value={form.codigoPostal} onChange={e => setForm({ ...form, codigoPostal: e.target.value })} placeholder="Codigo Postal" className="border rounded px-3 py-2" />
+          <input type="text" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="Telefono" className="border rounded px-3 py-2" />
+          <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Email" className="border rounded px-3 py-2" />
+          <input type="text" value={form.ingresosBrutos} onChange={e => setForm({ ...form, ingresosBrutos: e.target.value })} placeholder="Ingresos Brutos" className="border rounded px-3 py-2" />
+          <input type="date" value={form.inicioActividades} onChange={e => setForm({ ...form, inicioActividades: e.target.value })} placeholder="Inicio Actividades" className="border rounded px-3 py-2" />
+          <input type="number" value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} placeholder="Punto de Venta AFIP" className="border rounded px-3 py-2" />
+          <div className="col-span-3 flex gap-2">
+            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Razon Social</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre Fantasia</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">CUIT</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Condicion IVA</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
+              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {empresas.map(emp => (
+              <tr key={emp.id}>
+                <td className="px-4 py-3 text-sm font-medium">{emp.razonSocial}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{emp.nombreFantasia || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{emp.cuit}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{emp.condicionIva}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{emp.telefono || '-'}</td>
+                <td className="px-4 py-3 text-sm text-right">
+                  <button onClick={() => handleEditar(emp)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                  <button onClick={() => onConfirm('empresa', emp.id, emp.razonSocial)} className="text-red-600 hover:underline">Eliminar</button>
+                </td>
+              </tr>
+            ))}
+            {empresas.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hay empresas registradas</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Locales Tab ─────────────────────────────────────────────
+const locEmptyForm = { nombre: '', direccion: '', empresaId: '' as string, esPuntoVenta: false };
+
+function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombre: string) => void }) {
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [empresas, setEmpresas] = useState<EmpresaDto[]>([]);
+  const [form, setForm] = useState(locEmptyForm);
+  const [editando, setEditando] = useState<LocalDto | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const cargar = () => getLocales().then(setLocales);
+  useEffect(() => { cargar(); getEmpresas().then(setEmpresas); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data = {
+      nombre: form.nombre,
+      direccion: form.direccion || undefined,
+      empresaId: form.empresaId ? Number(form.empresaId) : undefined,
+      esPuntoVenta: form.esPuntoVenta,
+    };
+    if (editando) {
+      await actualizarLocal(editando.id, { ...data, activo: editando.activo });
+    } else {
+      await crearLocal(data);
+    }
+    setForm(locEmptyForm);
+    setEditando(null);
+    setShowForm(false);
+    cargar();
+  };
+
+  const handleEditar = (loc: LocalDto) => {
+    setEditando(loc);
+    setForm({
+      nombre: loc.nombre,
+      direccion: loc.direccion || '',
+      empresaId: loc.empresaId ? String(loc.empresaId) : '',
+      esPuntoVenta: loc.esPuntoVenta,
+    });
+    setShowForm(true);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Locales</h2>
+        <button
+          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(locEmptyForm); }}
+          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+        >
+          {showForm ? 'Cerrar' : 'Nuevo Local'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
+          <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2" required />
+          <input type="text" value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Direccion" className="border rounded px-3 py-2" />
+          <select value={form.empresaId} onChange={e => setForm({ ...form, empresaId: e.target.value })} className="border rounded px-3 py-2">
+            <option value="">Sin empresa</option>
+            {empresas.filter(emp => emp.activa).map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.razonSocial}</option>
+            ))}
+          </select>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={form.esPuntoVenta} onChange={e => setForm({ ...form, esPuntoVenta: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400" />
+            <span className="text-sm font-medium text-gray-700">Es Punto de Venta</span>
+          </label>
+          <div className="col-span-2 flex gap-2">
+            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Empresa</th>
+              <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Punto de Venta</th>
+              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {locales.map(loc => (
+              <tr key={loc.id}>
+                <td className="px-4 py-3 text-sm font-medium">{loc.nombre}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{loc.direccion || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{loc.empresaNombre || '-'}</td>
+                <td className="px-4 py-3 text-sm text-center">
+                  {loc.esPuntoVenta
+                    ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>
+                    : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No</span>
+                  }
+                </td>
+                <td className="px-4 py-3 text-sm text-right">
+                  <button onClick={() => handleEditar(loc)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                  <button onClick={() => onConfirm('local', loc.id, loc.nombre)} className="text-red-600 hover:underline">Eliminar</button>
+                </td>
+              </tr>
+            ))}
+            {locales.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No hay locales registrados</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Config Page Principal ───────────────────────────────────
 export default function ConfigPage() {
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [formasPagoList, setFormasPagoList] = useState<FormaPago[]>([]);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; tipo: string; id: number; nombre: string }>({ visible: false, tipo: '', id: 0, nombre: '' });
-  const [tab, setTab] = useState<'zonas' | 'repartidores' | 'formasPago'>('zonas');
+  const [tab, setTab] = useState<TabType>('zonas');
 
   // Zona form
   const [zonaForm, setZonaForm] = useState({ nombre: '', descripcion: '', costoEnvio: 0 });
@@ -86,24 +576,52 @@ export default function ConfigPage() {
     cargar();
   };
 
+  // Callback para ConfirmModal desde sub-tabs
+  const handleSubTabConfirm = (tipo: string, id: number, nombre: string) => {
+    setConfirmacion({ visible: true, tipo, id, nombre });
+  };
+
   const handleConfirmacion = async () => {
     const { tipo, id } = confirmacion;
     if (tipo === 'zona') await deleteZona(id);
     else if (tipo === 'repartidor') await deleteRepartidor(id);
     else if (tipo === 'formaPago') await deleteFormaPago(id);
+    else if (tipo === 'tipoCliente') await eliminarTipoCliente(id);
+    else if (tipo === 'categoria') await deleteCategoria(id);
+    else if (tipo === 'empresa') await eliminarEmpresa(id);
+    else if (tipo === 'local') await eliminarLocal(id);
     setConfirmacion({ visible: false, tipo: '', id: 0, nombre: '' });
+    // Forzar re-render de sub-tabs recargando
     cargar();
+    // Para sub-tabs que manejan su propio estado, usamos key trick
+    setSubTabKey(k => k + 1);
   };
+
+  const [subTabKey, setSubTabKey] = useState(0);
 
   const tituloConfirmacion = confirmacion.tipo === 'zona'
     ? 'Desactivar zona'
     : confirmacion.tipo === 'repartidor'
       ? 'Desactivar repartidor'
-      : 'Eliminar forma de pago';
+      : confirmacion.tipo === 'formaPago'
+        ? 'Eliminar forma de pago'
+        : confirmacion.tipo === 'tipoCliente'
+          ? 'Eliminar tipo de cliente'
+          : confirmacion.tipo === 'categoria'
+            ? 'Desactivar categoria'
+            : confirmacion.tipo === 'empresa'
+              ? 'Eliminar empresa'
+              : 'Eliminar local';
 
-  const mensajeConfirmacion = confirmacion.tipo === 'formaPago'
-    ? `Se eliminara la forma de pago "${confirmacion.nombre}"`
-    : `Se desactivara "${confirmacion.nombre}"`;
+  const mensajeConfirmacion = confirmacion.tipo === 'zona' || confirmacion.tipo === 'repartidor'
+    ? `Se desactivara "${confirmacion.nombre}"`
+    : confirmacion.tipo === 'categoria'
+      ? `Se desactivara la categoria "${confirmacion.nombre}"`
+      : `Se eliminara "${confirmacion.nombre}"`;
+
+  const textoBotonConfirmar = (confirmacion.tipo === 'zona' || confirmacion.tipo === 'repartidor' || confirmacion.tipo === 'categoria')
+    ? 'Desactivar'
+    : 'Eliminar';
 
   const handleEditarFp = (fp: FormaPago) => {
     setEditandoFp(fp);
@@ -116,15 +634,28 @@ export default function ConfigPage() {
     cargar();
   };
 
+  const tabBtn = (key: TabType, label: string) => (
+    <button
+      onClick={() => setTab(key)}
+      className={`px-4 py-2 rounded font-medium ${tab === key ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div>
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
         <h2 className="text-lg font-bold text-white">Configuracion</h2>
       </div>
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab('zonas')} className={`px-4 py-2 rounded font-medium ${tab === 'zonas' ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}>Zonas</button>
-        <button onClick={() => setTab('repartidores')} className={`px-4 py-2 rounded font-medium ${tab === 'repartidores' ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}>Repartidores</button>
-        <button onClick={() => setTab('formasPago')} className={`px-4 py-2 rounded font-medium ${tab === 'formasPago' ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}>Formas de Pago</button>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {tabBtn('zonas', 'Zonas')}
+        {tabBtn('repartidores', 'Repartidores')}
+        {tabBtn('formasPago', 'Formas de Pago')}
+        {tabBtn('tiposCliente', 'Tipos de Cliente')}
+        {tabBtn('categorias', 'Categorias')}
+        {tabBtn('empresas', 'Empresas')}
+        {tabBtn('locales', 'Locales')}
       </div>
 
       {/* Seccion Impresion */}
@@ -307,12 +838,17 @@ export default function ConfigPage() {
         </div>
       )}
 
+      {tab === 'tiposCliente' && <TiposClienteTab key={`tc-${subTabKey}`} onConfirm={handleSubTabConfirm} />}
+      {tab === 'categorias' && <CategoriasTab key={`cat-${subTabKey}`} onConfirm={handleSubTabConfirm} />}
+      {tab === 'empresas' && <EmpresasTab key={`emp-${subTabKey}`} onConfirm={handleSubTabConfirm} />}
+      {tab === 'locales' && <LocalesTab key={`loc-${subTabKey}`} onConfirm={handleSubTabConfirm} />}
+
       <ConfirmModal
         visible={confirmacion.visible}
         titulo={tituloConfirmacion}
         mensaje={mensajeConfirmacion}
         tipo="danger"
-        textoConfirmar={confirmacion.tipo === 'formaPago' ? 'Eliminar' : 'Desactivar'}
+        textoConfirmar={textoBotonConfirmar}
         onConfirmar={handleConfirmacion}
         onCancelar={() => setConfirmacion({ visible: false, tipo: '', id: 0, nombre: '' })}
       />

@@ -9,12 +9,12 @@ import POSPage from './pages/pos/POSPage';
 import PedidosPage from './pages/pos/PedidosPage';
 import HistorialPedidosPage from './pages/pos/HistorialPedidosPage';
 import CatalogoLayout from './pages/catalogo/CatalogoLayout';
-import CategoriasPage from './pages/catalogo/CategoriasPage';
+
 import ProductosPage from './pages/catalogo/ProductosPage';
 import CombosPage from './pages/catalogo/CombosPage';
 import ProveedoresPage from './pages/catalogo/ProveedoresPage';
 import RepartidoresPage from './pages/catalogo/RepartidoresPage';
-import TiposClientePage from './pages/catalogo/TiposClientePage';
+
 import ClientesPage from './pages/catalogo/ClientesPage';
 import ListasPrecioPage from './pages/catalogo/ListasPrecioPage';
 import UsuariosPage from './pages/catalogo/UsuariosPage';
@@ -27,6 +27,7 @@ import RendicionesPage from './pages/finanzas/RendicionesPage';
 import CuentaCorrientePage from './pages/finanzas/CuentaCorrientePage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
 import MovimientosPage from './pages/inventario/MovimientosPage';
+
 import LogsPage from './pages/sistema/LogsPage';
 import { RolUsuario } from './types/auth';
 
@@ -54,14 +55,13 @@ export default function App() {
             <Route path="/pedidos" element={<PedidosPage />} />
             <Route path="/historial" element={<HistorialPedidosPage />} />
             <Route path="/catalogo" element={<CatalogoLayout />}>
-              <Route index element={<Navigate to="categorias" replace />} />
-              <Route path="categorias" element={<CategoriasPage />} />
+              <Route index element={<Navigate to="productos" replace />} />
               <Route path="productos" element={<ProductosPage />} />
               <Route path="combos" element={<CombosPage />} />
               <Route path="proveedores" element={<ProveedoresPage />} />
               <Route path="repartidores" element={<RepartidoresPage />} />
               <Route path="clientes" element={<ClientesPage />} />
-              <Route path="tiposCliente" element={<TiposClientePage />} />
+
               <Route path="listasprecios" element={<ListasPrecioPage />} />
               <Route path="usuarios" element={<UsuariosPage />} />
             </Route>
