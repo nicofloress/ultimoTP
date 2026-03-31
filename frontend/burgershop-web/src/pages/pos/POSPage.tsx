@@ -6,7 +6,7 @@ import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
 import { crearPedido, getTicket } from '../../api/pedidos';
 import { crearVentaMostrador } from '../../api/ventas';
-import TicketPrint, { TicketPrintProps } from '../../components/TicketPrint';
+import { TicketPrintProps } from '../../components/TicketPrint';
 import ComprobanteXPrint from '../../components/ComprobanteXPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { buscarClientes } from '../../api/clientes';
