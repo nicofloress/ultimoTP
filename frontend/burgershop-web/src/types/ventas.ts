@@ -117,6 +117,8 @@ export enum TipoFactura {
 export interface ClienteDto {
   id: number;
   nombre: string;
+  cuit?: string;
+  email?: string;
   telefono?: string;
   direccion?: string;
   zonaId?: number;
@@ -143,6 +145,8 @@ export interface CrearPagoDto {
 
 export interface CrearClienteDto {
   nombre: string;
+  cuit?: string;
+  email?: string;
   telefono?: string;
   direccion?: string;
   zonaId?: number;

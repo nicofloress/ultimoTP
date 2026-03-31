@@ -11,6 +11,8 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 
 const emptyForm = {
   nombre: '',
+  cuit: '',
+  email: '',
   telefono: '',
   direccion: '',
   zonaId: '' as string,
@@ -42,6 +44,8 @@ export default function ClientesPage() {
     e.preventDefault();
     const data: CrearClienteDto = {
       nombre: form.nombre,
+      cuit: form.cuit || undefined,
+      email: form.email || undefined,
       telefono: form.telefono || undefined,
       direccion: form.direccion || undefined,
       zonaId: form.zonaId ? Number(form.zonaId) : undefined,
@@ -63,6 +67,8 @@ export default function ClientesPage() {
     setEditando(c);
     setForm({
       nombre: c.nombre,
+      cuit: c.cuit || '',
+      email: c.email || '',
       telefono: c.telefono || '',
       direccion: c.direccion || '',
       zonaId: c.zonaId ? String(c.zonaId) : '',
@@ -111,6 +117,20 @@ export default function ClientesPage() {
             placeholder="Nombre"
             className="border rounded px-3 py-2"
             required
+          />
+          <input
+            type="text"
+            value={form.cuit}
+            onChange={e => setForm({ ...form, cuit: e.target.value })}
+            placeholder="CUIT (ej: 20-12345678-9)"
+            className="border rounded px-3 py-2"
+          />
+          <input
+            type="email"
+            value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })}
+            placeholder="Email"
+            className="border rounded px-3 py-2"
           />
           <input
             type="text"
@@ -182,6 +202,8 @@ export default function ClientesPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">CUIT</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Email</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Zona</th>
@@ -194,6 +216,8 @@ export default function ClientesPage() {
             {clientesFiltrados.map(c => (
               <tr key={c.id}>
                 <td className="px-4 py-3 text-sm font-medium">{c.nombre}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{c.cuit || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{c.email || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.telefono || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.direccion || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.zonaNombre || '-'}</td>

@@ -37,6 +37,8 @@ public class ClienteService : IClienteService
         var cliente = new Cliente
         {
             Nombre = dto.Nombre,
+            Cuit = dto.Cuit,
+            Email = dto.Email,
             Telefono = dto.Telefono,
             Direccion = dto.Direccion,
             ZonaId = dto.ZonaId,
@@ -58,6 +60,8 @@ public class ClienteService : IClienteService
         if (cliente is null) return null;
 
         cliente.Nombre = dto.Nombre;
+        cliente.Cuit = dto.Cuit;
+        cliente.Email = dto.Email;
         cliente.Telefono = dto.Telefono;
         cliente.Direccion = dto.Direccion;
         cliente.ZonaId = dto.ZonaId;
@@ -85,6 +89,8 @@ public class ClienteService : IClienteService
     private static ClienteDto MapToDto(Cliente c) => new(
         c.Id,
         c.Nombre,
+        c.Cuit,
+        c.Email,
         c.Telefono,
         c.Direccion,
         c.ZonaId,

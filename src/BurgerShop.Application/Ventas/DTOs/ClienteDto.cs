@@ -3,6 +3,8 @@ namespace BurgerShop.Application.Ventas.DTOs;
 public record ClienteDto(
     int Id,
     string Nombre,
+    string? Cuit,
+    string? Email,
     string? Telefono,
     string? Direccion,
     int? ZonaId,
@@ -14,6 +16,8 @@ public record ClienteDto(
 
 public record CrearClienteDto(
     string Nombre,
+    string? Cuit,
+    string? Email,
     string? Telefono,
     string? Direccion,
     int? ZonaId,
@@ -22,6 +26,8 @@ public record CrearClienteDto(
 
 public record ActualizarClienteDto(
     string Nombre,
+    string? Cuit,
+    string? Email,
     string? Telefono,
     string? Direccion,
     int? ZonaId,
