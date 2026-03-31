@@ -213,7 +213,7 @@ export default function EntregasPage() {
   };
 
   const formatHora = (fecha: string) => {
-    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const verDetalle = async (pedidoId: number) => {

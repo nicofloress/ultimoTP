@@ -26,7 +26,7 @@ const formatFecha = (f: string) => {
 const formatFechaHora = (f: string) => {
   if (!f) return '-';
   const d = new Date(f);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 };
 
 const formatMonto = (m: number) =>
@@ -39,9 +39,37 @@ export default function CuentaCorrientePage() {
   const [soloConSaldo, setSoloConSaldo] = useState(true);
   const [seleccionada, setSeleccionada] = useState<CuentaCorrienteDto | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCuentaCorrienteDto[]>([]);
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+  const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  const [desde, setDesde] = useState(hoy);
+  const [hasta, setHasta] = useState(hoy);
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+
+  // Ordenamiento tabla movimientos
+  const [ordenCol, setOrdenCol] = useState<string>('fechaMovimiento');
+  const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleOrden = (col: string) => {
+    if (ordenCol === col) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setOrdenCol(col); setOrdenDir('asc'); }
+  };
+
+  const movimientosOrdenados = [...movimientos].sort((a, b) => {
+    const dir = ordenDir === 'asc' ? 1 : -1;
+    let va: string | number, vb: string | number;
+    switch (ordenCol) {
+      case 'fechaMovimiento': va = a.fechaMovimiento; vb = b.fechaMovimiento; break;
+      case 'tipo': va = a.tipo; vb = b.tipo; break;
+      case 'monto': va = a.monto; vb = b.monto; break;
+      case 'saldoResultante': va = a.saldoResultante; vb = b.saldoResultante; break;
+      case 'referencia': va = a.numeroTicket || a.numeroVenta || ''; vb = b.numeroTicket || b.numeroVenta || ''; break;
+      case 'usuarioNombre': va = a.usuarioNombre || ''; vb = b.usuarioNombre || ''; break;
+      case 'observaciones': va = a.observaciones || ''; vb = b.observaciones || ''; break;
+      default: return 0;
+    }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
 
   // Modal pago
   const [showPago, setShowPago] = useState(false);
@@ -288,17 +316,30 @@ export default function CuentaCorrientePage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="text-left px-4 py-2 font-medium text-gray-500">Fecha</th>
-                    <th className="text-left px-4 py-2 font-medium text-gray-500">Tipo</th>
-                    <th className="text-right px-4 py-2 font-medium text-gray-500">Monto</th>
-                    <th className="text-right px-4 py-2 font-medium text-gray-500">Saldo</th>
-                    <th className="text-left px-4 py-2 font-medium text-gray-500">Referencia</th>
-                    <th className="text-left px-4 py-2 font-medium text-gray-500">Usuario</th>
-                    <th className="text-left px-4 py-2 font-medium text-gray-500">Observaciones</th>
+                    {([
+                      ['fechaMovimiento', 'Fecha', 'text-left'],
+                      ['tipo', 'Tipo', 'text-left'],
+                      ['monto', 'Monto', 'text-right'],
+                      ['saldoResultante', 'Saldo', 'text-right'],
+                      ['referencia', 'Referencia', 'text-left'],
+                      ['usuarioNombre', 'Usuario', 'text-left'],
+                      ['observaciones', 'Observaciones', 'text-left'],
+                    ] as [string, string, string][]).map(([col, label, align]) => (
+                      <th
+                        key={col}
+                        onClick={() => toggleOrden(col)}
+                        className={`${align} px-4 py-2 font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
+                      >
+                        {label}
+                        {ordenCol === col && (
+                          <span className="ml-1 text-amber-600">{ordenDir === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {movimientos.map(m => (
+                  {movimientosOrdenados.map(m => (
                     <tr key={m.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{formatFechaHora(m.fechaMovimiento)}</td>
                       <td className="px-4 py-2">

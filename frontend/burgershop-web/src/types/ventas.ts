@@ -92,7 +92,6 @@ export interface TipoCliente {
   id: number;
   nombre: string;
   descripcion?: string;
-  listaPrecioId?: number;
   permiteCuentaCorriente: boolean;
   activo: boolean;
 }
@@ -100,14 +99,12 @@ export interface TipoCliente {
 export interface CrearTipoClienteDto {
   nombre: string;
   descripcion?: string;
-  listaPrecioId?: number;
   permiteCuentaCorriente: boolean;
 }
 
 export interface ActualizarTipoClienteDto {
   nombre: string;
   descripcion?: string;
-  listaPrecioId?: number;
   permiteCuentaCorriente: boolean;
 }
 

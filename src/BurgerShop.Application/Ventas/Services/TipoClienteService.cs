@@ -27,9 +27,8 @@ public class TipoClienteService : ITipoClienteService
     {
         var tipo = new TipoCliente
         {
-            Nombre                 = dto.Nombre,
-            Descripcion            = dto.Descripcion,
-            ListaPrecioId          = dto.ListaPrecioId,
+            Nombre = dto.Nombre,
+            Descripcion = dto.Descripcion,
             PermiteCuentaCorriente = dto.PermiteCuentaCorriente
         };
         await _repo.AddAsync(tipo);
@@ -42,9 +41,8 @@ public class TipoClienteService : ITipoClienteService
         var tipo = await _repo.GetByIdAsync(id);
         if (tipo is null) return null;
 
-        tipo.Nombre                 = dto.Nombre;
-        tipo.Descripcion            = dto.Descripcion;
-        tipo.ListaPrecioId          = dto.ListaPrecioId;
+        tipo.Nombre = dto.Nombre;
+        tipo.Descripcion = dto.Descripcion;
         tipo.PermiteCuentaCorriente = dto.PermiteCuentaCorriente;
         _repo.Update(tipo);
         await _repo.SaveChangesAsync();
@@ -64,11 +62,10 @@ public class TipoClienteService : ITipoClienteService
 
     private static TipoClienteDto MapToDto(TipoCliente t) => new TipoClienteDto
     {
-        Id                     = t.Id,
-        Nombre                 = t.Nombre,
-        Descripcion            = t.Descripcion,
-        ListaPrecioId          = t.ListaPrecioId,
-        Activo                 = t.Activo,
+        Id = t.Id,
+        Nombre = t.Nombre,
+        Descripcion = t.Descripcion,
+        Activo = t.Activo,
         PermiteCuentaCorriente = t.PermiteCuentaCorriente
     };
 }

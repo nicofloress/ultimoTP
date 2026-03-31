@@ -115,7 +115,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
   const totalNoLeidos = Array.from(noLeidos.values()).reduce((sum, c) => sum + c, 0);
 
   const formatHora = (fecha: string) => {
-    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   if (!abierto) return null;

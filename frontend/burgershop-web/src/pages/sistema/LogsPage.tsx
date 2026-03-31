@@ -34,6 +34,7 @@ function formatFecha(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hour12: false,
   });
 }
 
@@ -42,6 +43,7 @@ function formatHora(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hour12: false,
   });
 }
 

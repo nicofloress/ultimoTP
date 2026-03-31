@@ -138,7 +138,11 @@ public class CierreCajaService : ICierreCajaService
             d.MontoTotal,
             d.CantidadOperaciones)).ToList();
 
-        var totalVentas = detalles.Sum(d => d.MontoTotal);
+        // Si la caja está abierta, calcular totales desde los pedidos directamente
+        // Si está cerrada, usar los detalles del cierre
+        var totalVentas = detalles.Any()
+            ? detalles.Sum(d => d.MontoTotal)
+            : pedidos.Sum(p => p.Total);
 
         return new CierreCajaDto(
             caja.Id,

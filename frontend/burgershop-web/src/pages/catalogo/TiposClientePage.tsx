@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { TipoCliente } from '../../types/ventas';
-import { ListaPrecio } from '../../types/catalogo';
 import { getTiposCliente, crearTipoCliente, actualizarTipoCliente, eliminarTipoCliente } from '../../api/tiposCliente';
-import { getListasPrecios } from '../../api/listasPrecios';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
-const emptyForm = { nombre: '', descripcion: '', listaPrecioId: '' as string, permiteCuentaCorriente: false };
+const emptyForm = { nombre: '', descripcion: '', permiteCuentaCorriente: false };
 
 export default function TiposClientePage() {
   const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
@@ -13,18 +11,16 @@ export default function TiposClientePage() {
   const [editando, setEditando] = useState<TipoCliente | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
-  const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
 
   const cargar = () => getTiposCliente().then(setTiposCliente);
 
-  useEffect(() => { cargar(); getListasPrecios().then(setListasPrecios); }, []);
+  useEffect(() => { cargar(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
       nombre: form.nombre,
       descripcion: form.descripcion || undefined,
-      listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
       permiteCuentaCorriente: form.permiteCuentaCorriente,
     };
     if (editando) {
@@ -43,7 +39,6 @@ export default function TiposClientePage() {
     setForm({
       nombre: tc.nombre,
       descripcion: tc.descripcion || '',
-      listaPrecioId: tc.listaPrecioId ? String(tc.listaPrecioId) : '',
       permiteCuentaCorriente: tc.permiteCuentaCorriente,
     });
     setShowForm(true);
@@ -88,16 +83,6 @@ export default function TiposClientePage() {
             placeholder="Descripcion"
             className="border rounded px-3 py-2"
           />
-          <select
-            value={form.listaPrecioId}
-            onChange={e => setForm({ ...form, listaPrecioId: e.target.value })}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Precio Base (sin lista)</option>
-            {listasPrecios.filter(l => l.activa).map(l => (
-              <option key={l.id} value={l.id}>{l.nombre}</option>
-            ))}
-          </select>
           <label className="flex items-center gap-2 col-span-2">
             <input
               type="checkbox"
@@ -124,7 +109,6 @@ export default function TiposClientePage() {
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista de Precios</th>
               <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Cta Cte</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
@@ -134,7 +118,6 @@ export default function TiposClientePage() {
               <tr key={tc.id}>
                 <td className="px-4 py-3 text-sm font-medium">{tc.nombre}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{tc.descripcion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{tc.listaPrecioId ? listasPrecios.find(l => l.id === tc.listaPrecioId)?.nombre || '-' : 'Precio Base'}</td>
                 <td className="px-4 py-3 text-sm text-center">
                   {tc.permiteCuentaCorriente
                     ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>

@@ -5,6 +5,7 @@ import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
 import { crearPedido, getTicket } from '../../api/pedidos';
+import { crearVentaMostrador } from '../../api/ventas';
 import TicketPrint, { TicketPrintProps } from '../../components/TicketPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { buscarClientes } from '../../api/clientes';
@@ -20,6 +21,7 @@ import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
 
 export default function POSPage() {
   const { showToast } = useGlobalToast();
+  const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   // Data
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -121,19 +123,10 @@ export default function POSPage() {
     return () => clearTimeout(timeout);
   }, [busquedaCliente]);
 
-  // Auto-seleccionar lista de precios segun tipo de cliente
+  // Resetear modo pago si el tipo de cliente no permite Cta Cte
   useEffect(() => {
-    if (!tipoClienteSeleccionado) {
-      setListaPrecioSeleccionada(undefined);
-      return;
-    }
+    if (!tipoClienteSeleccionado) return;
     const tipo = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
-    if (tipo?.listaPrecioId) {
-      setListaPrecioSeleccionada(tipo.listaPrecioId);
-    } else {
-      setListaPrecioSeleccionada(undefined);
-    }
-    // Si el tipo no permite Cta Cte y estaba en ese modo, resetear
     if (!tipo?.permiteCuentaCorriente) {
       setModoPago(prev => prev === 'cuentaCorriente' ? 'total' : prev);
     }
@@ -169,6 +162,9 @@ export default function POSPage() {
     setBusquedaCliente('');
     setNombreCliente('');
     setTelefonoCliente('');
+    setTipoClienteSeleccionado(1);
+    setListaPrecioSeleccionada(undefined);
+    setModoPago(prev => prev === 'cuentaCorriente' ? 'total' : prev);
   };
 
   // --- Funciones de carrito ---
@@ -334,48 +330,95 @@ export default function POSPage() {
       showToast('Debe seleccionar un cliente para venta a cuenta corriente', 'error');
       return;
     }
+    // Validar fecha programada si es envío a domicilio
+    if (envioADomicilio && fechaProgramada) {
+      const fechaProg = new Date(fechaProgramada + 'T00:00:00');
+      const hoyDate = new Date(hoy + 'T00:00:00');
+      const maxDate = new Date(hoyDate);
+      maxDate.setDate(maxDate.getDate() + 14);
+      if (fechaProg < hoyDate || fechaProg > maxDate) {
+        showToast('La fecha programada debe ser desde hoy y no mayor a 14 días', 'error');
+        return;
+      }
+    }
+    if (envioADomicilio && !direccionEnvio.trim()) {
+      showToast('Debe ingresar una dirección de entrega', 'error');
+      return;
+    }
+
     setGuardando(true);
     try {
-      const pedido = await crearPedido({
-        tipo: envioADomicilio ? TipoPedido.Domicilio : TipoPedido.ParaLlevar,
+      const detallesCarrito = carrito.map(item => ({
+        productoId: item.productoId,
+        comboId: item.comboId,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        notas: item.notas,
+      }));
+      const esCtaCte = modoPago === 'cuentaCorriente';
+      const obs = esCtaCte
+        ? `[CTA CTE] ${notaInterna || `Venta a crédito - ${clienteSeleccionado?.nombre || ''}`}`
+        : (notaInterna || undefined);
+
+      // SIEMPRE crear Venta
+      const venta = await crearVentaMostrador({
+        tipoVenta: envioADomicilio ? 2 : 1, // 1=Mostrador, 2=Domicilio
         nombreCliente: nombreCliente || undefined,
         telefonoCliente: telefonoCliente || undefined,
-        direccionEntrega: envioADomicilio ? (direccionEnvio || undefined) : undefined,
-        zonaId: envioADomicilio ? (zonaSeleccionada || undefined) : undefined,
-        fechaProgramada: envioADomicilio && fechaProgramada ? fechaProgramada : undefined,
-        descuento: descuentoCalculado,
+        localId: 1,
         formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
+        descuento: descuentoCalculado,
+        observaciones: obs,
+        estaPago: !esCtaCte,
         clienteId: clienteSeleccionado?.id,
-        notaInterna: modoPago === 'cuentaCorriente'
-          ? `[CTA CTE] ${notaInterna || `Venta a crédito - ${clienteSeleccionado?.nombre || ''}`}`
-          : (notaInterna || undefined),
-        tipoFactura,
-        estaPago: true,
-        pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
-        lineas: carrito.map(item => ({
-          productoId: item.productoId,
-          comboId: item.comboId,
-          cantidad: item.cantidad,
-          precioUnitario: item.precioUnitario,
-          notas: item.notas,
-        })),
+        detalles: detallesCarrito,
+        pagos: modoPago === 'dividido' ? pagosDivididos.map(p => ({ formaPagoId: p.formaPagoId, monto: p.monto })) : undefined,
       });
+
+      // Si es envío a domicilio, ADEMÁS crear Pedido
+      let pedidoId: number | undefined;
+      if (envioADomicilio) {
+        try {
+          const pedido = await crearPedido({
+            tipo: TipoPedido.Domicilio,
+            nombreCliente: nombreCliente || undefined,
+            telefonoCliente: telefonoCliente || undefined,
+            direccionEntrega: direccionEnvio || undefined,
+            zonaId: zonaSeleccionada || undefined,
+            fechaProgramada: fechaProgramada || undefined,
+            descuento: descuentoCalculado,
+            formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
+            clienteId: clienteSeleccionado?.id,
+            notaInterna: obs,
+            tipoFactura,
+            estaPago: !esCtaCte,
+            pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
+            lineas: detallesCarrito,
+          });
+          pedidoId = pedido.id;
+        } catch {
+          showToast('Venta registrada pero error al crear pedido de envío', 'error');
+        }
+      }
+
       // Si es cuenta corriente, registrar cargo
-      if (modoPago === 'cuentaCorriente' && clienteSeleccionado) {
+      if (esCtaCte && clienteSeleccionado) {
         try {
           await registrarCargo({
             clienteId: clienteSeleccionado.id,
-            monto: pedido.total,
-            pedidoId: pedido.id,
-            observaciones: `Venta a crédito - ${pedido.numeroTicket}`,
+            monto: venta.total,
+            ventaId: venta.id,
+            pedidoId,
+            observaciones: `Venta a crédito - ${venta.numeroVenta}`,
           });
         } catch {
           showToast('Venta creada pero error al cargar a cuenta corriente', 'error');
         }
       }
-      setTicketCreado(pedido.numeroTicket);
-      setUltimoPedidoId(pedido.id);
-      showToast(modoPago === 'cuentaCorriente' ? 'Venta a crédito registrada' : 'Venta registrada correctamente', 'success');
+
+      setTicketCreado(venta.numeroVenta);
+      setUltimoPedidoId(venta.id);
+      showToast(esCtaCte ? 'Venta a crédito registrada' : envioADomicilio ? 'Venta registrada + pedido de envío creado' : 'Venta registrada correctamente', 'success');
       // Reset
       setCarrito([]);
       setNombreCliente('');
@@ -920,8 +963,9 @@ export default function POSPage() {
                     type="date"
                     value={fechaProgramada}
                     onChange={e => setFechaProgramada(e.target.value)}
+                    min={hoy}
+                    max={(() => { const d = new Date(); d.setDate(d.getDate() + 14); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
                     className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
-                    placeholder="Fecha..."
                   />
                 </div>
               </div>

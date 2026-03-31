@@ -144,11 +144,17 @@ public class VentaService : IVentaService
         await _ventaRepo.AddAsync(venta);
         await _ventaRepo.SaveChangesAsync();
 
-        // Registrar movimientos de stock (EGR_VTA por cada producto/combo)
-        await RegistrarMovimientosStockVentaAsync(venta, usuarioId);
+        // Solo generar movimientos para ventas de mostrador (entrega inmediata)
+        // Las ventas con envío a domicilio generan movimientos al finalizar reparto / aprobar rendición
+        if (dto.TipoVenta == TipoVenta.Mostrador)
+        {
+            // Registrar movimientos de stock (EGR_VTA por cada producto/combo)
+            await RegistrarMovimientosStockVentaAsync(venta, usuarioId);
 
-        // Registrar movimiento de caja (ING_VTA por el total)
-        await RegistrarMovimientoCajaVentaAsync(venta, usuarioId);
+            // Registrar movimiento de caja (ING_VTA por el total) solo si está pago
+            if (dto.EstaPago)
+                await RegistrarMovimientoCajaVentaAsync(venta, usuarioId);
+        }
 
         var creada = await _ventaRepo.GetByIdConDetallesAsync(venta.Id);
         return ToDto(creada!);
@@ -162,10 +168,10 @@ public class VentaService : IVentaService
         var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId)
             ?? throw new InvalidOperationException($"Pedido {pedidoId} no encontrado.");
 
-        // Verificar que no exista ya una venta para este pedido
+        // Si ya existe una venta para este pedido, retornarla sin crear otra
         var ventaExistente = await _ventaRepo.GetByPedidoIdAsync(pedidoId);
         if (ventaExistente is not null)
-            throw new InvalidOperationException($"Ya existe una venta registrada para el pedido {pedidoId}.");
+            return ToDto(ventaExistente);
 
         var ahora = DateTime.Now;
         var numero = await _ventaRepo.GetSiguienteNumeroVentaAsync(ahora);

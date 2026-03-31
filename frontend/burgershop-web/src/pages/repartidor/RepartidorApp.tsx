@@ -173,7 +173,7 @@ export default function RepartidorApp() {
 
   const formatTime = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      return new Date(dateStr).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
     } catch {
       return '';
     }
@@ -1082,7 +1082,7 @@ function RepartidorChatPanel({
   };
 
   const formatHora = (fecha: string) => {
-    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   return (

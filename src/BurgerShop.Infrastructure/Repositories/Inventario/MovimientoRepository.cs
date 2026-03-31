@@ -16,6 +16,7 @@ public class MovimientoRepository : Repository<Movimiento>, IMovimientoRepositor
             .Include(m => m.CodigoAccion)
             .Include(m => m.Producto)
             .Include(m => m.Local)
+            .Include(m => m.Pedido)
             .Include(m => m.Usuario)
             .Where(m => m.LocalId == localId);
 
@@ -36,6 +37,7 @@ public class MovimientoRepository : Repository<Movimiento>, IMovimientoRepositor
             .Include(m => m.CodigoAccion)
             .Include(m => m.Producto)
             .Include(m => m.Local)
+            .Include(m => m.Pedido)
             .Include(m => m.Usuario)
             .Where(m => m.ProductoId == productoId && m.LocalId == localId);
 
@@ -56,6 +58,7 @@ public class MovimientoRepository : Repository<Movimiento>, IMovimientoRepositor
             .Include(m => m.CodigoAccion)
             .Include(m => m.Producto)
             .Include(m => m.Local)
+            .Include(m => m.Pedido)
             .Include(m => m.Usuario)
             .Where(m => m.PedidoId == pedidoId)
             .OrderByDescending(m => m.FechaMovimiento)

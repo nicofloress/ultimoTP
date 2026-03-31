@@ -1,5 +1,3 @@
-using BurgerShop.Domain.Entities.Catalogo;
-
 namespace BurgerShop.Domain.Entities.Ventas;
 
 public class TipoCliente
@@ -7,9 +5,6 @@ public class TipoCliente
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
-    public int? ListaPrecioId { get; set; }
-    public bool Activo                  { get; set; } = true;
-    public bool PermiteCuentaCorriente  { get; set; } = false;
-
-    public ListaPrecio? ListaPrecio { get; set; }
+    public bool Activo { get; set; } = true;
+    public bool PermiteCuentaCorriente { get; set; } = false;
 }
