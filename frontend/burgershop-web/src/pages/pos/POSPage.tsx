@@ -90,6 +90,8 @@ export default function POSPage() {
   // Modales post-venta
   const [mostrarModalFacturar, setMostrarModalFacturar] = useState(false);
   const [mostrarModalAcciones, setMostrarModalAcciones] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [ultimaVenta, setUltimaVenta] = useState<any>(null);
 
   const busquedaRef = useRef<HTMLInputElement>(null);
   const clienteInputRef = useRef<HTMLDivElement>(null);
@@ -443,6 +445,7 @@ export default function POSPage() {
 
       setTicketCreado(venta.numeroVenta);
       setUltimoPedidoId(venta.id);
+      setUltimaVenta(venta);
       showToast(esCtaCte ? 'Venta a crédito registrada' : envioADomicilio ? 'Venta registrada + pedido de envío creado' : 'Venta registrada correctamente', 'success');
       // Mostrar modal de facturación
       setMostrarModalFacturar(true);
@@ -497,10 +500,41 @@ export default function POSPage() {
     busquedaRef.current?.focus();
   };
 
-  const handleImprimir = async () => {
-    if (!ultimoPedidoId) return;
-    const ticket = await getTicket(ultimoPedidoId);
+  const abrirTicketDesdeVenta = () => {
+    if (!ultimaVenta) return;
+    const v = ultimaVenta;
+    const ticket = {
+      numeroTicket: v.numeroVenta || v.numeroTicket || '',
+      fecha: v.fecha,
+      tipo: v.tipoVenta ?? 1,
+      nombreCliente: v.nombreCliente,
+      direccionEntrega: undefined,
+      zonaNombre: undefined,
+      lineas: (v.detalles || []).map((d: { descripcion: string; cantidad: number; precioUnitario: number; subtotal: number }) => ({
+        descripcion: d.descripcion,
+        cantidad: d.cantidad,
+        precioUnitario: d.precioUnitario,
+        subtotal: d.subtotal,
+      })),
+      subtotal: v.subtotal,
+      descuento: v.descuento,
+      recargo: v.recargo,
+      total: v.total,
+      formaPagoNombre: v.formaPagoNombre,
+      notaInterna: v.observaciones,
+      tipoFactura: 0,
+      pagos: v.pagos?.map((p: { formaPagoNombre: string; monto: number; recargo: number; totalACobrar: number }) => ({
+        formaPagoNombre: p.formaPagoNombre,
+        monto: p.monto,
+        recargo: p.recargo,
+        totalACobrar: p.totalACobrar,
+      })),
+    };
     setTicketParaImprimir(ticket);
+  };
+
+  const handleImprimir = async () => {
+    abrirTicketDesdeVenta();
   };
 
   const tipoClienteActual = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
@@ -1237,8 +1271,7 @@ export default function POSPage() {
               <button
                 onClick={() => {
                   setMostrarModalAcciones(false);
-                  // TODO: Imprimir en formato A4
-                  showToast('Impresión A4: próximamente', 'success');
+                  abrirTicketDesdeVenta();
                 }}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
               >
@@ -1254,12 +1287,9 @@ export default function POSPage() {
 
               {/* Imprimir Ticket */}
               <button
-                onClick={async () => {
+                onClick={() => {
                   setMostrarModalAcciones(false);
-                  if (ultimoPedidoId) {
-                    const ticket = await getTicket(ultimoPedidoId);
-                    setTicketParaImprimir(ticket);
-                  }
+                  abrirTicketDesdeVenta();
                 }}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
               >
