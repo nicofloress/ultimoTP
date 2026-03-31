@@ -500,16 +500,31 @@ export default function POSPage() {
     busquedaRef.current?.focus();
   };
 
-  const abrirTicketDesdeVenta = () => {
+  const abrirTicketDesdeVenta = async () => {
+    // Intentar primero desde getTicket (endpoint de pedido, más completo)
+    if (ultimoPedidoId) {
+      try {
+        const ticket = await getTicket(ultimoPedidoId);
+        if (ticket && ticket.lineas && ticket.lineas.length > 0) {
+          setTicketParaImprimir(ticket);
+          return;
+        }
+      } catch {
+        // Fallback a venta
+      }
+    }
+
+    // Si no hay pedido o falló, armar desde la venta
     if (!ultimaVenta) return;
     const v = ultimaVenta;
+    console.log('Armando ticket desde venta:', JSON.stringify(v, null, 2));
     const ticket = {
       numeroTicket: v.numeroVenta || v.numeroTicket || '',
       fecha: v.fecha,
       tipo: v.tipoVenta ?? 1,
       nombreCliente: v.nombreCliente,
-      direccionEntrega: undefined,
-      zonaNombre: undefined,
+      direccionEntrega: undefined as string | undefined,
+      zonaNombre: undefined as string | undefined,
       lineas: (v.detalles || []).map((d: { descripcion: string; cantidad: number; precioUnitario: number; subtotal: number }) => ({
         descripcion: d.descripcion,
         cantidad: d.cantidad,
@@ -534,7 +549,7 @@ export default function POSPage() {
   };
 
   const handleImprimir = async () => {
-    abrirTicketDesdeVenta();
+    await abrirTicketDesdeVenta();
   };
 
   const tipoClienteActual = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
@@ -1269,9 +1284,9 @@ export default function POSPage() {
             <div className="grid grid-cols-4 gap-4 p-8">
               {/* Imprimir A4 */}
               <button
-                onClick={() => {
+                onClick={async () => {
                   setMostrarModalAcciones(false);
-                  abrirTicketDesdeVenta();
+                  await abrirTicketDesdeVenta();
                 }}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
               >
@@ -1287,9 +1302,9 @@ export default function POSPage() {
 
               {/* Imprimir Ticket */}
               <button
-                onClick={() => {
+                onClick={async () => {
                   setMostrarModalAcciones(false);
-                  abrirTicketDesdeVenta();
+                  await abrirTicketDesdeVenta();
                 }}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
               >
