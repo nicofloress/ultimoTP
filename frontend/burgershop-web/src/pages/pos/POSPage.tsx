@@ -85,6 +85,7 @@ export default function POSPage() {
   // Estado post-creacion
   const [ticketCreado, setTicketCreado] = useState<string | null>(null);
   const [ultimoPedidoId, setUltimoPedidoId] = useState<number | null>(null);
+  const [ultimoEsPedido, setUltimoEsPedido] = useState(false);
   const [ticketParaImprimir, setTicketParaImprimir] = useState<TicketPrintProps['ticket'] | null>(null);
 
   const busquedaRef = useRef<HTMLInputElement>(null);
@@ -438,7 +439,43 @@ export default function POSPage() {
       }
 
       setTicketCreado(venta.numeroVenta);
-      setUltimoPedidoId(venta.id);
+      setUltimoPedidoId(envioADomicilio && pedidoId ? pedidoId : venta.id);
+      setUltimoEsPedido(!!envioADomicilio && !!pedidoId);
+      // Armar ticket para impresión directamente desde la venta
+      setTicketParaImprimir({
+        numeroTicket: venta.numeroVenta,
+        fecha: venta.fecha,
+        tipo: venta.tipoVenta,
+        nombreCliente: venta.nombreCliente || undefined,
+        direccionEntrega: envioADomicilio ? direccionEnvio : undefined,
+        zonaNombre: undefined,
+        lineas: venta.detalles.map(d => ({
+          id: d.id,
+          productoId: d.productoId || null,
+          comboId: d.comboId || null,
+          descripcion: d.descripcion,
+          cantidad: d.cantidad,
+          precioUnitario: d.precioUnitario,
+          subtotal: d.subtotal,
+          notas: d.notas || null,
+        })),
+        subtotal: venta.subtotal,
+        descuento: venta.descuento,
+        recargo: venta.recargo,
+        total: venta.total,
+        formaPagoNombre: venta.formaPagoNombre || undefined,
+        notaInterna: venta.observaciones || undefined,
+        tipoFactura,
+        pagos: venta.pagos?.map(p => ({
+          id: p.id,
+          formaPagoId: p.formaPagoId,
+          formaPagoNombre: p.formaPagoNombre,
+          monto: p.monto,
+          porcentajeRecargo: p.porcentajeRecargo,
+          recargo: p.recargo,
+          totalACobrar: p.totalACobrar,
+        })),
+      });
       showToast(esCtaCte ? 'Venta a crédito registrada' : envioADomicilio ? 'Venta registrada + pedido de envío creado' : 'Venta registrada correctamente', 'success');
       // Reset
       setCarrito([]);
@@ -483,6 +520,7 @@ export default function POSPage() {
     setMontoPagado(0);
     setTicketCreado(null);
     setUltimoPedidoId(null);
+    setUltimoEsPedido(false);
     setEnvioADomicilio(false);
     setDireccionEnvio('');
     setZonaSeleccionada(undefined);
@@ -492,9 +530,12 @@ export default function POSPage() {
   };
 
   const handleImprimir = async () => {
+    if (ticketParaImprimir) return; // Ya está listo para imprimir
     if (!ultimoPedidoId) return;
-    const ticket = await getTicket(ultimoPedidoId);
-    setTicketParaImprimir(ticket);
+    if (ultimoEsPedido) {
+      const ticket = await getTicket(ultimoPedidoId);
+      setTicketParaImprimir(ticket);
+    }
   };
 
   const tipoClienteActual = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
