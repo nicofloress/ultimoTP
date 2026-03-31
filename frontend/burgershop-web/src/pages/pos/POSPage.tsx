@@ -7,6 +7,7 @@ import { getCategorias } from '../../api/categorias';
 import { crearPedido, getTicket } from '../../api/pedidos';
 import { crearVentaMostrador } from '../../api/ventas';
 import TicketPrint, { TicketPrintProps } from '../../components/TicketPrint';
+import ComprobanteXPrint from '../../components/ComprobanteXPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { buscarClientes } from '../../api/clientes';
 import { getListasPrecios } from '../../api/listasPrecios';
@@ -1162,7 +1163,7 @@ export default function POSPage() {
 
       {/* Modal de impresion */}
       {ticketParaImprimir && (
-        <TicketPrint ticket={ticketParaImprimir} onClose={() => setTicketParaImprimir(null)} />
+        <ComprobanteXPrint ticket={ticketParaImprimir} onClose={() => setTicketParaImprimir(null)} />
       )}
 
       {/* ============ MODAL ABRIR CAJA ============ */}
