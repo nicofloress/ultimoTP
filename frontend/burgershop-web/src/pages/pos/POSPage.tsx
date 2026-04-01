@@ -4,7 +4,7 @@ import { Zona } from '../../types/logistica';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
-import { crearPedido, getTicket } from '../../api/pedidos';
+import { crearPedido } from '../../api/pedidos';
 import { crearVentaMostrador } from '../../api/ventas';
 import { TicketPrintProps } from '../../components/TicketPrint';
 import ComprobanteXPrint from '../../components/ComprobanteXPrint';
@@ -84,16 +84,12 @@ export default function POSPage() {
 
   // Estado post-creacion
   const [ticketCreado, setTicketCreado] = useState<string | null>(null);
-  const [ultimoPedidoId, setUltimoPedidoId] = useState<number | null>(null);
-  const [ultimoEsPedido, setUltimoEsPedido] = useState(false);
   const [ticketParaImprimir, setTicketParaImprimir] = useState<TicketPrintProps['ticket'] | null>(null);
 
   // Modales post-venta
   const [mostrarModalFacturar, setMostrarModalFacturar] = useState(false);
   const [mostrarModalAcciones, setMostrarModalAcciones] = useState(false);
   const [mostrarComprobante, setMostrarComprobante] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [ultimaVenta, setUltimaVenta] = useState<any>(null);
 
   const busquedaRef = useRef<HTMLInputElement>(null);
   const clienteInputRef = useRef<HTMLDivElement>(null);
@@ -447,9 +443,6 @@ export default function POSPage() {
       }
 
       setTicketCreado(venta.numeroVenta);
-      setUltimoPedidoId(envioADomicilio && pedidoId ? pedidoId : venta.id);
-      setUltimoEsPedido(!!envioADomicilio && !!pedidoId);
-      setUltimaVenta(venta);
 
       // Pre-armar ticket listo para imprimir
       const fpNombre = venta.formaPagoNombre
@@ -541,8 +534,6 @@ export default function POSPage() {
     setPagosDivididos([]);
     setMontoPagado(0);
     setTicketCreado(null);
-    setUltimoPedidoId(null);
-    setUltimoEsPedido(false);
     setEnvioADomicilio(false);
     setDireccionEnvio('');
     setZonaSeleccionada(undefined);
