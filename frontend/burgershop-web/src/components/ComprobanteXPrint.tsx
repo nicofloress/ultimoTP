@@ -47,12 +47,12 @@ export default function ComprobanteXPrint({ ticket, config, onClose }: Comproban
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:bg-transparent print:static print:inset-auto">
-      <div className="absolute inset-0 print:hidden" onClick={onClose} />
+    <div className="comprobante-print-root fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="comprobante-no-print absolute inset-0" onClick={onClose} />
 
-      <div className="relative bg-white rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto print:shadow-none print:rounded-none print:max-h-none print:overflow-visible">
+      <div className="relative bg-white rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Botones */}
-        <div className="sticky top-0 bg-white border-b p-3 flex gap-2 justify-center print:hidden">
+        <div className="comprobante-no-print sticky top-0 bg-white border-b p-3 flex gap-2 justify-center">
           <button
             onClick={handleImprimir}
             className="bg-blue-600 text-white px-6 py-2 rounded font-medium hover:bg-blue-700 transition-colors"
@@ -201,17 +201,32 @@ export default function ComprobanteXPrint({ ticket, config, onClose }: Comproban
       {/* Print styles */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
+          /* Ocultar todo el body excepto el ticket */
+          body > *:not(.comprobante-print-root) {
+            display: none !important;
           }
-          .comprobante-x-content,
-          .comprobante-x-content * {
-            visibility: visible !important;
+          /* Ocultar botones y overlay del modal */
+          .comprobante-no-print {
+            display: none !important;
           }
-          .comprobante-x-content {
-            position: absolute !important;
+          /* Mostrar solo el contenido del ticket */
+          .comprobante-print-root {
+            position: fixed !important;
             left: 0 !important;
             top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            background: white !important;
+            z-index: 99999 !important;
+          }
+          .comprobante-print-root > div {
+            position: static !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          .comprobante-x-content {
             width: 80mm !important;
             margin: 0 !important;
             padding: 2mm !important;
