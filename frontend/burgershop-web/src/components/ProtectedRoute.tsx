@@ -22,7 +22,8 @@ export default function ProtectedRoute({ children, roles }: Props) {
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && usuario && !roles.includes(usuario.rol)) {
+  // SuperAdmin siempre tiene acceso a todo
+  if (roles && usuario && usuario.rol !== RolUsuario.SuperAdmin && !roles.includes(usuario.rol)) {
     return <Navigate to="/" replace />;
   }
 

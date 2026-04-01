@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Inventario;
 
 [ApiController]
 [Route("api/stock")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class StockController : ControllerBase
 {
     private readonly IArtiStockService _service;

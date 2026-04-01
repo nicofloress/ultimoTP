@@ -11,6 +11,8 @@ public class UsuarioListDto
     public string RolNombre { get; set; } = string.Empty;
     public int? RepartidorId { get; set; }
     public string? RepartidorNombre { get; set; }
+    public int? LocalId { get; set; }
+    public string? LocalNombre { get; set; }
     public bool Activo { get; set; }
 }
 
@@ -21,6 +23,7 @@ public class CrearUsuarioDto
     public string NombreCompleto { get; set; } = string.Empty;
     public RolUsuario Rol { get; set; }
     public int? RepartidorId { get; set; }
+    public int? LocalId { get; set; }
 }
 
 public class ActualizarUsuarioDto
@@ -30,5 +33,6 @@ public class ActualizarUsuarioDto
     public string NombreCompleto { get; set; } = string.Empty;
     public RolUsuario Rol { get; set; }
     public int? RepartidorId { get; set; }
+    public int? LocalId { get; set; }
     public bool Activo { get; set; }
 }

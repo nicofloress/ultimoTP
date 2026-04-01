@@ -32,6 +32,7 @@ public class UsuarioService : IUsuarioService
             NombreCompleto = dto.NombreCompleto,
             Rol = dto.Rol,
             RepartidorId = dto.RepartidorId,
+            LocalId = dto.LocalId,
             Activo = true
         };
         await _repo.AddAsync(usuario);
@@ -48,6 +49,7 @@ public class UsuarioService : IUsuarioService
         usuario.NombreCompleto = dto.NombreCompleto;
         usuario.Rol = dto.Rol;
         usuario.RepartidorId = dto.RepartidorId;
+        usuario.LocalId = dto.LocalId;
         usuario.Activo = dto.Activo;
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
@@ -80,6 +82,8 @@ public class UsuarioService : IUsuarioService
         RolNombre = u.Rol.ToString(),
         RepartidorId = u.RepartidorId,
         RepartidorNombre = u.Repartidor?.Nombre,
+        LocalId = u.LocalId,
+        LocalNombre = u.Local?.Nombre,
         Activo = u.Activo
     };
 }

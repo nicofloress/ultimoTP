@@ -22,4 +22,5 @@ public class UsuarioDto
     public RolUsuario Rol { get; set; }
     public string RolNombre { get; set; } = string.Empty;
     public int? RepartidorId { get; set; }
+    public int? LocalId { get; set; }
 }

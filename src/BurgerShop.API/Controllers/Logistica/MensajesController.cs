@@ -32,7 +32,7 @@ public class MensajesController : ControllerBase
         => Ok(await _service.GetByRepartidorAsync(repartidorId));
 
     [HttpPost("admin")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<MensajeDto>> EnviarComoAdmin(CrearMensajeDto dto)
     {
         var mensaje = await _service.EnviarMensajeAsync(dto, esDeAdmin: true);

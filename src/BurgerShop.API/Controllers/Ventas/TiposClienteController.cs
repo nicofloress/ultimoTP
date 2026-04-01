@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Ventas;
 
 [ApiController]
 [Route("api/tiposCliente")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class TiposClienteController : ControllerBase
 {
     private readonly ITipoClienteService _service;

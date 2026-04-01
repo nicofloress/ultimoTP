@@ -58,6 +58,7 @@ const menuSections: MenuSection[] = [
     title: 'Inventario',
     items: [
       { to: '/inventario/movimientos', label: 'Movimientos', adminOnly: true },
+      { to: '/inventario/stock', label: 'Stock', adminOnly: true },
     ],
   },
   {
@@ -77,7 +78,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { usuario, logout } = useAuth();
 
-  const esAdmin = usuario?.rol === RolUsuario.Administrador;
+  const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
 
   const filteredSections = menuSections
     .map((section) => ({

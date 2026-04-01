@@ -26,7 +26,7 @@ public class CombosController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ComboDto>> Create(CrearComboDto dto)
     {
         var combo = await _service.CreateAsync(dto);
@@ -34,7 +34,7 @@ public class CombosController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ComboDto>> Update(int id, ActualizarComboDto dto)
     {
         var combo = await _service.UpdateAsync(id, dto);
@@ -42,7 +42,7 @@ public class CombosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

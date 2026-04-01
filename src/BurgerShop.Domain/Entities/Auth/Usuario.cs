@@ -1,3 +1,4 @@
+using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Enums;
 
@@ -11,7 +12,9 @@ public class Usuario
     public string NombreCompleto { get; set; } = string.Empty;
     public RolUsuario Rol { get; set; }
     public int? RepartidorId { get; set; }
+    public int? LocalId { get; set; }
     public bool Activo { get; set; } = true;
 
     public Repartidor? Repartidor { get; set; }
+    public Local? Local { get; set; }
 }

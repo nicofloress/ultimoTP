@@ -11,7 +11,7 @@ export default function CategoriasPage() {
   const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);
   const [editando, setEditando] = useState<Categoria | null>(null);
   const { usuario } = useAuth();
-  const esAdmin = usuario?.rol === RolUsuario.Administrador;
+  const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
   const cargar = () => getCategorias().then(setCategorias);

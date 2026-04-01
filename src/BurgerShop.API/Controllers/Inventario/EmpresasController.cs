@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Inventario;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class EmpresasController : ControllerBase
 {
     private readonly IEmpresaService _service;

@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Inventario;
 
 [ApiController]
 [Route("api/locales")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class LocalesController : ControllerBase
 {
     private readonly ILocalService _service;

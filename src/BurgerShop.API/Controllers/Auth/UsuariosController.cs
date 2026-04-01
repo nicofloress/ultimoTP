@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Auth;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class UsuariosController : ControllerBase
 {
     private readonly IUsuarioService _service;

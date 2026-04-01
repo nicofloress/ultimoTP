@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Ventas;
 
 [ApiController]
 [Route("api/formaspago")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class FormasPagoController : ControllerBase
 {
     private readonly IFormaPagoService _service;

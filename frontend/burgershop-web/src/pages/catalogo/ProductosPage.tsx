@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Producto, Categoria, Combo, ListaPrecio } from '../../types';
 import { getProductos, createProducto, updateProducto, deleteProducto } from '../../api/productos';
 import { getCategorias } from '../../api/categorias';
@@ -16,14 +16,15 @@ export default function ProductosPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [listas, setListas] = useState<ListaPrecio[]>([]);
   const [listaPrecioId, setListaPrecioId] = useState<number | null>(null);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
+  const [megaFiltro, setMegaFiltro] = useState<string | null>(null);
+  const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
   const [verCombos, setVerCombos] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const { usuario } = useAuth();
-  const esAdmin = usuario?.rol === RolUsuario.Administrador;
+  const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const [productoDetalle, setProductoDetalle] = useState<Producto | null>(null);
 
@@ -80,15 +81,65 @@ export default function ProductosPage() {
 
   const tienePrecioLista = (p: Producto) => listaPrecioId != null && p.precioLista != null;
 
+  // Mega-categorías
+  const megaCategorias = useMemo(() => {
+    const econId = categorias.find(c => c.nombre === 'Económica')?.id;
+    const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
+    return [
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
+      { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
+      { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
+      { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
+      { key: 'snacks', label: 'Snacks', catIds: categorias.filter(c => c.nombre === 'Snacks').map(c => c.id) },
+    ];
+  }, [categorias]);
+
+  const tieneSubfiltro = megaFiltro === 'eco' || megaFiltro === 'premium' || megaFiltro === 'snacks';
+
+  const gramajesDisponibles = useMemo(() => {
+    if (!tieneSubfiltro) return [];
+    const mc = megaCategorias.find(m => m.key === megaFiltro);
+    if (!mc) return [];
+    return productos
+      .filter(p => p.activo && mc.catIds.includes(p.categoriaId) && p.pesoGramos)
+      .map(p => p.pesoGramos!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort((a, b) => a - b);
+  }, [productos, megaFiltro, megaCategorias]);
+
+  void useMemo(() => {
+    if (!tieneSubfiltro) return [];
+    const mc = megaCategorias.find(m => m.key === megaFiltro);
+    if (!mc) return [];
+    return productos
+      .filter(p => p.activo && mc.catIds.includes(p.categoriaId) && p.marca)
+      .map(p => p.marca!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort();
+  }, [productos, megaFiltro, megaCategorias]);
+
   // Filtrado
-  const productosFiltrados = productos.filter(p => {
-    if (categoriaFiltro && p.categoriaId !== categoriaFiltro) return false;
-    if (busqueda) {
+  const productosFiltrados = useMemo(() => {
+    let lista = productos.filter(p => p.activo);
+    if (busqueda.trim()) {
       const term = busqueda.toLowerCase();
-      return (p.numeroInterno?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term) || (p.descripcion?.toLowerCase().includes(term));
+      lista = lista.filter(p =>
+        (p.numeroInterno?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term) || (p.descripcion?.toLowerCase().includes(term))
+      );
     }
-    return true;
-  });
+    if (megaFiltro) {
+      const mc = megaCategorias.find(m => m.key === megaFiltro);
+      if (mc) {
+        lista = lista.filter(p => mc.catIds.includes(p.categoriaId));
+        if (gramajesFiltro) {
+          lista = lista.filter(p => p.pesoGramos === gramajesFiltro);
+        }
+      }
+    }
+    return lista;
+  }, [productos, busqueda, megaFiltro, gramajesFiltro, megaCategorias]);
 
   const combosFiltrados = busqueda
     ? combos.filter(c => c.activo && c.nombre.toLowerCase().includes(busqueda.toLowerCase()))
@@ -155,36 +206,37 @@ export default function ProductosPage() {
         </form>
       )}
 
-      {/* Buscador */}
-      <input
-        type="text"
-        value={busqueda}
-        onChange={e => setBusqueda(e.target.value)}
-        placeholder="Buscar por codigo, nombre o descripcion..."
-        className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-      />
+      {/* Filtros */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3 space-y-2">
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={() => { setMegaFiltro(null); setGramajesFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!megaFiltro && !verCombos ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+          {megaCategorias.map(mc => (
+            <button key={mc.key} onClick={() => { setMegaFiltro(mc.key); setGramajesFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${megaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+          ))}
+          <button onClick={() => { setVerCombos(true); setMegaFiltro(null); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${verCombos ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
+        </div>
+        {tieneSubfiltro && gramajesDisponibles.length > 0 && (
+          <div className="flex gap-1.5 items-center">
+            <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
+            <button onClick={() => setGramajesFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!gramajesFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+            {gramajesDisponibles.map(g => (
+              <button key={g} onClick={() => setGramajesFiltro(g)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{g}gr</button>
+            ))}
+          </div>
+        )}
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por codigo, nombre o descripcion..."
+          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+        />
+        <span className="text-xs text-gray-400">{productosFiltrados.length} articulo{productosFiltrados.length !== 1 ? 's' : ''}</span>
+      </div>
 
-      {/* Chips de categorías */}
-      <div className="flex gap-1.5 flex-wrap mb-3">
-        <button
-          onClick={() => { setCategoriaFiltro(null); setVerCombos(false); }}
-          className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro && !verCombos ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          Todos
-        </button>
-        {categorias.filter(c => c.activa).map(c => (
-          <button
-            key={c.id}
-            onClick={() => { setCategoriaFiltro(c.id); setVerCombos(false); }}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === c.id ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            {c.nombre}
-          </button>
-        ))}
-        <button
-          onClick={() => { setVerCombos(true); setCategoriaFiltro(null); }}
-          className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${verCombos ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}
-        >
+      {/* Combos toggle legacy - hidden, replaced by chip above */}
+      <div className="hidden">
+        <button>
           Combos
         </button>
       </div>

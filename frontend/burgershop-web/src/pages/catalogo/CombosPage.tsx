@@ -23,7 +23,7 @@ export default function CombosPage() {
   const [detalles, setDetalles] = useState<{ productoId: number; cantidad: number }[]>([]);
   const { usuario } = useAuth();
   const { showToast } = useGlobalToast();
-  const esAdmin = usuario?.rol === RolUsuario.Administrador;
+  const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
   const cargar = () => {

@@ -48,6 +48,7 @@ public class AuthService : IAuthService
             NombreCompleto = usuario.NombreCompleto,
             Rol = usuario.Rol,
             RolNombre = rolNombre,
-            RepartidorId = usuario.RepartidorId
+            RepartidorId = usuario.RepartidorId,
+            LocalId = usuario.LocalId
         };
 }

@@ -28,7 +28,7 @@ public class ListasPrecioController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ListaPrecioDto>> Create(CrearListaPrecioDto dto)
     {
         var lista = await _service.CreateAsync(dto);
@@ -36,7 +36,7 @@ public class ListasPrecioController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ListaPrecioDto>> Update(int id, ActualizarListaPrecioDto dto)
     {
         var lista = await _service.UpdateAsync(id, dto);
@@ -44,7 +44,7 @@ public class ListasPrecioController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);
@@ -52,7 +52,7 @@ public class ListasPrecioController : ControllerBase
     }
 
     [HttpPost("{id}/detalles")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ListaPrecioDetalleDto>> UpsertDetalle(int id, UpsertDetalleDto dto)
     {
         var detalle = await _service.UpsertDetalleAsync(id, dto);
@@ -60,7 +60,7 @@ public class ListasPrecioController : ControllerBase
     }
 
     [HttpDelete("{id}/detalles/{productoId}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<IActionResult> DeleteDetalle(int id, int productoId)
     {
         var result = await _service.DeleteDetalleAsync(id, productoId);

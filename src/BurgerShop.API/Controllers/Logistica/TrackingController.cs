@@ -28,7 +28,7 @@ public class TrackingController : ControllerBase
     }
 
     [HttpGet("activos")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<IEnumerable<UbicacionDto>>> GetActivos()
         => Ok(await _service.GetActivosAsync());
 

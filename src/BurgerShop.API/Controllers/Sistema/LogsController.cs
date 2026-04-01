@@ -8,7 +8,7 @@ namespace BurgerShop.API.Controllers.Sistema;
 
 [ApiController]
 [Route("api/logs")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador")]
 public class LogsController : ControllerBase
 {
     private readonly ILogService _service;
