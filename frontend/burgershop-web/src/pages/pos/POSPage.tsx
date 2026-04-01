@@ -342,8 +342,9 @@ export default function POSPage() {
       showToast('Debe seleccionar una forma de pago', 'error');
       return;
     }
-    if (modoPago === 'dividido' && pagosDivididos.length === 0) {
-      showToast('Debe agregar al menos un pago en modo dividido', 'error');
+    const pagosValidos = pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0);
+    if (modoPago === 'dividido' && pagosValidos.length === 0) {
+      showToast('Debe agregar al menos un pago con forma de pago y monto', 'error');
       return;
     }
     if (modoPago === 'dividido' && deuda > 0) {
@@ -400,7 +401,7 @@ export default function POSPage() {
         estaPago: !esCtaCte,
         clienteId: clienteSeleccionado?.id,
         detalles: detallesCarrito,
-        pagos: modoPago === 'dividido' ? pagosDivididos.map(p => ({ formaPagoId: p.formaPagoId, monto: p.monto })) : undefined,
+        pagos: modoPago === 'dividido' ? pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0).map(p => ({ formaPagoId: p.formaPagoId, monto: p.monto })) : undefined,
       });
 
       // Si es envío a domicilio, ADEMÁS crear Pedido

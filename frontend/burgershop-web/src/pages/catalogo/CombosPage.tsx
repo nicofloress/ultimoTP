@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react';
-import { Combo, Producto } from '../../types';
+import { useEffect, useState, useMemo } from 'react';
+import { Combo, Producto, Categoria } from '../../types';
 import { getCombos, createCombo, updateCombo, deleteCombo } from '../../api/combos';
 import { getProductos } from '../../api/productos';
+import { getCategorias } from '../../api/categorias';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 export default function CombosPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [filtro, setFiltro] = useState<string | null>(null);
+  const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
+  const [busqueda, setBusqueda] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Combo | null>(null);
   const [nombre, setNombre] = useState('');
@@ -16,15 +22,64 @@ export default function CombosPage() {
   const [precio, setPrecio] = useState(0);
   const [detalles, setDetalles] = useState<{ productoId: number; cantidad: number }[]>([]);
   const { usuario } = useAuth();
+  const { showToast } = useGlobalToast();
   const esAdmin = usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
 
   const cargar = () => {
     getCombos().then(setCombos);
     getProductos().then(setProductos);
+    getCategorias().then(setCategorias);
   };
 
   useEffect(() => { cargar(); }, []);
+
+  const megaCategorias = useMemo(() => {
+    const econId = categorias.find(c => c.nombre === 'Económica')?.id;
+    const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
+    return [
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
+      { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
+      { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
+      { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
+      { key: 'snacks', label: 'Snacks', catIds: categorias.filter(c => c.nombre === 'Snacks').map(c => c.id) },
+    ];
+  }, [categorias]);
+
+  const tieneSubfiltro = filtro === 'eco' || filtro === 'premium';
+
+  const gramajesDisponibles = useMemo(() => {
+    if (!tieneSubfiltro) return [];
+    const mc = megaCategorias.find(m => m.key === filtro);
+    if (!mc) return [];
+    return productos
+      .filter(p => p.activo && mc.catIds.includes(p.categoriaId) && p.pesoGramos)
+      .map(p => p.pesoGramos!)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort((a, b) => a - b);
+  }, [productos, filtro, megaCategorias]);
+
+  const combosFiltrados = useMemo(() => {
+    let lista = combos.filter(c => c.activo);
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      lista = lista.filter(c => c.nombre.toLowerCase().includes(q) || c.descripcion?.toLowerCase().includes(q));
+    }
+    if (filtro) {
+      const mc = megaCategorias.find(m => m.key === filtro);
+      if (mc) {
+        let prodsEnCat = productos.filter(p => mc.catIds.includes(p.categoriaId));
+        if (tieneSubfiltro && gramajesFiltro) {
+          prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
+        }
+        const prodIds = new Set(prodsEnCat.map(p => p.id));
+        lista = lista.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
+      }
+    }
+    return lista;
+  }, [combos, productos, busqueda, filtro, gramajesFiltro, megaCategorias]);
 
   const resetForm = () => {
     setNombre(''); setDescripcion(''); setPrecio(0); setDetalles([]); setEditando(null); setShowForm(false);
@@ -32,13 +87,19 @@ export default function CombosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await updateCombo(editando.id, { nombre, descripcion, precio, activo: true, detalles });
-    } else {
-      await createCombo({ nombre, descripcion, precio, detalles });
+    try {
+      if (editando) {
+        await updateCombo(editando.id, { nombre, descripcion, precio, activo: true, detalles });
+        showToast('Combo actualizado correctamente', 'success');
+      } else {
+        await createCombo({ nombre, descripcion, precio, detalles });
+        showToast('Combo creado correctamente', 'success');
+      }
+      resetForm();
+      cargar();
+    } catch {
+      showToast('Error al guardar el combo', 'error');
     }
-    resetForm();
-    cargar();
   };
 
   const handleEditar = (c: Combo) => {
@@ -60,10 +121,48 @@ export default function CombosPage() {
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Combos</h2>
         {esAdmin && (
-          <button onClick={() => { setShowForm(!showForm); resetForm(); }} className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors">
+          <button onClick={() => { if (showForm) { resetForm(); } else { setNombre(''); setDescripcion(''); setPrecio(0); setDetalles([]); setEditando(null); setShowForm(true); } }} className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors">
             {showForm ? 'Cerrar' : 'Nuevo Combo'}
           </button>
         )}
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-4 space-y-2">
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={() => { setFiltro(null); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!filtro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+          {megaCategorias.map(mc => (
+            <button key={mc.key} onClick={() => { setFiltro(mc.key); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${filtro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+          ))}
+        </div>
+        {tieneSubfiltro && gramajesDisponibles.length > 0 && (
+          <div className="flex gap-1.5 items-center">
+            <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
+            <button
+              onClick={() => setGramajesFiltro(null)}
+              className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!gramajesFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              Todos
+            </button>
+            {gramajesDisponibles.map(g => (
+              <button
+                key={g}
+                onClick={() => setGramajesFiltro(g)}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {g}gr
+              </button>
+            ))}
+          </div>
+        )}
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar combo por nombre..."
+          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+        />
+        <span className="text-xs text-gray-400">{combosFiltrados.length} combo{combosFiltrados.length !== 1 ? 's' : ''}</span>
       </div>
 
       {showForm && esAdmin && (
@@ -97,7 +196,7 @@ export default function CombosPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {combos.map(c => (
+        {combosFiltrados.map(c => (
           <div key={c.id} className="bg-white rounded-lg shadow p-4">
             <div className="flex justify-between items-start mb-2">
               <div>
