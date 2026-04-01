@@ -551,53 +551,6 @@ export default function POSPage() {
     busquedaRef.current?.focus();
   };
 
-  const abrirTicketDesdeVenta = async () => {
-    // Si es pedido de envío, intentar desde getTicket
-    if (ultimoEsPedido && ultimoPedidoId) {
-      try {
-        const ticket = await getTicket(ultimoPedidoId);
-        if (ticket && ticket.lineas && ticket.lineas.length > 0) {
-          setTicketParaImprimir(ticket);
-          return;
-        }
-      } catch {
-        // Fallback a venta
-      }
-    }
-
-    // Armar desde la venta
-    if (!ultimaVenta) return;
-    const v = ultimaVenta;
-    const ticket = {
-      numeroTicket: v.numeroVenta || v.numeroTicket || '',
-      fecha: v.fecha,
-      tipo: v.tipoVenta ?? 1,
-      nombreCliente: v.nombreCliente,
-      direccionEntrega: undefined as string | undefined,
-      zonaNombre: undefined as string | undefined,
-      lineas: (v.detalles || []).map((d: { descripcion: string; cantidad: number; precioUnitario: number; subtotal: number }) => ({
-        descripcion: d.descripcion,
-        cantidad: d.cantidad,
-        precioUnitario: d.precioUnitario,
-        subtotal: d.subtotal,
-      })),
-      subtotal: v.subtotal,
-      descuento: v.descuento,
-      recargo: v.recargo,
-      total: v.total,
-      formaPagoNombre: v.formaPagoNombre,
-      notaInterna: v.observaciones,
-      tipoFactura: 0,
-      pagos: v.pagos?.map((p: { formaPagoNombre: string; monto: number; recargo: number; totalACobrar: number }) => ({
-        formaPagoNombre: p.formaPagoNombre,
-        monto: p.monto,
-        recargo: p.recargo,
-        totalACobrar: p.totalACobrar,
-      })),
-    };
-    setTicketParaImprimir(ticket);
-  };
-
   const handleImprimir = () => {
     if (ticketParaImprimir) {
       setMostrarComprobante(true);
