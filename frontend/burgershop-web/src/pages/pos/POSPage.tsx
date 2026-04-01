@@ -91,6 +91,7 @@ export default function POSPage() {
   // Modales post-venta
   const [mostrarModalFacturar, setMostrarModalFacturar] = useState(false);
   const [mostrarModalAcciones, setMostrarModalAcciones] = useState(false);
+  const [mostrarComprobante, setMostrarComprobante] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ultimaVenta, setUltimaVenta] = useState<any>(null);
 
@@ -449,8 +450,54 @@ export default function POSPage() {
       setUltimoPedidoId(envioADomicilio && pedidoId ? pedidoId : venta.id);
       setUltimoEsPedido(!!envioADomicilio && !!pedidoId);
       setUltimaVenta(venta);
+
+      // Pre-armar ticket listo para imprimir
+      const fpNombre = venta.formaPagoNombre
+        || (venta.pagos && venta.pagos.length > 0 ? venta.pagos.map((p: { formaPagoNombre: string }) => p.formaPagoNombre).join(' / ') : undefined)
+        || formasPago.find(f => f.id === formaPagoSeleccionada)?.nombre
+        || 'Efectivo';
+      const ticketListo = {
+        numeroTicket: venta.numeroVenta || '',
+        fecha: venta.fecha || new Date().toISOString(),
+        tipo: venta.tipoVenta ?? 1,
+        nombreCliente: venta.nombreCliente || nombreCliente || undefined,
+        direccionEntrega: undefined as string | undefined,
+        zonaNombre: undefined as string | undefined,
+        lineas: (venta.detalles && venta.detalles.length > 0)
+          ? venta.detalles.map((d: { descripcion: string; cantidad: number; precioUnitario: number; subtotal: number }) => ({
+              descripcion: d.descripcion,
+              cantidad: d.cantidad,
+              precioUnitario: d.precioUnitario,
+              subtotal: d.subtotal,
+            }))
+          : detallesCarrito.map(d => {
+              const prod = productos.find(p => p.id === d.productoId);
+              const combo = combos.find(c => c.id === d.comboId);
+              return {
+                descripcion: prod?.nombre || combo?.nombre || 'Item',
+                cantidad: d.cantidad,
+                precioUnitario: d.precioUnitario,
+                subtotal: d.cantidad * d.precioUnitario,
+              };
+            }),
+        subtotal: venta.subtotal,
+        descuento: venta.descuento,
+        recargo: venta.recargo,
+        total: venta.total,
+        formaPagoNombre: fpNombre,
+        notaInterna: venta.observaciones || undefined,
+        tipoFactura: 0,
+        pagos: venta.pagos?.map((p: { formaPagoNombre: string; monto: number; recargo: number; totalACobrar: number }) => ({
+          formaPagoNombre: p.formaPagoNombre,
+          monto: p.monto,
+          recargo: p.recargo,
+          totalACobrar: p.totalACobrar,
+        })),
+      };
+      setTicketParaImprimir(ticketListo);
+
       showToast(esCtaCte ? 'Venta a crédito registrada' : envioADomicilio ? 'Venta registrada + pedido de envío creado' : 'Venta registrada correctamente', 'success');
-      // Mostrar modal de facturación
+      // Mostrar modal de facturación (ticket ya listo en memoria)
       setMostrarModalFacturar(true);
       // Reset
       setCarrito([]);
@@ -551,8 +598,10 @@ export default function POSPage() {
     setTicketParaImprimir(ticket);
   };
 
-  const handleImprimir = async () => {
-    await abrirTicketDesdeVenta();
+  const handleImprimir = () => {
+    if (ticketParaImprimir) {
+      setMostrarComprobante(true);
+    }
   };
 
   const tipoClienteActual = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
@@ -1240,8 +1289,8 @@ export default function POSPage() {
       )}
 
       {/* Modal de impresion */}
-      {ticketParaImprimir && (
-        <ComprobanteXPrint ticket={ticketParaImprimir} onClose={() => setTicketParaImprimir(null)} />
+      {mostrarComprobante && ticketParaImprimir && (
+        <ComprobanteXPrint ticket={ticketParaImprimir} onClose={() => setMostrarComprobante(false)} />
       )}
 
       {/* ============ MODAL FACTURAR ============ */}
@@ -1287,9 +1336,9 @@ export default function POSPage() {
             <div className="grid grid-cols-4 gap-4 p-8">
               {/* Imprimir A4 */}
               <button
-                onClick={async () => {
+                onClick={() => {
                   setMostrarModalAcciones(false);
-                  await abrirTicketDesdeVenta();
+                  setMostrarComprobante(true);
                 }}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
               >
@@ -1305,9 +1354,9 @@ export default function POSPage() {
 
               {/* Imprimir Ticket */}
               <button
-                onClick={async () => {
+                onClick={() => {
                   setMostrarModalAcciones(false);
-                  await abrirTicketDesdeVenta();
+                  setMostrarComprobante(true);
                 }}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
               >
