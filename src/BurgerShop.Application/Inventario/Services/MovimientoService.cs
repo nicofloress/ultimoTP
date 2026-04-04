@@ -67,6 +67,7 @@ public class MovimientoService : IMovimientoService
             && dto.ProductoId.HasValue)
         {
             await ActualizarArtiStockAsync(dto.ProductoId.Value, dto.LocalId, dto.Cantidad, codigo);
+            await _stockRepo.SaveChangesAsync();
         }
 
         return ToDto(movimiento, codigo);

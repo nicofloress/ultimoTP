@@ -201,6 +201,7 @@ export default function MovimientosPage() {
   // --- Columnas de la tabla ---
   const columnas: { key: string; label: string }[] = [
     { key: 'fechaMovimiento', label: 'Fecha Mov.' },
+    { key: 'localNombre', label: 'Local' },
     { key: 'fechaProceso', label: 'Fecha Proceso' },
     { key: 'codigoAccionCodigo', label: 'Codigo' },
     { key: 'codigoAccionNombre', label: 'Descripcion' },
@@ -352,6 +353,7 @@ export default function MovimientosPage() {
                     }`}
                   >
                     <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
+                    <td className="px-3 py-2">{m.localNombre}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaProceso)}</td>
                     <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{m.codigoAccionCodigo}</td>
                     <td className="px-3 py-2">{m.codigoAccionNombre}</td>

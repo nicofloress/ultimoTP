@@ -185,6 +185,7 @@ export default function ComprasPage() {
   // --- Columnas de la tabla ---
   const columnas: { key: string; label: string }[] = [
     { key: 'fechaMovimiento', label: 'Fecha' },
+    { key: 'localNombre', label: 'Local' },
     { key: 'productoNombre', label: 'Producto' },
     { key: 'cantidad', label: 'Cantidad' },
     { key: 'precioUnitario', label: 'Precio Unit.' },
@@ -313,6 +314,7 @@ export default function ComprasPage() {
                   }`}
                 >
                   <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
+                  <td className="px-3 py-2">{m.localNombre}</td>
                   <td className="px-3 py-2">{m.productoNombre || '-'}</td>
                   <td className="px-3 py-2 font-semibold whitespace-nowrap text-green-600">+{m.cantidad}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>

@@ -75,7 +75,7 @@ public class AuthServiceTests
 
         _tokenGeneratorMock
             .Setup(t => t.GenerateToken(usuario.Id, usuario.NombreCompleto,
-                                        RolUsuario.Administrador.ToString(), null))
+                                        RolUsuario.Administrador.ToString(), null, null))
             .Returns(tokenEsperado);
 
         var dto = new LoginDto { NombreUsuario = usuario.NombreUsuario, Password = password };
@@ -105,7 +105,7 @@ public class AuthServiceTests
 
         _tokenGeneratorMock
             .Setup(t => t.GenerateToken(It.IsAny<int>(), It.IsAny<string>(),
-                                        It.IsAny<string>(), It.IsAny<int?>()))
+                                        It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .Returns("token");
 
         var dto = new LoginDto { NombreUsuario = usuario.NombreUsuario, Password = password };
@@ -136,7 +136,7 @@ public class AuthServiceTests
 
         _tokenGeneratorMock
             .Setup(t => t.GenerateToken(It.IsAny<int>(), It.IsAny<string>(),
-                                        It.IsAny<string>(), It.IsAny<int?>()))
+                                        It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>()))
             .Returns("token");
 
         var dto = new LoginDto { NombreUsuario = usuario.NombreUsuario, Password = password };
@@ -149,7 +149,7 @@ public class AuthServiceTests
             42,
             usuario.NombreCompleto,
             RolUsuario.Repartidor.ToString(),
-            repartidorId), Times.Once);
+            repartidorId, It.IsAny<int?>()), Times.Once);
     }
 
     // -----------------------------------------------------------------------
@@ -180,7 +180,7 @@ public class AuthServiceTests
         // El token no debe generarse si la autenticación falla
         _tokenGeneratorMock.Verify(t => t.GenerateToken(
             It.IsAny<int>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+            It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public class AuthServiceTests
         Assert.Null(resultado);
         _tokenGeneratorMock.Verify(t => t.GenerateToken(
             It.IsAny<int>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+            It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public class AuthServiceTests
         Assert.Null(resultado);
         _tokenGeneratorMock.Verify(t => t.GenerateToken(
             It.IsAny<int>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+            It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
     }
 
     // -----------------------------------------------------------------------

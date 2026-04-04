@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLocalActivo } from '../context/LocalContext';
 import { RolUsuario } from '../types/auth';
 
 interface MenuItem {
@@ -82,6 +83,7 @@ export default function Layout() {
   const { usuario, logout } = useAuth();
 
   const userRol = usuario?.rol;
+  const { locales, localActivo, setLocalActivo, esSuperAdmin } = useLocalActivo();
 
   const filteredSections = menuSections
     .map((section) => ({
@@ -145,6 +147,23 @@ export default function Layout() {
             <div className="text-xs text-slate-300 leading-tight">{usuario?.rolNombre}</div>
           </div>
         </div>
+        {esSuperAdmin && (
+          <div className="flex items-center gap-2 mr-4">
+            <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <select
+              value={localActivo}
+              onChange={e => setLocalActivo(Number(e.target.value))}
+              className="bg-slate-700 text-white text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-[180px]"
+            >
+              {locales.map(l => (
+                <option key={l.id} value={l.id}>{l.nombre}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <button
           onClick={logout}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"

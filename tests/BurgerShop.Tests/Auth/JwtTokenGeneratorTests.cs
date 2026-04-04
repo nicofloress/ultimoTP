@@ -57,7 +57,7 @@ public class JwtTokenGeneratorTests
     public void GenerateToken_Llamado_RetornaStringNoVacio()
     {
         // Act
-        var token = _generator.GenerateToken(1, "Juan Pérez", "Administrador", null);
+        var token = _generator.GenerateToken(1, "Juan Pérez", "Administrador", null, null);
 
         // Assert
         Assert.NotNull(token);
@@ -71,7 +71,7 @@ public class JwtTokenGeneratorTests
         const int userId = 42;
 
         // Act
-        var token  = _generator.GenerateToken(userId, "Ana García", "Local", null);
+        var token  = _generator.GenerateToken(userId, "Ana García", "Local", null, null);
         var parsed = ParseToken(token);
 
         // Assert: JwtRegisteredClaimNames.Sub → "sub"
@@ -87,7 +87,7 @@ public class JwtTokenGeneratorTests
         const string nombre = "María López";
 
         // Act
-        var token  = _generator.GenerateToken(1, nombre, "Administrador", null);
+        var token  = _generator.GenerateToken(1, nombre, "Administrador", null, null);
         var parsed = ParseToken(token);
 
         // Assert: ClaimTypes.Name → "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
@@ -105,7 +105,7 @@ public class JwtTokenGeneratorTests
         const string rol = "Administrador";
 
         // Act
-        var token  = _generator.GenerateToken(1, "Admin", rol, null);
+        var token  = _generator.GenerateToken(1, "Admin", rol, null, null);
         var parsed = ParseToken(token);
 
         // Assert: ClaimTypes.Role → "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
@@ -127,7 +127,7 @@ public class JwtTokenGeneratorTests
         const int repartidorId = 7;
 
         // Act
-        var token  = _generator.GenerateToken(1, "Carlos Rep", "Repartidor", repartidorId);
+        var token  = _generator.GenerateToken(1, "Carlos Rep", "Repartidor", repartidorId, null);
         var parsed = ParseToken(token);
 
         // Assert
@@ -140,7 +140,7 @@ public class JwtTokenGeneratorTests
     public void GenerateToken_SinRepartidorId_NoIncludeClaimRepartidorId()
     {
         // Act
-        var token  = _generator.GenerateToken(1, "Admin", "Administrador", repartidorId: null);
+        var token  = _generator.GenerateToken(1, "Admin", "Administrador", repartidorId: null, localId: null);
         var parsed = ParseToken(token);
 
         // Assert: el claim "repartidorId" no debe existir
@@ -154,7 +154,7 @@ public class JwtTokenGeneratorTests
         // Arrange: null es la única condición que omite el claim; 0 como int? no ocurre
         // en la práctica, pero verificamos el contrato explícito del null check.
         // Pasamos null → no debe incluir el claim.
-        var token  = _generator.GenerateToken(1, "Local", "Local", repartidorId: null);
+        var token  = _generator.GenerateToken(1, "Local", "Local", repartidorId: null, localId: null);
         var parsed = ParseToken(token);
 
         // Assert
@@ -169,7 +169,7 @@ public class JwtTokenGeneratorTests
     public void GenerateToken_Llamado_TokenTieneIssuerYAudienceCorrectos()
     {
         // Act
-        var token  = _generator.GenerateToken(1, "Test", "Administrador", null);
+        var token  = _generator.GenerateToken(1, "Test", "Administrador", null, null);
         var parsed = ParseToken(token);
 
         // Assert
@@ -182,7 +182,7 @@ public class JwtTokenGeneratorTests
     {
         // Act
         var antes  = DateTime.UtcNow;
-        var token  = _generator.GenerateToken(1, "Test", "Administrador", null);
+        var token  = _generator.GenerateToken(1, "Test", "Administrador", null, null);
         var parsed = ParseToken(token);
 
         // Assert: la expiración debe ser posterior al momento de generación
@@ -195,7 +195,7 @@ public class JwtTokenGeneratorTests
     {
         // Arrange
         // Sin repartidorId → 3 claims: sub, name, role
-        var token  = _generator.GenerateToken(5, "Nombre Test", "Local", repartidorId: null);
+        var token  = _generator.GenerateToken(5, "Nombre Test", "Local", repartidorId: null, localId: null);
         var parsed = ParseToken(token);
 
         // Act: filtrar solo nuestros claims personalizados
@@ -217,7 +217,7 @@ public class JwtTokenGeneratorTests
     {
         // Arrange
         // Con repartidorId → 4 claims: sub, name, role, repartidorId
-        var token  = _generator.GenerateToken(5, "Repartidor Test", "Repartidor", repartidorId: 3);
+        var token  = _generator.GenerateToken(5, "Repartidor Test", "Repartidor", repartidorId: 3, localId: null);
         var parsed = ParseToken(token);
 
         var nuestrosClaims = parsed.Claims

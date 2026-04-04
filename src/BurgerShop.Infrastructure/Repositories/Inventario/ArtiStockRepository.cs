@@ -55,7 +55,13 @@ public class ArtiStockRepository : IArtiStockRepository
         }
         else
         {
-            _context.ArtiStock.Update(artiStock);
+            // Copiar valores al objeto ya trackeado por EF
+            existente.IngresoLocal       = artiStock.IngresoLocal;
+            existente.EgresoLocal        = artiStock.EgresoLocal;
+            existente.VentaLocal         = artiStock.VentaLocal;
+            existente.StockFinal         = artiStock.StockFinal;
+            existente.StockMinimo        = artiStock.StockMinimo;
+            existente.UltimaModificacion = artiStock.UltimaModificacion;
         }
     }
 

@@ -169,6 +169,7 @@ export default function StockPage() {
 
   const columnas: { key: string; label: string; align?: string }[] = [
     { key: 'productoNombre', label: 'Producto' },
+    { key: 'localNombre', label: 'Local' },
     { key: 'ingresoLocal', label: 'Ingresos', align: 'text-right' },
     { key: 'egresoLocal', label: 'Egresos', align: 'text-right' },
     { key: 'ventaLocal', label: 'Ventas', align: 'text-right' },
@@ -319,6 +320,7 @@ export default function StockPage() {
                     }`}
                   >
                     <td className="px-3 py-2">{s.productoNombre}</td>
+                    <td className="px-3 py-2">{s.localNombre}</td>
                     <td className="px-3 py-2 text-right">{s.ingresoLocal}</td>
                     <td className="px-3 py-2 text-right">{s.egresoLocal}</td>
                     <td className="px-3 py-2 text-right">{s.ventaLocal}</td>

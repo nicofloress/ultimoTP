@@ -105,6 +105,7 @@ export default function HistorialPedidosPage() {
         case 'numeroTicket': va = a.numeroTicket; vb = b.numeroTicket; break;
         case 'fechaCreacion': va = a.fechaCreacion; vb = b.fechaCreacion; break;
         case 'tipo': va = a.tipo; vb = b.tipo; break;
+        case 'localNombre': va = ''; vb = ''; break;
         case 'nombreCliente': va = a.nombreCliente || ''; vb = b.nombreCliente || ''; break;
         case 'direccionEntrega': va = a.direccionEntrega || ''; vb = b.direccionEntrega || ''; break;
         case 'zonaNombre': va = a.zonaNombre || ''; vb = b.zonaNombre || ''; break;
@@ -158,8 +159,8 @@ export default function HistorialPedidosPage() {
         <div className="flex flex-wrap items-center gap-3 pb-3 flex-shrink-0">
           {/* Filtro por local — visual, sin filtrado real (los pedidos no tienen localId directo) */}
           {/* TODO: implementar filtrado por local en backend */}
-          <div className="min-w-[200px]">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
             {esSuperAdmin ? (
               <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
                 <option value={0}>Todos los locales</option>
@@ -234,6 +235,7 @@ export default function HistorialPedidosPage() {
                   {([
                     ['numeroTicket', 'Ticket', ''],
                     ['fechaCreacion', 'Hora', ''],
+                    ['localNombre', 'Local', ''],
                     ['tipo', 'Tipo', ''],
                     ['nombreCliente', 'Cliente', ''],
                     ['direccionEntrega', 'Direccion', ''],

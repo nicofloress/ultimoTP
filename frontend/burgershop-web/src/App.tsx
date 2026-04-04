@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LocalProvider } from './context/LocalContext';
 import { ToastProvider } from './components/Toast';
 import { SignalRProvider } from './components/SignalRProvider';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -39,6 +40,7 @@ export default function App() {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
+          <LocalProvider>
           <SignalRProvider>
             <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -113,6 +115,7 @@ export default function App() {
           </Route>
             </Routes>
           </SignalRProvider>
+          </LocalProvider>
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
