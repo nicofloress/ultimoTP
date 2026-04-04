@@ -126,6 +126,8 @@ export interface ClienteDto {
   tipoClienteId?: number;
   tipoClienteNombre?: string;
   listaPrecioId?: number;
+  localId?: number;
+  localNombre?: string;
 }
 
 export interface PagoPedidoDto {
@@ -152,4 +154,5 @@ export interface CrearClienteDto {
   zonaId?: number;
   tipoClienteId?: number;
   listaPrecioId?: number;
+  localId?: number;
 }

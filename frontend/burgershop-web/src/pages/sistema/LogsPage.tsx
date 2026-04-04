@@ -495,6 +495,7 @@ function LogDetail({ log }: { log: LogEntry }) {
       ? [{ label: 'Usuario', value: `${log.usuarioNombre} (ID: ${log.usuarioId})` }]
       : []),
     ...(log.rol ? [{ label: 'Rol', value: log.rol }] : []),
+    ...(log.localNombre ? [{ label: 'Local', value: log.localNombre }] : []),
     ...(log.httpMethod ? [{ label: 'Metodo HTTP', value: log.httpMethod }] : []),
     ...(log.ruta ? [{ label: 'Ruta', value: log.ruta }] : []),
     ...(log.statusCode != null ? [{ label: 'Status Code', value: log.statusCode }] : []),

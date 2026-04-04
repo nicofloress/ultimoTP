@@ -24,7 +24,7 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, usuario.PasswordHash)) return null;
 
         var rolNombre = usuario.Rol.ToString();
-        var token = _tokenGenerator.GenerateToken(usuario.Id, usuario.NombreCompleto, rolNombre, usuario.RepartidorId);
+        var token = _tokenGenerator.GenerateToken(usuario.Id, usuario.NombreCompleto, rolNombre, usuario.RepartidorId, usuario.LocalId);
 
         return new LoginResultDto
         {

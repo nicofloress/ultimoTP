@@ -7,6 +7,7 @@ import { getListasPrecios } from '../../api/listasPrecios';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0 };
 
@@ -27,6 +28,7 @@ export default function ProductosPage() {
   const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const [productoDetalle, setProductoDetalle] = useState<Producto | null>(null);
+  const { showToast } = useGlobalToast();
 
   const cargar = async () => {
     const [prods, cats, cmbs, lstas] = await Promise.all([
@@ -50,15 +52,21 @@ export default function ProductosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await updateProducto(editando.id, { ...form, activo: editando.activo });
-    } else {
-      await createProducto(form);
+    try {
+      if (editando) {
+        await updateProducto(editando.id, { ...form, activo: editando.activo });
+        showToast('Articulo actualizado correctamente', 'success');
+      } else {
+        await createProducto(form);
+        showToast('Articulo creado correctamente', 'success');
+      }
+      setForm(emptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar articulo', 'error');
     }
-    setForm(emptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (p: Producto) => {
@@ -68,7 +76,12 @@ export default function ProductosPage() {
   };
 
   const confirmarDesactivar = async () => {
-    await deleteProducto(confirmacion.id);
+    try {
+      await deleteProducto(confirmacion.id);
+      showToast('Articulo desactivado correctamente', 'success');
+    } catch {
+      showToast('Error al desactivar articulo', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -187,18 +200,45 @@ export default function ProductosPage() {
       {/* Form admin */}
       {showForm && esAdmin && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-3 grid grid-cols-2 gap-3 text-sm">
-          <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2" required />
-          <select value={form.categoriaId} onChange={e => setForm({ ...form, categoriaId: Number(e.target.value) })} className="border rounded px-3 py-2" required>
-            <option value={0}>Seleccionar categoria</option>
-            {categorias.filter(c => c.activa).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
-          <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2" />
-          <input type="number" value={form.precio} onChange={e => setForm({ ...form, precio: Number(e.target.value) })} placeholder="Precio" className="border rounded px-3 py-2" min={0} step={0.01} required />
-          <input type="text" value={form.numeroInterno} onChange={e => setForm({ ...form, numeroInterno: e.target.value })} placeholder="Numero interno (ej: HAM-001)" className="border rounded px-3 py-2" />
-          <input type="text" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} placeholder="Marca" className="border rounded px-3 py-2" />
-          <input type="number" value={form.pesoGramos} onChange={e => setForm({ ...form, pesoGramos: Number(e.target.value) })} placeholder="Peso en gramos" className="border rounded px-3 py-2" min={0} />
-          <input type="number" value={form.unidadesPorBulto} onChange={e => setForm({ ...form, unidadesPorBulto: Number(e.target.value) })} placeholder="Unidades por bulto" className="border rounded px-3 py-2" min={1} />
-          <input type="number" value={form.unidadesPorMedia} onChange={e => setForm({ ...form, unidadesPorMedia: Number(e.target.value) })} placeholder="Unidades por media" className="border rounded px-3 py-2" min={0} />
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+            <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 w-full" required />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
+            <select value={form.categoriaId} onChange={e => setForm({ ...form, categoriaId: Number(e.target.value) })} className="border rounded px-3 py-2 w-full" required>
+              <option value={0}>Seleccionar categoria</option>
+              {categorias.filter(c => c.activa).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Descripcion</label>
+            <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2 w-full" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Precio</label>
+            <input type="number" value={form.precio} onChange={e => setForm({ ...form, precio: Number(e.target.value) })} placeholder="Precio" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Numero Interno</label>
+            <input type="text" value={form.numeroInterno} onChange={e => setForm({ ...form, numeroInterno: e.target.value })} placeholder="Numero interno (ej: HAM-001)" className="border rounded px-3 py-2 w-full" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Marca</label>
+            <input type="text" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} placeholder="Marca" className="border rounded px-3 py-2 w-full" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Peso (gramos)</label>
+            <input type="number" value={form.pesoGramos} onChange={e => setForm({ ...form, pesoGramos: Number(e.target.value) })} placeholder="Peso en gramos" className="border rounded px-3 py-2 w-full" min={0} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Unidades por Bulto</label>
+            <input type="number" value={form.unidadesPorBulto} onChange={e => setForm({ ...form, unidadesPorBulto: Number(e.target.value) })} placeholder="Unidades por bulto" className="border rounded px-3 py-2 w-full" min={1} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Unidades por Medio Bulto</label>
+            <input type="number" value={form.unidadesPorMedia} onChange={e => setForm({ ...form, unidadesPorMedia: Number(e.target.value) })} placeholder="Unidades por media" className="border rounded px-3 py-2 w-full" min={0} />
+          </div>
           <div className="col-span-2 flex gap-2">
             <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>

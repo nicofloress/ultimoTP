@@ -17,6 +17,8 @@ export interface LogEntry {
   usuarioId?: number;
   usuarioNombre?: string;
   rol?: string;
+  localId?: number;
+  localNombre?: string;
   httpMethod?: string;
   ruta?: string;
   statusCode?: number;

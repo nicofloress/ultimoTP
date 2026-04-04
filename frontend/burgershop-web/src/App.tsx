@@ -52,64 +52,52 @@ export default function App() {
               <Layout />
             </ProtectedRoute>
           }>
+            {/* Todas las rutas — SuperAdmin siempre accede via ProtectedRoute */}
             <Route path="/" element={<POSPage />} />
             <Route path="/pedidos" element={<PedidosPage />} />
             <Route path="/historial" element={<HistorialPedidosPage />} />
+            <Route path="/reparto" element={<EntregasPage />} />
+            <Route path="/control-camionetas" element={<ControlCamionetasPage />} />
+            <Route path="/tracking" element={<TrackingMapaPage />} />
+            <Route path="/finanzas/cuenta-corriente" element={<CuentaCorrientePage />} />
             <Route path="/catalogo" element={<CatalogoLayout />}>
               <Route index element={<Navigate to="productos" replace />} />
-              <Route path="productos" element={<ProductosPage />} />
-              <Route path="combos" element={<CombosPage />} />
-              <Route path="proveedores" element={<ProveedoresPage />} />
-              <Route path="repartidores" element={<RepartidoresPage />} />
-              <Route path="clientes" element={<ClientesPage />} />
-
-              <Route path="listasprecios" element={<ListasPrecioPage />} />
-              <Route path="usuarios" element={<UsuariosPage />} />
+              <Route path="productos" element={
+                <ProtectedRoute roles={[RolUsuario.Administrador]}><ProductosPage /></ProtectedRoute>
+              } />
+              <Route path="combos" element={
+                <ProtectedRoute roles={[RolUsuario.Administrador]}><CombosPage /></ProtectedRoute>
+              } />
+              <Route path="proveedores" element={
+                <ProtectedRoute roles={[]}><ProveedoresPage /></ProtectedRoute>
+              } />
+              <Route path="repartidores" element={
+                <ProtectedRoute roles={[RolUsuario.Administrador]}><RepartidoresPage /></ProtectedRoute>
+              } />
+              <Route path="clientes" element={
+                <ProtectedRoute roles={[RolUsuario.Administrador]}><ClientesPage /></ProtectedRoute>
+              } />
+              <Route path="listasprecios" element={
+                <ProtectedRoute roles={[RolUsuario.Administrador]}><ListasPrecioPage /></ProtectedRoute>
+              } />
+              <Route path="usuarios" element={
+                <ProtectedRoute roles={[]}><UsuariosPage /></ProtectedRoute>
+              } />
             </Route>
             <Route path="/finanzas/caja" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <CajaPage />
-              </ProtectedRoute>
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><CajaPage /></ProtectedRoute>
             } />
             <Route path="/finanzas/rendiciones" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <RendicionesPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/finanzas/cuenta-corriente" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <CuentaCorrientePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/reparto" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <EntregasPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/control-camionetas" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <ControlCamionetasPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/tracking" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <TrackingMapaPage />
-              </ProtectedRoute>
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><RendicionesPage /></ProtectedRoute>
             } />
             <Route path="/inventario/movimientos" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <MovimientosPage />
-              </ProtectedRoute>
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><MovimientosPage /></ProtectedRoute>
             } />
             <Route path="/inventario/stock" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <StockPage />
-              </ProtectedRoute>
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><StockPage /></ProtectedRoute>
             } />
             <Route path="/sistema/logs" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}>
-                <LogsPage />
-              </ProtectedRoute>
+              <ProtectedRoute roles={[]}><LogsPage /></ProtectedRoute>
             } />
             <Route path="/config" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}>

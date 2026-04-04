@@ -7,8 +7,11 @@ import {
   crearMovimiento,
 } from '../../api/movimientos';
 import { getProductos } from '../../api/productos';
+import { getLocales, LocalDto } from '../../api/locales';
 import { Producto } from '../../types';
 import { useGlobalToast } from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 
 const inputClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -39,12 +42,19 @@ type SortDir = 'asc' | 'desc';
 
 export default function MovimientosPage() {
   const { showToast } = useGlobalToast();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+  const localDelUsuario = usuario?.localId;
 
   // --- Data ---
   const [movimientos, setMovimientos] = useState<MovimientoDto[]>([]);
   const [codigosAccion, setCodigosAccion] = useState<CodigoAccion[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(false);
+
+  // --- Locales ---
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(localDelUsuario || 1);
 
   // --- Filtros ---
   const [fechaDesde, setFechaDesde] = useState(getHoy());
@@ -70,6 +80,7 @@ export default function MovimientosPage() {
   useEffect(() => {
     getCodigosAccion().then(setCodigosAccion).catch(() => {});
     getProductos().then(setProductos).catch(() => {});
+    getLocales().then(setLocales).catch(() => {});
   }, []);
 
   // --- Cargar movimientos ---
@@ -77,7 +88,7 @@ export default function MovimientosPage() {
     setCargando(true);
     try {
       const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
-      const data = await getMovimientosPorLocal(1, fechaDesde, hasta);
+      const data = await getMovimientosPorLocal(localSeleccionado, fechaDesde, hasta);
       // Ocultar movimientos internos de combos (desglose de stock)
       setMovimientos(data.filter(m => !m.observaciones?.startsWith('[COMBO]')));
     } catch (err) {
@@ -86,7 +97,7 @@ export default function MovimientosPage() {
     } finally {
       setCargando(false);
     }
-  }, [fechaDesde, fechaHasta, showToast]);
+  }, [fechaDesde, fechaHasta, localSeleccionado, showToast]);
 
   useEffect(() => {
     cargarMovimientos();
@@ -162,7 +173,7 @@ export default function MovimientosPage() {
       await crearMovimiento({
         codigoAccionId: formCodigoAccionId as number,
         productoId: formProductoId !== '' ? (formProductoId as number) : undefined,
-        localId: 1,
+        localId: localSeleccionado,
         cantidad: parseFloat(formCantidad),
         precioUnitario: parseFloat(formPrecioUnitario),
         fechaMovimiento: formFecha,
@@ -202,6 +213,24 @@ export default function MovimientosPage() {
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+            {esSuperAdmin ? (
+              <select
+                className={selectClass + ' w-full'}
+                value={localSeleccionado}
+                onChange={(e) => setLocalSeleccionado(Number(e.target.value))}
+              >
+                {locales.map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+              </div>
+            )}
+          </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha Desde</label>
             <input

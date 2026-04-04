@@ -13,7 +13,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public JwtTokenGenerator(IConfiguration configuration) => _configuration = configuration;
 
-    public string GenerateToken(int userId, string nombre, string rol, int? repartidorId)
+    public string GenerateToken(int userId, string nombre, string rol, int? repartidorId, int? localId)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -27,6 +27,9 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
         if (repartidorId.HasValue)
             claims.Add(new Claim("repartidorId", repartidorId.Value.ToString()));
+
+        if (localId.HasValue)
+            claims.Add(new Claim("localId", localId.Value.ToString()));
 
         var expiration = int.Parse(_configuration["Jwt:ExpirationMinutes"] ?? "480");
 

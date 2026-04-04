@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { RolUsuario } from '../../types/auth';
 import { Repartidor } from '../../types/logistica';
 import { getRepartidores } from '../../api/repartidores';
+import { getLocales, LocalDto } from '../../api/locales';
 import { UsuarioList, getUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../../api/usuarios';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 const emptyForm = {
   nombreUsuario: '',
@@ -11,10 +13,12 @@ const emptyForm = {
   nombreCompleto: '',
   rol: RolUsuario.Local as RolUsuario,
   repartidorId: undefined as number | undefined,
+  localId: undefined as number | undefined,
   activo: true,
 };
 
 const rolOptions: { value: RolUsuario; label: string }[] = [
+  { value: RolUsuario.SuperAdmin, label: 'Super Admin' },
   { value: RolUsuario.Administrador, label: 'Administrador' },
   { value: RolUsuario.Local, label: 'Local' },
   { value: RolUsuario.Repartidor, label: 'Repartidor' },
@@ -23,42 +27,54 @@ const rolOptions: { value: RolUsuario; label: string }[] = [
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioList[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
+  const [locales, setLocales] = useState<LocalDto[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<UsuarioList | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const { showToast } = useGlobalToast();
 
   const cargar = () => {
     getUsuarios().then(res => setUsuarios(res.data));
     getRepartidores().then(setRepartidores);
+    getLocales().then(setLocales);
   };
 
   useEffect(() => { cargar(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await actualizarUsuario(editando.id, {
-        nombreUsuario: form.nombreUsuario,
-        password: form.password || undefined,
-        nombreCompleto: form.nombreCompleto,
-        rol: form.rol,
-        repartidorId: form.rol === RolUsuario.Repartidor ? form.repartidorId : undefined,
-        activo: form.activo,
-      });
-    } else {
-      await crearUsuario({
-        nombreUsuario: form.nombreUsuario,
-        password: form.password,
-        nombreCompleto: form.nombreCompleto,
-        rol: form.rol,
-        repartidorId: form.rol === RolUsuario.Repartidor ? form.repartidorId : undefined,
-      });
+    try {
+      const localId = form.rol !== RolUsuario.SuperAdmin ? form.localId : undefined;
+      if (editando) {
+        await actualizarUsuario(editando.id, {
+          nombreUsuario: form.nombreUsuario,
+          password: form.password || undefined,
+          nombreCompleto: form.nombreCompleto,
+          rol: form.rol,
+          repartidorId: form.rol === RolUsuario.Repartidor ? form.repartidorId : undefined,
+          localId,
+          activo: form.activo,
+        });
+        showToast('Usuario actualizado correctamente', 'success');
+      } else {
+        await crearUsuario({
+          nombreUsuario: form.nombreUsuario,
+          password: form.password,
+          nombreCompleto: form.nombreCompleto,
+          rol: form.rol,
+          repartidorId: form.rol === RolUsuario.Repartidor ? form.repartidorId : undefined,
+          localId,
+        });
+        showToast('Usuario creado correctamente', 'success');
+      }
+      setForm(emptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar usuario', 'error');
     }
-    setForm(emptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (u: UsuarioList) => {
@@ -69,6 +85,7 @@ export default function UsuariosPage() {
       nombreCompleto: u.nombreCompleto,
       rol: u.rol,
       repartidorId: u.repartidorId,
+      localId: u.localId,
       activo: u.activo,
     });
     setShowForm(true);
@@ -79,7 +96,12 @@ export default function UsuariosPage() {
   };
 
   const confirmarDesactivar = async () => {
-    await eliminarUsuario(confirmacion.id);
+    try {
+      await eliminarUsuario(confirmacion.id);
+      showToast('Usuario desactivado correctamente', 'success');
+    } catch {
+      showToast('Error al desactivar usuario', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -98,51 +120,83 @@ export default function UsuariosPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            value={form.nombreUsuario}
-            onChange={e => setForm({ ...form, nombreUsuario: e.target.value })}
-            placeholder="Nombre de usuario"
-            className="border rounded px-3 py-2"
-            required
-          />
-          <input
-            type="text"
-            value={form.nombreCompleto}
-            onChange={e => setForm({ ...form, nombreCompleto: e.target.value })}
-            placeholder="Nombre completo"
-            className="border rounded px-3 py-2"
-            required
-          />
-          <input
-            type="password"
-            value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })}
-            placeholder={editando ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}
-            className="border rounded px-3 py-2"
-            required={!editando}
-          />
-          <select
-            value={form.rol}
-            onChange={e => setForm({ ...form, rol: Number(e.target.value) as RolUsuario, repartidorId: undefined })}
-            className="border rounded px-3 py-2"
-            required
-          >
-            {rolOptions.map(r => (
-              <option key={r.value} value={r.value}>{r.label}</option>
-            ))}
-          </select>
-          {form.rol === RolUsuario.Repartidor && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de Usuario</label>
+            <input
+              type="text"
+              value={form.nombreUsuario}
+              onChange={e => setForm({ ...form, nombreUsuario: e.target.value })}
+              placeholder="Nombre de usuario"
+              className="border rounded px-3 py-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre Completo</label>
+            <input
+              type="text"
+              value={form.nombreCompleto}
+              onChange={e => setForm({ ...form, nombreCompleto: e.target.value })}
+              placeholder="Nombre completo"
+              className="border rounded px-3 py-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Contrasena</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
+              placeholder={editando ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}
+              className="border rounded px-3 py-2 w-full"
+              required={!editando}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Rol</label>
             <select
-              value={form.repartidorId ?? ''}
-              onChange={e => setForm({ ...form, repartidorId: e.target.value ? Number(e.target.value) : undefined })}
-              className="border rounded px-3 py-2"
+              value={form.rol}
+              onChange={e => setForm({ ...form, rol: Number(e.target.value) as RolUsuario, repartidorId: undefined })}
+              className="border rounded px-3 py-2 w-full"
+              required
             >
-              <option value="">Sin repartidor asociado</option>
-              {repartidores.map(r => (
-                <option key={r.id} value={r.id}>{r.nombre}</option>
+              {rolOptions.map(r => (
+                <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
+          </div>
+          {/* Select Local — no se muestra para SuperAdmin */}
+          {form.rol !== RolUsuario.SuperAdmin && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
+              <select
+                value={form.localId ?? ''}
+                onChange={e => setForm({ ...form, localId: e.target.value ? Number(e.target.value) : undefined })}
+                className="border rounded px-3 py-2 w-full"
+              >
+                <option value="">Sin local asignado</option>
+                {locales.filter(l => l.activo).map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {/* Select Repartidor — solo para rol Repartidor */}
+          {form.rol === RolUsuario.Repartidor && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Repartidor</label>
+              <select
+                value={form.repartidorId ?? ''}
+                onChange={e => setForm({ ...form, repartidorId: e.target.value ? Number(e.target.value) : undefined })}
+                className="border rounded px-3 py-2 w-full"
+              >
+                <option value="">Sin repartidor asociado</option>
+                {repartidores.map(r => (
+                  <option key={r.id} value={r.id}>{r.nombre}</option>
+                ))}
+              </select>
+            </div>
           )}
           {editando && (
             <label className="flex items-center gap-2 text-sm">
@@ -172,6 +226,7 @@ export default function UsuariosPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Usuario</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Rol</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Repartidor</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
@@ -182,7 +237,17 @@ export default function UsuariosPage() {
               <tr key={u.id}>
                 <td className="px-4 py-3 text-sm font-medium">{u.nombreUsuario}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{u.nombreCompleto}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{u.rolNombre}</td>
+                <td className="px-4 py-3 text-sm">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    u.rol === RolUsuario.SuperAdmin ? 'bg-purple-100 text-purple-700' :
+                    u.rol === RolUsuario.Administrador ? 'bg-blue-100 text-blue-700' :
+                    u.rol === RolUsuario.Local ? 'bg-amber-100 text-amber-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {u.rolNombre}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{u.localNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{u.repartidorNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${u.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -199,7 +264,7 @@ export default function UsuariosPage() {
             ))}
             {usuarios.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hay usuarios registrados</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">No hay usuarios registrados</td>
               </tr>
             )}
           </tbody>

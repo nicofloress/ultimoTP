@@ -14,22 +14,26 @@ public class UsuarioRepository : IUsuarioRepository
     public async Task<Usuario?> GetByNombreUsuarioAsync(string nombreUsuario)
         => await _context.Usuarios
             .Include(u => u.Repartidor)
+            .Include(u => u.Local)
             .FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario);
 
     public async Task<Usuario?> GetByIdActivoAsync(int id)
         => await _context.Usuarios
             .Include(u => u.Repartidor)
+            .Include(u => u.Local)
             .FirstOrDefaultAsync(u => u.Id == id && u.Activo);
 
     public async Task<IEnumerable<Usuario>> GetAllAsync()
         => await _context.Usuarios
             .Include(u => u.Repartidor)
+            .Include(u => u.Local)
             .OrderBy(u => u.Id)
             .ToListAsync();
 
     public async Task<Usuario?> GetByIdAsync(int id)
         => await _context.Usuarios
             .Include(u => u.Repartidor)
+            .Include(u => u.Local)
             .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<Usuario> AddAsync(Usuario usuario)

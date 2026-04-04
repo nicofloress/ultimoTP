@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Repartidor } from '../../types/logistica';
 import { getRepartidores, crearRepartidor, actualizarRepartidor, eliminarRepartidor } from '../../api/repartidores';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 const emptyForm = { nombre: '', telefono: '', vehiculo: '', codigoAcceso: '', activo: true };
 
@@ -11,6 +12,7 @@ export default function RepartidoresPage() {
   const [editando, setEditando] = useState<Repartidor | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getRepartidores().then(setRepartidores);
 
@@ -18,26 +20,32 @@ export default function RepartidoresPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await actualizarRepartidor(editando.id, {
-        nombre: form.nombre,
-        telefono: form.telefono || undefined,
-        vehiculo: form.vehiculo || undefined,
-        activo: form.activo,
-        codigoAcceso: form.codigoAcceso || undefined,
-      });
-    } else {
-      await crearRepartidor({
-        nombre: form.nombre,
-        telefono: form.telefono || undefined,
-        vehiculo: form.vehiculo || undefined,
-        codigoAcceso: form.codigoAcceso,
-      });
+    try {
+      if (editando) {
+        await actualizarRepartidor(editando.id, {
+          nombre: form.nombre,
+          telefono: form.telefono || undefined,
+          vehiculo: form.vehiculo || undefined,
+          activo: form.activo,
+          codigoAcceso: form.codigoAcceso || undefined,
+        });
+        showToast('Repartidor actualizado correctamente', 'success');
+      } else {
+        await crearRepartidor({
+          nombre: form.nombre,
+          telefono: form.telefono || undefined,
+          vehiculo: form.vehiculo || undefined,
+          codigoAcceso: form.codigoAcceso,
+        });
+        showToast('Repartidor creado correctamente', 'success');
+      }
+      setForm(emptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar repartidor', 'error');
     }
-    setForm(emptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (r: Repartidor) => {
@@ -57,7 +65,12 @@ export default function RepartidoresPage() {
   };
 
   const confirmarEliminar = async () => {
-    await eliminarRepartidor(confirmacion.id);
+    try {
+      await eliminarRepartidor(confirmacion.id);
+      showToast('Repartidor desactivado correctamente', 'success');
+    } catch {
+      showToast('Error al desactivar repartidor', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -76,36 +89,48 @@ export default function RepartidoresPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            value={form.nombre}
-            onChange={e => setForm({ ...form, nombre: e.target.value })}
-            placeholder="Nombre"
-            className="border rounded px-3 py-2"
-            required
-          />
-          <input
-            type="text"
-            value={form.telefono}
-            onChange={e => setForm({ ...form, telefono: e.target.value })}
-            placeholder="Telefono"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            value={form.vehiculo}
-            onChange={e => setForm({ ...form, vehiculo: e.target.value })}
-            placeholder="Vehiculo"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            value={form.codigoAcceso}
-            onChange={e => setForm({ ...form, codigoAcceso: e.target.value })}
-            placeholder={editando ? 'Nuevo codigo (dejar vacio para no cambiar)' : 'Codigo de Acceso'}
-            className="border rounded px-3 py-2"
-            required={!editando}
-          />
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={form.nombre}
+              onChange={e => setForm({ ...form, nombre: e.target.value })}
+              placeholder="Nombre"
+              className="border rounded px-3 py-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Telefono</label>
+            <input
+              type="text"
+              value={form.telefono}
+              onChange={e => setForm({ ...form, telefono: e.target.value })}
+              placeholder="Telefono"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Vehiculo</label>
+            <input
+              type="text"
+              value={form.vehiculo}
+              onChange={e => setForm({ ...form, vehiculo: e.target.value })}
+              placeholder="Vehiculo"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Codigo de Acceso</label>
+            <input
+              type="text"
+              value={form.codigoAcceso}
+              onChange={e => setForm({ ...form, codigoAcceso: e.target.value })}
+              placeholder={editando ? 'Nuevo codigo (dejar vacio para no cambiar)' : 'Codigo de Acceso'}
+              className="border rounded px-3 py-2 w-full"
+              required={!editando}
+            />
+          </div>
           {editando && (
             <label className="flex items-center gap-2 text-sm">
               <input

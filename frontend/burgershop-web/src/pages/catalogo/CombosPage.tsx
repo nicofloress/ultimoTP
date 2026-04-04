@@ -109,7 +109,12 @@ export default function CombosPage() {
   };
 
   const confirmarDesactivar = async () => {
-    await deleteCombo(confirmacion.id);
+    try {
+      await deleteCombo(confirmacion.id);
+      showToast('Combo desactivado correctamente', 'success');
+    } catch {
+      showToast('Error al desactivar combo', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -168,9 +173,18 @@ export default function CombosPage() {
       {showForm && esAdmin && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre" className="border rounded px-3 py-2" required />
-            <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripcion" className="border rounded px-3 py-2" />
-            <input type="number" value={precio} onChange={e => setPrecio(Number(e.target.value))} placeholder="Precio combo" className="border rounded px-3 py-2" min={0} step={0.01} required />
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre" className="border rounded px-3 py-2 w-full" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Descripcion</label>
+              <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripcion" className="border rounded px-3 py-2 w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Precio del Combo</label>
+              <input type="number" value={precio} onChange={e => setPrecio(Number(e.target.value))} placeholder="Precio combo" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
+            </div>
           </div>
           <div>
             <div className="flex justify-between items-center mb-2">

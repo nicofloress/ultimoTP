@@ -9,6 +9,8 @@ export interface UsuarioList {
   rolNombre: string;
   repartidorId?: number;
   repartidorNombre?: string;
+  localId?: number;
+  localNombre?: string;
   activo: boolean;
 }
 
@@ -18,6 +20,7 @@ export interface CrearUsuarioDto {
   nombreCompleto: string;
   rol: RolUsuario;
   repartidorId?: number;
+  localId?: number;
 }
 
 export interface ActualizarUsuarioDto {
@@ -26,6 +29,7 @@ export interface ActualizarUsuarioDto {
   nombreCompleto: string;
   rol: RolUsuario;
   repartidorId?: number;
+  localId?: number;
   activo: boolean;
 }
 

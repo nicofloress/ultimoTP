@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Proveedor } from '../../types/catalogo';
 import { getProveedores, crearProveedor, actualizarProveedor, eliminarProveedor } from '../../api/proveedores';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 const emptyForm = { nombre: '', contacto: '', telefono: '', direccion: '' };
 
@@ -11,6 +12,7 @@ export default function ProveedoresPage() {
   const [editando, setEditando] = useState<Proveedor | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getProveedores().then(setProveedores);
 
@@ -18,15 +20,21 @@ export default function ProveedoresPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await actualizarProveedor(editando.id, form);
-    } else {
-      await crearProveedor(form);
+    try {
+      if (editando) {
+        await actualizarProveedor(editando.id, form);
+        showToast('Proveedor actualizado correctamente', 'success');
+      } else {
+        await crearProveedor(form);
+        showToast('Proveedor creado correctamente', 'success');
+      }
+      setForm(emptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar proveedor', 'error');
     }
-    setForm(emptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (p: Proveedor) => {
@@ -45,7 +53,12 @@ export default function ProveedoresPage() {
   };
 
   const confirmarEliminar = async () => {
-    await eliminarProveedor(confirmacion.id);
+    try {
+      await eliminarProveedor(confirmacion.id);
+      showToast('Proveedor eliminado correctamente', 'success');
+    } catch {
+      showToast('Error al eliminar proveedor', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -64,35 +77,47 @@ export default function ProveedoresPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            value={form.nombre}
-            onChange={e => setForm({ ...form, nombre: e.target.value })}
-            placeholder="Nombre"
-            className="border rounded px-3 py-2"
-            required
-          />
-          <input
-            type="text"
-            value={form.contacto}
-            onChange={e => setForm({ ...form, contacto: e.target.value })}
-            placeholder="Contacto"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            value={form.telefono}
-            onChange={e => setForm({ ...form, telefono: e.target.value })}
-            placeholder="Telefono"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            value={form.direccion}
-            onChange={e => setForm({ ...form, direccion: e.target.value })}
-            placeholder="Direccion"
-            className="border rounded px-3 py-2"
-          />
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={form.nombre}
+              onChange={e => setForm({ ...form, nombre: e.target.value })}
+              placeholder="Nombre"
+              className="border rounded px-3 py-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Contacto</label>
+            <input
+              type="text"
+              value={form.contacto}
+              onChange={e => setForm({ ...form, contacto: e.target.value })}
+              placeholder="Contacto"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Telefono</label>
+            <input
+              type="text"
+              value={form.telefono}
+              onChange={e => setForm({ ...form, telefono: e.target.value })}
+              placeholder="Telefono"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Direccion</label>
+            <input
+              type="text"
+              value={form.direccion}
+              onChange={e => setForm({ ...form, direccion: e.target.value })}
+              placeholder="Direccion"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
           <div className="col-span-2 flex gap-2">
             <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
               {editando ? 'Actualizar' : 'Crear'}

@@ -20,6 +20,8 @@ public class LogEntry
     public int? UsuarioId { get; set; }
     public string? UsuarioNombre { get; set; }
     public string? Rol { get; set; }
+    public int? LocalId { get; set; }
+    public string? LocalNombre { get; set; }
 
     public string? HttpMethod { get; set; }
     public string? Ruta { get; set; }

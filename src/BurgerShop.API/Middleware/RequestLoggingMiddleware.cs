@@ -82,6 +82,8 @@ public class RequestLoggingMiddleware
             int? usuarioId = null;
             string? usuarioNombre = null;
             string? rol = null;
+            int? localId = null;
+            string? localNombre = null;
 
             if (context.User.Identity?.IsAuthenticated == true)
             {
@@ -91,6 +93,10 @@ public class RequestLoggingMiddleware
 
                 usuarioNombre = context.User.FindFirst(ClaimTypes.Name)?.Value;
                 rol = context.User.FindFirst(ClaimTypes.Role)?.Value;
+
+                var localIdClaim = context.User.FindFirst("localId")?.Value;
+                if (int.TryParse(localIdClaim, out var parsedLocalId))
+                    localId = parsedLocalId;
             }
 
             var origen = excepcion is not null
@@ -116,6 +122,8 @@ public class RequestLoggingMiddleware
                 usuarioId: usuarioId,
                 usuarioNombre: usuarioNombre,
                 rol: rol,
+                localId: localId,
+                localNombre: localNombre,
                 httpMethod: context.Request.Method,
                 ruta: context.Request.Path.ToString(),
                 statusCode: statusCode,

@@ -9,6 +9,7 @@ import { getCategorias, createCategoria, updateCategoria, deleteCategoria } from
 import { EmpresaDto, getEmpresas, crearEmpresa, actualizarEmpresa, eliminarEmpresa } from '../../api/empresas';
 import { LocalDto, getLocales, crearLocal, actualizarLocal, eliminarLocal } from '../../api/locales';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 type TabType = 'zonas' | 'repartidores' | 'formasPago' | 'tiposCliente' | 'categorias' | 'empresas' | 'locales';
 
@@ -20,26 +21,33 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
   const [form, setForm] = useState(tcEmptyForm);
   const [editando, setEditando] = useState<TipoCliente | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getTiposCliente().then(setTiposCliente);
   useEffect(() => { cargar(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      nombre: form.nombre,
-      descripcion: form.descripcion || undefined,
-      permiteCuentaCorriente: form.permiteCuentaCorriente,
-    };
-    if (editando) {
-      await actualizarTipoCliente(editando.id, data);
-    } else {
-      await crearTipoCliente(data);
+    try {
+      const data = {
+        nombre: form.nombre,
+        descripcion: form.descripcion || undefined,
+        permiteCuentaCorriente: form.permiteCuentaCorriente,
+      };
+      if (editando) {
+        await actualizarTipoCliente(editando.id, data);
+        showToast('Tipo de cliente actualizado correctamente', 'success');
+      } else {
+        await crearTipoCliente(data);
+        showToast('Tipo de cliente creado correctamente', 'success');
+      }
+      setForm(tcEmptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar tipo de cliente', 'error');
     }
-    setForm(tcEmptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (tc: TipoCliente) => {
@@ -118,6 +126,7 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
   const [nombre, setNombre] = useState('');
   const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);
   const [editando, setEditando] = useState<Categoria | null>(null);
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getCategorias().then(setCategorias);
   useEffect(() => { cargar(); }, []);
@@ -146,15 +155,21 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await updateCategoria(editando.id, { nombre, activa: editando.activa, categoriaPadreId });
-    } else {
-      await createCategoria({ nombre, categoriaPadreId });
+    try {
+      if (editando) {
+        await updateCategoria(editando.id, { nombre, activa: editando.activa, categoriaPadreId });
+        showToast('Categoria actualizada correctamente', 'success');
+      } else {
+        await createCategoria({ nombre, categoriaPadreId });
+        showToast('Categoria creada correctamente', 'success');
+      }
+      setNombre('');
+      setCategoriaPadreId(null);
+      setEditando(null);
+      cargar();
+    } catch {
+      showToast('Error al guardar categoria', 'error');
     }
-    setNombre('');
-    setCategoriaPadreId(null);
-    setEditando(null);
-    cargar();
   };
 
   const handleEditar = (cat: Categoria) => {
@@ -254,36 +269,43 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
   const [form, setForm] = useState(empEmptyForm);
   const [editando, setEditando] = useState<EmpresaDto | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getEmpresas().then(setEmpresas);
   useEffect(() => { cargar(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      razonSocial: form.razonSocial,
-      nombreFantasia: form.nombreFantasia || undefined,
-      cuit: form.cuit,
-      condicionIva: form.condicionIva,
-      direccionFiscal: form.direccionFiscal || undefined,
-      localidad: form.localidad || undefined,
-      provincia: form.provincia || undefined,
-      codigoPostal: form.codigoPostal || undefined,
-      telefono: form.telefono || undefined,
-      email: form.email || undefined,
-      ingresosBrutos: form.ingresosBrutos || undefined,
-      inicioActividades: form.inicioActividades || undefined,
-      puntoVenta: form.puntoVenta ? Number(form.puntoVenta) : undefined,
-    };
-    if (editando) {
-      await actualizarEmpresa(editando.id, { ...data, activa: editando.activa });
-    } else {
-      await crearEmpresa(data);
+    try {
+      const data = {
+        razonSocial: form.razonSocial,
+        nombreFantasia: form.nombreFantasia || undefined,
+        cuit: form.cuit,
+        condicionIva: form.condicionIva,
+        direccionFiscal: form.direccionFiscal || undefined,
+        localidad: form.localidad || undefined,
+        provincia: form.provincia || undefined,
+        codigoPostal: form.codigoPostal || undefined,
+        telefono: form.telefono || undefined,
+        email: form.email || undefined,
+        ingresosBrutos: form.ingresosBrutos || undefined,
+        inicioActividades: form.inicioActividades || undefined,
+        puntoVenta: form.puntoVenta ? Number(form.puntoVenta) : undefined,
+      };
+      if (editando) {
+        await actualizarEmpresa(editando.id, { ...data, activa: editando.activa });
+        showToast('Empresa actualizada correctamente', 'success');
+      } else {
+        await crearEmpresa(data);
+        showToast('Empresa creada correctamente', 'success');
+      }
+      setForm(empEmptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar empresa', 'error');
     }
-    setForm(empEmptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (emp: EmpresaDto) => {
@@ -388,27 +410,34 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
   const [form, setForm] = useState(locEmptyForm);
   const [editando, setEditando] = useState<LocalDto | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getLocales().then(setLocales);
   useEffect(() => { cargar(); getEmpresas().then(setEmpresas); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      nombre: form.nombre,
-      direccion: form.direccion || undefined,
-      empresaId: form.empresaId ? Number(form.empresaId) : undefined,
-      esPuntoVenta: form.esPuntoVenta,
-    };
-    if (editando) {
-      await actualizarLocal(editando.id, { ...data, activo: editando.activo });
-    } else {
-      await crearLocal(data);
+    try {
+      const data = {
+        nombre: form.nombre,
+        direccion: form.direccion || undefined,
+        empresaId: form.empresaId ? Number(form.empresaId) : undefined,
+        esPuntoVenta: form.esPuntoVenta,
+      };
+      if (editando) {
+        await actualizarLocal(editando.id, { ...data, activo: editando.activo });
+        showToast('Local actualizado correctamente', 'success');
+      } else {
+        await crearLocal(data);
+        showToast('Local creado correctamente', 'success');
+      }
+      setForm(locEmptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar local', 'error');
     }
-    setForm(locEmptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (loc: LocalDto) => {
@@ -500,6 +529,7 @@ export default function ConfigPage() {
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [formasPagoList, setFormasPagoList] = useState<FormaPago[]>([]);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; tipo: string; id: number; nombre: string }>({ visible: false, tipo: '', id: 0, nombre: '' });
+  const { showToast } = useGlobalToast();
   const [tab, setTab] = useState<TabType>('zonas');
 
   // Zona form
@@ -538,23 +568,35 @@ export default function ConfigPage() {
   // Zonas handlers
   const handleZonaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editandoZona) {
-      await updateZona(editandoZona.id, { ...zonaForm, activa: editandoZona.activa });
-    } else {
-      await createZona(zonaForm);
+    try {
+      if (editandoZona) {
+        await updateZona(editandoZona.id, { ...zonaForm, activa: editandoZona.activa });
+        showToast('Zona actualizada correctamente', 'success');
+      } else {
+        await createZona(zonaForm);
+        showToast('Zona creada correctamente', 'success');
+      }
+      setZonaForm({ nombre: '', descripcion: '', costoEnvio: 0 }); setEditandoZona(null); cargar();
+    } catch {
+      showToast('Error al guardar zona', 'error');
     }
-    setZonaForm({ nombre: '', descripcion: '', costoEnvio: 0 }); setEditandoZona(null); cargar();
   };
 
   // Repartidor handlers
   const handleRepSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editandoRep) {
-      await updateRepartidor(editandoRep.id, { ...repForm, activo: editandoRep.activo, codigoAcceso: repForm.codigoAcceso || undefined });
-    } else {
-      await createRepartidor(repForm);
+    try {
+      if (editandoRep) {
+        await updateRepartidor(editandoRep.id, { ...repForm, activo: editandoRep.activo, codigoAcceso: repForm.codigoAcceso || undefined });
+        showToast('Repartidor actualizado correctamente', 'success');
+      } else {
+        await createRepartidor(repForm);
+        showToast('Repartidor creado correctamente', 'success');
+      }
+      setRepForm({ nombre: '', telefono: '', vehiculo: '', codigoAcceso: '' }); setEditandoRep(null); cargar();
+    } catch {
+      showToast('Error al guardar repartidor', 'error');
     }
-    setRepForm({ nombre: '', telefono: '', vehiculo: '', codigoAcceso: '' }); setEditandoRep(null); cargar();
   };
 
   const handleAsignarZonas = async (repId: number) => {
@@ -565,15 +607,21 @@ export default function ConfigPage() {
   // FormaPago handlers
   const handleFpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editandoFp) {
-      await updateFormaPago(editandoFp.id, fpForm);
-    } else {
-      await createFormaPago(fpForm);
+    try {
+      if (editandoFp) {
+        await updateFormaPago(editandoFp.id, fpForm);
+        showToast('Forma de pago actualizada correctamente', 'success');
+      } else {
+        await createFormaPago(fpForm);
+        showToast('Forma de pago creada correctamente', 'success');
+      }
+      setFpForm({ nombre: '', porcentajeRecargo: 0, activa: true });
+      setEditandoFp(null);
+      setShowFpForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar forma de pago', 'error');
     }
-    setFpForm({ nombre: '', porcentajeRecargo: 0, activa: true });
-    setEditandoFp(null);
-    setShowFpForm(false);
-    cargar();
   };
 
   // Callback para ConfirmModal desde sub-tabs
@@ -583,13 +631,28 @@ export default function ConfigPage() {
 
   const handleConfirmacion = async () => {
     const { tipo, id } = confirmacion;
-    if (tipo === 'zona') await deleteZona(id);
-    else if (tipo === 'repartidor') await deleteRepartidor(id);
-    else if (tipo === 'formaPago') await deleteFormaPago(id);
-    else if (tipo === 'tipoCliente') await eliminarTipoCliente(id);
-    else if (tipo === 'categoria') await deleteCategoria(id);
-    else if (tipo === 'empresa') await eliminarEmpresa(id);
-    else if (tipo === 'local') await eliminarLocal(id);
+    try {
+      if (tipo === 'zona') await deleteZona(id);
+      else if (tipo === 'repartidor') await deleteRepartidor(id);
+      else if (tipo === 'formaPago') await deleteFormaPago(id);
+      else if (tipo === 'tipoCliente') await eliminarTipoCliente(id);
+      else if (tipo === 'categoria') await deleteCategoria(id);
+      else if (tipo === 'empresa') await eliminarEmpresa(id);
+      else if (tipo === 'local') await eliminarLocal(id);
+
+      const mensajes: Record<string, string> = {
+        zona: 'Zona desactivada correctamente',
+        repartidor: 'Repartidor desactivado correctamente',
+        formaPago: 'Forma de pago eliminada correctamente',
+        tipoCliente: 'Tipo de cliente eliminado correctamente',
+        categoria: 'Categoria desactivada correctamente',
+        empresa: 'Empresa eliminada correctamente',
+        local: 'Local eliminado correctamente',
+      };
+      showToast(mensajes[tipo] || 'Eliminado correctamente', 'success');
+    } catch {
+      showToast('Error al eliminar', 'error');
+    }
     setConfirmacion({ visible: false, tipo: '', id: 0, nombre: '' });
     // Forzar re-render de sub-tabs recargando
     cargar();

@@ -7,13 +7,17 @@ interface MenuItem {
   to: string;
   label: string;
   end?: boolean;
-  adminOnly?: boolean;
+  roles?: RolUsuario[]; // Si no se especifica, todos pueden ver
 }
 
 interface MenuSection {
   title?: string;
   items: MenuItem[];
 }
+
+const SA = RolUsuario.SuperAdmin;
+const AD = RolUsuario.Administrador;
+const LO = RolUsuario.Local;
 
 const menuSections: MenuSection[] = [
   {
@@ -25,51 +29,48 @@ const menuSections: MenuSection[] = [
     title: 'Reparto',
     items: [
       { to: '/pedidos', label: 'Alta de Pedidos' },
-      { to: '/reparto', label: 'Entregas', adminOnly: true },
-      { to: '/control-camionetas', label: 'Control Camionetas', adminOnly: true },
-      { to: '/tracking', label: 'Tracking', adminOnly: true },
+      { to: '/reparto', label: 'Entregas' },
+      { to: '/control-camionetas', label: 'Control Camionetas' },
+      { to: '/tracking', label: 'Tracking' },
       { to: '/historial', label: 'Historial' },
     ],
   },
   {
     title: 'Administracion',
     items: [
-      { to: '/catalogo/clientes', label: 'Clientes', adminOnly: true },
-
-      { to: '/catalogo/productos', label: 'Articulos' },
-      { to: '/catalogo/combos', label: 'Combos' },
-      { to: '/catalogo/repartidores', label: 'Repartidores', adminOnly: true },
-      { to: '/catalogo/proveedores', label: 'Proveedores', adminOnly: true },
-
-      { to: '/catalogo/listasprecios', label: 'Listas de Precios', adminOnly: true },
-      { to: '/catalogo/usuarios', label: 'Usuarios', adminOnly: true },
-
+      { to: '/catalogo/clientes', label: 'Clientes', roles: [SA, AD] },
+      { to: '/catalogo/productos', label: 'Articulos', roles: [SA, AD] },
+      { to: '/catalogo/combos', label: 'Combos', roles: [SA, AD] },
+      { to: '/catalogo/repartidores', label: 'Repartidores', roles: [SA, AD] },
+      { to: '/catalogo/proveedores', label: 'Proveedores', roles: [SA] },
+      { to: '/catalogo/listasprecios', label: 'Listas de Precios', roles: [SA, AD] },
+      { to: '/catalogo/usuarios', label: 'Usuarios', roles: [SA] },
     ],
   },
   {
     title: 'Finanzas',
     items: [
-      { to: '/finanzas/caja', label: 'Caja Diaria', adminOnly: true },
-      { to: '/finanzas/rendiciones', label: 'Rendiciones', adminOnly: true },
-      { to: '/finanzas/cuenta-corriente', label: 'Cuenta Corriente', adminOnly: true },
+      { to: '/finanzas/caja', label: 'Caja Diaria', roles: [SA, AD] },
+      { to: '/finanzas/rendiciones', label: 'Rendiciones', roles: [SA, AD] },
+      { to: '/finanzas/cuenta-corriente', label: 'Cuenta Corriente', roles: [SA, AD, LO] },
     ],
   },
   {
     title: 'Inventario',
     items: [
-      { to: '/inventario/movimientos', label: 'Movimientos', adminOnly: true },
-      { to: '/inventario/stock', label: 'Stock', adminOnly: true },
+      { to: '/inventario/movimientos', label: 'Movimientos', roles: [SA, AD] },
+      { to: '/inventario/stock', label: 'Stock', roles: [SA, AD] },
     ],
   },
   {
     title: 'Sistema',
     items: [
-      { to: '/sistema/logs', label: 'Logs', adminOnly: true },
+      { to: '/sistema/logs', label: 'Logs', roles: [SA] },
     ],
   },
   {
     items: [
-      { to: '/config', label: 'Configuracion', adminOnly: true },
+      { to: '/config', label: 'Configuracion', roles: [SA] },
     ],
   },
 ];
@@ -78,12 +79,12 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { usuario, logout } = useAuth();
 
-  const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
+  const userRol = usuario?.rol;
 
   const filteredSections = menuSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => !item.adminOnly || esAdmin),
+      items: section.items.filter((item) => !item.roles || (userRol !== undefined && item.roles.includes(userRol))),
     }))
     .filter((section) => section.items.length > 0);
 

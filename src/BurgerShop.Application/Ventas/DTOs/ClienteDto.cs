@@ -12,7 +12,9 @@ public record ClienteDto(
     int? TipoClienteId,
     string? TipoClienteNombre,
     int? ListaPrecioId,
-    string? ListaPrecioNombre);
+    string? ListaPrecioNombre,
+    int? LocalId,
+    string? LocalNombre);
 
 public record CrearClienteDto(
     string Nombre,
@@ -22,7 +24,8 @@ public record CrearClienteDto(
     string? Direccion,
     int? ZonaId,
     int? TipoClienteId,
-    int? ListaPrecioId);
+    int? ListaPrecioId,
+    int? LocalId);
 
 public record ActualizarClienteDto(
     string Nombre,
@@ -32,4 +35,5 @@ public record ActualizarClienteDto(
     string? Direccion,
     int? ZonaId,
     int? TipoClienteId,
-    int? ListaPrecioId);
+    int? ListaPrecioId,
+    int? LocalId);

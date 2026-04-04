@@ -25,6 +25,8 @@ public interface ILogService
         int? usuarioId,
         string? usuarioNombre,
         string? rol,
+        int? localId,
+        string? localNombre,
         string? httpMethod,
         string? ruta,
         int? statusCode,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ListaPrecio, Producto } from '../../types';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 import {
   getListasPrecios,
   crearListaPrecio,
@@ -25,6 +26,7 @@ export default function ListasPrecioPage() {
   const [editandoDetalleProductoId, setEditandoDetalleProductoId] = useState<number | null>(null);
   const [editandoDetallePrecio, setEditandoDetallePrecio] = useState<number>(0);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const { showToast } = useGlobalToast();
 
   const cargar = async () => {
     const data = await getListasPrecios();
@@ -47,14 +49,20 @@ export default function ListasPrecioPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editando) {
-      await actualizarListaPrecio(editando.id, { nombre, esDefault: false, activa: editando.activa });
-    } else {
-      await crearListaPrecio({ nombre, esDefault: false });
+    try {
+      if (editando) {
+        await actualizarListaPrecio(editando.id, { nombre, esDefault: false, activa: editando.activa });
+        showToast('Lista de precios actualizada correctamente', 'success');
+      } else {
+        await crearListaPrecio({ nombre, esDefault: false });
+        showToast('Lista de precios creada correctamente', 'success');
+      }
+      setNombre('');
+      setEditando(null);
+      cargar();
+    } catch {
+      showToast('Error al guardar lista de precios', 'error');
     }
-    setNombre('');
-    setEditando(null);
-    cargar();
   };
 
   const handleEditar = (lista: ListaPrecio) => {
@@ -67,8 +75,13 @@ export default function ListasPrecioPage() {
   };
 
   const confirmarEliminar = async () => {
-    await eliminarListaPrecio(confirmacion.id);
-    if (seleccionada?.id === confirmacion.id) setSeleccionada(null);
+    try {
+      await eliminarListaPrecio(confirmacion.id);
+      if (seleccionada?.id === confirmacion.id) setSeleccionada(null);
+      showToast('Lista de precios eliminada correctamente', 'success');
+    } catch {
+      showToast('Error al eliminar lista de precios', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -119,6 +132,7 @@ export default function ListasPrecioPage() {
       {/* Formulario crear/editar */}
       <form onSubmit={handleSubmit} className="flex gap-2 mb-6 items-end">
         <div className="flex-1">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de la Lista</label>
           <input
             type="text"
             value={nombre}

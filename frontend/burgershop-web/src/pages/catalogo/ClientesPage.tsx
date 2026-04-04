@@ -7,7 +7,9 @@ import { getClientes, crearCliente, actualizarCliente, eliminarCliente } from '.
 import { getZonas } from '../../api/zonas';
 import { getTiposCliente } from '../../api/tiposCliente';
 import { getListasPrecios } from '../../api/listasPrecios';
+import { getLocales, LocalDto } from '../../api/locales';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useGlobalToast } from '../../components/Toast';
 
 const emptyForm = {
   nombre: '',
@@ -18,6 +20,7 @@ const emptyForm = {
   zonaId: '' as string,
   tipoClienteId: '' as string,
   listaPrecioId: '' as string,
+  localId: '' as string,
 };
 
 export default function ClientesPage() {
@@ -29,7 +32,9 @@ export default function ClientesPage() {
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
   const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
+  const [locales, setLocales] = useState<LocalDto[]>([]);
   const [busqueda, setBusqueda] = useState('');
+  const { showToast } = useGlobalToast();
 
   const cargar = () => getClientes().then(setClientes);
 
@@ -38,29 +43,37 @@ export default function ClientesPage() {
     getZonas().then(setZonas);
     getTiposCliente().then(setTiposCliente);
     getListasPrecios().then(setListasPrecios);
+    getLocales().then(setLocales);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data: CrearClienteDto = {
-      nombre: form.nombre,
-      cuit: form.cuit || undefined,
-      email: form.email || undefined,
-      telefono: form.telefono || undefined,
-      direccion: form.direccion || undefined,
-      zonaId: form.zonaId ? Number(form.zonaId) : undefined,
-      tipoClienteId: form.tipoClienteId ? Number(form.tipoClienteId) : undefined,
-      listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
-    };
-    if (editando) {
-      await actualizarCliente(editando.id, data);
-    } else {
-      await crearCliente(data);
+    try {
+      const data: CrearClienteDto = {
+        nombre: form.nombre,
+        cuit: form.cuit || undefined,
+        email: form.email || undefined,
+        telefono: form.telefono || undefined,
+        direccion: form.direccion || undefined,
+        zonaId: form.zonaId ? Number(form.zonaId) : undefined,
+        tipoClienteId: form.tipoClienteId ? Number(form.tipoClienteId) : undefined,
+        listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
+        localId: form.localId ? Number(form.localId) : undefined,
+      };
+      if (editando) {
+        await actualizarCliente(editando.id, data);
+        showToast('Cliente actualizado correctamente', 'success');
+      } else {
+        await crearCliente(data);
+        showToast('Cliente creado correctamente', 'success');
+      }
+      setForm(emptyForm);
+      setEditando(null);
+      setShowForm(false);
+      cargar();
+    } catch {
+      showToast('Error al guardar cliente', 'error');
     }
-    setForm(emptyForm);
-    setEditando(null);
-    setShowForm(false);
-    cargar();
   };
 
   const handleEditar = (c: ClienteDto) => {
@@ -74,6 +87,7 @@ export default function ClientesPage() {
       zonaId: c.zonaId ? String(c.zonaId) : '',
       tipoClienteId: c.tipoClienteId ? String(c.tipoClienteId) : '',
       listaPrecioId: c.listaPrecioId ? String(c.listaPrecioId) : '',
+      localId: c.localId ? String(c.localId) : '',
     });
     setShowForm(true);
   };
@@ -83,7 +97,12 @@ export default function ClientesPage() {
   };
 
   const confirmarEliminar = async () => {
-    await eliminarCliente(confirmacion.id);
+    try {
+      await eliminarCliente(confirmacion.id);
+      showToast('Cliente eliminado correctamente', 'success');
+    } catch {
+      showToast('Error al eliminar cliente', 'error');
+    }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
   };
@@ -110,72 +129,109 @@ export default function ClientesPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            value={form.nombre}
-            onChange={e => setForm({ ...form, nombre: e.target.value })}
-            placeholder="Nombre"
-            className="border rounded px-3 py-2"
-            required
-          />
-          <input
-            type="text"
-            value={form.cuit}
-            onChange={e => setForm({ ...form, cuit: e.target.value })}
-            placeholder="CUIT (ej: 20-12345678-9)"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="email"
-            value={form.email}
-            onChange={e => setForm({ ...form, email: e.target.value })}
-            placeholder="Email"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            value={form.telefono}
-            onChange={e => setForm({ ...form, telefono: e.target.value })}
-            placeholder="Telefono"
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            value={form.direccion}
-            onChange={e => setForm({ ...form, direccion: e.target.value })}
-            placeholder="Direccion"
-            className="border rounded px-3 py-2"
-          />
-          <select
-            value={form.zonaId}
-            onChange={e => setForm({ ...form, zonaId: e.target.value })}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Sin zona</option>
-            {zonas.filter(z => z.activa).map(z => (
-              <option key={z.id} value={z.id}>{z.nombre}</option>
-            ))}
-          </select>
-          <select
-            value={form.tipoClienteId}
-            onChange={e => setForm({ ...form, tipoClienteId: e.target.value })}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Sin tipo de cliente</option>
-            {tiposCliente.filter(tc => tc.activo).map(tc => (
-              <option key={tc.id} value={tc.id}>{tc.nombre}</option>
-            ))}
-          </select>
-          <select
-            value={form.listaPrecioId}
-            onChange={e => setForm({ ...form, listaPrecioId: e.target.value })}
-            className="border rounded px-3 py-2"
-          >
-            <option value="">Precio Base (sin lista)</option>
-            {listasPrecios.filter(l => l.activa).map(l => (
-              <option key={l.id} value={l.id}>{l.nombre}</option>
-            ))}
-          </select>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={form.nombre}
+              onChange={e => setForm({ ...form, nombre: e.target.value })}
+              placeholder="Nombre"
+              className="border rounded px-3 py-2 w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">CUIT</label>
+            <input
+              type="text"
+              value={form.cuit}
+              onChange={e => setForm({ ...form, cuit: e.target.value })}
+              placeholder="CUIT (ej: 20-12345678-9)"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              placeholder="Email"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Telefono</label>
+            <input
+              type="text"
+              value={form.telefono}
+              onChange={e => setForm({ ...form, telefono: e.target.value })}
+              placeholder="Telefono"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Direccion</label>
+            <input
+              type="text"
+              value={form.direccion}
+              onChange={e => setForm({ ...form, direccion: e.target.value })}
+              placeholder="Direccion"
+              className="border rounded px-3 py-2 w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Zona</label>
+            <select
+              value={form.zonaId}
+              onChange={e => setForm({ ...form, zonaId: e.target.value })}
+              className="border rounded px-3 py-2 w-full"
+            >
+              <option value="">Sin zona</option>
+              {zonas.filter(z => z.activa).map(z => (
+                <option key={z.id} value={z.id}>{z.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de Cliente</label>
+            <select
+              value={form.tipoClienteId}
+              onChange={e => setForm({ ...form, tipoClienteId: e.target.value })}
+              className="border rounded px-3 py-2 w-full"
+            >
+              <option value="">Sin tipo de cliente</option>
+              {tiposCliente.filter(tc => tc.activo).map(tc => (
+                <option key={tc.id} value={tc.id}>{tc.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Lista de Precios</label>
+            <select
+              value={form.listaPrecioId}
+              onChange={e => setForm({ ...form, listaPrecioId: e.target.value })}
+              className="border rounded px-3 py-2 w-full"
+            >
+              <option value="">Precio Base (sin lista)</option>
+              {listasPrecios.filter(l => l.activa).map(l => (
+                <option key={l.id} value={l.id}>{l.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
+            <select
+              value={form.localId}
+              onChange={e => setForm({ ...form, localId: e.target.value })}
+              className="border rounded px-3 py-2 w-full"
+            >
+              <option value="">Sin local asignado</option>
+              {locales.filter(l => l.activo).map(l => (
+                <option key={l.id} value={l.id}>{l.nombre}</option>
+              ))}
+            </select>
+          </div>
           <div className="col-span-2 flex gap-2">
             <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
               {editando ? 'Actualizar' : 'Crear'}
@@ -209,6 +265,7 @@ export default function ClientesPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Zona</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo Cliente</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista Precios</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
@@ -225,6 +282,7 @@ export default function ClientesPage() {
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {c.listaPrecioId ? listasPrecios.find(l => l.id === c.listaPrecioId)?.nombre || '-' : 'Precio Base'}
                 </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{c.localNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm text-right">
                   <button onClick={() => handleEditar(c)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => handleEliminar(c.id)} className="text-red-600 hover:underline">Eliminar</button>

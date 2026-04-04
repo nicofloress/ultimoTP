@@ -5,6 +5,8 @@ import { getCategorias } from '../../api/categorias';
 import { getProductos } from '../../api/productos';
 import { Categoria, Producto } from '../../types';
 import { useGlobalToast } from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 
 const inputClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -26,6 +28,9 @@ type SortDir = 'asc' | 'desc';
 
 export default function StockPage() {
   const { showToast } = useGlobalToast();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+  const localDelUsuario = usuario?.localId;
 
   // --- Data ---
   const [stock, setStock] = useState<ArtiStockDto[]>([]);
@@ -35,7 +40,7 @@ export default function StockPage() {
   const [cargando, setCargando] = useState(false);
 
   // --- Filtros ---
-  const [localId, setLocalId] = useState<number>(1);
+  const [localId, setLocalId] = useState<number>(localDelUsuario || 1);
   const [megaFiltro, setMegaFiltro] = useState<string | null>(null);
   const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
   const [soloBajo, setSoloBajo] = useState(false);
@@ -176,17 +181,23 @@ export default function StockPage() {
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
-          <div>
+          <div className="min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
-            <select
-              className={selectClass}
-              value={localId}
-              onChange={e => setLocalId(Number(e.target.value))}
-            >
-              {locales.map(l => (
-                <option key={l.id} value={l.id}>{l.nombre}</option>
-              ))}
-            </select>
+            {esSuperAdmin ? (
+              <select
+                className={selectClass + ' w-full'}
+                value={localId}
+                onChange={e => setLocalId(Number(e.target.value))}
+              >
+                {locales.map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localId)?.nombre || 'Mi Local'}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <input

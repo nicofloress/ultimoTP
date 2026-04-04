@@ -43,7 +43,8 @@ public class ClienteService : IClienteService
             Direccion = dto.Direccion,
             ZonaId = dto.ZonaId,
             TipoClienteId = dto.TipoClienteId,
-            ListaPrecioId = dto.ListaPrecioId
+            ListaPrecioId = dto.ListaPrecioId,
+            LocalId = dto.LocalId
         };
 
         await _repo.AddAsync(cliente);
@@ -67,6 +68,7 @@ public class ClienteService : IClienteService
         cliente.ZonaId = dto.ZonaId;
         cliente.TipoClienteId = dto.TipoClienteId;
         cliente.ListaPrecioId = dto.ListaPrecioId;
+        cliente.LocalId = dto.LocalId;
 
         _repo.Update(cliente);
         await _repo.SaveChangesAsync();
@@ -98,5 +100,7 @@ public class ClienteService : IClienteService
         c.TipoClienteId,
         c.TipoCliente?.Nombre,
         c.ListaPrecioId,
-        c.ListaPrecio?.Nombre);
+        c.ListaPrecio?.Nombre,
+        c.LocalId,
+        c.Local?.Nombre);
 }
