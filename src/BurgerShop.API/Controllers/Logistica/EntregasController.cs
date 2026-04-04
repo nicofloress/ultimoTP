@@ -10,7 +10,7 @@ namespace BurgerShop.API.Controllers.Logistica;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrador,Repartidor")]
+[Authorize(Roles = "SuperAdmin,Administrador,Repartidor")]
 public class EntregasController : ControllerBase
 {
     private readonly IPedidoService _pedidoService;

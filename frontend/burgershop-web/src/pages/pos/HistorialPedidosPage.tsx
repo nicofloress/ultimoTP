@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Pedido, EstadoPedido, estadoLabels, estadoColores, TipoPedido } from '../../types';
 import { getPedidos, getPedidoStats, PedidoStats } from '../../api/pedidos';
+import { getLocales, LocalDto } from '../../api/locales';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -38,6 +41,9 @@ function StatItem({ label, value, porcentaje }: { label: string; value: number; 
 }
 
 export default function HistorialPedidosPage() {
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+
   const [fechaDesde, setFechaDesde] = useState(getHoy());
   const [fechaHasta, setFechaHasta] = useState(getHoy());
   const [estadoFiltro, setEstadoFiltro] = useState<number | ''>('');
@@ -47,8 +53,14 @@ export default function HistorialPedidosPage() {
   const [seleccionado, setSeleccionado] = useState<Pedido | null>(null);
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
   const [stats, setStats] = useState<PedidoStats | null>(null);
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(usuario?.localId || 0);
   const [ordenCol, setOrdenCol] = useState<string>('fechaCreacion');
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    getLocales().then(setLocales);
+  }, []);
 
   useEffect(() => {
     getPedidoStats(fechaDesde).then(setStats).catch(() => {});
@@ -144,6 +156,21 @@ export default function HistorialPedidosPage() {
 
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-3 pb-3 flex-shrink-0">
+          {/* Filtro por local — visual, sin filtrado real (los pedidos no tienen localId directo) */}
+          {/* TODO: implementar filtrado por local en backend */}
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+            {esSuperAdmin ? (
+              <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-500 font-medium">Desde</span>
             <input

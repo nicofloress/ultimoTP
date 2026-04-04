@@ -10,6 +10,9 @@ import {
 } from '../../api/cuentaCorriente';
 import { FormaPago } from '../../types/ventas';
 import { getFormasPagoActivas } from '../../api/formasPago';
+import { getLocales, LocalDto } from '../../api/locales';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 import { useGlobalToast } from '../../components/Toast';
 
 
@@ -28,8 +31,15 @@ const formatFechaHora = (f: string) => {
 const formatMonto = (m: number) =>
   m.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
 
+const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
+
 export default function CuentaCorrientePage() {
   const { showToast } = useGlobalToast();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
+  const [busquedaNombre, setBusquedaNombre] = useState('');
 
   const [cuentas, setCuentas] = useState<CuentaCorrienteDto[]>([]);
   const [soloConSaldo, setSoloConSaldo] = useState(true);
@@ -102,6 +112,7 @@ export default function CuentaCorrientePage() {
   useEffect(() => {
     cargarCuentas();
     getFormasPagoActivas().then(setFormasPago);
+    getLocales().then(setLocales);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -201,7 +212,26 @@ export default function CuentaCorrientePage() {
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-3">
           <h2 className="text-lg font-bold text-white">Cuentas Corrientes</h2>
         </div>
-        <div className="px-4 py-2 border-b flex items-center gap-2">
+        <div className="px-4 py-2 border-b space-y-2">
+          <div className="min-w-0">
+            {esSuperAdmin ? (
+              <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+              </div>
+            )}
+          </div>
+          <input
+            type="text"
+            value={busquedaNombre}
+            onChange={e => setBusquedaNombre(e.target.value)}
+            placeholder="Buscar cliente..."
+            className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input
               type="checkbox"
@@ -213,10 +243,18 @@ export default function CuentaCorrientePage() {
           </label>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {cuentas.length === 0 && (
+          {cuentas.filter(c => {
+            if (localSeleccionado && c.clienteLocalId && c.clienteLocalId !== localSeleccionado) return false;
+            if (busquedaNombre && !c.clienteNombre.toLowerCase().includes(busquedaNombre.toLowerCase())) return false;
+            return true;
+          }).length === 0 && (
             <div className="p-8 text-center text-gray-400 text-sm">No hay cuentas corrientes</div>
           )}
-          {cuentas.map(c => (
+          {cuentas.filter(c => {
+            if (localSeleccionado && c.clienteLocalId && c.clienteLocalId !== localSeleccionado) return false;
+            if (busquedaNombre && !c.clienteNombre.toLowerCase().includes(busquedaNombre.toLowerCase())) return false;
+            return true;
+          }).map(c => (
             <div
               key={c.id}
               onClick={() => seleccionar(c)}

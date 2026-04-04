@@ -69,9 +69,9 @@ export default function ProveedoresPage() {
         <h2 className="text-lg font-bold text-white">Proveedores</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors"
+          className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5"
         >
-          {showForm ? 'Cerrar' : 'Nuevo Proveedor'}
+          {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Proveedor</>)}
         </button>
       </div>
 

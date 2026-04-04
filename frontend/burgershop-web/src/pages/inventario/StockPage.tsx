@@ -40,7 +40,7 @@ export default function StockPage() {
   const [cargando, setCargando] = useState(false);
 
   // --- Filtros ---
-  const [localId, setLocalId] = useState<number>(localDelUsuario || 1);
+  const [localId, setLocalId] = useState<number>(esSuperAdmin ? 0 : (localDelUsuario || 1));
   const [megaFiltro, setMegaFiltro] = useState<string | null>(null);
   const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
   const [soloBajo, setSoloBajo] = useState(false);
@@ -62,9 +62,15 @@ export default function StockPage() {
     const cargar = async () => {
       setCargando(true);
       try {
-        const data = soloBajo
-          ? await getStockBajo(localId)
-          : await getStockPorLocal(localId);
+        let data: ArtiStockDto[];
+        if (localId === 0) {
+          const fn = soloBajo ? getStockBajo : getStockPorLocal;
+          const promises = locales.map(l => fn(l.id));
+          const results = await Promise.all(promises);
+          data = results.flat();
+        } else {
+          data = soloBajo ? await getStockBajo(localId) : await getStockPorLocal(localId);
+        }
         setStock(data);
       } catch (err) {
         console.error('Error cargando stock:', err);
@@ -189,6 +195,7 @@ export default function StockPage() {
                 value={localId}
                 onChange={e => setLocalId(Number(e.target.value))}
               >
+                <option value={0}>Todos los locales</option>
                 {locales.map(l => (
                   <option key={l.id} value={l.id}>{l.nombre}</option>
                 ))}

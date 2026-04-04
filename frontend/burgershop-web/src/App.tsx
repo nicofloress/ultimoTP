@@ -27,6 +27,8 @@ import RendicionesPage from './pages/finanzas/RendicionesPage';
 import CuentaCorrientePage from './pages/finanzas/CuentaCorrientePage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
 import MovimientosPage from './pages/inventario/MovimientosPage';
+import ComprasPage from './pages/inventario/ComprasPage';
+import DevolucionesPage from './pages/inventario/DevolucionesPage';
 import StockPage from './pages/inventario/StockPage';
 
 import LogsPage from './pages/sistema/LogsPage';
@@ -93,6 +95,10 @@ export default function App() {
             <Route path="/inventario/movimientos" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}><MovimientosPage /></ProtectedRoute>
             } />
+            <Route path="/inventario/compras" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><ComprasPage /></ProtectedRoute>
+            } />
+            <Route path="/inventario/devoluciones" element={<DevolucionesPage />} />
             <Route path="/inventario/stock" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}><StockPage /></ProtectedRoute>
             } />

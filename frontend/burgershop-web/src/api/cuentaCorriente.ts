@@ -5,6 +5,7 @@ export interface CuentaCorrienteDto {
   clienteId: number;
   clienteNombre: string;
   clienteTelefono?: string;
+  clienteLocalId?: number;
   saldoActual: number;
   limiteCredito: number;
   activa: boolean;

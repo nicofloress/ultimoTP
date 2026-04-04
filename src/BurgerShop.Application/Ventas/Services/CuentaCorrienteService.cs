@@ -293,6 +293,7 @@ public class CuentaCorrienteService : ICuentaCorrienteService
         ClienteId:             c.ClienteId,
         ClienteNombre:         c.Cliente?.Nombre ?? string.Empty,
         ClienteTelefono:       c.Cliente?.Telefono,
+        ClienteLocalId:        c.Cliente?.LocalId,
         SaldoActual:           c.SaldoActual,
         LimiteCredito:         c.LimiteCredito,
         Activa:                c.Activa,

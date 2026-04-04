@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { LogEntry, LogNivel, LogPagedResult, getLogs, limpiarLogs } from '../../api/logs';
+import { getLocales, LocalDto } from '../../api/locales';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
@@ -55,12 +58,16 @@ function truncate(text: string, max: number): string {
 export default function LogsPage() {
   const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   const { showToast } = useGlobalToast();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
 
   // Filters
   const [desde, setDesde] = useState(hoy);
   const [hasta, setHasta] = useState('');
   const [nivel, setNivel] = useState<number | ''>('');
   const [busqueda, setBusqueda] = useState('');
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(usuario?.localId || 0);
 
   // Data
   const [resultado, setResultado] = useState<LogPagedResult | null>(null);
@@ -101,6 +108,11 @@ export default function LogsPage() {
     },
     [desde, hasta, nivel, busqueda, page, showToast]
   );
+
+  // Load locales
+  useEffect(() => {
+    getLocales().then(setLocales);
+  }, []);
 
   // Initial load + auto-refresh
   useEffect(() => {
@@ -149,7 +161,12 @@ export default function LogsPage() {
   // Pagination helpers
   const totalPages = resultado?.totalPages ?? 1;
   const totalCount = resultado?.totalCount ?? 0;
-  const items = resultado?.items ?? [];
+  // Filtrar logs por local seleccionado (filtrado frontend)
+  // TODO: implementar filtrado por local en backend
+  const itemsSinFiltro = resultado?.items ?? [];
+  const items = localSeleccionado
+    ? itemsSinFiltro.filter(log => log.localId === localSeleccionado || !log.localId)
+    : itemsSinFiltro;
   const rangoInicio = items.length > 0 ? (page - 1) * PAGE_SIZE + 1 : 0;
   const rangoFin = rangoInicio + items.length - 1;
 
@@ -169,6 +186,19 @@ export default function LogsPage() {
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+            {esSuperAdmin ? (
+              <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+              </div>
+            )}
+          </div>
           <div className="w-40">
             <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
             <input
@@ -215,8 +245,11 @@ export default function LogsPage() {
           <button
             onClick={handleBuscar}
             disabled={cargando}
-            className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-60"
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-colors disabled:opacity-60 flex items-center gap-1.5"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             Buscar
           </button>
           <button

@@ -5,6 +5,7 @@ public record CuentaCorrienteDto(
     int      ClienteId,
     string   ClienteNombre,
     string?  ClienteTelefono,
+    int?     ClienteLocalId,
     decimal  SaldoActual,
     decimal  LimiteCredito,
     bool     Activa,

@@ -59,6 +59,8 @@ const menuSections: MenuSection[] = [
     title: 'Inventario',
     items: [
       { to: '/inventario/movimientos', label: 'Movimientos', roles: [SA, AD] },
+      { to: '/inventario/compras', label: 'Compras', roles: [SA, AD] },
+      { to: '/inventario/devoluciones', label: 'Devoluciones' },
       { to: '/inventario/stock', label: 'Stock', roles: [SA, AD] },
     ],
   },

@@ -19,7 +19,7 @@ public class VentasController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Administrador,Local")]
+    [Authorize(Roles = "SuperAdmin,Administrador,Local")]
     public async Task<ActionResult<VentaDto>> CrearVenta(CrearVentaDto dto)
     {
         int? usuarioId = null;

@@ -8,7 +8,7 @@ namespace BurgerShop.API.Controllers.Ventas;
 
 [ApiController]
 [Route("api/cuenta-corriente")]
-[Authorize(Roles = "Administrador,Local")]
+[Authorize(Roles = "SuperAdmin,Administrador,Local")]
 public class CuentaCorrienteController : ControllerBase
 {
     private readonly ICuentaCorrienteService _service;

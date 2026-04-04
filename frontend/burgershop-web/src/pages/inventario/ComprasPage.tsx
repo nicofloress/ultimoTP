@@ -1,8 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   MovimientoDto,
-  CodigoAccion,
-  getCodigosAccion,
   getMovimientosPorLocal,
   crearMovimiento,
 } from '../../api/movimientos';
@@ -40,7 +38,7 @@ function formatMonto(n: number) {
 
 type SortDir = 'asc' | 'desc';
 
-export default function MovimientosPage() {
+export default function ComprasPage() {
   const { showToast } = useGlobalToast();
   const { usuario } = useAuth();
   const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
@@ -48,7 +46,6 @@ export default function MovimientosPage() {
 
   // --- Data ---
   const [movimientos, setMovimientos] = useState<MovimientoDto[]>([]);
-  const [codigosAccion, setCodigosAccion] = useState<CodigoAccion[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(false);
 
@@ -59,7 +56,6 @@ export default function MovimientosPage() {
   // --- Filtros ---
   const [fechaDesde, setFechaDesde] = useState(getHoy());
   const [fechaHasta, setFechaHasta] = useState(getHoy());
-  const [filtroCodigoAccion, setFiltroCodigoAccion] = useState<number | ''>('');
   const [filtroProducto, setFiltroProducto] = useState<number | ''>('');
 
   // --- Orden ---
@@ -69,16 +65,14 @@ export default function MovimientosPage() {
   // --- Modal ---
   const [modalOpen, setModalOpen] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [formCodigoAccionId, setFormCodigoAccionId] = useState<number | ''>('');
   const [formProductoId, setFormProductoId] = useState<number | ''>('');
   const [formCantidad, setFormCantidad] = useState<string>('');
   const [formPrecioUnitario, setFormPrecioUnitario] = useState<string>('');
   const [formFecha, setFormFecha] = useState(getHoy());
   const [formObservaciones, setFormObservaciones] = useState('');
 
-  // --- Load catálogos ---
+  // --- Load catalogos ---
   useEffect(() => {
-    getCodigosAccion().then(setCodigosAccion).catch(() => {});
     getProductos().then(setProductos).catch(() => {});
     getLocales().then(setLocales).catch(() => {});
   }, []);
@@ -90,22 +84,21 @@ export default function MovimientosPage() {
       const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
       let data: MovimientoDto[];
       if (localSeleccionado === 0) {
-        // Todos los locales: cargar de cada uno y concatenar
         const promises = locales.map(l => getMovimientosPorLocal(l.id, fechaDesde, hasta));
         const results = await Promise.all(promises);
         data = results.flat().sort((a, b) => new Date(b.fechaMovimiento).getTime() - new Date(a.fechaMovimiento).getTime());
       } else {
         data = await getMovimientosPorLocal(localSeleccionado, fechaDesde, hasta);
       }
-      // Ocultar movimientos internos de combos (desglose de stock)
-      setMovimientos(data.filter(m => !m.observaciones?.startsWith('[COMBO]')));
+      // Filtrar solo compras (ING_CMP)
+      setMovimientos(data.filter(m => m.codigoAccionCodigo === 'ING_CMP'));
     } catch (err) {
-      console.error('Error cargando movimientos:', err);
-      showToast('Error al cargar movimientos', 'error');
+      console.error('Error cargando compras:', err);
+      showToast('Error al cargar compras', 'error');
     } finally {
       setCargando(false);
     }
-  }, [fechaDesde, fechaHasta, localSeleccionado, showToast]);
+  }, [fechaDesde, fechaHasta, localSeleccionado, locales, showToast]);
 
   useEffect(() => {
     cargarMovimientos();
@@ -114,13 +107,9 @@ export default function MovimientosPage() {
   // --- Filtrado local ---
   const movimientosFiltrados = useMemo(() => {
     let lista = [...movimientos];
-    if (filtroCodigoAccion !== '') {
-      lista = lista.filter((m) => m.codigoAccionId === filtroCodigoAccion);
-    }
     if (filtroProducto !== '') {
       lista = lista.filter((m) => m.productoId === filtroProducto);
     }
-    // Ordenar
     lista.sort((a, b) => {
       const valA = (a as unknown as Record<string, unknown>)[ordenCol];
       const valB = (b as unknown as Record<string, unknown>)[ordenCol];
@@ -131,15 +120,11 @@ export default function MovimientosPage() {
       return ordenDir === 'asc' ? cmp : -cmp;
     });
     return lista;
-  }, [movimientos, filtroCodigoAccion, filtroProducto, ordenCol, ordenDir]);
+  }, [movimientos, filtroProducto, ordenCol, ordenDir]);
 
   // --- Resumen ---
-  const totalIngresos = useMemo(
-    () => movimientosFiltrados.filter((m) => m.signo > 0).reduce((s, m) => s + m.montoTotal, 0),
-    [movimientosFiltrados]
-  );
-  const totalEgresos = useMemo(
-    () => movimientosFiltrados.filter((m) => m.signo < 0).reduce((s, m) => s + Math.abs(m.montoTotal), 0),
+  const montoTotal = useMemo(
+    () => movimientosFiltrados.reduce((s, m) => s + m.montoTotal, 0),
     [movimientosFiltrados]
   );
 
@@ -158,7 +143,6 @@ export default function MovimientosPage() {
 
   // --- Modal handlers ---
   const abrirModal = () => {
-    setFormCodigoAccionId('');
     setFormProductoId('');
     setFormCantidad('');
     setFormPrecioUnitario('');
@@ -168,7 +152,7 @@ export default function MovimientosPage() {
   };
 
   const guardarMovimiento = async () => {
-    if (formCodigoAccionId === '' || !formCantidad || !formPrecioUnitario) {
+    if (formProductoId === '' || !formCantidad || !formPrecioUnitario) {
       showToast('Completa los campos obligatorios', 'error');
       return;
     }
@@ -179,20 +163,20 @@ export default function MovimientosPage() {
     setGuardando(true);
     try {
       await crearMovimiento({
-        codigoAccionId: formCodigoAccionId as number,
-        productoId: formProductoId !== '' ? (formProductoId as number) : undefined,
-        localId: localSeleccionado,
+        codigoAccionId: 3, // ING_CMP
+        productoId: formProductoId as number,
+        localId: localSeleccionado || (localDelUsuario || 1),
         cantidad: parseFloat(formCantidad),
         precioUnitario: parseFloat(formPrecioUnitario),
         fechaMovimiento: formFecha,
         observaciones: formObservaciones || undefined,
       });
-      showToast('Movimiento creado correctamente', 'success');
+      showToast('Compra registrada correctamente', 'success');
       setModalOpen(false);
       cargarMovimientos();
     } catch (err) {
-      console.error('Error creando movimiento:', err);
-      showToast('Error al crear movimiento', 'error');
+      console.error('Error creando compra:', err);
+      showToast('Error al registrar compra', 'error');
     } finally {
       setGuardando(false);
     }
@@ -200,15 +184,11 @@ export default function MovimientosPage() {
 
   // --- Columnas de la tabla ---
   const columnas: { key: string; label: string }[] = [
-    { key: 'fechaMovimiento', label: 'Fecha Mov.' },
-    { key: 'fechaProceso', label: 'Fecha Proceso' },
-    { key: 'codigoAccionCodigo', label: 'Codigo' },
-    { key: 'codigoAccionNombre', label: 'Descripcion' },
+    { key: 'fechaMovimiento', label: 'Fecha' },
     { key: 'productoNombre', label: 'Producto' },
     { key: 'cantidad', label: 'Cantidad' },
     { key: 'precioUnitario', label: 'Precio Unit.' },
     { key: 'montoTotal', label: 'Monto Total' },
-    { key: 'numeroTicket', label: 'Pedido' },
     { key: 'usuarioNombre', label: 'Usuario' },
     { key: 'observaciones', label: 'Observaciones' },
   ];
@@ -216,7 +196,7 @@ export default function MovimientosPage() {
   return (
     <div className="space-y-4">
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
-        <h2 className="text-lg font-bold text-white">Movimientos de Inventario</h2>
+        <h2 className="text-lg font-bold text-white">Compras</h2>
       </div>
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow p-4">
@@ -259,23 +239,6 @@ export default function MovimientosPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Codigo de Accion</label>
-            <select
-              className={selectClass}
-              value={filtroCodigoAccion}
-              onChange={(e) =>
-                setFiltroCodigoAccion(e.target.value === '' ? '' : Number(e.target.value))
-              }
-            >
-              <option value="">Todos</option>
-              {codigosAccion.map((ca) => (
-                <option key={ca.id} value={ca.id}>
-                  {ca.codigo} - {ca.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Producto</label>
             <select
               className={selectClass}
@@ -306,7 +269,7 @@ export default function MovimientosPage() {
             className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md transition-colors flex items-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Nuevo Movimiento
+            Nueva Compra
           </button>
         </div>
       </div>
@@ -332,48 +295,34 @@ export default function MovimientosPage() {
             {cargando ? (
               <tr>
                 <td colSpan={columnas.length} className="text-center py-8 text-gray-400">
-                  Cargando movimientos...
+                  Cargando compras...
                 </td>
               </tr>
             ) : movimientosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={columnas.length} className="text-center py-8 text-gray-400">
-                  No se encontraron movimientos
+                  No se encontraron compras
                 </td>
               </tr>
             ) : (
-              movimientosFiltrados.map((m, idx) => {
-                const esPositivo = m.signo > 0;
-                return (
-                  <tr
-                    key={m.id}
-                    className={`border-b border-gray-100 hover:bg-amber-50/40 transition-colors ${
-                      idx % 2 === 1 ? 'bg-gray-50/50' : ''
-                    }`}
-                  >
-                    <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaProceso)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{m.codigoAccionCodigo}</td>
-                    <td className="px-3 py-2">{m.codigoAccionNombre}</td>
-                    <td className="px-3 py-2">{m.productoNombre || m.observaciones || '-'}</td>
-                    <td
-                      className={`px-3 py-2 font-semibold whitespace-nowrap ${
-                        esPositivo ? 'text-green-600' : 'text-red-600'
-                      }`}
-                    >
-                      {esPositivo ? '+' : '-'}
-                      {m.cantidad}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap font-semibold">{formatMonto(m.montoTotal)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{m.numeroTicket || '-'}</td>
-                    <td className="px-3 py-2">{m.usuarioNombre || '-'}</td>
-                    <td className="px-3 py-2 text-xs text-gray-500 max-w-[200px] truncate">
-                      {m.observaciones || '-'}
-                    </td>
-                  </tr>
-                );
-              })
+              movimientosFiltrados.map((m, idx) => (
+                <tr
+                  key={m.id}
+                  className={`border-b border-gray-100 hover:bg-amber-50/40 transition-colors ${
+                    idx % 2 === 1 ? 'bg-gray-50/50' : ''
+                  }`}
+                >
+                  <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
+                  <td className="px-3 py-2">{m.productoNombre || '-'}</td>
+                  <td className="px-3 py-2 font-semibold whitespace-nowrap text-green-600">+{m.cantidad}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap font-semibold">{formatMonto(m.montoTotal)}</td>
+                  <td className="px-3 py-2">{m.usuarioNombre || '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-500 max-w-[200px] truncate">
+                    {m.observaciones || '-'}
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -382,20 +331,16 @@ export default function MovimientosPage() {
       {/* Resumen */}
       <div className="bg-gradient-to-r from-slate-500 to-slate-700 rounded-lg shadow p-4 flex flex-wrap items-center gap-6">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-slate-200">Total movimientos:</span>
+          <span className="text-xs text-slate-200">Total compras:</span>
           <span className="text-sm font-bold text-white">{movimientosFiltrados.length}</span>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-slate-200">Total ingresos:</span>
-          <span className="text-sm font-bold text-green-400">{formatMonto(totalIngresos)}</span>
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-slate-200">Total egresos:</span>
-          <span className="text-sm font-bold text-red-400">{formatMonto(totalEgresos)}</span>
+          <span className="text-xs text-slate-200">Monto total:</span>
+          <span className="text-sm font-bold text-green-400">{formatMonto(montoTotal)}</span>
         </div>
       </div>
 
-      {/* Modal Nuevo Movimiento */}
+      {/* Modal Nueva Compra */}
       {modalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -406,30 +351,13 @@ export default function MovimientosPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-gray-200 bg-slate-700 rounded-t-lg">
-              <h3 className="text-lg font-semibold text-white">Nuevo Movimiento</h3>
+              <h3 className="text-lg font-semibold text-white">Nueva Compra</h3>
             </div>
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Codigo de Accion <span className="text-red-500">*</span>
+                  Producto <span className="text-red-500">*</span>
                 </label>
-                <select
-                  className={`${selectClass} w-full`}
-                  value={formCodigoAccionId}
-                  onChange={(e) =>
-                    setFormCodigoAccionId(e.target.value === '' ? '' : Number(e.target.value))
-                  }
-                >
-                  <option value="">Seleccionar...</option>
-                  {codigosAccion.map((ca) => (
-                    <option key={ca.id} value={ca.id}>
-                      {ca.codigo} - {ca.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Producto</label>
                 <select
                   className={`${selectClass} w-full`}
                   value={formProductoId}
@@ -437,7 +365,7 @@ export default function MovimientosPage() {
                     setFormProductoId(e.target.value === '' ? '' : Number(e.target.value))
                   }
                 >
-                  <option value="">Sin producto</option>
+                  <option value="">Seleccionar...</option>
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nombre}

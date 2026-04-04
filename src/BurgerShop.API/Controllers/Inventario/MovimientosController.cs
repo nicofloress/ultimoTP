@@ -8,7 +8,7 @@ namespace BurgerShop.API.Controllers.Inventario;
 
 [ApiController]
 [Route("api/movimientos")]
-[Authorize(Roles = "SuperAdmin,Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador,Local")]
 public class MovimientosController : ControllerBase
 {
     private readonly IMovimientoService _service;

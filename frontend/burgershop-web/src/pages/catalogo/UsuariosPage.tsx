@@ -4,8 +4,11 @@ import { Repartidor } from '../../types/logistica';
 import { getRepartidores } from '../../api/repartidores';
 import { getLocales, LocalDto } from '../../api/locales';
 import { UsuarioList, getUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario } from '../../api/usuarios';
+import { useAuth } from '../../context/AuthContext';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+
+const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 const emptyForm = {
   nombreUsuario: '',
@@ -25,9 +28,13 @@ const rolOptions: { value: RolUsuario; label: string }[] = [
 ];
 
 export default function UsuariosPage() {
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+
   const [usuarios, setUsuarios] = useState<UsuarioList[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(usuario?.localId || 0);
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<UsuarioList | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -112,10 +119,26 @@ export default function UsuariosPage() {
         <h2 className="text-lg font-bold text-white">Usuarios</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors"
+          className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5"
         >
-          {showForm ? 'Cerrar' : 'Nuevo Usuario'}
+          {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Usuario</>)}
         </button>
+      </div>
+
+      <div className="mb-4 flex items-end gap-3">
+        <div className="min-w-[200px]">
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+          {esSuperAdmin ? (
+            <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
+              <option value={0}>Todos los locales</option>
+              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          ) : (
+            <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+              {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+            </div>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -233,7 +256,7 @@ export default function UsuariosPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {usuarios.map(u => (
+            {usuarios.filter(u => !localSeleccionado || u.localId === localSeleccionado).map(u => (
               <tr key={u.id}>
                 <td className="px-4 py-3 text-sm font-medium">{u.nombreUsuario}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{u.nombreCompleto}</td>

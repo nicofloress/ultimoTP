@@ -16,7 +16,7 @@ public class TrackingController : ControllerBase
     public TrackingController(ITrackingService service) => _service = service;
 
     [HttpPost("ubicacion")]
-    [Authorize(Roles = "Repartidor")]
+    [Authorize(Roles = "SuperAdmin,Repartidor")]
     public async Task<ActionResult<UbicacionDto>> ActualizarUbicacion([FromBody] ActualizarUbicacionDto dto)
     {
         var repartidorIdClaim = User.FindFirstValue("repartidorId");
@@ -42,7 +42,7 @@ public class TrackingController : ControllerBase
     }
 
     [HttpPost("desactivar")]
-    [Authorize(Roles = "Repartidor")]
+    [Authorize(Roles = "SuperAdmin,Repartidor")]
     public async Task<IActionResult> Desactivar()
     {
         var repartidorIdClaim = User.FindFirstValue("repartidorId");

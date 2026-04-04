@@ -41,7 +41,7 @@ public class MensajesController : ControllerBase
     }
 
     [HttpPost("repartidor")]
-    [Authorize(Roles = "Repartidor")]
+    [Authorize(Roles = "SuperAdmin,Repartidor")]
     public async Task<ActionResult<MensajeDto>> EnviarComoRepartidor([FromBody] EnviarMensajeRepartidorDto dto)
     {
         var repartidorIdClaim = User.FindFirstValue("repartidorId");
