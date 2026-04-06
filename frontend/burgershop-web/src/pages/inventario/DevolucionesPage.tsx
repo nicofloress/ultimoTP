@@ -439,7 +439,7 @@ export default function DevolucionesPage() {
               <button
                 onClick={guardarMovimiento}
                 disabled={guardando}
-                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-md transition-colors"
+                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md transition-colors"
               >
                 {guardando ? 'Guardando...' : 'Guardar'}
               </button>

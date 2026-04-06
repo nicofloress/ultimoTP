@@ -22,12 +22,14 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
   const [editando, setEditando] = useState<TipoCliente | null>(null);
   const [showForm, setShowForm] = useState(false);
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getTiposCliente().then(setTiposCliente);
   useEffect(() => { cargar(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       const data = {
         nombre: form.nombre,
@@ -47,6 +49,8 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
       cargar();
     } catch {
       showToast('Error al guardar tipo de cliente', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -77,7 +81,7 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
             <span className="text-sm font-medium text-gray-700">Permite Cuenta Corriente</span>
           </label>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
@@ -127,6 +131,7 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
   const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);
   const [editando, setEditando] = useState<Categoria | null>(null);
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getCategorias().then(setCategorias);
   useEffect(() => { cargar(); }, []);
@@ -155,6 +160,7 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await updateCategoria(editando.id, { nombre, activa: editando.activa, categoriaPadreId });
@@ -169,6 +175,8 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
       cargar();
     } catch {
       showToast('Error al guardar categoria', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -192,7 +200,7 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
             ))}
           </select>
         </div>
-        <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+        <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
         {editando && (
           <button type="button" onClick={() => { setEditando(null); setNombre(''); setCategoriaPadreId(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
         )}
@@ -270,12 +278,14 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
   const [editando, setEditando] = useState<EmpresaDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getEmpresas().then(setEmpresas);
   useEffect(() => { cargar(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       const data = {
         razonSocial: form.razonSocial,
@@ -305,6 +315,8 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
       cargar();
     } catch {
       showToast('Error al guardar empresa', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -359,7 +371,7 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
           <input type="date" value={form.inicioActividades} onChange={e => setForm({ ...form, inicioActividades: e.target.value })} placeholder="Inicio Actividades" className="border rounded px-3 py-2" />
           <input type="number" value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} placeholder="Punto de Venta AFIP" className="border rounded px-3 py-2" />
           <div className="col-span-3 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
@@ -411,12 +423,14 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
   const [editando, setEditando] = useState<LocalDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getLocales().then(setLocales);
   useEffect(() => { cargar(); getEmpresas().then(setEmpresas); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       const data = {
         nombre: form.nombre,
@@ -437,6 +451,8 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
       cargar();
     } catch {
       showToast('Error al guardar local', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -478,7 +494,7 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
             <span className="text-sm font-medium text-gray-700">Es Punto de Venta</span>
           </label>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
@@ -530,6 +546,7 @@ export default function ConfigPage() {
   const [formasPagoList, setFormasPagoList] = useState<FormaPago[]>([]);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; tipo: string; id: number; nombre: string }>({ visible: false, tipo: '', id: 0, nombre: '' });
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
   const [tab, setTab] = useState<TabType>('zonas');
 
   // Zona form
@@ -568,6 +585,7 @@ export default function ConfigPage() {
   // Zonas handlers
   const handleZonaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editandoZona) {
         await updateZona(editandoZona.id, { ...zonaForm, activa: editandoZona.activa });
@@ -579,12 +597,15 @@ export default function ConfigPage() {
       setZonaForm({ nombre: '', descripcion: '', costoEnvio: 0 }); setEditandoZona(null); cargar();
     } catch {
       showToast('Error al guardar zona', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
   // Repartidor handlers
   const handleRepSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editandoRep) {
         await updateRepartidor(editandoRep.id, { ...repForm, activo: editandoRep.activo, codigoAcceso: repForm.codigoAcceso || undefined });
@@ -596,6 +617,8 @@ export default function ConfigPage() {
       setRepForm({ nombre: '', telefono: '', vehiculo: '', codigoAcceso: '' }); setEditandoRep(null); cargar();
     } catch {
       showToast('Error al guardar repartidor', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -607,6 +630,7 @@ export default function ConfigPage() {
   // FormaPago handlers
   const handleFpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editandoFp) {
         await updateFormaPago(editandoFp.id, fpForm);
@@ -621,6 +645,8 @@ export default function ConfigPage() {
       cargar();
     } catch {
       showToast('Error al guardar forma de pago', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -631,6 +657,7 @@ export default function ConfigPage() {
 
   const handleConfirmacion = async () => {
     const { tipo, id } = confirmacion;
+    setGuardando(true);
     try {
       if (tipo === 'zona') await deleteZona(id);
       else if (tipo === 'repartidor') await deleteRepartidor(id);
@@ -652,6 +679,8 @@ export default function ConfigPage() {
       showToast(mensajes[tipo] || 'Eliminado correctamente', 'success');
     } catch {
       showToast('Error al eliminar', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, tipo: '', id: 0, nombre: '' });
     // Forzar re-render de sub-tabs recargando
@@ -754,7 +783,7 @@ export default function ConfigPage() {
             <input type="text" value={zonaForm.nombre} onChange={e => setZonaForm({ ...zonaForm, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 flex-1" required />
             <input type="text" value={zonaForm.descripcion} onChange={e => setZonaForm({ ...zonaForm, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2 flex-1" />
             <input type="number" value={zonaForm.costoEnvio} onChange={e => setZonaForm({ ...zonaForm, costoEnvio: Number(e.target.value) })} placeholder="Costo envio" className="border rounded px-3 py-2 w-32" min={0} step={100} />
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editandoZona ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoZona ? 'Actualizar' : 'Crear')}</button>
           </form>
           <div className="bg-white rounded-lg shadow">
             <table className="w-full">
@@ -791,7 +820,7 @@ export default function ConfigPage() {
             <input type="text" value={repForm.telefono} onChange={e => setRepForm({ ...repForm, telefono: e.target.value })} placeholder="Telefono" className="border rounded px-3 py-2" />
             <input type="text" value={repForm.vehiculo} onChange={e => setRepForm({ ...repForm, vehiculo: e.target.value })} placeholder="Vehiculo" className="border rounded px-3 py-2" />
             <input type="text" value={repForm.codigoAcceso} onChange={e => setRepForm({ ...repForm, codigoAcceso: e.target.value })} placeholder="Codigo acceso" className="border rounded px-3 py-2 w-32" required={!editandoRep} />
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editandoRep ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoRep ? 'Actualizar' : 'Crear')}</button>
           </form>
           <div className="space-y-4">
             {repartidores.map(r => (
@@ -855,7 +884,7 @@ export default function ConfigPage() {
                 <input type="checkbox" checked={fpForm.activa} onChange={e => setFpForm({ ...fpForm, activa: e.target.checked })} className="w-5 h-5" />
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editandoFp ? 'Actualizar' : 'Crear'}</button>
+                <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoFp ? 'Actualizar' : 'Crear')}</button>
                 <button type="button" onClick={() => { setShowFpForm(false); setEditandoFp(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
               </div>
             </form>

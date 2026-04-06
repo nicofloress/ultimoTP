@@ -13,6 +13,7 @@ export default function RepartidoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getRepartidores().then(setRepartidores);
 
@@ -20,6 +21,7 @@ export default function RepartidoresPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await actualizarRepartidor(editando.id, {
@@ -45,6 +47,8 @@ export default function RepartidoresPage() {
       cargar();
     } catch {
       showToast('Error al guardar repartidor', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -65,11 +69,14 @@ export default function RepartidoresPage() {
   };
 
   const confirmarEliminar = async () => {
+    setGuardando(true);
     try {
       await eliminarRepartidor(confirmacion.id);
       showToast('Repartidor desactivado correctamente', 'success');
     } catch {
       showToast('Error al desactivar repartidor', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
@@ -142,8 +149,8 @@ export default function RepartidoresPage() {
             </label>
           )}
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
-              {editando ? 'Actualizar' : 'Crear'}
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">
               Cancelar

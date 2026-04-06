@@ -19,9 +19,13 @@ import { useGlobalToast } from '../../components/Toast';
 import PagoDivididoPanel from '../../components/PagoDivididoPanel';
 import { getCajaAbierta, abrirCaja } from '../../api/caja';
 import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
+import NumericInput, { formatearNumero } from '../../components/NumericInput';
+import { getPromociones, PromocionDto } from '../../api/promociones';
+import { useLocalActivo } from '../../context/LocalContext';
 
 export default function POSPage() {
   const { showToast } = useGlobalToast();
+  const { localActivo } = useLocalActivo();
   const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   // Data
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -30,6 +34,7 @@ export default function POSPage() {
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
   const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
+  const [promociones, setPromociones] = useState<PromocionDto[]>([]);
 
   // Carrito
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
@@ -103,6 +108,7 @@ export default function POSPage() {
     getZonas().then(setZonas);
     getTiposCliente().then(setTiposCliente);
     getCajaAbierta().then(caja => setCajaAbiertaId(caja?.id ?? null));
+    getPromociones().then(setPromociones).catch(() => {});
   }, []);
 
   // Click outside para cerrar sugerencias de cliente
@@ -151,6 +157,64 @@ export default function POSPage() {
     }
   }, [listaPrecioSeleccionada, listasPrecios]);
 
+  // --- Promociones vigentes ---
+  const promosVigentes = useMemo(() => {
+    const hoy = new Date().toISOString().split('T')[0];
+    return promociones.filter(p => {
+      if (!p.activa) return false;
+      const desde = p.fechaDesde.split('T')[0];
+      const hasta = p.fechaHasta.split('T')[0];
+      if (desde > hoy || hasta < hoy) return false;
+      if (localActivo !== 0 && !p.locales.some(l => l.localId === localActivo)) return false;
+      return true;
+    });
+  }, [promociones, localActivo]);
+
+  const preciosPromoProductos = useMemo(() => {
+    const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
+    for (const promo of promosVigentes) {
+      for (const item of promo.items) {
+        if (item.productoId) {
+          let precio: number;
+          if (item.precioPromo != null) {
+            precio = item.precioPromo;
+          } else {
+            const prod = productos.find(pr => pr.id === item.productoId);
+            if (!prod) continue;
+            const precioBase = preciosLista.get(prod.id) ?? prod.precio;
+            precio = promo.tipoDescuento === 1
+              ? precioBase * (1 - promo.valorDescuento / 100)
+              : Math.max(0, precioBase - promo.valorDescuento);
+          }
+          map.set(item.productoId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
+        }
+      }
+    }
+    return map;
+  }, [promosVigentes, productos, preciosLista]);
+
+  const preciosPromoCombos = useMemo(() => {
+    const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
+    for (const promo of promosVigentes) {
+      for (const item of promo.items) {
+        if (item.comboId) {
+          let precio: number;
+          if (item.precioPromo != null) {
+            precio = item.precioPromo;
+          } else {
+            const combo = combos.find(cb => cb.id === item.comboId);
+            if (!combo) continue;
+            precio = promo.tipoDescuento === 1
+              ? combo.precio * (1 - promo.valorDescuento / 100)
+              : Math.max(0, combo.precio - promo.valorDescuento);
+          }
+          map.set(item.comboId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
+        }
+      }
+    }
+    return map;
+  }, [promosVigentes, combos]);
+
   // --- Funciones de cliente ---
   const seleccionarCliente = (cliente: ClienteDto) => {
     setClienteSeleccionado(cliente);
@@ -174,7 +238,8 @@ export default function POSPage() {
 
   // --- Funciones de carrito ---
   const agregarProducto = useCallback((p: Producto) => {
-    const precioFinal = preciosLista.get(p.id) ?? p.precio;
+    const promoProducto = preciosPromoProductos.get(p.id);
+    const precioFinal = promoProducto ? promoProducto.precioPromo : (preciosLista.get(p.id) ?? p.precio);
     const existente = carrito.find(i => i.productoId === p.id);
     if (existente) {
       setCarrito(carrito.map(i => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1, precioUnitario: precioFinal } : i));
@@ -183,14 +248,16 @@ export default function POSPage() {
     }
     setBusqueda('');
     busquedaRef.current?.focus();
-  }, [carrito, preciosLista]);
+  }, [carrito, preciosLista, preciosPromoProductos]);
 
   const agregarCombo = (c: Combo) => {
+    const promoCombo = preciosPromoCombos.get(c.id);
+    const precioFinal = promoCombo ? promoCombo.precioPromo : c.precio;
     const existente = carrito.find(i => i.comboId === c.id);
     if (existente) {
       setCarrito(carrito.map(i => i.comboId === c.id ? { ...i, cantidad: i.cantidad + 1 } : i));
     } else {
-      setCarrito([...carrito, { comboId: c.id, nombre: c.nombre, cantidad: 1, precioUnitario: c.precio }]);
+      setCarrito([...carrito, { comboId: c.id, nombre: c.nombre, cantidad: 1, precioUnitario: precioFinal }]);
     }
   };
 
@@ -281,6 +348,7 @@ export default function POSPage() {
   const productosCatalogo = useMemo(() => {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
+    if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
     if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
@@ -292,11 +360,12 @@ export default function POSPage() {
       filtered = filtered.filter(p => p.pesoGramos === gramajesFiltro);
     }
     return filtered;
-  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista]);
+  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista, preciosPromoProductos]);
 
   const combosCatalogo = useMemo(() => {
     const activos = combos.filter(c => c.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
+    if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
     let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
@@ -308,7 +377,7 @@ export default function POSPage() {
     }
     const prodIdsEnCat = new Set(prodsEnCat.map(p => p.id));
     return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
-  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias]);
+  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosPromoCombos]);
 
   // Auto-agregar producto si busca por codigo exacto y Enter
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -345,7 +414,7 @@ export default function POSPage() {
       return;
     }
     if (modoPago === 'dividido' && deuda > 0) {
-      showToast(`Faltan $${deuda.toLocaleString('es-AR')} por cubrir en pago dividido`, 'error');
+      showToast(`Faltan $${formatearNumero(deuda, 2)} por cubrir en pago dividido`, 'error');
       return;
     }
     if (modoPago === 'cuentaCorriente' && !clienteSeleccionado) {
@@ -658,7 +727,7 @@ export default function POSPage() {
 
           {/* Resultados de busqueda rapida */}
           {busqueda && (productosFiltrados.length > 0 || combosFiltrados.length > 0) && (
-            <div className="mt-1.5 border border-gray-200 rounded-md max-h-48 overflow-y-auto shadow-sm">
+            <div className="mt-1.5 border border-gray-200 rounded-md max-h-72 overflow-y-auto shadow-sm">
               {productosFiltrados.slice(0, 6).map(p => (
                 <button
                   key={`p-${p.id}`}
@@ -669,7 +738,16 @@ export default function POSPage() {
                     {p.numeroInterno && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{p.numeroInterno}</span>}
                     <span className="text-gray-800">{p.nombre}</span>
                   </div>
-                  <span className="font-semibold text-amber-600">${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}</span>
+                  <span className="font-semibold text-amber-600">
+                    {preciosPromoProductos.has(p.id) ? (
+                      <>
+                        <span className="text-xs text-gray-400 line-through mr-1">${formatearNumero(preciosLista.get(p.id) ?? p.precio)}</span>
+                        <span className="text-red-600">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
+                      </>
+                    ) : (
+                      <>${formatearNumero(preciosLista.get(p.id) ?? p.precio)}</>
+                    )}
+                  </span>
                 </button>
               ))}
               {combosFiltrados.slice(0, 6).map(c => (
@@ -682,7 +760,16 @@ export default function POSPage() {
                     <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
                     <span className="text-gray-800">{c.nombre}</span>
                   </div>
-                  <span className="font-semibold text-purple-600">${c.precio.toLocaleString()}</span>
+                  <span className="font-semibold text-purple-600">
+                    {preciosPromoCombos.has(c.id) ? (
+                      <>
+                        <span className="text-xs text-gray-400 line-through mr-1">${formatearNumero(c.precio)}</span>
+                        <span className="text-red-600">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                      </>
+                    ) : (
+                      <>${formatearNumero(c.precio)}</>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>
@@ -743,26 +830,24 @@ export default function POSPage() {
                           {item.notas && <div className="text-xs text-gray-400 italic">{item.notas}</div>}
                         </td>
                         <td className="px-1 py-1 w-14">
-                          <input
-                            type="number"
+                          <NumericInput
                             value={item.cantidad}
-                            onChange={e => actualizarItem(i, 'cantidad', Math.max(1, Number(e.target.value)))}
+                            onChange={v => actualizarItem(i, 'cantidad', Math.max(1, v))}
                             className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
                             min={1}
                           />
                         </td>
                         <td className="px-1 py-1 w-20">
-                          <input
-                            type="number"
+                          <NumericInput
                             value={item.precioUnitario}
-                            onChange={e => actualizarItem(i, 'precioUnitario', Number(e.target.value))}
+                            onChange={v => actualizarItem(i, 'precioUnitario', v)}
                             className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
                             min={0}
-                            step={100}
+                            decimales
                           />
                         </td>
                         <td className="px-2.5 py-1.5 text-right font-semibold text-gray-800 w-24">
-                          ${(item.precioUnitario * item.cantidad).toLocaleString()}
+                          ${formatearNumero(item.precioUnitario * item.cantidad)}
                         </td>
                         <td className="px-1 py-1.5 w-7">
                           <button onClick={() => eliminarItem(i)} className="text-gray-300 hover:text-red-500 transition-colors p-0.5 rounded hover:bg-red-50">
@@ -870,13 +955,12 @@ export default function POSPage() {
               <div>
                 <label className={labelClass}>Monto Pagado</label>
                 <div className="flex gap-1.5">
-                  <input
-                    type="number"
+                  <NumericInput
                     value={montoPagado}
-                    onChange={e => setMontoPagado(Number(e.target.value))}
+                    onChange={v => setMontoPagado(v)}
                     className={`${inputClass} flex-1`}
                     min={0}
-                    step={100}
+                    decimales
                   />
                   <button
                     onClick={handlePagoTotal}
@@ -903,7 +987,7 @@ export default function POSPage() {
                 <span className="text-sm font-semibold text-purple-800">Cuenta Corriente</span>
               </div>
               <p className="text-xs text-purple-600">
-                Se cargará ${total.toLocaleString('es-AR')} a la cuenta de {clienteSeleccionado?.nombre || nombreCliente || 'cliente'}
+                Se cargará ${formatearNumero(total)} a la cuenta de {clienteSeleccionado?.nombre || nombreCliente || 'cliente'}
               </p>
             </div>
           )}
@@ -920,13 +1004,12 @@ export default function POSPage() {
                 <option value="$">$</option>
                 <option value="%">%</option>
               </select>
-              <input
-                type="number"
+              <NumericInput
                 value={descuento}
-                onChange={e => setDescuento(Number(e.target.value))}
+                onChange={v => setDescuento(v)}
                 className={`${inputClass} flex-1`}
                 min={0}
-                step={tipoDescuento === '%' ? 1 : 100}
+                decimales
               />
             </div>
           </div>
@@ -937,12 +1020,12 @@ export default function POSPage() {
         <div className="border-t-4 border-amber-400 bg-gradient-to-t from-gray-100 to-gray-50 shadow-[0_-2px_6px_rgba(0,0,0,0.06)] px-3 py-1.5 space-y-0 flex-shrink-0">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Subtotal</span>
-            <span className="font-medium text-gray-700">${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+            <span className="font-medium text-gray-700">${formatearNumero(subtotal, 2)}</span>
           </div>
           {descuentoCalculado > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Descuento</span>
-              <span className="font-medium text-green-600">-${descuentoCalculado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              <span className="font-medium text-green-600">-${formatearNumero(descuentoCalculado, 2)}</span>
             </div>
           )}
           {recargo > 0 && (
@@ -950,7 +1033,7 @@ export default function POSPage() {
               <span className="text-gray-500">
                 Recargo {modoPago === 'total' && formaPagoActual && formaPagoActual.porcentajeRecargo > 0 ? `(${formaPagoActual.porcentajeRecargo}%)` : ''}
               </span>
-              <span className="font-medium text-orange-600">+${recargo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              <span className="font-medium text-orange-600">+${formatearNumero(recargo, 2)}</span>
             </div>
           )}
           <div className="flex justify-between text-xs text-gray-400">
@@ -960,7 +1043,7 @@ export default function POSPage() {
           <div className={`flex justify-between items-baseline pt-1.5 mt-1 border-t border-gray-300 ${carrito.length > 0 ? 'text-lg' : 'text-base'}`}>
             <span className="font-bold text-gray-800">Total</span>
             <span className={`font-bold ${carrito.length > 0 ? 'text-amber-600 text-xl' : 'text-gray-600'}`}>
-              ${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              ${formatearNumero(total, 2)}
             </span>
           </div>
           {/* Toggle envio a domicilio */}
@@ -1056,7 +1139,7 @@ export default function POSPage() {
           }`}>
             <span className="text-gray-600">Deuda</span>
             <span className={deuda > 0 ? 'text-red-600' : deuda === 0 && carrito.length > 0 ? 'text-green-600' : 'text-gray-500'}>
-              {deuda <= 0 && carrito.length > 0 ? 'Listo' : `$${Math.max(0, deuda).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
+              {deuda <= 0 && carrito.length > 0 ? 'Listo' : `$${formatearNumero(Math.max(0, deuda), 2)}`}
             </span>
           </div>
           <div className="flex gap-2">
@@ -1134,6 +1217,9 @@ export default function POSPage() {
             {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
               <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+              {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
+                <button onClick={() => setCategoriaFiltro('promo')} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
+              )}
               {listaPrecioSeleccionada && (
                 <button
                   onClick={() => setCategoriaFiltro('descuento')}
@@ -1142,9 +1228,6 @@ export default function POSPage() {
                   Con Descuento
                 </button>
               )}
-              {megaCategorias.map(mc => (
-                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
-              ))}
               <button
                 onClick={() => setCategoriaFiltro('ofertas')}
                 className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
@@ -1152,6 +1235,9 @@ export default function POSPage() {
                 Ofertas
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
+              {megaCategorias.map(mc => (
+                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+              ))}
             </div>
 
             {/* Sub-filtros: marca y gramaje */}
@@ -1204,27 +1290,53 @@ export default function POSPage() {
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">
               {/* Productos sueltos */}
               {categoriaFiltro !== 'combos' && productosCatalogo.map(p => (
-                <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
-                  p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
-                    ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
-                    : 'bg-white border-gray-200 hover:border-amber-400'
+                <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
+                  preciosPromoProductos.has(p.id)
+                    ? 'bg-red-50 border-red-200 hover:border-red-400'
+                    : p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
+                      ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
+                      : 'bg-white border-gray-200 hover:border-amber-400'
                 }`}>
+                  {preciosPromoProductos.has(p.id) && (
+                    <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                  )}
                   {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
                   <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
                   <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
-                  <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
-                    ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
-                    {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
-                      <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
-                    )}
-                  </div>
+                  {preciosPromoProductos.has(p.id) ? (
+                    <div className="font-bold mt-0.5">
+                      <span className="text-xs text-gray-400 line-through">${formatearNumero(preciosLista.get(p.id) ?? p.precio)}</span>
+                      <span className="text-red-600 ml-1">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
+                    </div>
+                  ) : (
+                    <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
+                      ${formatearNumero(preciosLista.get(p.id) ?? p.precio)}
+                      {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
+                        <span className="text-xs text-gray-400 line-through ml-1">${formatearNumero(p.precio)}</span>
+                      )}
+                    </div>
+                  )}
                 </button>
               ))}
               {/* Combos (todos si chip Combos, o relacionados si mega-categoria) */}
               {(categoriaFiltro === 'combos' ? combos.filter(c => c.activo) : combosCatalogo).map(c => (
-                <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5 text-left hover:border-purple-400 hover:shadow-md active:bg-purple-100 transition-all group">
+                <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left hover:shadow-md active:scale-[0.98] transition-all group ${
+                  preciosPromoCombos.has(c.id)
+                    ? 'bg-red-50 border-red-200 hover:border-red-400'
+                    : 'bg-purple-50 border-purple-200 hover:border-purple-400'
+                }`}>
+                  {preciosPromoCombos.has(c.id) && (
+                    <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                  )}
                   <div className="font-medium text-sm text-gray-800 group-hover:text-purple-700">{c.nombre}</div>
-                  <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
+                  {preciosPromoCombos.has(c.id) ? (
+                    <div className="font-bold mt-0.5">
+                      <span className="text-xs text-gray-400 line-through">${formatearNumero(c.precio)}</span>
+                      <span className="text-red-600 ml-1">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                    </div>
+                  ) : (
+                    <div className="text-purple-600 font-bold mt-0.5">${formatearNumero(c.precio)}</div>
+                  )}
                 </button>
               ))}
             </div>
@@ -1389,15 +1501,13 @@ export default function POSPage() {
             }} className="px-5 py-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Monto Inicial *</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={cajaMontoInicial}
-                  onChange={e => setCajaMontoInicial(Number(e.target.value))}
+                  onChange={v => setCajaMontoInicial(v)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400"
                   min={0}
-                  step={100}
+                  decimales
                   required
-                  autoFocus
                 />
               </div>
               <div>

@@ -32,6 +32,7 @@ import ComprasPage from './pages/inventario/ComprasPage';
 import DevolucionesPage from './pages/inventario/DevolucionesPage';
 import StockPage from './pages/inventario/StockPage';
 
+import PromocionesPage from './pages/catalogo/PromocionesPage';
 import LogsPage from './pages/sistema/LogsPage';
 import { RolUsuario } from './types/auth';
 
@@ -86,6 +87,9 @@ export default function App() {
               } />
               <Route path="usuarios" element={
                 <ProtectedRoute roles={[]}><UsuariosPage /></ProtectedRoute>
+              } />
+              <Route path="promociones" element={
+                <ProtectedRoute roles={[]}><PromocionesPage /></ProtectedRoute>
               } />
             </Route>
             <Route path="/finanzas/caja" element={

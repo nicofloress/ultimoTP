@@ -25,6 +25,7 @@ export default function CombosPage() {
   const { showToast } = useGlobalToast();
   const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => {
     getCombos().then(setCombos);
@@ -87,6 +88,7 @@ export default function CombosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await updateCombo(editando.id, { nombre, descripcion, precio, activo: true, detalles });
@@ -99,6 +101,8 @@ export default function CombosPage() {
       cargar();
     } catch {
       showToast('Error al guardar el combo', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -109,11 +113,14 @@ export default function CombosPage() {
   };
 
   const confirmarDesactivar = async () => {
+    setGuardando(true);
     try {
       await deleteCombo(confirmacion.id);
       showToast('Combo desactivado correctamente', 'success');
     } catch {
       showToast('Error al desactivar combo', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
@@ -203,7 +210,7 @@ export default function CombosPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={resetForm} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>

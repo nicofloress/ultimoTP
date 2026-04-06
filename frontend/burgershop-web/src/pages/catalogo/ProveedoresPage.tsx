@@ -13,6 +13,7 @@ export default function ProveedoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getProveedores().then(setProveedores);
 
@@ -20,6 +21,7 @@ export default function ProveedoresPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await actualizarProveedor(editando.id, form);
@@ -34,6 +36,8 @@ export default function ProveedoresPage() {
       cargar();
     } catch {
       showToast('Error al guardar proveedor', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -53,11 +57,14 @@ export default function ProveedoresPage() {
   };
 
   const confirmarEliminar = async () => {
+    setGuardando(true);
     try {
       await eliminarProveedor(confirmacion.id);
       showToast('Proveedor eliminado correctamente', 'success');
     } catch {
       showToast('Error al eliminar proveedor', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
@@ -119,8 +126,8 @@ export default function ProveedoresPage() {
             />
           </div>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
-              {editando ? 'Actualizar' : 'Crear'}
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">
               Cancelar

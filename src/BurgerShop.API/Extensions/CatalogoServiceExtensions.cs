@@ -13,6 +13,7 @@ public static class CatalogoServiceExtensions
         services.AddScoped<IProductoRepository, ProductoRepository>();
         services.AddScoped<IComboRepository, ComboRepository>();
         services.AddScoped<IListaPrecioRepository, ListaPrecioRepository>();
+        services.AddScoped<IPromocionRepository, PromocionRepository>();
 
         // Services
         services.AddScoped<ICategoriaService, CategoriaService>();
@@ -20,6 +21,7 @@ public static class CatalogoServiceExtensions
         services.AddScoped<IComboService, ComboService>();
         services.AddScoped<IProveedorService, ProveedorService>();
         services.AddScoped<IListaPrecioService, ListaPrecioService>();
+        services.AddScoped<IPromocionService, PromocionService>();
 
         return services;
     }

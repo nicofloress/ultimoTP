@@ -23,6 +23,9 @@ import { es } from 'date-fns/locale';
 import { addDays, format } from 'date-fns';
 import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
 import { useGlobalToast } from '../../components/Toast';
+import { getPromociones, PromocionDto } from '../../api/promociones';
+import { useLocalActivo } from '../../context/LocalContext';
+import { formatearNumero } from '../../components/NumericInput';
 
 const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -37,6 +40,7 @@ const estadosFiltro = [
 
 export default function PedidosPage() {
   const { showToast: addToast } = useGlobalToast();
+  const { localActivo } = useLocalActivo();
   // ===== DATA =====
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -47,6 +51,7 @@ export default function PedidosPage() {
   const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
   const [listaPrecioSeleccionada, setListaPrecioSeleccionada] = useState<number | undefined>();
   const [preciosLista, setPreciosLista] = useState<Map<number, number>>(new Map());
+  const [promociones, setPromociones] = useState<PromocionDto[]>([]);
 
   // ===== PANEL DERECHO: PEDIDOS =====
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -95,6 +100,7 @@ export default function PedidosPage() {
     getZonas().then(setZonas);
     getRepartidores().then(setRepartidores);
     getListasPrecios().then(setListasPrecios);
+    getPromociones().then(setPromociones);
   }, []);
 
   // Precios segun lista seleccionada
@@ -110,6 +116,64 @@ export default function PedidosPage() {
       setPreciosLista(new Map());
     }
   }, [listaPrecioSeleccionada, listasPrecios]);
+
+  // --- Promociones vigentes ---
+  const promosVigentes = useMemo(() => {
+    const hoy = new Date().toISOString().split('T')[0];
+    return promociones.filter(p => {
+      if (!p.activa) return false;
+      const desde = p.fechaDesde.split('T')[0];
+      const hasta = p.fechaHasta.split('T')[0];
+      if (desde > hoy || hasta < hoy) return false;
+      if (localActivo !== 0 && !p.locales.some(l => l.localId === localActivo)) return false;
+      return true;
+    });
+  }, [promociones, localActivo]);
+
+  const preciosPromoProductos = useMemo(() => {
+    const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
+    for (const promo of promosVigentes) {
+      for (const item of promo.items) {
+        if (item.productoId) {
+          let precio: number;
+          if (item.precioPromo != null) {
+            precio = item.precioPromo;
+          } else {
+            const prod = productos.find(pr => pr.id === item.productoId);
+            if (!prod) continue;
+            const precioBase = preciosLista.get(prod.id) ?? prod.precio;
+            precio = promo.tipoDescuento === 1
+              ? precioBase * (1 - promo.valorDescuento / 100)
+              : Math.max(0, precioBase - promo.valorDescuento);
+          }
+          map.set(item.productoId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
+        }
+      }
+    }
+    return map;
+  }, [promosVigentes, productos, preciosLista]);
+
+  const preciosPromoCombos = useMemo(() => {
+    const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
+    for (const promo of promosVigentes) {
+      for (const item of promo.items) {
+        if (item.comboId) {
+          let precio: number;
+          if (item.precioPromo != null) {
+            precio = item.precioPromo;
+          } else {
+            const combo = combos.find(cb => cb.id === item.comboId);
+            if (!combo) continue;
+            precio = promo.tipoDescuento === 1
+              ? combo.precio * (1 - promo.valorDescuento / 100)
+              : Math.max(0, combo.precio - promo.valorDescuento);
+          }
+          map.set(item.comboId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
+        }
+      }
+    }
+    return map;
+  }, [promosVigentes, combos]);
 
   // ===== CARGAR PEDIDOS =====
   const cargarPedidos = useCallback(() => {
@@ -128,7 +192,8 @@ export default function PedidosPage() {
 
   // ===== FUNCIONES DE CARRITO =====
   const agregarProducto = useCallback((p: Producto) => {
-    const precioFinal = preciosLista.get(p.id) ?? p.precio;
+    const promoProducto = preciosPromoProductos.get(p.id);
+    const precioFinal = promoProducto ? promoProducto.precioPromo : (preciosLista.get(p.id) ?? p.precio);
     const existente = carrito.find(i => i.productoId === p.id);
     if (existente) {
       setCarrito(carrito.map(i => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1, precioUnitario: precioFinal } : i));
@@ -137,14 +202,16 @@ export default function PedidosPage() {
     }
     setBusqueda('');
     busquedaRef.current?.focus();
-  }, [carrito, preciosLista]);
+  }, [carrito, preciosLista, preciosPromoProductos]);
 
   const agregarCombo = (c: Combo) => {
+    const promoCombo = preciosPromoCombos.get(c.id);
+    const precioFinal = promoCombo ? promoCombo.precioPromo : c.precio;
     const existente = carrito.find(i => i.comboId === c.id);
     if (existente) {
       setCarrito(carrito.map(i => i.comboId === c.id ? { ...i, cantidad: i.cantidad + 1 } : i));
     } else {
-      setCarrito([...carrito, { comboId: c.id, nombre: c.nombre, cantidad: 1, precioUnitario: c.precio }]);
+      setCarrito([...carrito, { comboId: c.id, nombre: c.nombre, cantidad: 1, precioUnitario: precioFinal }]);
     }
   };
 
@@ -170,6 +237,11 @@ export default function PedidosPage() {
       return (p.numeroInterno?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term);
     }
     return false;
+  });
+
+  const combosFiltrados = combos.filter(c => {
+    if (!c.activo || !busqueda) return false;
+    return c.nombre.toLowerCase().includes(busqueda.toLowerCase());
   });
 
   // ===== MEGA-CATEGORIAS PARA MODAL CATALOGO =====
@@ -215,6 +287,7 @@ export default function PedidosPage() {
   const productosCatalogo = useMemo(() => {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
+    if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
     if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
@@ -226,11 +299,12 @@ export default function PedidosPage() {
       filtered = filtered.filter(p => p.pesoGramos === gramajesFiltro);
     }
     return filtered;
-  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista]);
+  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista, preciosPromoProductos]);
 
   const combosCatalogo = useMemo(() => {
     const activos = combos.filter(c => c.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
+    if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
     let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
@@ -242,7 +316,7 @@ export default function PedidosPage() {
     }
     const prodIdsEnCat = new Set(prodsEnCat.map(p => p.id));
     return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
-  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias]);
+  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosPromoCombos]);
 
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && busqueda.trim()) {
@@ -640,7 +714,7 @@ export default function PedidosPage() {
           </div>
 
           {/* Resultados de busqueda rapida */}
-          {busqueda && productosFiltrados.length > 0 && (
+          {busqueda && (productosFiltrados.length > 0 || combosFiltrados.length > 0) && (
             <div className="mt-1.5 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
               {productosFiltrados.slice(0, 8).map(p => (
                 <button
@@ -652,7 +726,38 @@ export default function PedidosPage() {
                     {p.numeroInterno && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{p.numeroInterno}</span>}
                     <span className="text-gray-800">{p.nombre}</span>
                   </div>
-                  <span className="font-semibold text-amber-600">${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}</span>
+                  <span className="font-semibold text-amber-600">
+                    {preciosPromoProductos.has(p.id) ? (
+                      <>
+                        <span className="text-xs text-gray-400 line-through mr-1">${formatearNumero(preciosLista.get(p.id) ?? p.precio)}</span>
+                        <span className="text-red-600">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
+                      </>
+                    ) : (
+                      <>${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}</>
+                    )}
+                  </span>
+                </button>
+              ))}
+              {combosFiltrados.slice(0, 6).map(c => (
+                <button
+                  key={`c-${c.id}`}
+                  onClick={() => agregarCombo(c)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
+                    <span className="text-gray-800">{c.nombre}</span>
+                  </div>
+                  <span className="font-semibold text-purple-600">
+                    {preciosPromoCombos.has(c.id) ? (
+                      <>
+                        <span className="text-xs text-gray-400 line-through mr-1">${formatearNumero(c.precio)}</span>
+                        <span className="text-red-600">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                      </>
+                    ) : (
+                      <>${formatearNumero(c.precio)}</>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1034,6 +1139,9 @@ export default function PedidosPage() {
             {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
               <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+              {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
+                <button onClick={() => setCategoriaFiltro('promo')} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
+              )}
               {listaPrecioSeleccionada && (
                 <button
                   onClick={() => setCategoriaFiltro('descuento')}
@@ -1042,9 +1150,6 @@ export default function PedidosPage() {
                   Con Descuento
                 </button>
               )}
-              {megaCategorias.map(mc => (
-                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
-              ))}
               <button
                 onClick={() => setCategoriaFiltro('ofertas')}
                 className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
@@ -1052,6 +1157,9 @@ export default function PedidosPage() {
                 Ofertas
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
+              {megaCategorias.map(mc => (
+                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+              ))}
             </div>
 
             {/* Sub-filtros: marca y gramaje */}
@@ -1104,27 +1212,53 @@ export default function PedidosPage() {
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">
               {/* Productos sueltos */}
               {categoriaFiltro !== 'combos' && productosCatalogo.map(p => (
-                <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
-                  p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
-                    ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
-                    : 'bg-white border-gray-200 hover:border-amber-400'
+                <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
+                  preciosPromoProductos.has(p.id)
+                    ? 'bg-red-50 border-red-200 hover:border-red-400'
+                    : p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
+                      ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
+                      : 'bg-white border-gray-200 hover:border-amber-400'
                 }`}>
+                  {preciosPromoProductos.has(p.id) && (
+                    <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                  )}
                   {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
                   <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
                   <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
-                  <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
-                    ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
-                    {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
-                      <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
-                    )}
-                  </div>
+                  {preciosPromoProductos.has(p.id) ? (
+                    <div className="font-bold mt-0.5">
+                      <span className="text-xs text-gray-400 line-through">${formatearNumero(preciosLista.get(p.id) ?? p.precio)}</span>
+                      <span className="text-red-600 ml-1">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
+                    </div>
+                  ) : (
+                    <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
+                      ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
+                      {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
+                        <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
+                      )}
+                    </div>
+                  )}
                 </button>
               ))}
               {/* Combos (todos si chip Combos, o relacionados si mega-categoria) */}
               {(categoriaFiltro === 'combos' ? combos.filter(c => c.activo) : combosCatalogo).map(c => (
-                <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className="bg-purple-50 border-2 border-purple-200 rounded-lg p-2.5 text-left hover:border-purple-400 hover:shadow-md active:bg-purple-100 transition-all group">
+                <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left hover:shadow-md active:scale-[0.98] transition-all group ${
+                  preciosPromoCombos.has(c.id)
+                    ? 'bg-red-50 border-red-200 hover:border-red-400'
+                    : 'bg-purple-50 border-purple-200 hover:border-purple-400'
+                }`}>
+                  {preciosPromoCombos.has(c.id) && (
+                    <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                  )}
                   <div className="font-medium text-sm text-gray-800 group-hover:text-purple-700">{c.nombre}</div>
-                  <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
+                  {preciosPromoCombos.has(c.id) ? (
+                    <div className="font-bold mt-0.5">
+                      <span className="text-xs text-gray-400 line-through">${formatearNumero(c.precio)}</span>
+                      <span className="text-red-600 ml-1">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                    </div>
+                  ) : (
+                    <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>
+                  )}
                 </button>
               ))}
             </div>

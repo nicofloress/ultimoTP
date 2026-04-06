@@ -41,11 +41,11 @@ const menuSections: MenuSection[] = [
     items: [
       { to: '/catalogo/clientes', label: 'Clientes', roles: [SA, AD] },
       { to: '/catalogo/productos', label: 'Articulos', roles: [SA, AD] },
-      { to: '/catalogo/combos', label: 'Combos', roles: [SA, AD] },
       { to: '/catalogo/repartidores', label: 'Repartidores', roles: [SA, AD] },
       { to: '/catalogo/proveedores', label: 'Proveedores', roles: [SA] },
       { to: '/catalogo/listasprecios', label: 'Listas de Precios', roles: [SA, AD] },
       { to: '/catalogo/usuarios', label: 'Usuarios', roles: [SA] },
+      { to: '/catalogo/promociones', label: 'Promociones', roles: [SA] },
     ],
   },
   {

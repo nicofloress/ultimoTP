@@ -40,6 +40,7 @@ export default function UsuariosPage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => {
     getUsuarios().then(res => setUsuarios(res.data));
@@ -51,6 +52,7 @@ export default function UsuariosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       const localId = form.rol !== RolUsuario.SuperAdmin ? form.localId : undefined;
       if (editando) {
@@ -81,6 +83,8 @@ export default function UsuariosPage() {
       cargar();
     } catch {
       showToast('Error al guardar usuario', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -103,11 +107,14 @@ export default function UsuariosPage() {
   };
 
   const confirmarDesactivar = async () => {
+    setGuardando(true);
     try {
       await eliminarUsuario(confirmacion.id);
       showToast('Usuario desactivado correctamente', 'success');
     } catch {
       showToast('Error al desactivar usuario', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
@@ -232,8 +239,8 @@ export default function UsuariosPage() {
             </label>
           )}
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
-              {editando ? 'Actualizar' : 'Crear'}
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">
               Cancelar

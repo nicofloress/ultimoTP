@@ -12,6 +12,7 @@ import { Producto } from '../../types';
 import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import NumericInput, { formatearMonto } from '../../components/NumericInput';
 
 const inputClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -35,7 +36,7 @@ function formatFecha(fecha: string) {
 }
 
 function formatMonto(n: number) {
-  return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+  return formatearMonto(n);
 }
 
 type SortDir = 'asc' | 'desc';
@@ -71,8 +72,8 @@ export default function MovimientosPage() {
   const [guardando, setGuardando] = useState(false);
   const [formCodigoAccionId, setFormCodigoAccionId] = useState<number | ''>('');
   const [formProductoId, setFormProductoId] = useState<number | ''>('');
-  const [formCantidad, setFormCantidad] = useState<string>('');
-  const [formPrecioUnitario, setFormPrecioUnitario] = useState<string>('');
+  const [formCantidad, setFormCantidad] = useState<number>(0);
+  const [formPrecioUnitario, setFormPrecioUnitario] = useState<number>(0);
   const [formFecha, setFormFecha] = useState(getHoy());
   const [formObservaciones, setFormObservaciones] = useState('');
 
@@ -160,8 +161,8 @@ export default function MovimientosPage() {
   const abrirModal = () => {
     setFormCodigoAccionId('');
     setFormProductoId('');
-    setFormCantidad('');
-    setFormPrecioUnitario('');
+    setFormCantidad(0);
+    setFormPrecioUnitario(0);
     setFormFecha(getHoy());
     setFormObservaciones('');
     setModalOpen(true);
@@ -182,8 +183,8 @@ export default function MovimientosPage() {
         codigoAccionId: formCodigoAccionId as number,
         productoId: formProductoId !== '' ? (formProductoId as number) : undefined,
         localId: localSeleccionado,
-        cantidad: parseFloat(formCantidad),
-        precioUnitario: parseFloat(formPrecioUnitario),
+        cantidad: formCantidad,
+        precioUnitario: formPrecioUnitario,
         fechaMovimiento: formFecha,
         observaciones: formObservaciones || undefined,
       });
@@ -452,26 +453,23 @@ export default function MovimientosPage() {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Cantidad <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <NumericInput
                     className={`${inputClass} w-full`}
                     value={formCantidad}
-                    onChange={(e) => setFormCantidad(e.target.value)}
-                    min="0"
-                    step="any"
+                    onChange={(v) => setFormCantidad(v)}
+                    min={0}
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Precio Unitario <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <NumericInput
                     className={`${inputClass} w-full`}
                     value={formPrecioUnitario}
-                    onChange={(e) => setFormPrecioUnitario(e.target.value)}
-                    min="0"
-                    step="any"
+                    onChange={(v) => setFormPrecioUnitario(v)}
+                    min={0}
+                    decimales
                   />
                 </div>
               </div>
@@ -509,7 +507,7 @@ export default function MovimientosPage() {
               <button
                 onClick={guardarMovimiento}
                 disabled={guardando}
-                className="px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-md transition-colors"
+                className="px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md transition-colors"
               >
                 {guardando ? 'Guardando...' : 'Guardar'}
               </button>

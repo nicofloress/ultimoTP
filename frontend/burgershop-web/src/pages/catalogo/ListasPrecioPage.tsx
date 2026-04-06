@@ -27,6 +27,7 @@ export default function ListasPrecioPage() {
   const [editandoDetallePrecio, setEditandoDetallePrecio] = useState<number>(0);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = async () => {
     const data = await getListasPrecios();
@@ -49,6 +50,7 @@ export default function ListasPrecioPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await actualizarListaPrecio(editando.id, { nombre, esDefault: false, activa: editando.activa });
@@ -62,6 +64,8 @@ export default function ListasPrecioPage() {
       cargar();
     } catch {
       showToast('Error al guardar lista de precios', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -75,12 +79,15 @@ export default function ListasPrecioPage() {
   };
 
   const confirmarEliminar = async () => {
+    setGuardando(true);
     try {
       await eliminarListaPrecio(confirmacion.id);
       if (seleccionada?.id === confirmacion.id) setSeleccionada(null);
       showToast('Lista de precios eliminada correctamente', 'success');
     } catch {
       showToast('Error al eliminar lista de precios', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
@@ -142,8 +149,8 @@ export default function ListasPrecioPage() {
             required
           />
         </div>
-        <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
-          {editando ? 'Actualizar' : 'Crear'}
+        <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
         </button>
         {editando && (
           <button type="button" onClick={() => { setEditando(null); setNombre(''); }} className="bg-gray-400 text-white px-4 py-2 rounded">

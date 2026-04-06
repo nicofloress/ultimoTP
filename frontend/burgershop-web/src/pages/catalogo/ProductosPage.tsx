@@ -2,12 +2,15 @@ import { useEffect, useState, useMemo } from 'react';
 import { Producto, Categoria, Combo, ListaPrecio } from '../../types';
 import { getProductos, createProducto, updateProducto, deleteProducto } from '../../api/productos';
 import { getCategorias } from '../../api/categorias';
-import { getCombos } from '../../api/combos';
+import { getCombos, createCombo, updateCombo, deleteCombo } from '../../api/combos';
 import { getListasPrecios } from '../../api/listasPrecios';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import { getPromociones, PromocionDto } from '../../api/promociones';
+import { useLocalActivo } from '../../context/LocalContext';
+import { formatearNumero } from '../../components/NumericInput';
 
 const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0 };
 
@@ -27,8 +30,18 @@ export default function ProductosPage() {
   const { usuario } = useAuth();
   const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const [confirmacionCombo, setConfirmacionCombo] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const [productoDetalle, setProductoDetalle] = useState<Producto | null>(null);
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
+  const [showFormCombo, setShowFormCombo] = useState(false);
+  const [editandoCombo, setEditandoCombo] = useState<Combo | null>(null);
+  const [comboNombre, setComboNombre] = useState('');
+  const [comboDescripcion, setComboDescripcion] = useState('');
+  const [comboPrecio, setComboPrecio] = useState(0);
+  const [comboDetalles, setComboDetalles] = useState<{ productoId: number; cantidad: number }[]>([]);
+  const [promociones, setPromociones] = useState<PromocionDto[]>([]);
+  const { localActivo } = useLocalActivo();
 
   const cargar = async () => {
     const [prods, cats, cmbs, lstas] = await Promise.all([
@@ -43,7 +56,7 @@ export default function ProductosPage() {
     setListas(lstas);
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); getPromociones().then(setPromociones).catch(() => {}); }, []);
 
   // Recargar productos cuando cambia la lista de precios
   useEffect(() => {
@@ -52,6 +65,7 @@ export default function ProductosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       if (editando) {
         await updateProducto(editando.id, { ...form, activo: editando.activo });
@@ -66,6 +80,8 @@ export default function ProductosPage() {
       cargar();
     } catch {
       showToast('Error al guardar articulo', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -76,13 +92,95 @@ export default function ProductosPage() {
   };
 
   const confirmarDesactivar = async () => {
+    setGuardando(true);
     try {
       await deleteProducto(confirmacion.id);
       showToast('Articulo desactivado correctamente', 'success');
     } catch {
       showToast('Error al desactivar articulo', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
+    cargar();
+  };
+
+  const abrirFormProducto = () => {
+    setShowFormCombo(false); setEditandoCombo(null);
+    setShowForm(true); setEditando(null); setForm(emptyForm);
+  };
+
+  const abrirFormCombo = () => {
+    setShowForm(false); setEditando(null);
+    setShowFormCombo(true); setEditandoCombo(null);
+    setComboNombre(''); setComboDescripcion(''); setComboPrecio(0); setComboDetalles([]);
+  };
+
+  const handleEditarCombo = (c: Combo) => {
+    setShowForm(false); setEditando(null);
+    setEditandoCombo(c);
+    setComboNombre(c.nombre); setComboDescripcion(c.descripcion || ''); setComboPrecio(c.precio);
+    setComboDetalles(c.detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad })));
+    setShowFormCombo(true);
+  };
+
+  const handleDuplicarCombo = (c: Combo) => {
+    setShowForm(false); setEditando(null);
+    setEditandoCombo(null); // null = crear nuevo
+    setComboNombre(c.nombre + ' (copia)');
+    setComboDescripcion(c.descripcion || '');
+    setComboPrecio(c.precio);
+    setComboDetalles(c.detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad })));
+    setShowFormCombo(true);
+  };
+
+  const comboYaExiste = (detalles: { productoId: number; cantidad: number }[], excluirId?: number) => {
+    const key = (ds: { productoId: number; cantidad: number }[]) =>
+      ds.filter(d => d.productoId > 0).map(d => `${d.productoId}:${d.cantidad}`).sort().join('|');
+    const nuevaKey = key(detalles);
+    if (!nuevaKey) return null;
+    return combos.find(c => c.activo && c.id !== excluirId && key(c.detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad }))) === nuevaKey);
+  };
+
+  const handleSubmitCombo = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Verificar duplicado
+    const duplicado = comboYaExiste(comboDetalles, editandoCombo?.id);
+    if (duplicado) {
+      showToast(`Ya existe un combo con los mismos productos y cantidades: "${duplicado.nombre}"`, 'error');
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      if (editandoCombo) {
+        await updateCombo(editandoCombo.id, { nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, activo: true, detalles: comboDetalles });
+        showToast('Combo actualizado correctamente', 'success');
+      } else {
+        await createCombo({ nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, detalles: comboDetalles });
+        showToast('Combo creado correctamente', 'success');
+      }
+      setShowFormCombo(false); setEditandoCombo(null);
+      cargar();
+    } catch {
+      showToast('Error al guardar combo', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const confirmarDesactivarCombo = async () => {
+    setGuardando(true);
+    try {
+      await deleteCombo(confirmacionCombo.id);
+      showToast('Combo desactivado correctamente', 'success');
+    } catch {
+      showToast('Error al desactivar combo', 'error');
+    } finally {
+      setGuardando(false);
+    }
+    setConfirmacionCombo({ visible: false, id: 0 });
     cargar();
   };
 
@@ -133,6 +231,63 @@ export default function ProductosPage() {
       .sort();
   }, [productos, megaFiltro, megaCategorias]);
 
+  // Promos vigentes
+  const promosVigentes = useMemo(() => {
+    const hoy = new Date().toISOString().split('T')[0];
+    return promociones.filter(p => {
+      if (!p.activa) return false;
+      const desde = p.fechaDesde.split('T')[0];
+      const hasta = p.fechaHasta.split('T')[0];
+      if (desde > hoy || hasta < hoy) return false;
+      if (localActivo !== 0 && !p.locales.some(l => l.localId === localActivo)) return false;
+      return true;
+    });
+  }, [promociones, localActivo]);
+
+  const preciosPromoProductos = useMemo(() => {
+    const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
+    for (const promo of promosVigentes) {
+      for (const item of promo.items) {
+        if (item.productoId) {
+          let precio: number;
+          if (item.precioPromo != null) {
+            precio = item.precioPromo;
+          } else {
+            const prod = productos.find(p => p.id === item.productoId);
+            if (!prod) continue;
+            precio = promo.tipoDescuento === 1
+              ? prod.precio * (1 - promo.valorDescuento / 100)
+              : Math.max(0, prod.precio - promo.valorDescuento);
+          }
+          map.set(item.productoId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
+        }
+      }
+    }
+    return map;
+  }, [promosVigentes, productos]);
+
+  const preciosPromoCombos = useMemo(() => {
+    const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
+    for (const promo of promosVigentes) {
+      for (const item of promo.items) {
+        if (item.comboId) {
+          let precio: number;
+          if (item.precioPromo != null) {
+            precio = item.precioPromo;
+          } else {
+            const combo = combos.find(c => c.id === item.comboId);
+            if (!combo) continue;
+            precio = promo.tipoDescuento === 1
+              ? combo.precio * (1 - promo.valorDescuento / 100)
+              : Math.max(0, combo.precio - promo.valorDescuento);
+          }
+          map.set(item.comboId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
+        }
+      }
+    }
+    return map;
+  }, [promosVigentes, combos]);
+
   // Filtrado
   const productosFiltrados = useMemo(() => {
     let lista = productos.filter(p => p.activo);
@@ -142,7 +297,9 @@ export default function ProductosPage() {
         (p.numeroInterno?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term) || (p.descripcion?.toLowerCase().includes(term))
       );
     }
-    if (megaFiltro) {
+    if (megaFiltro === 'promo') {
+      lista = lista.filter(p => preciosPromoProductos.has(p.id));
+    } else if (megaFiltro) {
       const mc = megaCategorias.find(m => m.key === megaFiltro);
       if (mc) {
         lista = lista.filter(p => mc.catIds.includes(p.categoriaId));
@@ -152,20 +309,20 @@ export default function ProductosPage() {
       }
     }
     return lista;
-  }, [productos, busqueda, megaFiltro, gramajesFiltro, megaCategorias]);
+  }, [productos, busqueda, megaFiltro, gramajesFiltro, megaCategorias, preciosPromoProductos]);
 
-  const combosFiltrados = busqueda
-    ? combos.filter(c => c.activo && c.nombre.toLowerCase().includes(busqueda.toLowerCase()))
-    : combos.filter(c => c.activo);
+  const combosFiltrados = useMemo(() => {
+    let lista = combos.filter(c => c.activo);
+    if (busqueda.trim()) {
+      lista = lista.filter(c => c.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+    }
+    if (megaFiltro === 'promo') {
+      lista = lista.filter(c => preciosPromoCombos.has(c.id));
+    }
+    return lista;
+  }, [combos, busqueda, megaFiltro, preciosPromoCombos]);
 
   const listaSeleccionada = listas.find(l => l.id === listaPrecioId);
-
-  // Obtener precio de combo en lista seleccionada
-  const getPrecioCombo = (combo: Combo) => {
-    if (!listaSeleccionada) return combo.precio;
-    // Los combos no tienen precio por lista directamente, mostrar precio base
-    return combo.precio;
-  };
 
   return (
     <div className="h-[calc(100vh-7.5rem)] flex flex-col overflow-hidden">
@@ -190,9 +347,14 @@ export default function ProductosPage() {
             </select>
           </div>
           {esAdmin && (
-            <button onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }} className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5">
-              {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Producto</>)}
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => abrirFormProducto()} className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Producto
+              </button>
+              <button onClick={() => abrirFormCombo()} className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 text-sm font-semibold transition-colors flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Combo
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -240,8 +402,48 @@ export default function ProductosPage() {
             <input type="number" value={form.unidadesPorMedia} onChange={e => setForm({ ...form, unidadesPorMedia: Number(e.target.value) })} placeholder="Unidades por media" className="border rounded px-3 py-2 w-full" min={0} />
           </div>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">{editando ? 'Actualizar' : 'Crear'}</button>
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </form>
+      )}
+
+      {/* Form combo */}
+      {showFormCombo && esAdmin && (
+        <form onSubmit={handleSubmitCombo} className="bg-white p-4 rounded-lg shadow mb-3 space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+              <input type="text" value={comboNombre} onChange={e => setComboNombre(e.target.value)} placeholder="Nombre del combo" className="border rounded px-3 py-2 w-full" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Descripcion</label>
+              <input type="text" value={comboDescripcion} onChange={e => setComboDescripcion(e.target.value)} placeholder="Descripcion" className="border rounded px-3 py-2 w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Precio del Combo</label>
+              <input type="number" value={comboPrecio} onChange={e => setComboPrecio(Number(e.target.value))} placeholder="Precio combo" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-xs font-medium text-gray-600">Productos del combo</label>
+              <button type="button" onClick={() => setComboDetalles([...comboDetalles, { productoId: 0, cantidad: 1 }])} className="text-sm text-amber-600 hover:underline">+ Agregar producto</button>
+            </div>
+            {comboDetalles.map((d, i) => (
+              <div key={i} className="flex gap-2 mb-2">
+                <select value={d.productoId} onChange={e => { const n = [...comboDetalles]; n[i].productoId = Number(e.target.value); setComboDetalles(n); }} className="border rounded px-3 py-2 flex-1">
+                  <option value={0}>Seleccionar producto</option>
+                  {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (${p.precio})</option>)}
+                </select>
+                <input type="number" value={d.cantidad} onChange={e => { const n = [...comboDetalles]; n[i].cantidad = Number(e.target.value); setComboDetalles(n); }} className="border rounded px-3 py-2 w-20" min={1} />
+                <button type="button" onClick={() => setComboDetalles(comboDetalles.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 px-2">X</button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={guardando} className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoCombo ? 'Actualizar Combo' : 'Crear Combo')}</button>
+            <button type="button" onClick={() => { setShowFormCombo(false); setEditandoCombo(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
       )}
@@ -250,10 +452,13 @@ export default function ProductosPage() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3 space-y-2">
         <div className="flex gap-1.5 flex-wrap">
           <button onClick={() => { setMegaFiltro(null); setGramajesFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!megaFiltro && !verCombos ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+          {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
+            <button onClick={() => { setMegaFiltro('promo'); setGramajesFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${megaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
+          )}
+          <button onClick={() => { setVerCombos(true); setMegaFiltro(null); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${verCombos ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
           {megaCategorias.map(mc => (
             <button key={mc.key} onClick={() => { setMegaFiltro(mc.key); setGramajesFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${megaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
           ))}
-          <button onClick={() => { setVerCombos(true); setMegaFiltro(null); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${verCombos ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
         </div>
         {tieneSubfiltro && gramajesDisponibles.length > 0 && (
           <div className="flex gap-1.5 items-center">
@@ -271,7 +476,11 @@ export default function ProductosPage() {
           placeholder="Buscar por codigo, nombre o descripcion..."
           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
         />
-        <span className="text-xs text-gray-400">{productosFiltrados.length} articulo{productosFiltrados.length !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-gray-400">
+          {verCombos ? `${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`
+            : megaFiltro === 'promo' ? `${productosFiltrados.length + combosFiltrados.length} en promo`
+            : `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''}`}
+        </span>
       </div>
 
       {/* Combos toggle legacy - hidden, replaced by chip above */}
@@ -295,19 +504,52 @@ export default function ProductosPage() {
 
       {/* Grid de productos/combos */}
       <div className="flex-1 overflow-y-auto">
-        {verCombos ? (
-          /* ---- COMBOS ---- */
+        {(verCombos || megaFiltro === 'promo') ? (
+          /* ---- COMBOS (o Promos: ambos) ---- */
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+            {megaFiltro === 'promo' && productosFiltrados.map(p => (
+              <div
+                key={`prod-${p.id}`}
+                className="relative bg-red-50 border-2 border-red-200 rounded-lg p-3 hover:border-red-400 hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => setProductoDetalle(p)}
+              >
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
+                <div className="font-medium text-sm text-gray-800">{p.nombre}</div>
+                <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
+                <div className="font-bold mt-1">
+                  <span className="text-xs text-gray-400 line-through">${formatearNumero(p.precio)}</span>
+                  <span className="text-red-600 ml-1">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
+                </div>
+              </div>
+            ))}
             {combosFiltrados.map(c => (
               <div
                 key={`combo-${c.id}`}
-                className="bg-purple-50 border-2 border-purple-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+                className={`relative border-2 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${preciosPromoCombos.has(c.id) ? 'bg-red-50 border-red-200 hover:border-red-400' : 'bg-purple-50 border-purple-200 hover:border-purple-400'}`}
                 onClick={() => setProductoDetalle(null)}
               >
+                {preciosPromoCombos.has(c.id) && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                )}
                 <div className="font-medium text-sm text-gray-800">{c.nombre}</div>
                 {c.descripcion && <div className="text-xs text-gray-500 mt-0.5">{c.descripcion}</div>}
-                <div className="text-purple-600 font-bold mt-1">${getPrecioCombo(c).toLocaleString()}</div>
+                {preciosPromoCombos.has(c.id) ? (
+                  <div className="font-bold mt-1">
+                    <span className="text-xs text-gray-400 line-through">${formatearNumero(c.precio)}</span>
+                    <span className="text-red-600 ml-1">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                  </div>
+                ) : (
+                  <div className="text-purple-600 font-bold mt-1">${formatearNumero(c.precio)}</div>
+                )}
                 <div className="text-[10px] text-gray-400 mt-1">{c.detalles.length} productos</div>
+                {esAdmin && (
+                  <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handleEditarCombo(c)} className="text-xs text-blue-600 hover:underline">Editar</button>
+                    <button onClick={() => handleDuplicarCombo(c)} className="text-xs text-purple-600 hover:underline">Duplicar</button>
+                    <button onClick={() => setConfirmacionCombo({ visible: true, id: c.id })} className="text-xs text-red-600 hover:underline">Desactivar</button>
+                  </div>
+                )}
               </div>
             ))}
             {combosFiltrados.length === 0 && (
@@ -320,9 +562,12 @@ export default function ProductosPage() {
             {productosFiltrados.map(p => (
               <div
                 key={p.id}
-                className="bg-white border-2 border-gray-200 rounded-lg p-3 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer group"
+                className={`relative border-2 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer group ${preciosPromoProductos.has(p.id) ? 'bg-red-50 border-red-200 hover:border-red-400' : 'bg-white border-gray-200 hover:border-amber-400'}`}
                 onClick={() => setProductoDetalle(p)}
               >
+                {preciosPromoProductos.has(p.id) && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                )}
                 {p.numeroInterno && (
                   <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>
                 )}
@@ -332,13 +577,18 @@ export default function ProductosPage() {
 
                 {/* Precios */}
                 <div className="mt-1.5">
-                  {tienePrecioLista(p) ? (
+                  {preciosPromoProductos.has(p.id) ? (
                     <div className="flex items-baseline gap-1.5">
-                      <span className="font-bold text-amber-600">${getPrecioMostrar(p).toLocaleString()}</span>
-                      <span className="text-[10px] text-gray-400 line-through">${p.precio.toLocaleString()}</span>
+                      <span className="text-xs text-gray-400 line-through">${formatearNumero(getPrecioMostrar(p))}</span>
+                      <span className="font-bold text-red-600">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
+                    </div>
+                  ) : tienePrecioLista(p) ? (
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-bold text-amber-600">${formatearNumero(getPrecioMostrar(p))}</span>
+                      <span className="text-[10px] text-gray-400 line-through">${formatearNumero(p.precio)}</span>
                     </div>
                   ) : (
-                    <span className="font-bold text-amber-600">${p.precio.toLocaleString()}</span>
+                    <span className="font-bold text-amber-600">${formatearNumero(p.precio)}</span>
                   )}
                 </div>
 
@@ -357,8 +607,38 @@ export default function ProductosPage() {
                 )}
               </div>
             ))}
-            {productosFiltrados.length === 0 && (
-              <div className="col-span-full text-center text-gray-400 py-8">No hay productos</div>
+            {/* Combos que coinciden con la búsqueda */}
+            {busqueda.trim() && combosFiltrados.map(c => (
+              <div
+                key={`combo-${c.id}`}
+                className={`relative border-2 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${preciosPromoCombos.has(c.id) ? 'bg-red-50 border-red-200 hover:border-red-400' : 'bg-purple-50 border-purple-200 hover:border-purple-400'}`}
+              >
+                {preciosPromoCombos.has(c.id) && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                )}
+                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
+                <div className="font-medium text-sm text-gray-800 mt-1">{c.nombre}</div>
+                {c.descripcion && <div className="text-xs text-gray-500 mt-0.5">{c.descripcion}</div>}
+                {preciosPromoCombos.has(c.id) ? (
+                  <div className="font-bold mt-1">
+                    <span className="text-xs text-gray-400 line-through">${formatearNumero(c.precio)}</span>
+                    <span className="text-red-600 ml-1">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                  </div>
+                ) : (
+                  <div className="text-purple-600 font-bold mt-1">${formatearNumero(c.precio)}</div>
+                )}
+                <div className="text-[10px] text-gray-400 mt-1">{c.detalles.length} productos</div>
+                {esAdmin && (
+                  <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handleEditarCombo(c)} className="text-xs text-blue-600 hover:underline">Editar</button>
+                    <button onClick={() => handleDuplicarCombo(c)} className="text-xs text-purple-600 hover:underline">Duplicar</button>
+                    <button onClick={() => setConfirmacionCombo({ visible: true, id: c.id })} className="text-xs text-red-600 hover:underline">Desactivar</button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {productosFiltrados.length === 0 && (!busqueda.trim() || combosFiltrados.length === 0) && (
+              <div className="col-span-full text-center text-gray-400 py-8">No hay resultados</div>
             )}
           </div>
         )}
@@ -457,6 +737,16 @@ export default function ProductosPage() {
         textoConfirmar="Desactivar"
         onConfirmar={confirmarDesactivar}
         onCancelar={() => setConfirmacion({ visible: false, id: 0 })}
+      />
+
+      <ConfirmModal
+        visible={confirmacionCombo.visible}
+        titulo="Desactivar combo"
+        mensaje="¿Desactivar este combo?"
+        tipo="danger"
+        textoConfirmar="Desactivar"
+        onConfirmar={confirmarDesactivarCombo}
+        onCancelar={() => setConfirmacionCombo({ visible: false, id: 0 })}
       />
     </div>
   );

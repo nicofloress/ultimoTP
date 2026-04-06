@@ -43,6 +43,7 @@ export default function ClientesPage() {
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [busqueda, setBusqueda] = useState('');
   const { showToast } = useGlobalToast();
+  const [guardando, setGuardando] = useState(false);
 
   const cargar = () => getClientes().then(setClientes);
 
@@ -56,6 +57,7 @@ export default function ClientesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     try {
       const data: CrearClienteDto = {
         nombre: form.nombre,
@@ -81,6 +83,8 @@ export default function ClientesPage() {
       cargar();
     } catch {
       showToast('Error al guardar cliente', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -105,11 +109,14 @@ export default function ClientesPage() {
   };
 
   const confirmarEliminar = async () => {
+    setGuardando(true);
     try {
       await eliminarCliente(confirmacion.id);
       showToast('Cliente eliminado correctamente', 'success');
     } catch {
       showToast('Error al eliminar cliente', 'error');
+    } finally {
+      setGuardando(false);
     }
     setConfirmacion({ visible: false, id: 0 });
     cargar();
@@ -243,8 +250,8 @@ export default function ClientesPage() {
             </select>
           </div>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
-              {editando ? 'Actualizar' : 'Crear'}
+            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">
               Cancelar
