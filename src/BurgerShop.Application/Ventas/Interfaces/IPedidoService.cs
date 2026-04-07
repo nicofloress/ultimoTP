@@ -25,4 +25,5 @@ public interface IPedidoService
     Task<int> PrepararTodosAsync();
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
     Task<PedidoStatsDto> GetStatsAsync(DateTime fecha);
+    Task<IEnumerable<PedidoDto>> GetPedidosDepositoAsync(int? localId);
 }

@@ -34,4 +34,6 @@ Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task<int> GetCountByFechaAsync(DateTime fecha);
     Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta);
     Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha);
+
+    Task<IEnumerable<Pedido>> GetPedidosDepositoAsync(DateTime desde, int? localId);
 }

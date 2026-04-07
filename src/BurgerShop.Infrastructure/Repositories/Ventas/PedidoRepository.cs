@@ -382,4 +382,23 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
 
         return resultado is null ? (0m, 0) : (resultado.Total, resultado.Count);
     }
+
+    public async Task<IEnumerable<Pedido>> GetPedidosDepositoAsync(DateTime desde, int? localId)
+    {
+        var query = _dbSet
+            .Include(p => p.Lineas)
+            .Where(p => p.Tipo == TipoPedido.ParaLlevar
+                && p.FechaCreacion >= desde);
+
+        if (localId.HasValue)
+        {
+            query = query.Where(p => p.CierreCaja != null
+                && p.CierreCaja.UsuarioId != null
+                && _context.Usuarios.Any(u => u.Id == p.CierreCaja.UsuarioId && u.LocalId == localId.Value));
+        }
+
+        return await query
+            .OrderBy(p => p.FechaCreacion)
+            .ToListAsync();
+    }
 }
