@@ -1,3 +1,4 @@
+using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Entities.Ventas;
 
 namespace BurgerShop.Domain.Entities.Logistica;
@@ -10,6 +11,8 @@ public class Repartidor
     public string? Vehiculo { get; set; }
     public bool Activo { get; set; } = true;
     public string CodigoAcceso { get; set; } = string.Empty;
+    public int? LocalId { get; set; }
+    public Local? Local { get; set; }
 
     public ICollection<RepartidorZona> RepartidorZonas { get; set; } = new List<RepartidorZona>();
     public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();

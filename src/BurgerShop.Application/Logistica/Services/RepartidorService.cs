@@ -36,7 +36,8 @@ public class RepartidorService : IRepartidorService
             Nombre = dto.Nombre,
             Telefono = dto.Telefono,
             Vehiculo = dto.Vehiculo,
-            CodigoAcceso = dto.CodigoAcceso
+            CodigoAcceso = dto.CodigoAcceso,
+            LocalId = dto.LocalId
         };
         await _repo.AddAsync(repartidor);
         await _repo.SaveChangesAsync();
@@ -52,6 +53,7 @@ public class RepartidorService : IRepartidorService
         repartidor.Telefono = dto.Telefono;
         repartidor.Vehiculo = dto.Vehiculo;
         repartidor.Activo = dto.Activo;
+        repartidor.LocalId = dto.LocalId;
         if (!string.IsNullOrWhiteSpace(dto.CodigoAcceso))
             repartidor.CodigoAcceso = dto.CodigoAcceso;
 
@@ -104,5 +106,7 @@ public class RepartidorService : IRepartidorService
             rz.Zona?.Descripcion,
             rz.Zona?.CostoEnvio ?? 0,
             rz.Zona?.Activa ?? true
-        )).ToList() ?? new List<ZonaDto>());
+        )).ToList() ?? new List<ZonaDto>(),
+        r.LocalId,
+        r.Local?.Nombre);
 }

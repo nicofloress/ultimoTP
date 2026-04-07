@@ -11,7 +11,9 @@ public class RepartidorRepository : Repository<Repartidor>, IRepartidorRepositor
 
     public async Task<Repartidor?> GetByCodigoAccesoAsync(string codigo)
     {
-        return await _dbSet.FirstOrDefaultAsync(r => r.CodigoAcceso == codigo && r.Activo);
+        return await _dbSet
+            .Include(r => r.Local)
+            .FirstOrDefaultAsync(r => r.CodigoAcceso == codigo && r.Activo);
     }
 
     public async Task<Repartidor?> GetByIdWithZonasAsync(int id)
@@ -19,6 +21,7 @@ public class RepartidorRepository : Repository<Repartidor>, IRepartidorRepositor
         return await _dbSet
             .Include(r => r.RepartidorZonas)
                 .ThenInclude(rz => rz.Zona)
+            .Include(r => r.Local)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
@@ -27,6 +30,7 @@ public class RepartidorRepository : Repository<Repartidor>, IRepartidorRepositor
         return await _dbSet
             .Include(r => r.RepartidorZonas)
                 .ThenInclude(rz => rz.Zona)
+            .Include(r => r.Local)
             .Where(r => r.Activo)
             .OrderBy(r => r.Nombre)
             .ToListAsync();

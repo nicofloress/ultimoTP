@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Repartidor } from '../../types/logistica';
 import { getRepartidores, crearRepartidor, actualizarRepartidor, eliminarRepartidor } from '../../api/repartidores';
+import { getLocales, LocalDto } from '../../api/locales';
+import { crearUsuario } from '../../api/usuarios';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
-const emptyForm = { nombre: '', telefono: '', vehiculo: '', codigoAcceso: '', activo: true };
+const emptyForm = { nombre: '', telefono: '', vehiculo: '', codigoAcceso: '', activo: true, localId: undefined as number | undefined };
+
+const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 export default function RepartidoresPage() {
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<Repartidor | null>(null);
@@ -14,15 +22,21 @@ export default function RepartidoresPage() {
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
 
   const cargar = () => getRepartidores().then(setRepartidores);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    cargar();
+    getLocales().then(setLocales);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuardando(true);
     try {
+      const localId = form.localId || (esSuperAdmin ? undefined : usuario?.localId);
       if (editando) {
         await actualizarRepartidor(editando.id, {
           nombre: form.nombre,
@@ -30,6 +44,7 @@ export default function RepartidoresPage() {
           vehiculo: form.vehiculo || undefined,
           activo: form.activo,
           codigoAcceso: form.codigoAcceso || undefined,
+          localId,
         });
         showToast('Repartidor actualizado correctamente', 'success');
       } else {
@@ -38,6 +53,7 @@ export default function RepartidoresPage() {
           telefono: form.telefono || undefined,
           vehiculo: form.vehiculo || undefined,
           codigoAcceso: form.codigoAcceso,
+          localId,
         });
         showToast('Repartidor creado correctamente', 'success');
       }
@@ -60,6 +76,7 @@ export default function RepartidoresPage() {
       vehiculo: r.vehiculo || '',
       codigoAcceso: '',
       activo: r.activo,
+      localId: r.localId,
     });
     setShowForm(true);
   };
@@ -82,6 +99,24 @@ export default function RepartidoresPage() {
     cargar();
   };
 
+  const crearUsuarioRepartidor = async (r: Repartidor) => {
+    try {
+      await crearUsuario({
+        nombreUsuario: r.nombre.toLowerCase().replace(/\s+/g, ''),
+        password: r.codigoAcceso,
+        nombreCompleto: r.nombre,
+        rol: RolUsuario.Repartidor,
+        repartidorId: r.id,
+        localId: r.localId,
+      });
+      showToast(`Usuario creado para ${r.nombre}`, 'success');
+    } catch {
+      showToast('Error al crear usuario (puede que ya exista)', 'error');
+    }
+  };
+
+  const repartidoresFiltrados = repartidores.filter(r => !localSeleccionado || r.localId === localSeleccionado);
+
   return (
     <div>
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
@@ -92,6 +127,19 @@ export default function RepartidoresPage() {
         >
           {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Repartidor</>)}
         </button>
+      </div>
+
+      {/* Filtro por local */}
+      <div className="mb-4 flex items-center gap-3">
+        <label className="text-sm font-medium text-gray-600">Local:</label>
+        {esSuperAdmin ? (
+          <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass}>
+            <option value={0}>Todos los locales</option>
+            {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+          </select>
+        ) : (
+          <div className="text-sm text-gray-700 font-medium">{locales.find(l => l.id === usuario?.localId)?.nombre || `Local ${usuario?.localId}`}</div>
+        )}
       </div>
 
       {showForm && (
@@ -138,6 +186,13 @@ export default function RepartidoresPage() {
               required={!editando}
             />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
+            <select value={form.localId ?? ''} onChange={e => setForm({ ...form, localId: e.target.value ? Number(e.target.value) : undefined })} className="border rounded px-3 py-2 w-full">
+              <option value="">Sin local</option>
+              {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
           {editando && (
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -166,30 +221,33 @@ export default function RepartidoresPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Vehiculo</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {repartidores.map(r => (
+            {repartidoresFiltrados.map(r => (
               <tr key={r.id}>
                 <td className="px-4 py-3 text-sm font-medium">{r.nombre}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{r.telefono || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{r.vehiculo || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{r.localNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${r.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {r.activo ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <button onClick={() => handleEditar(r)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-4 py-3 text-sm text-right space-x-3">
+                  <button onClick={() => handleEditar(r)} className="text-blue-600 hover:underline">Editar</button>
+                  <button onClick={() => crearUsuarioRepartidor(r)} className="text-xs text-purple-600 hover:underline">Crear Usuario</button>
                   <button onClick={() => handleEliminar(r.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>
             ))}
-            {repartidores.length === 0 && (
+            {repartidoresFiltrados.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No hay repartidores registrados</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hay repartidores registrados</td>
               </tr>
             )}
           </tbody>

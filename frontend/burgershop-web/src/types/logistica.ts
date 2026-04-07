@@ -13,6 +13,9 @@ export interface Repartidor {
   vehiculo?: string;
   activo: boolean;
   zonas: Zona[];
+  localId?: number;
+  localNombre?: string;
+  codigoAcceso: string;
 }
 
 export interface CrearRepartidorDto {
@@ -20,6 +23,7 @@ export interface CrearRepartidorDto {
   telefono?: string;
   vehiculo?: string;
   codigoAcceso: string;
+  localId?: number;
 }
 
 export interface ActualizarRepartidorDto {
@@ -28,6 +32,7 @@ export interface ActualizarRepartidorDto {
   vehiculo?: string;
   activo: boolean;
   codigoAcceso?: string;
+  localId?: number;
 }
 
 export interface Mensaje {
