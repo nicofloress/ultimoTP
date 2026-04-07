@@ -308,22 +308,28 @@ export default function POSPage() {
 
   // ===== MEGA-CATEGORIAS PARA MODAL CATALOGO =====
   const megaCategorias = useMemo(() => {
-    const econId = categorias.find(c => c.nombre.includes('conomica') && !c.categoriaPadreId)?.id;
-    const premiumId = categorias.find(c => c.nombre.includes('Premium') && !c.categoriaPadreId)?.id;
+    const byTipo = (tipo: number) => categorias.filter(c => c.activa && c.tipoMegaCategoria === tipo).map(c => c.id);
     return [
-      { key: 'eco', label: 'Hamburguesas Eco', catIds: [econId, ...categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id)].filter(Boolean) as number[] },
-      { key: 'premium', label: 'Hamburguesas Premium', catIds: [premiumId, ...categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id)].filter(Boolean) as number[] },
-      { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
-      { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
-      { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
-      { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
-      { key: 'snacks', label: 'Snacks', catIds: categorias.filter(c => c.nombre === 'Snacks').map(c => c.id) },
+      { key: 'hamburguesa', label: 'Hamburguesas', catIds: byTipo(1) },
+      { key: 'salchicha', label: 'Salchichas', catIds: byTipo(2) },
+      { key: 'pan', label: 'Pan', catIds: byTipo(3) },
+      { key: 'aderezos', label: 'Aderezos', catIds: byTipo(4) },
+      { key: 'snacks', label: 'Snacks', catIds: byTipo(5) },
     ];
   }, [categorias]);
 
   const getMegaCatIds = (key: string) => megaCategorias.find(m => m.key === key)?.catIds ?? [];
 
-  const tieneSubfiltros = categoriaFiltro === 'eco' || categoriaFiltro === 'premium' || categoriaFiltro === 'snacks';
+  const tieneSubfiltros = categoriaFiltro === 'hamburguesa' || categoriaFiltro === 'snacks';
+
+  const lineasDisponibles = useMemo(() => {
+    if (categoriaFiltro !== 'hamburguesa') return [];
+    const mc = megaCategorias.find(m => m.key === 'hamburguesa');
+    if (!mc) return [];
+    return categorias.filter(c => c.activa && mc.catIds.includes(c.id)).map(c => ({ id: c.id, nombre: c.nombre }));
+  }, [categoriaFiltro, megaCategorias, categorias]);
+
+  const [lineaFiltro, setLineaFiltro] = useState<number | null>(null);
 
   const gramajesDisponibles = useMemo(() => {
     if (!tieneSubfiltros) return [];
@@ -353,6 +359,9 @@ export default function POSPage() {
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
     let filtered = activos.filter(p => catIds.includes(p.categoriaId));
+    if (categoriaFiltro === 'hamburguesa' && lineaFiltro) {
+      filtered = filtered.filter(p => p.categoriaId === lineaFiltro);
+    }
     if (tieneSubfiltros && marcaFiltro) {
       filtered = filtered.filter(p => p.marca === marcaFiltro);
     }
@@ -360,7 +369,7 @@ export default function POSPage() {
       filtered = filtered.filter(p => p.pesoGramos === gramajesFiltro);
     }
     return filtered;
-  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosLista, preciosPromoProductos]);
+  }, [productos, categoriaFiltro, gramajesFiltro, marcaFiltro, lineaFiltro, megaCategorias, preciosLista, preciosPromoProductos]);
 
   const combosCatalogo = useMemo(() => {
     const activos = combos.filter(c => c.activo);
@@ -369,6 +378,9 @@ export default function POSPage() {
     if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
     let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
+    if (categoriaFiltro === 'hamburguesa' && lineaFiltro) {
+      prodsEnCat = prodsEnCat.filter(p => p.categoriaId === lineaFiltro);
+    }
     if (tieneSubfiltros && marcaFiltro) {
       prodsEnCat = prodsEnCat.filter(p => p.marca === marcaFiltro);
     }
@@ -377,7 +389,7 @@ export default function POSPage() {
     }
     const prodIdsEnCat = new Set(prodsEnCat.map(p => p.id));
     return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
-  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, megaCategorias, preciosPromoCombos]);
+  }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, lineaFiltro, megaCategorias, preciosPromoCombos]);
 
   // Auto-agregar producto si busca por codigo exacto y Enter
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1217,7 +1229,7 @@ export default function POSPage() {
 
             {/* Filtro por mega-categoria */}
             <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
-              <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+              <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
               {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
                 <button onClick={() => setCategoriaFiltro('promo')} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
               )}
@@ -1237,9 +1249,20 @@ export default function POSPage() {
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
               {megaCategorias.map(mc => (
-                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+                <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
               ))}
             </div>
+
+            {/* Sub-filtro linea hamburguesa */}
+            {categoriaFiltro === 'hamburguesa' && lineasDisponibles.length > 1 && (
+              <div className="px-4 py-2 border-b border-gray-100 flex gap-1.5 items-center">
+                <span className="text-xs text-gray-500 font-medium mr-1">Linea:</span>
+                <button onClick={() => setLineaFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!lineaFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todas</button>
+                {lineasDisponibles.map(l => (
+                  <button key={l.id} onClick={() => setLineaFiltro(l.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${lineaFiltro === l.id ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{l.nombre.replace('Hamburguesa ', '')}</button>
+                ))}
+              </div>
+            )}
 
             {/* Sub-filtros: marca y gramaje */}
             {tieneSubfiltros && (marcasDisponibles.length > 1 || gramajesDisponibles.length > 0) && (

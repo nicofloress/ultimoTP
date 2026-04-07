@@ -36,20 +36,26 @@ export default function CombosPage() {
   useEffect(() => { cargar(); }, []);
 
   const megaCategorias = useMemo(() => {
-    const econId = categorias.find(c => c.nombre.includes('conomica') && !c.categoriaPadreId)?.id;
-    const premiumId = categorias.find(c => c.nombre.includes('Premium') && !c.categoriaPadreId)?.id;
+    const byTipo = (tipo: number) => categorias.filter(c => c.activa && c.tipoMegaCategoria === tipo).map(c => c.id);
     return [
-      { key: 'eco', label: 'Hamburguesas Eco', catIds: [econId, ...categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id)].filter(Boolean) as number[] },
-      { key: 'premium', label: 'Hamburguesas Premium', catIds: [premiumId, ...categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id)].filter(Boolean) as number[] },
-      { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
-      { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
-      { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
-      { key: 'aderezos', label: 'Aderezos', catIds: categorias.filter(c => c.nombre === 'Aderezos').map(c => c.id) },
-      { key: 'snacks', label: 'Snacks', catIds: categorias.filter(c => c.nombre === 'Snacks').map(c => c.id) },
+      { key: 'hamburguesa', label: 'Hamburguesas', catIds: byTipo(1) },
+      { key: 'salchicha', label: 'Salchichas', catIds: byTipo(2) },
+      { key: 'pan', label: 'Pan', catIds: byTipo(3) },
+      { key: 'aderezos', label: 'Aderezos', catIds: byTipo(4) },
+      { key: 'snacks', label: 'Snacks', catIds: byTipo(5) },
     ];
   }, [categorias]);
 
-  const tieneSubfiltro = filtro === 'eco' || filtro === 'premium';
+  const tieneSubfiltro = filtro === 'hamburguesa' || filtro === 'snacks';
+
+  const lineasDisponibles = useMemo(() => {
+    if (filtro !== 'hamburguesa') return [];
+    const mc = megaCategorias.find(m => m.key === 'hamburguesa');
+    if (!mc) return [];
+    return categorias.filter(c => c.activa && mc.catIds.includes(c.id)).map(c => ({ id: c.id, nombre: c.nombre }));
+  }, [filtro, megaCategorias, categorias]);
+
+  const [lineaFiltro, setLineaFiltro] = useState<number | null>(null);
 
   const gramajesDisponibles = useMemo(() => {
     if (!tieneSubfiltro) return [];
@@ -72,6 +78,9 @@ export default function CombosPage() {
       const mc = megaCategorias.find(m => m.key === filtro);
       if (mc) {
         let prodsEnCat = productos.filter(p => mc.catIds.includes(p.categoriaId));
+        if (filtro === 'hamburguesa' && lineaFiltro) {
+          prodsEnCat = prodsEnCat.filter(p => p.categoriaId === lineaFiltro);
+        }
         if (tieneSubfiltro && gramajesFiltro) {
           prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
         }
@@ -80,7 +89,7 @@ export default function CombosPage() {
       }
     }
     return lista;
-  }, [combos, productos, busqueda, filtro, gramajesFiltro, megaCategorias]);
+  }, [combos, productos, busqueda, filtro, gramajesFiltro, lineaFiltro, megaCategorias]);
 
   const resetForm = () => {
     setNombre(''); setDescripcion(''); setPrecio(0); setDetalles([]); setEditando(null); setShowForm(false);
@@ -142,11 +151,20 @@ export default function CombosPage() {
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-4 space-y-2">
         <div className="flex gap-1.5 flex-wrap">
-          <button onClick={() => { setFiltro(null); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!filtro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+          <button onClick={() => { setFiltro(null); setGramajesFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!filtro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
           {megaCategorias.map(mc => (
-            <button key={mc.key} onClick={() => { setFiltro(mc.key); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${filtro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+            <button key={mc.key} onClick={() => { setFiltro(mc.key); setGramajesFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${filtro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
           ))}
         </div>
+        {filtro === 'hamburguesa' && lineasDisponibles.length > 1 && (
+          <div className="flex gap-1.5 items-center">
+            <span className="text-xs text-gray-500 font-medium mr-1">Linea:</span>
+            <button onClick={() => setLineaFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!lineaFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todas</button>
+            {lineasDisponibles.map(l => (
+              <button key={l.id} onClick={() => setLineaFiltro(l.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${lineaFiltro === l.id ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{l.nombre.replace('Hamburguesa ', '')}</button>
+            ))}
+          </div>
+        )}
         {tieneSubfiltro && gramajesDisponibles.length > 0 && (
           <div className="flex gap-1.5 items-center">
             <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>

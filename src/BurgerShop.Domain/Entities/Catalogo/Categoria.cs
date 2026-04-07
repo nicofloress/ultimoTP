@@ -8,6 +8,7 @@ public class Categoria
     public string Nombre { get; set; } = string.Empty;
     public bool Activa { get; set; } = true;
     public SeccionCamioneta SeccionCamioneta { get; set; } = SeccionCamioneta.Ninguno;
+    public TipoMegaCategoria TipoMegaCategoria { get; set; } = TipoMegaCategoria.Otro;
 
     // Jerarquía: categoría padre (null = categoría raíz)
     public int? CategoriaPadreId { get; set; }

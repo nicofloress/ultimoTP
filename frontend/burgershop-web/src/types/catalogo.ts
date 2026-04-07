@@ -1,9 +1,19 @@
+export enum TipoMegaCategoria {
+  Otro = 0,
+  Hamburguesa = 1,
+  Salchicha = 2,
+  Pan = 3,
+  Aderezo = 4,
+  Snack = 5,
+}
+
 export interface Categoria {
   id: number;
   nombre: string;
   activa: boolean;
   categoriaPadreId?: number;
   categoriaPadreNombre?: string;
+  tipoMegaCategoria: number;
 }
 
 export interface Producto {

@@ -1,6 +1,7 @@
 using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Interfaces;
 using BurgerShop.Domain.Entities.Catalogo;
+using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
 
 namespace BurgerShop.Application.Catalogo.Services;
@@ -28,7 +29,10 @@ public class CategoriaService : ICategoriaService
         var categoria = new Categoria
         {
             Nombre = dto.Nombre,
-            CategoriaPadreId = dto.CategoriaPadreId
+            CategoriaPadreId = dto.CategoriaPadreId,
+            TipoMegaCategoria = dto.TipoMegaCategoria.HasValue
+                ? (TipoMegaCategoria)dto.TipoMegaCategoria.Value
+                : TipoMegaCategoria.Otro
         };
         await _repo.AddAsync(categoria);
         await _repo.SaveChangesAsync();
@@ -43,6 +47,8 @@ public class CategoriaService : ICategoriaService
         categoria.Nombre = dto.Nombre;
         categoria.Activa = dto.Activa;
         categoria.CategoriaPadreId = dto.CategoriaPadreId;
+        if (dto.TipoMegaCategoria.HasValue)
+            categoria.TipoMegaCategoria = (TipoMegaCategoria)dto.TipoMegaCategoria.Value;
         _repo.Update(categoria);
         await _repo.SaveChangesAsync();
         return ToDto(categoria);
@@ -60,5 +66,5 @@ public class CategoriaService : ICategoriaService
     }
 
     private static CategoriaDto ToDto(Categoria c)
-        => new(c.Id, c.Nombre, c.Activa, c.CategoriaPadreId, c.CategoriaPadre?.Nombre);
+        => new(c.Id, c.Nombre, c.Activa, c.CategoriaPadreId, c.CategoriaPadre?.Nombre, (int)c.TipoMegaCategoria);
 }
