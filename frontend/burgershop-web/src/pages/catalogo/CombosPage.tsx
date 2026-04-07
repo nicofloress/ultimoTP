@@ -142,7 +142,7 @@ export default function CombosPage() {
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Combos</h2>
         {esAdmin && (
-          <button onClick={() => { if (showForm) { resetForm(); } else { setNombre(''); setDescripcion(''); setPrecio(0); setDetalles([]); setEditando(null); setShowForm(true); } }} className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5">
+          <button onClick={() => { if (showForm) { resetForm(); } else { setNombre(''); setDescripcion(''); setPrecio(0); setDetalles([]); setEditando(null); setShowForm(true); } }} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5">
             {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Combo</>)}
           </button>
         )}
@@ -228,7 +228,7 @@ export default function CombosPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={resetForm} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>

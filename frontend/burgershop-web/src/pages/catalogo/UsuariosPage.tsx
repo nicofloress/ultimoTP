@@ -128,7 +128,7 @@ export default function UsuariosPage() {
         <h2 className="text-lg font-bold text-white">Usuarios</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5"
+          className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
         >
           {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Usuario</>)}
         </button>
@@ -248,7 +248,7 @@ export default function UsuariosPage() {
             </label>
           )}
           <div className="col-span-2 flex gap-2">
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">

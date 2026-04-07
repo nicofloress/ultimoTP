@@ -1,8 +1,8 @@
 import api from './client';
 import { Pedido, TipoPedido } from '../types';
 
-export const getPedidos = (fecha?: string, estado?: number, fechaHasta?: string) =>
-  api.get<Pedido[]>('/pedidos', { params: { fecha, fechaHasta, estado } }).then(r => r.data);
+export const getPedidos = (fecha?: string, estado?: number, fechaHasta?: string, localId?: number) =>
+  api.get<Pedido[]>('/pedidos', { params: { fecha, fechaHasta, estado, localId } }).then(r => r.data);
 
 export const getPedido = (id: number) => api.get<Pedido>(`/pedidos/${id}`).then(r => r.data);
 

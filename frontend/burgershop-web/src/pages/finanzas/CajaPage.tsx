@@ -119,7 +119,7 @@ export default function CajaPage() {
             </div>
             <button
               type="submit"
-              className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md shadow-green-600/20"
+              className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-6 py-2 font-medium transition-colors"
             >
               Abrir Caja
             </button>
@@ -203,7 +203,7 @@ export default function CajaPage() {
               </div>
               <button
                 onClick={handleCerrarCaja}
-                className="bg-red-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors shadow-md shadow-red-600/20"
+                className="text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 px-6 py-2 font-medium transition-colors"
               >
                 Cerrar Caja
               </button>

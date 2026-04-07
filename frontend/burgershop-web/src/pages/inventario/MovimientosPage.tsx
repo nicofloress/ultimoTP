@@ -296,20 +296,97 @@ export default function MovimientosPage() {
           </div>
           <button
             onClick={cargarMovimientos}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-colors flex items-center gap-1.5"
+            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 flex items-center gap-1.5"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             Buscar
           </button>
           <button
             onClick={abrirModal}
-            className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md transition-colors flex items-center gap-1.5"
+            className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             Nuevo Movimiento
           </button>
+          {movimientosFiltrados.length > 0 && (
+            <div className="flex gap-2 ml-3 pl-3 border-l border-gray-300">
+              <button
+                onClick={() => {
+                  const localNombre = localSeleccionado === 0
+                    ? 'Todos los locales'
+                    : (locales.find(l => l.id === localSeleccionado)?.nombre || 'Local');
+                  const rows = movimientosFiltrados.map(m =>
+                    `<tr>
+                      <td style="padding:4px 8px;border:1px solid #ddd;white-space:nowrap">${formatFecha(m.fechaMovimiento)}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd">${m.localNombre || '-'}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd;font-family:monospace;font-size:11px">${m.codigoAccionCodigo}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd">${m.productoNombre || m.observaciones || '-'}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd;text-align:right">${m.signo > 0 ? '+' : '-'}${m.cantidad}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd;text-align:right">${formatMonto(m.precioUnitario)}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:600">${formatMonto(m.montoTotal)}</td>
+                      <td style="padding:4px 8px;border:1px solid #ddd">${m.observaciones || '-'}</td>
+                    </tr>`
+                  ).join('');
+                  const html = `<html><head><title>Movimientos - ${localNombre}</title></head><body>
+                    <h2 style="font-family:sans-serif">Movimientos - ${localNombre}</h2>
+                    <p style="font-family:sans-serif;color:#555">Periodo: ${fechaDesde} al ${fechaHasta}</p>
+                    <table style="border-collapse:collapse;width:100%;font-family:sans-serif;font-size:12px">
+                      <thead><tr style="background:#f3f4f6">
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Fecha</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Local</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Codigo</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Producto</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:right">Cantidad</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:right">Precio Unit.</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:right">Monto Total</th>
+                        <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Observaciones</th>
+                      </tr></thead>
+                      <tbody>${rows}</tbody>
+                    </table>
+                  </body></html>`;
+                  const w = window.open('', '_blank');
+                  if (!w) return;
+                  w.document.write(html);
+                  w.document.close();
+                  w.onafterprint = () => w.close();
+                  setTimeout(() => w.print(), 300);
+                }}
+                className="px-2.5 py-1.5 text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 flex items-center gap-1"
+                title="Exportar PDF"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zm-1.5 9.5c.3 0 .5.1.7.3.2.2.3.4.3.7s-.1.5-.3.7c-.2.2-.4.3-.7.3h-1v1.5H9.5v-4h2zm3.5 0c.5 0 .9.2 1.2.5.3.3.5.8.5 1.5s-.2 1.2-.5 1.5c-.3.3-.7.5-1.2.5h-1.5v-4H15zm-3.5 1.5h-.5v-1h.5c.1 0 .2 0 .3.1.1.1.1.2.1.4s0 .3-.1.4c-.1.1-.2.1-.3.1zm3.5 0h-.5v2h.5c.3 0 .4-.1.5-.2.1-.2.2-.4.2-.8s-.1-.6-.2-.8c-.1-.1-.2-.2-.5-.2z"/></svg>
+                PDF
+              </button>
+              <button
+                onClick={() => {
+                  const localNombre = localSeleccionado === 0
+                    ? 'Todos los locales'
+                    : (locales.find(l => l.id === localSeleccionado)?.nombre || 'Local');
+                  const sep = ';';
+                  const header = `Movimientos - ${localNombre}${sep}${sep}Periodo: ${fechaDesde} al ${fechaHasta}\n\n`;
+                  const colHeaders = `Fecha${sep}Local${sep}Codigo${sep}Producto${sep}Cantidad${sep}Precio Unit.${sep}Monto Total${sep}Observaciones\n`;
+                  const rows = movimientosFiltrados.map(m =>
+                    `${formatFecha(m.fechaMovimiento)}${sep}${m.localNombre || '-'}${sep}${m.codigoAccionCodigo}${sep}${m.productoNombre || '-'}${sep}${m.signo > 0 ? '+' : '-'}${m.cantidad}${sep}${m.precioUnitario}${sep}${m.montoTotal}${sep}${(m.observaciones || '-').replace(/;/g, ',')}`
+                  ).join('\n');
+                  const bom = '\uFEFF';
+                  const blob = new Blob([bom + header + colHeaders + rows], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `movimientos_${localNombre.replace(/\s+/g, '_')}_${fechaDesde}_${fechaHasta}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-2.5 py-1.5 text-green-700 bg-green-50 border border-green-300 rounded-md hover:bg-green-100 flex items-center gap-1"
+                title="Exportar Excel"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM9.5 13.5h1.2l.8 1.3.8-1.3h1.2l-1.4 2 1.4 2h-1.2l-.8-1.3-.8 1.3H9.5l1.4-2-1.4-2z"/></svg>
+                Excel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

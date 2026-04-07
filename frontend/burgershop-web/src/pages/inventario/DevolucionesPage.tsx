@@ -258,7 +258,7 @@ export default function DevolucionesPage() {
           </div>
           <button
             onClick={cargarMovimientos}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-colors flex items-center gap-1.5"
+            className="px-4 py-1.5 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 text-sm font-semibold transition-colors flex items-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -267,7 +267,7 @@ export default function DevolucionesPage() {
           </button>
           <button
             onClick={abrirModal}
-            className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md transition-colors flex items-center gap-1.5"
+            className="px-4 py-1.5 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-semibold transition-colors flex items-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

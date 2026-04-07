@@ -32,14 +32,19 @@ public class PedidosController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PedidoDto>>> GetAll(
-        [FromQuery] DateTime? fecha, [FromQuery] DateTime? fechaHasta, [FromQuery] EstadoPedido? estado)
+        [FromQuery] DateTime? fecha, [FromQuery] DateTime? fechaHasta, [FromQuery] EstadoPedido? estado, [FromQuery] int? localId)
     {
+        // Si no viene localId explícito, usar el del JWT
+        var lid = localId ?? (int.TryParse(User.FindFirst("localId")?.Value, out var parsed) ? parsed : (int?)null);
+
         IEnumerable<PedidoDto> pedidos;
         if (fechaHasta.HasValue)
             pedidos = await _service.GetByRangoFechasAsync(fecha ?? DateTime.Today, fechaHasta.Value);
         else
             pedidos = await _service.GetByFechaAsync(fecha ?? DateTime.Today);
 
+        if (lid.HasValue)
+            pedidos = pedidos.Where(p => p.LocalId == lid.Value);
         if (estado.HasValue)
             pedidos = pedidos.Where(p => p.Estado == estado.Value);
         return Ok(pedidos);

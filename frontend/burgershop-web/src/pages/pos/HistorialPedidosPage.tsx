@@ -59,7 +59,7 @@ export default function HistorialPedidosPage() {
   const [anulando, setAnulando] = useState(false);
   const [stats, setStats] = useState<PedidoStats | null>(null);
   const [locales, setLocales] = useState<LocalDto[]>([]);
-  const [localSeleccionado, setLocalSeleccionado] = useState<number>(usuario?.localId || 0);
+  const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [ordenCol, setOrdenCol] = useState<string>('fechaCreacion');
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
 
@@ -77,7 +77,7 @@ export default function HistorialPedidosPage() {
       try {
         const estado = estadoFiltro !== '' ? estadoFiltro : undefined;
         const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
-        const data = await getPedidos(fechaDesde, estado, hasta);
+        const data = await getPedidos(fechaDesde, estado, hasta, localSeleccionado || undefined);
         setPedidos(data);
       } catch (err) {
         console.error('Error cargando historial:', err);
@@ -86,7 +86,7 @@ export default function HistorialPedidosPage() {
       }
     };
     cargar();
-  }, [fechaDesde, fechaHasta, estadoFiltro]);
+  }, [fechaDesde, fechaHasta, estadoFiltro, localSeleccionado]);
 
   const toggleOrden = (col: string) => {
     if (ordenCol === col) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -504,7 +504,7 @@ export default function HistorialPedidosPage() {
                             setMostrarAnular(false);
                             setMotivoAnulacion('');
                             // Recargar
-                            const data = await getPedidos(fechaDesde, undefined, fechaHasta !== fechaDesde ? fechaHasta : undefined);
+                            const data = await getPedidos(fechaDesde, undefined, fechaHasta !== fechaDesde ? fechaHasta : undefined, localSeleccionado || undefined);
                             setPedidos(data);
                           } catch {
                             showToast('Error al anular pedido', 'error');

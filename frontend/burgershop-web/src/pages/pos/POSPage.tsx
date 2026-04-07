@@ -106,7 +106,7 @@ export default function POSPage() {
     getCategorias().then(setCategorias);
     getFormasPagoActivas().then(setFormasPago);
     getListasPrecios().then(setListasPrecios);
-    getZonas().then(setZonas);
+    getZonas().then(zs => setZonas(zs.filter(z => !localActivo || !z.localId || z.localId === localActivo)));
     getTiposCliente().then(setTiposCliente);
     getCajaAbierta().then(caja => setCajaAbiertaId(caja?.id ?? null));
     getPromociones().then(setPromociones).catch(() => {});
@@ -788,7 +788,7 @@ export default function POSPage() {
               {combosFiltrados.slice(0, 6).map(c => (
                 <button
                   key={`c-${c.id}`}
-                  onClick={() => agregarCombo(c)}
+                  onClick={() => { agregarCombo(c); setBusqueda(''); busquedaRef.current?.focus(); }}
                   className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
                 >
                   <div className="flex items-center gap-2">
@@ -933,7 +933,7 @@ export default function POSPage() {
           {!cajaAbiertaId && (
             <button
               onClick={() => setMostrarAbrirCaja(true)}
-              className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-md hover:bg-green-700 transition-colors shadow-md shadow-green-600/20"
+              className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-xs font-bold px-3 py-1.5 transition-colors"
             >
               Abrir Caja
             </button>
@@ -1191,9 +1191,9 @@ export default function POSPage() {
                 guardando
                   ? 'bg-slate-500 text-white cursor-wait'
                   : listoParaGuardar
-                    ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800 focus:ring-green-500 shadow-md shadow-green-600/20'
+                    ? 'text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500'
                     : carrito.length > 0
-                      ? 'bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 focus:ring-amber-500'
+                      ? 'text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 focus:ring-amber-500'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >

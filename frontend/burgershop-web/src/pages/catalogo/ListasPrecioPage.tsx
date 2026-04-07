@@ -149,7 +149,7 @@ export default function ListasPrecioPage() {
             required
           />
         </div>
-        <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
           {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
         </button>
         {editando && (
@@ -242,7 +242,7 @@ export default function ListasPrecioPage() {
             <button
               onClick={handleAgregarDetalle}
               disabled={!nuevoProductoId || nuevoPrecio <= 0}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               Agregar
             </button>

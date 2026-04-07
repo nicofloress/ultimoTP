@@ -60,7 +60,7 @@ export default function TiposClientePage() {
         <h2 className="text-lg font-bold text-white">Tipos de Cliente</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors"
+          className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-1.5 text-sm font-semibold transition-colors"
         >
           {showForm ? 'Cerrar' : 'Nuevo Tipo de Cliente'}
         </button>
@@ -93,7 +93,7 @@ export default function TiposClientePage() {
             <span className="text-sm font-medium text-gray-700">Permite Cuenta Corriente</span>
           </label>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
+            <button type="submit" className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2">
               {editando ? 'Actualizar' : 'Crear'}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">

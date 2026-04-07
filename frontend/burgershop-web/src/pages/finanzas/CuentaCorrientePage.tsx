@@ -46,7 +46,8 @@ export default function CuentaCorrientePage() {
   const [seleccionada, setSeleccionada] = useState<CuentaCorrienteDto | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCuentaCorrienteDto[]>([]);
   const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
-  const [desde, setDesde] = useState(hoy);
+  const unMesAtras = (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  const [desde, setDesde] = useState(unMesAtras);
   const [hasta, setHasta] = useState(hoy);
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
 
@@ -130,8 +131,8 @@ export default function CuentaCorrientePage() {
 
   const seleccionar = (cuenta: CuentaCorrienteDto) => {
     setSeleccionada(cuenta);
-    setDesde('');
-    setHasta('');
+    setDesde(unMesAtras);
+    setHasta(hoy);
   };
 
   const handlePago = async (e: React.FormEvent) => {
@@ -314,18 +315,23 @@ export default function CuentaCorrientePage() {
             <div className="px-6 py-3 border-b flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => setShowPago(true)}
-                className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-md hover:bg-green-100 flex items-center gap-1.5"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
                 Registrar Pago
               </button>
               <button
                 onClick={() => setShowAjuste(true)}
-                className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 flex items-center gap-1.5"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
                 Ajuste Manual
               </button>
-              <div className="flex-1" />
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex-1 flex items-center justify-center gap-2 text-sm">
                 <label className="text-gray-500">Desde:</label>
                 <input
                   type="date"
@@ -343,6 +349,75 @@ export default function CuentaCorrientePage() {
                   className="border rounded px-2 py-1 text-sm"
                 />
               </div>
+              {movimientos.length > 0 && (
+                <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const rows = movimientosOrdenados.map(m =>
+                      `<tr>
+                        <td style="padding:4px 8px;border:1px solid #ddd">${formatFechaHora(m.fechaMovimiento)}</td>
+                        <td style="padding:4px 8px;border:1px solid #ddd">${m.tipo}</td>
+                        <td style="padding:4px 8px;border:1px solid #ddd;text-align:right">${formatMonto(m.monto)}</td>
+                        <td style="padding:4px 8px;border:1px solid #ddd;text-align:right">${formatMonto(m.saldoResultante)}</td>
+                        <td style="padding:4px 8px;border:1px solid #ddd">${m.numeroTicket ? `Ticket #${m.numeroTicket}` : m.numeroVenta ? `Venta #${m.numeroVenta}` : '-'}</td>
+                        <td style="padding:4px 8px;border:1px solid #ddd">${m.observaciones || '-'}</td>
+                      </tr>`
+                    ).join('');
+                    const html = `<html><head><title>Cuenta Corriente - ${seleccionada?.clienteNombre}</title></head><body>
+                      <h2 style="font-family:sans-serif">Cuenta Corriente: ${seleccionada?.clienteNombre}</h2>
+                      <p style="font-family:sans-serif;color:#555">Saldo actual: ${formatMonto(seleccionada?.saldoActual ?? 0)} | Periodo: ${desde} al ${hasta}</p>
+                      <table style="border-collapse:collapse;width:100%;font-family:sans-serif;font-size:12px">
+                        <thead><tr style="background:#f3f4f6">
+                          <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Fecha</th>
+                          <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Tipo</th>
+                          <th style="padding:4px 8px;border:1px solid #ddd;text-align:right">Monto</th>
+                          <th style="padding:4px 8px;border:1px solid #ddd;text-align:right">Saldo</th>
+                          <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Referencia</th>
+                          <th style="padding:4px 8px;border:1px solid #ddd;text-align:left">Observaciones</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                      </table>
+                    </body></html>`;
+                    const w = window.open('', '_blank');
+                    if (!w) return;
+                    w.document.write(html);
+                    w.document.close();
+                    w.onafterprint = () => w.close();
+                    setTimeout(() => w.print(), 300);
+                  }}
+                  className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exportar PDF
+                </button>
+                <button
+                  onClick={() => {
+                    const sep = ';';
+                    const header = `Cuenta Corriente: ${seleccionada?.clienteNombre}${sep}${sep}Saldo: ${seleccionada?.saldoActual}${sep}Periodo: ${desde} al ${hasta}\n\n`;
+                    const colHeaders = `Fecha${sep}Tipo${sep}Monto${sep}Saldo${sep}Referencia${sep}Observaciones\n`;
+                    const rows = movimientosOrdenados.map(m =>
+                      `${formatFechaHora(m.fechaMovimiento)}${sep}${m.tipo}${sep}${m.monto}${sep}${m.saldoResultante}${sep}${m.numeroTicket ? `Ticket #${m.numeroTicket}` : m.numeroVenta ? `Venta #${m.numeroVenta}` : '-'}${sep}${(m.observaciones || '-').replace(/;/g, ',')}`
+                    ).join('\n');
+                    const bom = '\uFEFF';
+                    const blob = new Blob([bom + header + colHeaders + rows], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `cta_cte_${seleccionada?.clienteNombre?.replace(/\s+/g, '_') || 'cliente'}_${desde}_${hasta}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-md hover:bg-green-100 flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exportar Excel
+                </button>
+                </div>
+              )}
             </div>
 
             {/* Tabla movimientos */}
@@ -381,8 +456,8 @@ export default function CuentaCorrientePage() {
                           {m.tipo}
                         </span>
                       </td>
-                      <td className={`px-4 py-2 text-right font-medium ${m.monto > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {formatMonto(m.monto)}
+                      <td className={`px-4 py-2 text-right font-medium ${m.tipo === 'Pago' ? 'text-green-600' : m.monto > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {m.tipo === 'Pago' ? '+' : ''}{formatMonto(Math.abs(m.monto))}
                       </td>
                       <td className={`px-4 py-2 text-right font-medium ${m.saldoResultante > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {formatMonto(m.saldoResultante)}

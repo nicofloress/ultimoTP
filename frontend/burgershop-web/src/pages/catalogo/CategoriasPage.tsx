@@ -102,7 +102,7 @@ export default function CategoriasPage() {
               ))}
             </select>
           </div>
-          <button type="submit" className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">
+          <button type="submit" className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2">
             {editando ? 'Actualizar' : 'Crear'}
           </button>
           {editando && (

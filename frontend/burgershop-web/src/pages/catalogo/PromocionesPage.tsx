@@ -210,7 +210,7 @@ export default function PromocionesPage() {
         <h2 className="text-lg font-bold text-white">Promociones</h2>
         <button
           onClick={() => { if (showForm) { resetForm(); } else { resetForm(); setShowForm(true); } }}
-          className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5"
+          className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
         >
           {showForm ? 'Cerrar' : (
             <>
@@ -390,7 +390,7 @@ export default function PromocionesPage() {
             <button
               type="submit"
               disabled={guardando}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 text-sm font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {guardando ? 'Guardando...' : (
                 <>

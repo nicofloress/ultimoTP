@@ -69,7 +69,7 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
         <h2 className="text-lg font-semibold">Tipos de Cliente</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(tcEmptyForm); }}
-          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+          className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2"
         >
           {showForm ? 'Cerrar' : 'Nuevo Tipo de Cliente'}
         </button>
@@ -84,7 +84,7 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
             <span className="text-sm font-medium text-gray-700">Permite Cuenta Corriente</span>
           </label>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
@@ -203,7 +203,7 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
             ))}
           </select>
         </div>
-        <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+        <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
         {editando && (
           <button type="button" onClick={() => { setEditando(null); setNombre(''); setCategoriaPadreId(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
         )}
@@ -351,7 +351,7 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
         <h2 className="text-lg font-semibold">Empresas</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(empEmptyForm); }}
-          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+          className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2"
         >
           {showForm ? 'Cerrar' : 'Nueva Empresa'}
         </button>
@@ -385,7 +385,7 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
           <input type="date" value={form.inicioActividades} onChange={e => setForm({ ...form, inicioActividades: e.target.value })} placeholder="Inicio Actividades" className="border rounded px-3 py-2" />
           <input type="number" value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} placeholder="Punto de Venta AFIP" className="border rounded px-3 py-2" />
           <div className="col-span-3 flex gap-2">
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
@@ -489,7 +489,7 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
         <h2 className="text-lg font-semibold">Locales</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(locEmptyForm); }}
-          className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+          className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2"
         >
           {showForm ? 'Cerrar' : 'Nuevo Local'}
         </button>
@@ -519,7 +519,7 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
             <span className="text-sm font-medium text-gray-700">Es Punto de Venta</span>
           </label>
           <div className="col-span-2 flex gap-2">
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>
         </form>
@@ -759,7 +759,7 @@ export default function ConfigPage() {
   const tabBtn = (key: TabType, label: string) => (
     <button
       onClick={() => setTab(key)}
-      className={`px-4 py-2 rounded font-medium ${tab === key ? 'bg-amber-600 text-white' : 'bg-white shadow'}`}
+      className={`px-4 py-2 rounded-md font-medium ${tab === key ? 'text-amber-700 bg-amber-50 border border-amber-300' : 'bg-white shadow border border-gray-200'}`}
     >
       {label}
     </button>
@@ -845,7 +845,7 @@ export default function ConfigPage() {
                 ))}
               </select>
             )}
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoZona ? 'Actualizar' : 'Crear')}</button>
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoZona ? 'Actualizar' : 'Crear')}</button>
           </form>
           <div className="bg-white rounded-lg shadow">
             <table className="w-full">
@@ -884,7 +884,7 @@ export default function ConfigPage() {
             <input type="text" value={repForm.telefono} onChange={e => setRepForm({ ...repForm, telefono: e.target.value })} placeholder="Telefono" className="border rounded px-3 py-2" />
             <input type="text" value={repForm.vehiculo} onChange={e => setRepForm({ ...repForm, vehiculo: e.target.value })} placeholder="Vehiculo" className="border rounded px-3 py-2" />
             <input type="text" value={repForm.codigoAcceso} onChange={e => setRepForm({ ...repForm, codigoAcceso: e.target.value })} placeholder="Codigo acceso" className="border rounded px-3 py-2 w-32" required={!editandoRep} />
-            <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoRep ? 'Actualizar' : 'Crear')}</button>
+            <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoRep ? 'Actualizar' : 'Crear')}</button>
           </form>
           <div className="space-y-4">
             {repartidores.map(r => (
@@ -927,7 +927,7 @@ export default function ConfigPage() {
             <h2 className="text-lg font-semibold">Formas de Pago</h2>
             <button
               onClick={() => { setShowFpForm(!showFpForm); setEditandoFp(null); setFpForm({ nombre: '', porcentajeRecargo: 0, activa: true }); }}
-              className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+              className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2"
             >
               {showFpForm ? 'Cerrar' : 'Nueva Forma de Pago'}
             </button>
@@ -948,7 +948,7 @@ export default function ConfigPage() {
                 <input type="checkbox" checked={fpForm.activa} onChange={e => setFpForm({ ...fpForm, activa: e.target.checked })} className="w-5 h-5" />
               </div>
               <div className="flex gap-2">
-                <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoFp ? 'Actualizar' : 'Crear')}</button>
+                <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoFp ? 'Actualizar' : 'Crear')}</button>
                 <button type="button" onClick={() => { setShowFpForm(false); setEditandoFp(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
               </div>
             </form>

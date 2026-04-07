@@ -105,7 +105,7 @@ export default function PedidosPage() {
     getCombos().then(setCombos);
     getCategorias().then(setCategorias);
     getFormasPagoActivas().then(setFormasPago);
-    getZonas().then(setZonas);
+    getZonas().then(zs => setZonas(zs.filter(z => !localActivo || !z.localId || z.localId === localActivo)));
     getRepartidores().then(setRepartidores);
     getListasPrecios().then(setListasPrecios);
     getPromociones().then(setPromociones);
@@ -187,8 +187,8 @@ export default function PedidosPage() {
   const cargarPedidos = useCallback(() => {
     const params: { estado?: number } = {};
     if (filtroEstado) params.estado = filtroEstado;
-    getPedidos(undefined, params.estado).then(setPedidos);
-  }, [filtroEstado]);
+    getPedidos(undefined, params.estado, undefined, localActivo || undefined).then(setPedidos);
+  }, [filtroEstado, localActivo]);
 
   useEffect(() => { cargarPedidos(); }, [cargarPedidos]);
 
@@ -864,7 +864,7 @@ export default function PedidosPage() {
               {combosFiltrados.slice(0, 6).map(c => (
                 <button
                   key={`c-${c.id}`}
-                  onClick={() => agregarCombo(c)}
+                  onClick={() => { agregarCombo(c); setBusqueda(''); busquedaRef.current?.focus(); }}
                   className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
                 >
                   <div className="flex items-center gap-2">
@@ -1073,7 +1073,7 @@ export default function PedidosPage() {
               disabled={!formularioValido}
               className={`flex-[2] py-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                 formularioValido
-                  ? 'bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 focus:ring-amber-500 shadow-md'
+                  ? 'text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 focus:ring-amber-500'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >

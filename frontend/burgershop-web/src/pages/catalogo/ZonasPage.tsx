@@ -1,23 +1,22 @@
-import { useEffect, useState } from 'react';
-import { Repartidor } from '../../types/logistica';
-import { getRepartidores, crearRepartidor, actualizarRepartidor, eliminarRepartidor } from '../../api/repartidores';
+import { useState, useEffect } from 'react';
+import { Zona } from '../../types/logistica';
+import { getZonas, createZona, updateZona, deleteZona } from '../../api/zonas';
 import { getLocales, LocalDto } from '../../api/locales';
-import { crearUsuario } from '../../api/usuarios';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
-const emptyForm = { nombre: '', telefono: '', vehiculo: '', activo: true, localId: undefined as number | undefined, nombreUsuario: '', password: '' };
+const emptyForm = { nombre: '', descripcion: '', costoEnvio: 0, activa: true, localId: undefined as number | undefined };
 
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
-export default function RepartidoresPage() {
+export default function ZonasPage() {
   const { usuario } = useAuth();
   const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
-  const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
+  const [zonas, setZonas] = useState<Zona[]>([]);
   const [form, setForm] = useState(emptyForm);
-  const [editando, setEditando] = useState<Repartidor | null>(null);
+  const [editando, setEditando] = useState<Zona | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
@@ -25,7 +24,7 @@ export default function RepartidoresPage() {
   const [locales, setLocales] = useState<LocalDto[]>([]);
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
 
-  const cargar = () => getRepartidores().then(setRepartidores);
+  const cargar = () => getZonas().then(setZonas);
 
   useEffect(() => {
     cargar();
@@ -38,57 +37,42 @@ export default function RepartidoresPage() {
     try {
       const localId = form.localId || (esSuperAdmin ? undefined : usuario?.localId);
       if (editando) {
-        await actualizarRepartidor(editando.id, {
+        await updateZona(editando.id, {
           nombre: form.nombre,
-          telefono: form.telefono || undefined,
-          vehiculo: form.vehiculo || undefined,
-          activo: form.activo,
+          descripcion: form.descripcion || undefined,
+          costoEnvio: form.costoEnvio,
+          activa: form.activa,
           localId,
         });
-        showToast('Repartidor actualizado correctamente', 'success');
+        showToast('Zona actualizada correctamente', 'success');
       } else {
-        const nuevoRep = await crearRepartidor({
+        await createZona({
           nombre: form.nombre,
-          telefono: form.telefono || undefined,
-          vehiculo: form.vehiculo || undefined,
+          descripcion: form.descripcion || undefined,
+          costoEnvio: form.costoEnvio,
           localId,
         });
-        // Crear usuario si se completaron los campos
-        try {
-          await crearUsuario({
-            nombreUsuario: form.nombreUsuario,
-            password: form.password,
-            nombreCompleto: form.nombre,
-            rol: RolUsuario.Repartidor,
-            repartidorId: nuevoRep.id,
-            localId,
-          });
-          showToast('Repartidor y usuario creados correctamente', 'success');
-        } catch {
-          showToast('Repartidor creado, pero error al crear usuario (puede que ya exista)', 'error');
-        }
+        showToast('Zona creada correctamente', 'success');
       }
       setForm(emptyForm);
       setEditando(null);
       setShowForm(false);
       cargar();
     } catch {
-      showToast('Error al guardar repartidor', 'error');
+      showToast('Error al guardar zona', 'error');
     } finally {
       setGuardando(false);
     }
   };
 
-  const handleEditar = (r: Repartidor) => {
-    setEditando(r);
+  const handleEditar = (z: Zona) => {
+    setEditando(z);
     setForm({
-      nombre: r.nombre,
-      telefono: r.telefono || '',
-      vehiculo: r.vehiculo || '',
-      activo: r.activo,
-      localId: r.localId,
-      nombreUsuario: '',
-      password: '',
+      nombre: z.nombre,
+      descripcion: z.descripcion || '',
+      costoEnvio: z.costoEnvio,
+      activa: z.activa,
+      localId: z.localId,
     });
     setShowForm(true);
   };
@@ -100,10 +84,10 @@ export default function RepartidoresPage() {
   const confirmarEliminar = async () => {
     setGuardando(true);
     try {
-      await eliminarRepartidor(confirmacion.id);
-      showToast('Repartidor desactivado correctamente', 'success');
+      await deleteZona(confirmacion.id);
+      showToast('Zona eliminada correctamente', 'success');
     } catch {
-      showToast('Error al desactivar repartidor', 'error');
+      showToast('Error al eliminar zona', 'error');
     } finally {
       setGuardando(false);
     }
@@ -111,37 +95,17 @@ export default function RepartidoresPage() {
     cargar();
   };
 
-  const crearUsuarioRepartidor = async (r: Repartidor) => {
-    const pwd = prompt(`Ingresa la contraseña para el usuario de ${r.nombre}:`);
-    if (!pwd) return;
-    const usr = prompt(`Ingresa el nombre de usuario:`, r.nombre.toLowerCase().replace(/\s+/g, ''));
-    if (!usr) return;
-    try {
-      await crearUsuario({
-        nombreUsuario: usr,
-        password: pwd,
-        nombreCompleto: r.nombre,
-        rol: RolUsuario.Repartidor,
-        repartidorId: r.id,
-        localId: r.localId,
-      });
-      showToast(`Usuario "${usr}" creado para ${r.nombre}`, 'success');
-    } catch {
-      showToast('Error al crear usuario (puede que ya exista)', 'error');
-    }
-  };
-
-  const repartidoresFiltrados = repartidores.filter(r => !localSeleccionado || r.localId === localSeleccionado);
+  const zonasFiltradas = zonas.filter(z => !localSeleccionado || z.localId === localSeleccionado);
 
   return (
     <div>
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">Repartidores</h2>
+        <h2 className="text-lg font-bold text-white">Zonas</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
           className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
         >
-          {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Repartidor</>)}
+          {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nueva Zona</>)}
         </button>
       </div>
 
@@ -166,57 +130,33 @@ export default function RepartidoresPage() {
               type="text"
               value={form.nombre}
               onChange={e => setForm({ ...form, nombre: e.target.value })}
-              placeholder="Nombre"
+              placeholder="Nombre de la zona"
               className="border rounded px-3 py-2 w-full"
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Telefono</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Descripcion</label>
             <input
               type="text"
-              value={form.telefono}
-              onChange={e => setForm({ ...form, telefono: e.target.value })}
-              placeholder="Telefono"
+              value={form.descripcion}
+              onChange={e => setForm({ ...form, descripcion: e.target.value })}
+              placeholder="Descripcion"
               className="border rounded px-3 py-2 w-full"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Vehiculo</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Costo de Envio</label>
             <input
-              type="text"
-              value={form.vehiculo}
-              onChange={e => setForm({ ...form, vehiculo: e.target.value })}
-              placeholder="Vehiculo"
+              type="number"
+              value={form.costoEnvio}
+              onChange={e => setForm({ ...form, costoEnvio: Number(e.target.value) })}
+              placeholder="0"
               className="border rounded px-3 py-2 w-full"
+              min={0}
+              step="0.01"
             />
           </div>
-          {!editando && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Usuario (login)</label>
-                <input
-                  type="text"
-                  value={form.nombreUsuario}
-                  onChange={e => setForm({ ...form, nombreUsuario: e.target.value })}
-                  placeholder="Nombre de usuario para login"
-                  className="border rounded px-3 py-2 w-full"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Contraseña</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  placeholder="Contraseña del usuario"
-                  className="border rounded px-3 py-2 w-full"
-                  required
-                />
-              </div>
-            </>
-          )}
           {esSuperAdmin ? (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
@@ -237,10 +177,10 @@ export default function RepartidoresPage() {
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={form.activo}
-                onChange={e => setForm({ ...form, activo: e.target.checked })}
+                checked={form.activa}
+                onChange={e => setForm({ ...form, activa: e.target.checked })}
               />
-              Activo
+              Activa
             </label>
           )}
           <div className="col-span-2 flex gap-2">
@@ -259,35 +199,34 @@ export default function RepartidoresPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Vehiculo</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Costo Envio</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {repartidoresFiltrados.map(r => (
-              <tr key={r.id}>
-                <td className="px-4 py-3 text-sm font-medium">{r.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{r.telefono || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{r.vehiculo || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{r.localNombre || '-'}</td>
+            {zonasFiltradas.map(z => (
+              <tr key={z.id}>
+                <td className="px-4 py-3 text-sm font-medium">{z.nombre}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{z.descripcion || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">${z.costoEnvio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{z.localNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${r.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {r.activo ? 'Activo' : 'Inactivo'}
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${z.activa ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {z.activa ? 'Activa' : 'Inactiva'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-right space-x-3">
-                  <button onClick={() => handleEditar(r)} className="text-blue-600 hover:underline">Editar</button>
-                  <button onClick={() => crearUsuarioRepartidor(r)} className="text-xs text-purple-600 hover:underline">Resetear Usuario</button>
-                  <button onClick={() => handleEliminar(r.id)} className="text-red-600 hover:underline">Eliminar</button>
+                  <button onClick={() => handleEditar(z)} className="text-blue-600 hover:underline">Editar</button>
+                  <button onClick={() => handleEliminar(z.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>
             ))}
-            {repartidoresFiltrados.length === 0 && (
+            {zonasFiltradas.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hay repartidores registrados</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hay zonas registradas</td>
               </tr>
             )}
           </tbody>
@@ -296,8 +235,8 @@ export default function RepartidoresPage() {
 
       <ConfirmModal
         visible={confirmacion.visible}
-        titulo="Eliminar repartidor"
-        mensaje="¿Eliminar este repartidor?"
+        titulo="Eliminar zona"
+        mensaje="¿Eliminar esta zona?"
         tipo="danger"
         textoConfirmar="Eliminar"
         onConfirmar={confirmarEliminar}

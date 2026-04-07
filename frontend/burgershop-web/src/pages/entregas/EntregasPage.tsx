@@ -250,7 +250,7 @@ export default function EntregasPage() {
             <button
               onClick={crearPedidosTest}
               disabled={creandoTest}
-              className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+              className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-1.5 text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
             >
               {creandoTest ? (
                 <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -267,7 +267,7 @@ export default function EntregasPage() {
           )}
           <button
             onClick={() => setChatAbierto(true)}
-            className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors flex items-center gap-1"
+            className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -276,7 +276,7 @@ export default function EntregasPage() {
           </button>
           <button
             onClick={cargar}
-            className="bg-amber-500 text-white px-4 py-1.5 rounded-lg hover:bg-amber-600 text-sm font-semibold transition-colors flex items-center gap-1"
+            className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -367,7 +367,7 @@ export default function EntregasPage() {
                                 showToast('Error al finalizar reparto', 'error');
                               }
                             }}
-                            className="w-full mt-1 py-2 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 shadow-md shadow-green-600/25"
+                            className="w-full mt-1 py-2 rounded-md font-semibold text-sm text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -475,7 +475,7 @@ export default function EntregasPage() {
             disabled={!puedeEmpezar}
             className={`w-full py-3 rounded-lg font-bold text-base transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${
               puedeEmpezar
-                ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800 focus:ring-green-500 shadow-lg shadow-green-600/30'
+                ? 'text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
