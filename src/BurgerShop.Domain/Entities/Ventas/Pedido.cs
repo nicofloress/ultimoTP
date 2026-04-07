@@ -1,5 +1,6 @@
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Finanzas;
+using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Enums;
 
@@ -12,6 +13,7 @@ public class Pedido
     public DateTime FechaCreacion { get; set; } = DateTime.Now;
     public TipoPedido Tipo { get; set; }
     public EstadoPedido Estado { get; set; } = EstadoPedido.Pendiente;
+    public int? LocalId { get; set; }
 
     public int? ClienteId { get; set; }
     public string? NombreCliente { get; set; }
@@ -39,6 +41,7 @@ public class Pedido
     public int? RepartoZonaId { get; set; }
 
     public Cliente? Cliente { get; set; }
+    public Local? Local { get; set; }
     public Zona? Zona { get; set; }
     public RepartoZona? RepartoZona { get; set; }
     public FormaPago? FormaPago { get; set; }

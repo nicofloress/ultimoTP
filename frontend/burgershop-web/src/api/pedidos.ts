@@ -19,6 +19,7 @@ export const crearPedido = (data: {
   tipoFactura?: number;
   fechaProgramada?: string;
   estaPago?: boolean;
+  localId?: number;
   pagos?: { formaPagoId: number; monto: number }[];
   lineas: { productoId?: number; comboId?: number; cantidad: number; precioUnitario: number; notas?: string }[];
 }) => api.post<Pedido>('/pedidos', data).then(r => r.data);

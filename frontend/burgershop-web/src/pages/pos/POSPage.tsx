@@ -488,6 +488,7 @@ export default function POSPage() {
             tipoFactura,
             estaPago: !esCtaCte,
             pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
+            localId: localActivo || undefined,
             lineas: detallesCarrito,
           });
           pedidoId = pedido.id;

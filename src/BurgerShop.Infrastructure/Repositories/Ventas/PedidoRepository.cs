@@ -16,6 +16,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return await _dbSet
             .Include(p => p.Lineas)
             .Include(p => p.Cliente)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.FormaPago)
             .Include(p => p.Repartidor)
@@ -27,6 +28,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.Repartidor)
             .Include(p => p.FormaPago)
@@ -41,6 +43,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.Repartidor)
             .Include(p => p.FormaPago)
@@ -66,6 +69,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         var hoy = DateTime.Today;
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.FormaPago)
             .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
@@ -78,6 +82,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.FormaPago)
             .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
@@ -94,6 +99,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         return await _dbSet
             .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria)
             .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.Repartidor)
             .Where(p => p.Tipo == TipoPedido.Domicilio
@@ -117,6 +123,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
 
         return await _dbSet
             .Include(p => p.Lineas)
+            .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.FormaPago)
             .Include(p => p.Repartidor)

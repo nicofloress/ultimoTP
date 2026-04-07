@@ -16,6 +16,8 @@ public record PedidoDto(
     DateTime? FechaProgramada,
     bool EsProgramado,
     bool EstaPago,
+    int? LocalId,
+    string? LocalNombre,
     List<LineaPedidoDto> Lineas,
     List<PagoPedidoDto>? Pagos = null,
     string? ComprobanteEntrega = null,
@@ -37,7 +39,8 @@ public record CrearPedidoDto(
     List<CrearLineaPedidoDto> Lineas,
     DateTime? FechaProgramada = null,
     bool EstaPago = false,
-    List<CrearPagoPedidoDto>? Pagos = null);
+    List<CrearPagoPedidoDto>? Pagos = null,
+    int? LocalId = null);
 
 public record CrearLineaPedidoDto(
     int? ProductoId, int? ComboId,

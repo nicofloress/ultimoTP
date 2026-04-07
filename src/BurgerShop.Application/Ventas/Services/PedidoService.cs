@@ -66,7 +66,8 @@ public class PedidoService : IPedidoService
             NotaInterna = dto.NotaInterna,
             TipoFactura = dto.TipoFactura,
             FechaProgramada = dto.FechaProgramada,
-            EstaPago = dto.EstaPago
+            EstaPago = dto.EstaPago,
+            LocalId = dto.LocalId
         };
 
         decimal subtotal = 0;
@@ -707,6 +708,8 @@ public class PedidoService : IPedidoService
             p.FechaProgramada,
             p.FechaProgramada != null,
             p.EstaPago,
+            p.LocalId,
+            p.Local?.Nombre,
             p.Lineas.Select(l => new LineaPedidoDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
             pagos,
             p.ComprobanteEntrega,

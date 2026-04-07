@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Pedido, EstadoPedido, estadoLabels, estadoColores, TipoPedido } from '../../types';
-import { getPedidos, getPedidoStats, PedidoStats } from '../../api/pedidos';
+import { getPedidos, getPedidoStats, PedidoStats, cancelarPedido } from '../../api/pedidos';
+import { useGlobalToast } from '../../components/Toast';
 import { getLocales, LocalDto } from '../../api/locales';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
@@ -52,6 +53,10 @@ export default function HistorialPedidosPage() {
   const [cargando, setCargando] = useState(false);
   const [seleccionado, setSeleccionado] = useState<Pedido | null>(null);
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
+  const { showToast } = useGlobalToast();
+  const [mostrarAnular, setMostrarAnular] = useState(false);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
+  const [anulando, setAnulando] = useState(false);
   const [stats, setStats] = useState<PedidoStats | null>(null);
   const [locales, setLocales] = useState<LocalDto[]>([]);
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(usuario?.localId || 0);
@@ -267,6 +272,7 @@ export default function HistorialPedidosPage() {
                   >
                     <td className="px-4 py-2.5 font-bold text-gray-800">{p.numeroTicket}</td>
                     <td className="px-4 py-2.5 text-gray-600">{formatFecha(p.fechaCreacion)}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{p.localNombre || '-'}</td>
                     <td className="px-4 py-2.5 text-gray-600">{tipoLabels[p.tipo] || '-'}</td>
                     <td className="px-4 py-2.5 text-gray-700">{p.nombreCliente || '-'}</td>
                     <td className="px-4 py-2.5 text-gray-600 max-w-[200px] truncate">{p.direccionEntrega || '-'}</td>
@@ -280,9 +286,11 @@ export default function HistorialPedidosPage() {
                     <td className="px-4 py-2.5 text-right font-semibold text-amber-600">${p.total.toLocaleString('es-AR')}</td>
                     <td className="px-4 py-2.5 text-center">
                       {p.estaPago ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Si</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Pagado</span>
+                      ) : p.estado === EstadoPedido.Entregado ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">Pago Pendiente</span>
                       ) : (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">No</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">No pago</span>
                       )}
                     </td>
                   </tr>
@@ -457,11 +465,78 @@ export default function HistorialPedidosPage() {
             </div>
             <div className="flex justify-center pt-1">
               {seleccionado.estaPago ? (
-                <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Pago</span>
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Pagado</span>
+              ) : seleccionado.estado === EstadoPedido.Entregado ? (
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Pago Pendiente</span>
               ) : (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-600">No pago</span>
               )}
             </div>
+
+            {/* Boton anular — solo si no está cancelado ni entregado */}
+            {seleccionado.estado !== EstadoPedido.Cancelado && seleccionado.estado !== EstadoPedido.Entregado && (
+              <div className="pt-2">
+                {!mostrarAnular ? (
+                  <button
+                    onClick={() => setMostrarAnular(true)}
+                    className="w-full py-1.5 text-sm font-semibold text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Anular Pedido
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={motivoAnulacion}
+                      onChange={e => setMotivoAnulacion(e.target.value)}
+                      placeholder="Motivo de anulacion..."
+                      className="w-full border border-red-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!motivoAnulacion.trim()) { showToast('Ingresa un motivo', 'error'); return; }
+                          setAnulando(true);
+                          try {
+                            await cancelarPedido(seleccionado.id, motivoAnulacion.trim());
+                            showToast('Pedido anulado correctamente', 'success');
+                            setSeleccionado(null);
+                            setMostrarAnular(false);
+                            setMotivoAnulacion('');
+                            // Recargar
+                            const data = await getPedidos(fechaDesde, undefined, fechaHasta !== fechaDesde ? fechaHasta : undefined);
+                            setPedidos(data);
+                          } catch {
+                            showToast('Error al anular pedido', 'error');
+                          } finally {
+                            setAnulando(false);
+                          }
+                        }}
+                        disabled={anulando}
+                        className="flex-1 py-1.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {anulando ? 'Anulando...' : 'Confirmar Anulacion'}
+                      </button>
+                      <button
+                        onClick={() => { setMostrarAnular(false); setMotivoAnulacion(''); }}
+                        className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Motivo cancelacion si ya esta anulado */}
+            {seleccionado.estado === EstadoPedido.Cancelado && seleccionado.motivoCancelacion && (
+              <div className="pt-2">
+                <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700">
+                  <span className="font-semibold">Motivo:</span> {seleccionado.motivoCancelacion}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

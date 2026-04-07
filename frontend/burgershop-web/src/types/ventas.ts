@@ -39,6 +39,8 @@ export interface Pedido {
   comprobanteEntrega?: string;
   motivoCancelacion?: string;
   clienteId?: number;
+  localId?: number;
+  localNombre?: string;
   repartoZonaId?: number | null;
   lineas: LineaPedido[];
   pagos?: PagoPedidoDto[];

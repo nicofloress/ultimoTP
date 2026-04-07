@@ -413,6 +413,7 @@ export default function PedidosPage() {
       tipoFactura: TipoFactura.FacturaB,
       fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : undefined,
       estaPago: yaPago,
+      localId: localActivo || undefined,
       lineas: carrito.map(item => ({
         productoId: item.productoId,
         comboId: item.comboId,
