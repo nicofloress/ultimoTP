@@ -8,7 +8,7 @@ import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
-const emptyForm = { nombre: '', telefono: '', vehiculo: '', codigoAcceso: '', activo: true, localId: undefined as number | undefined };
+const emptyForm = { nombre: '', telefono: '', vehiculo: '', activo: true, localId: undefined as number | undefined, nombreUsuario: '', password: '' };
 
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
@@ -43,19 +43,30 @@ export default function RepartidoresPage() {
           telefono: form.telefono || undefined,
           vehiculo: form.vehiculo || undefined,
           activo: form.activo,
-          codigoAcceso: form.codigoAcceso || undefined,
           localId,
         });
         showToast('Repartidor actualizado correctamente', 'success');
       } else {
-        await crearRepartidor({
+        const nuevoRep = await crearRepartidor({
           nombre: form.nombre,
           telefono: form.telefono || undefined,
           vehiculo: form.vehiculo || undefined,
-          codigoAcceso: form.codigoAcceso,
           localId,
         });
-        showToast('Repartidor creado correctamente', 'success');
+        // Crear usuario si se completaron los campos
+        try {
+          await crearUsuario({
+            nombreUsuario: form.nombreUsuario,
+            password: form.password,
+            nombreCompleto: form.nombre,
+            rol: RolUsuario.Repartidor,
+            repartidorId: nuevoRep.id,
+            localId,
+          });
+          showToast('Repartidor y usuario creados correctamente', 'success');
+        } catch {
+          showToast('Repartidor creado, pero error al crear usuario (puede que ya exista)', 'error');
+        }
       }
       setForm(emptyForm);
       setEditando(null);
@@ -74,9 +85,10 @@ export default function RepartidoresPage() {
       nombre: r.nombre,
       telefono: r.telefono || '',
       vehiculo: r.vehiculo || '',
-      codigoAcceso: '',
       activo: r.activo,
       localId: r.localId,
+      nombreUsuario: '',
+      password: '',
     });
     setShowForm(true);
   };
@@ -100,16 +112,20 @@ export default function RepartidoresPage() {
   };
 
   const crearUsuarioRepartidor = async (r: Repartidor) => {
+    const pwd = prompt(`Ingresa la contraseña para el usuario de ${r.nombre}:`);
+    if (!pwd) return;
+    const usr = prompt(`Ingresa el nombre de usuario:`, r.nombre.toLowerCase().replace(/\s+/g, ''));
+    if (!usr) return;
     try {
       await crearUsuario({
-        nombreUsuario: r.nombre.toLowerCase().replace(/\s+/g, ''),
-        password: r.codigoAcceso,
+        nombreUsuario: usr,
+        password: pwd,
         nombreCompleto: r.nombre,
         rol: RolUsuario.Repartidor,
         repartidorId: r.id,
         localId: r.localId,
       });
-      showToast(`Usuario creado para ${r.nombre}`, 'success');
+      showToast(`Usuario "${usr}" creado para ${r.nombre}`, 'success');
     } catch {
       showToast('Error al crear usuario (puede que ya exista)', 'error');
     }
@@ -175,24 +191,48 @@ export default function RepartidoresPage() {
               className="border rounded px-3 py-2 w-full"
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Codigo de Acceso</label>
-            <input
-              type="text"
-              value={form.codigoAcceso}
-              onChange={e => setForm({ ...form, codigoAcceso: e.target.value })}
-              placeholder={editando ? 'Nuevo codigo (dejar vacio para no cambiar)' : 'Codigo de Acceso'}
-              className="border rounded px-3 py-2 w-full"
-              required={!editando}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
-            <select value={form.localId ?? ''} onChange={e => setForm({ ...form, localId: e.target.value ? Number(e.target.value) : undefined })} className="border rounded px-3 py-2 w-full">
-              <option value="">Sin local</option>
-              {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-            </select>
-          </div>
+          {!editando && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Usuario (login)</label>
+                <input
+                  type="text"
+                  value={form.nombreUsuario}
+                  onChange={e => setForm({ ...form, nombreUsuario: e.target.value })}
+                  placeholder="Nombre de usuario para login"
+                  className="border rounded px-3 py-2 w-full"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Contraseña</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  placeholder="Contraseña del usuario"
+                  className="border rounded px-3 py-2 w-full"
+                  required
+                />
+              </div>
+            </>
+          )}
+          {esSuperAdmin ? (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
+              <select value={form.localId ?? ''} onChange={e => setForm({ ...form, localId: e.target.value ? Number(e.target.value) : undefined })} className="border rounded px-3 py-2 w-full">
+                <option value="">Seleccionar local</option>
+                {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
+              <div className="border border-gray-300 rounded px-3 py-2 bg-gray-100 text-gray-700 text-sm">
+                {locales.find(l => l.id === usuario?.localId)?.nombre || 'Mi Local'}
+              </div>
+            </div>
+          )}
           {editando && (
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -240,7 +280,7 @@ export default function RepartidoresPage() {
                 </td>
                 <td className="px-4 py-3 text-sm text-right space-x-3">
                   <button onClick={() => handleEditar(r)} className="text-blue-600 hover:underline">Editar</button>
-                  <button onClick={() => crearUsuarioRepartidor(r)} className="text-xs text-purple-600 hover:underline">Crear Usuario</button>
+                  <button onClick={() => crearUsuarioRepartidor(r)} className="text-xs text-purple-600 hover:underline">Resetear Usuario</button>
                   <button onClick={() => handleEliminar(r.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>

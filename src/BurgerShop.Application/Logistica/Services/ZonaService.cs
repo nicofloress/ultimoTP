@@ -14,21 +14,21 @@ public class ZonaService : IZonaService
     public async Task<IEnumerable<ZonaDto>> GetAllAsync()
     {
         var zonas = await _repo.GetAllAsync();
-        return zonas.Select(z => new ZonaDto(z.Id, z.Nombre, z.Descripcion, z.CostoEnvio, z.Activa));
+        return zonas.Select(z => new ZonaDto(z.Id, z.Nombre, z.Descripcion, z.CostoEnvio, z.Activa, z.LocalId, z.Local?.Nombre));
     }
 
     public async Task<ZonaDto?> GetByIdAsync(int id)
     {
         var z = await _repo.GetByIdAsync(id);
-        return z is null ? null : new ZonaDto(z.Id, z.Nombre, z.Descripcion, z.CostoEnvio, z.Activa);
+        return z is null ? null : new ZonaDto(z.Id, z.Nombre, z.Descripcion, z.CostoEnvio, z.Activa, z.LocalId, z.Local?.Nombre);
     }
 
     public async Task<ZonaDto> CreateAsync(CrearZonaDto dto)
     {
-        var zona = new Zona { Nombre = dto.Nombre, Descripcion = dto.Descripcion, CostoEnvio = dto.CostoEnvio };
+        var zona = new Zona { Nombre = dto.Nombre, Descripcion = dto.Descripcion, CostoEnvio = dto.CostoEnvio, LocalId = dto.LocalId };
         await _repo.AddAsync(zona);
         await _repo.SaveChangesAsync();
-        return new ZonaDto(zona.Id, zona.Nombre, zona.Descripcion, zona.CostoEnvio, zona.Activa);
+        return new ZonaDto(zona.Id, zona.Nombre, zona.Descripcion, zona.CostoEnvio, zona.Activa, zona.LocalId);
     }
 
     public async Task<ZonaDto?> UpdateAsync(int id, ActualizarZonaDto dto)
@@ -40,9 +40,10 @@ public class ZonaService : IZonaService
         zona.Descripcion = dto.Descripcion;
         zona.CostoEnvio = dto.CostoEnvio;
         zona.Activa = dto.Activa;
+        zona.LocalId = dto.LocalId;
         _repo.Update(zona);
         await _repo.SaveChangesAsync();
-        return new ZonaDto(zona.Id, zona.Nombre, zona.Descripcion, zona.CostoEnvio, zona.Activa);
+        return new ZonaDto(zona.Id, zona.Nombre, zona.Descripcion, zona.CostoEnvio, zona.Activa, zona.LocalId, zona.Local?.Nombre);
     }
 
     public async Task<bool> DeleteAsync(int id)

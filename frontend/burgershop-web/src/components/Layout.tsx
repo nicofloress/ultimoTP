@@ -73,7 +73,7 @@ const menuSections: MenuSection[] = [
   },
   {
     items: [
-      { to: '/config', label: 'Configuracion', roles: [SA] },
+      { to: '/config', label: 'Configuracion', roles: [SA, AD] },
     ],
   },
 ];

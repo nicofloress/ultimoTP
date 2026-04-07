@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Zona, Repartidor, FormaPago, Categoria } from '../../types';
 import { TipoCliente } from '../../types/ventas';
+import { RolUsuario } from '../../types/auth';
 import { getZonas, createZona, updateZona, deleteZona } from '../../api/zonas';
 import { getRepartidores, crearRepartidor as createRepartidor, actualizarRepartidor as updateRepartidor, eliminarRepartidor as deleteRepartidor, asignarZonas } from '../../api/repartidores';
 import { getFormasPago, createFormaPago, updateFormaPago, deleteFormaPago } from '../../api/formasPago';
@@ -11,6 +12,7 @@ import { LocalDto, getLocales, crearLocal, actualizarLocal, eliminarLocal } from
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
+import { useAuth } from '../../context/AuthContext';
 
 type TabType = 'zonas' | 'repartidores' | 'formasPago' | 'tiposCliente' | 'categorias' | 'empresas' | 'locales';
 
@@ -564,16 +566,20 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
 
 // ─── Config Page Principal ───────────────────────────────────
 export default function ConfigPage() {
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [formasPagoList, setFormasPagoList] = useState<FormaPago[]>([]);
+  const [localesLista, setLocalesLista] = useState<LocalDto[]>([]);
+  const [localFiltroZona, setLocalFiltroZona] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; tipo: string; id: number; nombre: string }>({ visible: false, tipo: '', id: 0, nombre: '' });
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
   const [tab, setTab] = useState<TabType>('zonas');
 
   // Zona form
-  const [zonaForm, setZonaForm] = useState({ nombre: '', descripcion: '', costoEnvio: 0 });
+  const [zonaForm, setZonaForm] = useState({ nombre: '', descripcion: '', costoEnvio: 0, localId: esSuperAdmin ? 0 : (usuario?.localId || 0) });
   const [editandoZona, setEditandoZona] = useState<Zona | null>(null);
 
   // Repartidor form
@@ -603,21 +609,22 @@ export default function ConfigPage() {
     getRepartidores().then(setRepartidores);
     getFormasPago().then(setFormasPagoList);
   };
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); getLocales().then(setLocalesLista); }, []);
 
   // Zonas handlers
   const handleZonaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuardando(true);
+    const localIdEnviar = esSuperAdmin ? (zonaForm.localId || undefined) : usuario?.localId;
     try {
       if (editandoZona) {
-        await updateZona(editandoZona.id, { ...zonaForm, activa: editandoZona.activa });
+        await updateZona(editandoZona.id, { nombre: zonaForm.nombre, descripcion: zonaForm.descripcion, costoEnvio: zonaForm.costoEnvio, activa: editandoZona.activa, localId: localIdEnviar });
         showToast('Zona actualizada correctamente', 'success');
       } else {
-        await createZona(zonaForm);
+        await createZona({ nombre: zonaForm.nombre, descripcion: zonaForm.descripcion, costoEnvio: zonaForm.costoEnvio, localId: localIdEnviar });
         showToast('Zona creada correctamente', 'success');
       }
-      setZonaForm({ nombre: '', descripcion: '', costoEnvio: 0 }); setEditandoZona(null); cargar();
+      setZonaForm({ nombre: '', descripcion: '', costoEnvio: 0, localId: esSuperAdmin ? 0 : (usuario?.localId || 0) }); setEditandoZona(null); cargar();
     } catch {
       showToast('Error al guardar zona', 'error');
     } finally {
@@ -802,10 +809,42 @@ export default function ConfigPage() {
 
       {tab === 'zonas' && (
         <div>
-          <form onSubmit={handleZonaSubmit} className="flex gap-2 mb-6">
+          {/* Filtro por local */}
+          <div className="mb-4">
+            {esSuperAdmin ? (
+              <select
+                value={localFiltroZona}
+                onChange={e => setLocalFiltroZona(Number(e.target.value))}
+                className="border rounded px-3 py-2"
+              >
+                <option value={0}>Todos los locales</option>
+                {localesLista.map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-sm text-gray-600 font-medium">
+                Local: {localesLista.find(l => l.id === usuario?.localId)?.nombre || `#${usuario?.localId}`}
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleZonaSubmit} className="flex gap-2 mb-6 flex-wrap">
             <input type="text" value={zonaForm.nombre} onChange={e => setZonaForm({ ...zonaForm, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 flex-1" required />
             <input type="text" value={zonaForm.descripcion} onChange={e => setZonaForm({ ...zonaForm, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2 flex-1" />
             <input type="number" value={zonaForm.costoEnvio} onChange={e => setZonaForm({ ...zonaForm, costoEnvio: Number(e.target.value) })} placeholder="Costo envio" className="border rounded px-3 py-2 w-32" min={0} step={100} />
+            {esSuperAdmin && (
+              <select
+                value={zonaForm.localId}
+                onChange={e => setZonaForm({ ...zonaForm, localId: Number(e.target.value) })}
+                className="border rounded px-3 py-2"
+              >
+                <option value={0}>Sin local</option>
+                {localesLista.map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            )}
             <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoZona ? 'Actualizar' : 'Crear')}</button>
           </form>
           <div className="bg-white rounded-lg shadow">
@@ -815,17 +854,19 @@ export default function ConfigPage() {
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Costo Envio</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {zonas.map(z => (
+                {zonas.filter(z => !localFiltroZona || z.localId === localFiltroZona).map(z => (
                   <tr key={z.id}>
                     <td className="px-4 py-3 text-sm font-medium">{z.nombre}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{z.descripcion}</td>
                     <td className="px-4 py-3 text-sm">${z.costoEnvio.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{z.localNombre || '-'}</td>
                     <td className="px-4 py-3 text-sm text-right">
-                      <button onClick={() => { setEditandoZona(z); setZonaForm({ nombre: z.nombre, descripcion: z.descripcion || '', costoEnvio: z.costoEnvio }); }} className="text-blue-600 hover:underline mr-3">Editar</button>
+                      <button onClick={() => { setEditandoZona(z); setZonaForm({ nombre: z.nombre, descripcion: z.descripcion || '', costoEnvio: z.costoEnvio, localId: z.localId || 0 }); }} className="text-blue-600 hover:underline mr-3">Editar</button>
                       <button onClick={() => setConfirmacion({ visible: true, tipo: 'zona', id: z.id, nombre: z.nombre })} className="text-red-600 hover:underline">Desactivar</button>
                     </td>
                   </tr>

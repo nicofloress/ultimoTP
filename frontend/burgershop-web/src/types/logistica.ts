@@ -4,6 +4,8 @@ export interface Zona {
   descripcion?: string;
   costoEnvio: number;
   activa: boolean;
+  localId?: number;
+  localNombre?: string;
 }
 
 export interface Repartidor {
@@ -22,7 +24,7 @@ export interface CrearRepartidorDto {
   nombre: string;
   telefono?: string;
   vehiculo?: string;
-  codigoAcceso: string;
+  codigoAcceso?: string;
   localId?: number;
 }
 
