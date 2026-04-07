@@ -25,6 +25,7 @@ const rolOptions: { value: RolUsuario; label: string }[] = [
   { value: RolUsuario.Administrador, label: 'Administrador' },
   { value: RolUsuario.Local, label: 'Local' },
   { value: RolUsuario.Repartidor, label: 'Repartidor' },
+  { value: RolUsuario.Deposito, label: 'Depósito' },
 ];
 
 export default function UsuariosPage() {
@@ -280,6 +281,7 @@ export default function UsuariosPage() {
                     u.rol === RolUsuario.SuperAdmin ? 'bg-purple-100 text-purple-700' :
                     u.rol === RolUsuario.Administrador ? 'bg-blue-100 text-blue-700' :
                     u.rol === RolUsuario.Local ? 'bg-amber-100 text-amber-700' :
+                    u.rol === RolUsuario.Deposito ? 'bg-slate-100 text-slate-700' :
                     'bg-green-100 text-green-700'
                   }`}>
                     {u.rolNombre}
