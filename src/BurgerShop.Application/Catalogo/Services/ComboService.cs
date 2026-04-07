@@ -36,6 +36,7 @@ public class ComboService : IComboService
             Nombre = dto.Nombre,
             Descripcion = dto.Descripcion,
             Precio = dto.Precio,
+            EsOfertaSemanal = dto.EsOfertaSemanal,
             Detalles = dto.Detalles.Select(d => new ComboDetalle
             {
                 ProductoId = d.ProductoId,
@@ -58,6 +59,7 @@ public class ComboService : IComboService
         combo.Descripcion = dto.Descripcion;
         combo.Precio = dto.Precio;
         combo.Activo = dto.Activo;
+        combo.EsOfertaSemanal = dto.EsOfertaSemanal;
 
         combo.Detalles.Clear();
         foreach (var d in dto.Detalles)
@@ -87,5 +89,6 @@ public class ComboService : IComboService
         c.Id, c.Nombre, c.Descripcion, c.Precio, c.Activo,
         c.Detalles.Select(d => new ComboDetalleDto(
             d.ProductoId, d.Producto?.Nombre ?? "", d.Cantidad, d.Producto?.Precio ?? 0
-        )).ToList());
+        )).ToList(),
+        c.EsOfertaSemanal);
 }

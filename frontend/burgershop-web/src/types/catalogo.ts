@@ -31,6 +31,7 @@ export interface Producto {
   precioLista?: number;
   marca?: string;
   unidadesPorMedia: number;
+  esOfertaSemanal?: boolean;
 }
 
 export interface ComboDetalle {
@@ -46,6 +47,7 @@ export interface Combo {
   descripcion?: string;
   precio: number;
   activo: boolean;
+  esOfertaSemanal?: boolean;
   detalles: ComboDetalle[];
 }
 

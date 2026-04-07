@@ -49,7 +49,7 @@ public class ProductoService : IProductoService
         var p = await _repo.GetByIdAsync(id);
         if (p is null) return null;
         var cat = p.Categoria;
-        return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia);
+        return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal);
     }
 
     public async Task<ProductoDto> CreateAsync(CrearProductoDto dto)
@@ -65,11 +65,12 @@ public class ProductoService : IProductoService
             PesoGramos = dto.PesoGramos,
             UnidadesPorBulto = dto.UnidadesPorBulto,
             Marca = dto.Marca,
-            UnidadesPorMedia = dto.UnidadesPorMedia
+            UnidadesPorMedia = dto.UnidadesPorMedia,
+            EsOfertaSemanal = dto.EsOfertaSemanal
         };
         await _repo.AddAsync(producto);
         await _repo.SaveChangesAsync();
-        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia);
+        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal);
     }
 
     public async Task<ProductoDto?> UpdateAsync(int id, ActualizarProductoDto dto)
@@ -88,9 +89,10 @@ public class ProductoService : IProductoService
         producto.UnidadesPorBulto = dto.UnidadesPorBulto;
         producto.Marca = dto.Marca;
         producto.UnidadesPorMedia = dto.UnidadesPorMedia;
+        producto.EsOfertaSemanal = dto.EsOfertaSemanal;
         _repo.Update(producto);
         await _repo.SaveChangesAsync();
-        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia);
+        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal);
     }
 
     public async Task<bool> DeleteAsync(int id)
@@ -134,11 +136,11 @@ public class ProductoService : IProductoService
     }
 
     private static ProductoDto ToDto(Producto p)
-        => new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia);
+        => new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal);
 
     private static ProductoDto ToDtoConPrecioLista(Producto p, Dictionary<int, decimal> precios)
     {
         var precioLista = precios.TryGetValue(p.Id, out var precio) ? (decimal?)precio : null;
-        return new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, precioLista, p.Marca, p.UnidadesPorMedia);
+        return new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, precioLista, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal);
     }
 }

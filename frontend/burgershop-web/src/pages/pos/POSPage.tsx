@@ -18,7 +18,7 @@ import { registrarCargo } from '../../api/cuentaCorriente';
 import { useGlobalToast } from '../../components/Toast';
 import PagoDivididoPanel from '../../components/PagoDivididoPanel';
 import { getCajaAbierta, abrirCaja } from '../../api/caja';
-import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
+
 import NumericInput, { formatearNumero } from '../../components/NumericInput';
 import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
@@ -355,7 +355,7 @@ export default function POSPage() {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
     if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.esOfertaSemanal);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
     let filtered = activos.filter(p => catIds.includes(p.categoriaId));
@@ -375,7 +375,8 @@ export default function POSPage() {
     const activos = combos.filter(c => c.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
-    if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
+    if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
+    if (categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
     let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
     if (categoriaFiltro === 'hamburguesa' && lineaFiltro) {
@@ -1245,7 +1246,7 @@ export default function POSPage() {
                 onClick={() => setCategoriaFiltro('ofertas')}
                 className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
               >
-                Ofertas
+                Oferta Semanal
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
               {megaCategorias.map(mc => (
@@ -1317,7 +1318,7 @@ export default function POSPage() {
                 <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
                   preciosPromoProductos.has(p.id)
                     ? 'bg-red-50 border-red-200 hover:border-red-400'
-                    : p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
+                    : p.esOfertaSemanal
                       ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
                       : 'bg-white border-gray-200 hover:border-amber-400'
                 }`}>
@@ -1333,7 +1334,7 @@ export default function POSPage() {
                       <span className="text-red-600 ml-1">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
                     </div>
                   ) : (
-                    <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
+                    <div className={`font-bold mt-0.5 ${p.esOfertaSemanal ? 'text-orange-600' : 'text-amber-600'}`}>
                       ${formatearNumero(preciosLista.get(p.id) ?? p.precio)}
                       {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
                         <span className="text-xs text-gray-400 line-through ml-1">${formatearNumero(p.precio)}</span>

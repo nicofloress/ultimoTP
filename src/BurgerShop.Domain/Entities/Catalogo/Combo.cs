@@ -7,6 +7,7 @@ public class Combo
     public string? Descripcion { get; set; }
     public decimal Precio { get; set; }
     public bool Activo { get; set; } = true;
+    public bool EsOfertaSemanal { get; set; }
     public int? CategoriaId { get; set; }
 
     public Categoria? Categoria { get; set; }

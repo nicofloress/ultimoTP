@@ -14,6 +14,7 @@ public class Producto
     public int UnidadesPorBulto { get; set; } = 1;
     public string? Marca { get; set; }
     public int UnidadesPorMedia { get; set; } = 0;
+    public bool EsOfertaSemanal { get; set; }
 
     public Categoria Categoria { get; set; } = null!;
     public ICollection<ComboDetalle> ComboDetalles { get; set; } = new List<ComboDetalle>();

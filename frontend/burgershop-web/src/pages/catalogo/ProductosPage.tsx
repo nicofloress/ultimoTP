@@ -12,7 +12,7 @@ import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0 };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, esOfertaSemanal: false };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -40,6 +40,7 @@ export default function ProductosPage() {
   const [comboDescripcion, setComboDescripcion] = useState('');
   const [comboPrecio, setComboPrecio] = useState(0);
   const [comboDetalles, setComboDetalles] = useState<{ productoId: number; cantidad: number }[]>([]);
+  const [comboEsOferta, setComboEsOferta] = useState(false);
   const [promociones, setPromociones] = useState<PromocionDto[]>([]);
   const { localActivo } = useLocalActivo();
 
@@ -87,7 +88,7 @@ export default function ProductosPage() {
 
   const handleEditar = (p: Producto) => {
     setEditando(p);
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0 });
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, esOfertaSemanal: p.esOfertaSemanal ?? false });
     setShowForm(true);
   };
 
@@ -113,7 +114,7 @@ export default function ProductosPage() {
   const abrirFormCombo = () => {
     setShowForm(false); setEditando(null);
     setShowFormCombo(true); setEditandoCombo(null);
-    setComboNombre(''); setComboDescripcion(''); setComboPrecio(0); setComboDetalles([]);
+    setComboNombre(''); setComboDescripcion(''); setComboPrecio(0); setComboDetalles([]); setComboEsOferta(false);
   };
 
   const handleEditarCombo = (c: Combo) => {
@@ -121,6 +122,7 @@ export default function ProductosPage() {
     setEditandoCombo(c);
     setComboNombre(c.nombre); setComboDescripcion(c.descripcion || ''); setComboPrecio(c.precio);
     setComboDetalles(c.detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad })));
+    setComboEsOferta(c.esOfertaSemanal ?? false);
     setShowFormCombo(true);
   };
 
@@ -131,6 +133,7 @@ export default function ProductosPage() {
     setComboDescripcion(c.descripcion || '');
     setComboPrecio(c.precio);
     setComboDetalles(c.detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad })));
+    setComboEsOferta(c.esOfertaSemanal ?? false);
     setShowFormCombo(true);
   };
 
@@ -155,10 +158,10 @@ export default function ProductosPage() {
     setGuardando(true);
     try {
       if (editandoCombo) {
-        await updateCombo(editandoCombo.id, { nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, activo: true, detalles: comboDetalles });
+        await updateCombo(editandoCombo.id, { nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, activo: true, esOfertaSemanal: comboEsOferta, detalles: comboDetalles });
         showToast('Combo actualizado correctamente', 'success');
       } else {
-        await createCombo({ nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, detalles: comboDetalles });
+        await createCombo({ nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, esOfertaSemanal: comboEsOferta, detalles: comboDetalles });
         showToast('Combo creado correctamente', 'success');
       }
       setShowFormCombo(false); setEditandoCombo(null);
@@ -419,6 +422,12 @@ export default function ProductosPage() {
             <label className="block text-xs font-medium text-gray-600 mb-1">Unidades por Medio Bulto</label>
             <input type="number" value={form.unidadesPorMedia} onChange={e => setForm({ ...form, unidadesPorMedia: Number(e.target.value) })} placeholder="Unidades por media" className="border rounded px-3 py-2 w-full" min={0} />
           </div>
+          <div className="col-span-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.esOfertaSemanal} onChange={e => setForm({ ...form, esOfertaSemanal: e.target.checked })} className="rounded border-gray-300 text-amber-600 focus:ring-amber-400" />
+              Oferta Semanal
+            </label>
+          </div>
           <div className="col-span-2 flex gap-2">
             <button type="submit" disabled={guardando} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
@@ -443,6 +452,10 @@ export default function ProductosPage() {
               <input type="number" value={comboPrecio} onChange={e => setComboPrecio(Number(e.target.value))} placeholder="Precio combo" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={comboEsOferta} onChange={e => setComboEsOferta(e.target.checked)} className="rounded border-gray-300 text-amber-600 focus:ring-amber-400" />
+            Oferta Semanal
+          </label>
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-xs font-medium text-gray-600">Productos del combo</label>
@@ -559,6 +572,9 @@ export default function ProductosPage() {
                 {preciosPromoCombos.has(c.id) && (
                   <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
                 )}
+                {!preciosPromoCombos.has(c.id) && c.esOfertaSemanal && (
+                  <span className="absolute top-1 right-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">OFERTA</span>
+                )}
                 <div className="font-medium text-sm text-gray-800">{c.nombre}</div>
                 {c.descripcion && <div className="text-xs text-gray-500 mt-0.5">{c.descripcion}</div>}
                 {preciosPromoCombos.has(c.id) ? (
@@ -642,6 +658,9 @@ export default function ProductosPage() {
               >
                 {preciosPromoCombos.has(c.id) && (
                   <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
+                )}
+                {!preciosPromoCombos.has(c.id) && c.esOfertaSemanal && (
+                  <span className="absolute top-1 right-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">OFERTA</span>
                 )}
                 <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
                 <div className="font-medium text-sm text-gray-800 mt-1">{c.nombre}</div>

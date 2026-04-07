@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarIcon } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import { addDays, format } from 'date-fns';
-import { OFERTAS_SEMANALES_CATEGORIA_ID } from '../../utils/constants';
+
 import { useGlobalToast } from '../../components/Toast';
 import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
@@ -80,6 +80,7 @@ export default function PedidosPage() {
   const [popoverCalendarioAbierto, setPopoverCalendarioAbierto] = useState(false);
   const [yaPago, setYaPago] = useState(false);
   const [mostrarExtras, setMostrarExtras] = useState(false);
+  const [creandoPedido, setCreandoPedido] = useState(false);
   const [busquedaCliente, setBusquedaCliente] = useState('');
   const [sugerenciasCliente, setSugerenciasCliente] = useState<ClienteDto[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteDto | null>(null);
@@ -329,7 +330,7 @@ export default function PedidosPage() {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
     if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID);
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.esOfertaSemanal);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
     const catIds = getMegaCatIds(categoriaFiltro);
     let filtered = activos.filter(p => catIds.includes(p.categoriaId));
@@ -349,7 +350,8 @@ export default function PedidosPage() {
     const activos = combos.filter(c => c.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
-    if (categoriaFiltro === 'ofertas' || categoriaFiltro === 'descuento') return [];
+    if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
+    if (categoriaFiltro === 'descuento') return [];
     const catIds = getMegaCatIds(categoriaFiltro);
     let prodsEnCat = productos.filter(p => catIds.includes(p.categoriaId));
     if (categoriaFiltro === 'hamburguesa' && lineaFiltro) {
@@ -452,6 +454,8 @@ export default function PedidosPage() {
   // ===== CREAR PEDIDO =====
   const handleCrearPedido = async () => {
     if (!formularioValido) return;
+    setCreandoPedido(true);
+    try {
     await crearPedido({
       tipo: TipoPedido.Domicilio,
       clienteId: clienteSeleccionado?.id,
@@ -474,8 +478,14 @@ export default function PedidosPage() {
         notas: item.notas,
       })),
     });
+    addToast('Pedido creado correctamente', 'success');
     limpiarFormulario();
     cargarPedidos();
+    } catch {
+      addToast('Error al crear pedido', 'error');
+    } finally {
+      setCreandoPedido(false);
+    }
   };
 
   // ===== GUARDAR CAMBIOS (EDITAR) =====
@@ -1207,6 +1217,20 @@ export default function PedidosPage() {
         </div>
       </div>
 
+      {/* ============ OVERLAY PROCESANDO ============ */}
+      {creandoPedido && (
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
+            <svg className="animate-spin w-10 h-10 text-amber-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-lg font-semibold text-gray-700">Procesando pedido...</span>
+            <span className="text-sm text-gray-400">Por favor espere</span>
+          </div>
+        </div>
+      )}
+
       {/* ============ MODAL CATALOGO ============ */}
       {mostrarCatalogo && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 lg:p-6" onClick={() => setMostrarCatalogo(false)}>
@@ -1249,7 +1273,7 @@ export default function PedidosPage() {
                 onClick={() => setCategoriaFiltro('ofertas')}
                 className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}
               >
-                Ofertas
+                Oferta Semanal
               </button>
               <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
               {megaCategorias.map(mc => (
@@ -1321,7 +1345,7 @@ export default function PedidosPage() {
                 <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
                   preciosPromoProductos.has(p.id)
                     ? 'bg-red-50 border-red-200 hover:border-red-400'
-                    : p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID
+                    : p.esOfertaSemanal
                       ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
                       : 'bg-white border-gray-200 hover:border-amber-400'
                 }`}>
@@ -1337,7 +1361,7 @@ export default function PedidosPage() {
                       <span className="text-red-600 ml-1">${formatearNumero(preciosPromoProductos.get(p.id)!.precioPromo)}</span>
                     </div>
                   ) : (
-                    <div className={`font-bold mt-0.5 ${p.categoriaId === OFERTAS_SEMANALES_CATEGORIA_ID ? 'text-orange-600' : 'text-amber-600'}`}>
+                    <div className={`font-bold mt-0.5 ${p.esOfertaSemanal ? 'text-orange-600' : 'text-amber-600'}`}>
                       ${(preciosLista.get(p.id) ?? p.precio).toLocaleString()}
                       {preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio && (
                         <span className="text-xs text-gray-400 line-through ml-1">${p.precio.toLocaleString()}</span>
