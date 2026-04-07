@@ -22,6 +22,8 @@ export default function LoginPage() {
         const usuario = JSON.parse(usuarioGuardado);
         if (usuario.rol === RolUsuario.Repartidor) {
           navigate('/repartidor', { replace: true });
+        } else if (usuario.rol === RolUsuario.Deposito) {
+          navigate('/deposito', { replace: true });
         } else {
           navigate('/', { replace: true });
         }
