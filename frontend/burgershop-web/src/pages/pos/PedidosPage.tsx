@@ -308,7 +308,7 @@ export default function PedidosPage() {
     if (!tieneSubfiltros) return [];
     const catIds = getMegaCatIds(categoriaFiltro!);
     const pesos = productos
-      .filter(p => p.activo && catIds.includes(p.categoriaId) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
+      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : catIds.includes(p.categoriaId)) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
       .map(p => p.pesoGramos!)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => a - b);

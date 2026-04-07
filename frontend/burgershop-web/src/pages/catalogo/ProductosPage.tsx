@@ -328,15 +328,17 @@ export default function ProductosPage() {
     if (megaFiltro === 'promo') {
       lista = lista.filter(c => preciosPromoCombos.has(c.id));
     } else if (megaFiltro && megaFiltro !== 'promo') {
-      // Mostrar combos que contengan productos de la mega-categoría seleccionada
       const mc = megaCategorias.find(m => m.key === megaFiltro);
       if (mc) {
-        const prodIdsEnCat = new Set(productos.filter(p => mc.catIds.includes(p.categoriaId)).map(p => p.id));
+        let prodsEnCat = productos.filter(p => mc.catIds.includes(p.categoriaId));
+        if (lineaFiltro) prodsEnCat = prodsEnCat.filter(p => p.categoriaId === lineaFiltro);
+        if (gramajesFiltro) prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
+        const prodIdsEnCat = new Set(prodsEnCat.map(p => p.id));
         lista = lista.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
       }
     }
     return lista;
-  }, [combos, productos, busqueda, megaFiltro, megaCategorias, preciosPromoCombos]);
+  }, [combos, productos, busqueda, megaFiltro, lineaFiltro, gramajesFiltro, megaCategorias, preciosPromoCombos]);
 
   const listaSeleccionada = listas.find(l => l.id === listaPrecioId);
 
