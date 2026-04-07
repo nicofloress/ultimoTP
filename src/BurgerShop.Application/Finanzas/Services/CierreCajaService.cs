@@ -19,9 +19,9 @@ public class CierreCajaService : ICierreCajaService
         _pedidoRepo = pedidoRepo;
     }
 
-    public async Task<CierreCajaDto?> GetCajaAbiertaAsync()
+    public async Task<CierreCajaDto?> GetCajaAbiertaAsync(int? localId = null)
     {
-        var caja = await _cajaRepo.GetCajaAbiertaAsync();
+        var caja = await _cajaRepo.GetCajaAbiertaAsync(localId);
         if (caja is null) return null;
 
         var pedidos = await _pedidoRepo.GetByCierreCajaAsync(caja.Id);
@@ -30,15 +30,16 @@ public class CierreCajaService : ICierreCajaService
 
     public async Task<CierreCajaDto> AbrirCajaAsync(AbrirCajaDto dto)
     {
-        var cajaExistente = await _cajaRepo.GetCajaAbiertaAsync();
+        var cajaExistente = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
         if (cajaExistente is not null)
-            throw new InvalidOperationException("Ya existe una caja abierta. Debe cerrarla antes de abrir una nueva.");
+            throw new InvalidOperationException("Ya existe una caja abierta para este local. Debe cerrarla antes de abrir una nueva.");
 
         var nuevaCaja = new CierreCaja
         {
             FechaApertura = DateTime.Now,
             MontoInicial = dto.MontoInicial,
             Observaciones = dto.Observaciones,
+            LocalId = dto.LocalId,
             Estado = EstadoCaja.Abierta
         };
 
@@ -53,18 +54,14 @@ public class CierreCajaService : ICierreCajaService
         var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
         if (caja is null) return null;
 
-        // Obtener pedidos de esta caja con sus pagos completos
         var pedidos = (await _pedidoRepo.GetByCierreCajaAsync(id)).ToList();
 
-        // Calcular totales por forma de pago
-        // Pedidos con un único FormaPagoId (pago simple)
         var totalesPorFormaPago = new Dictionary<int, (decimal monto, int cantidad)>();
 
         foreach (var pedido in pedidos)
         {
             if (pedido.Pagos.Any())
             {
-                // Pago dividido: usar los registros de PagoPedido
                 foreach (var pago in pedido.Pagos)
                 {
                     if (totalesPorFormaPago.TryGetValue(pago.FormaPagoId, out var existente))
@@ -75,7 +72,6 @@ public class CierreCajaService : ICierreCajaService
             }
             else if (pedido.FormaPagoId.HasValue)
             {
-                // Pago simple: usar el Total del pedido
                 var formaPagoId = pedido.FormaPagoId.Value;
                 if (totalesPorFormaPago.TryGetValue(formaPagoId, out var existente))
                     totalesPorFormaPago[formaPagoId] = (existente.monto + pedido.Total, existente.cantidad + 1);
@@ -84,10 +80,8 @@ public class CierreCajaService : ICierreCajaService
             }
         }
 
-        // Eliminar detalles anteriores si los hay (por si se reabre o recalcula)
         caja.Detalles.Clear();
 
-        // Crear detalle por cada forma de pago
         foreach (var kvp in totalesPorFormaPago)
         {
             caja.Detalles.Add(new CierreCajaDetalle
@@ -98,7 +92,6 @@ public class CierreCajaService : ICierreCajaService
             });
         }
 
-        // MontoFinal = suma de todos los montos de detalles + MontoInicial
         var sumaTotalVentas = totalesPorFormaPago.Values.Sum(v => v.monto);
         caja.MontoFinal = caja.MontoInicial + sumaTotalVentas;
         caja.Estado = EstadoCaja.Cerrada;
@@ -108,15 +101,13 @@ public class CierreCajaService : ICierreCajaService
         _cajaRepo.Update(caja);
         await _cajaRepo.SaveChangesAsync();
 
-        // Recargar con detalles completos (FormaPago incluido)
         var cajaActualizada = await _cajaRepo.GetByIdConDetallesAsync(id);
         return ToDto(cajaActualizada!, pedidos);
     }
 
-    public async Task<IEnumerable<CierreCajaDto>> GetHistorialAsync()
+    public async Task<IEnumerable<CierreCajaDto>> GetHistorialAsync(int? localId = null)
     {
-        var cajas = await _cajaRepo.GetHistorialAsync();
-        // Para el historial no cargamos los pedidos completos por performance
+        var cajas = await _cajaRepo.GetHistorialAsync(20, localId);
         return cajas.Select(c => ToDto(c, new List<Pedido>()));
     }
 
@@ -138,8 +129,6 @@ public class CierreCajaService : ICierreCajaService
             d.MontoTotal,
             d.CantidadOperaciones)).ToList();
 
-        // Si la caja está abierta, calcular totales desde los pedidos directamente
-        // Si está cerrada, usar los detalles del cierre
         var totalVentas = detalles.Any()
             ? detalles.Sum(d => d.MontoTotal)
             : pedidos.Sum(p => p.Total);
@@ -153,6 +142,8 @@ public class CierreCajaService : ICierreCajaService
             caja.Estado,
             caja.Observaciones,
             caja.UsuarioId,
+            caja.LocalId,
+            caja.Local?.Nombre,
             detalles,
             pedidos.Count,
             totalVentas);

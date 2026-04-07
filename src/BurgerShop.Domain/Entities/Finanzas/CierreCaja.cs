@@ -1,3 +1,4 @@
+using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 
@@ -13,6 +14,8 @@ public class CierreCaja
     public EstadoCaja Estado { get; set; } = EstadoCaja.Abierta;
     public string? Observaciones { get; set; }
     public int? UsuarioId { get; set; }
+    public int? LocalId { get; set; }
+    public Local? Local { get; set; }
     public ICollection<CierreCajaDetalle> Detalles { get; set; } = new List<CierreCajaDetalle>();
     public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
 }

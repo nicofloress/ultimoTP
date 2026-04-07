@@ -38,7 +38,7 @@ public class PedidoServiceRecargoTests
 
         // Por defecto no hay caja abierta (comportamiento neutro para los tests existentes)
         _cajaRepoMock
-            .Setup(r => r.GetCajaAbiertaAsync())
+            .Setup(r => r.GetCajaAbiertaAsync(It.IsAny<int?>()))
             .ReturnsAsync((BurgerShop.Domain.Entities.Finanzas.CierreCaja?)null);
 
         _service = new PedidoService(

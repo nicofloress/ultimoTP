@@ -11,6 +11,8 @@ public record CierreCajaDto(
     EstadoCaja Estado,
     string? Observaciones,
     int? UsuarioId,
+    int? LocalId,
+    string? LocalNombre,
     List<CierreCajaDetalleDto> Detalles,
     int CantidadPedidos,
     decimal TotalVentas);
@@ -22,6 +24,6 @@ public record CierreCajaDetalleDto(
     decimal MontoTotal,
     int CantidadOperaciones);
 
-public record AbrirCajaDto(decimal MontoInicial, string? Observaciones);
+public record AbrirCajaDto(decimal MontoInicial, string? Observaciones, int? LocalId = null);
 
 public record CerrarCajaDto(string? Observaciones);

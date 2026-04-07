@@ -14,25 +14,28 @@ public class CajaController : ControllerBase
 
     public CajaController(ICierreCajaService service) => _service = service;
 
-    /// <summary>
-    /// Retorna la caja actualmente abierta. Devuelve 204 si no hay ninguna abierta.
-    /// </summary>
-    [HttpGet("abierta")]
-    public async Task<ActionResult<CierreCajaDto>> GetCajaAbierta()
+    private int? GetLocalIdFromClaims()
     {
-        var caja = await _service.GetCajaAbiertaAsync();
+        var claim = User.FindFirst("localId")?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
+    }
+
+    [HttpGet("abierta")]
+    public async Task<ActionResult<CierreCajaDto>> GetCajaAbierta([FromQuery] int? localId = null)
+    {
+        var lid = localId ?? GetLocalIdFromClaims();
+        var caja = await _service.GetCajaAbiertaAsync(lid);
         return caja is null ? NoContent() : Ok(caja);
     }
 
-    /// <summary>
-    /// Abre una nueva caja diaria.
-    /// </summary>
     [HttpPost("abrir")]
     public async Task<ActionResult<CierreCajaDto>> AbrirCaja(AbrirCajaDto dto)
     {
         try
         {
-            var caja = await _service.AbrirCajaAsync(dto);
+            // Si no viene localId en el DTO, usar el del JWT
+            var dtoConLocal = dto.LocalId.HasValue ? dto : dto with { LocalId = GetLocalIdFromClaims() };
+            var caja = await _service.AbrirCajaAsync(dtoConLocal);
             return CreatedAtAction(nameof(GetById), new { id = caja.Id }, caja);
         }
         catch (InvalidOperationException ex)
@@ -41,9 +44,6 @@ public class CajaController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Cierra la caja indicada, calculando los totales por forma de pago.
-    /// </summary>
     [HttpPut("{id}/cerrar")]
     public async Task<ActionResult<CierreCajaDto>> CerrarCaja(int id, CerrarCajaDto dto)
     {
@@ -51,19 +51,14 @@ public class CajaController : ControllerBase
         return caja is null ? NotFound() : Ok(caja);
     }
 
-    /// <summary>
-    /// Retorna el historial de los últimos cierres de caja.
-    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CierreCajaDto>>> GetHistorial()
+    public async Task<ActionResult<IEnumerable<CierreCajaDto>>> GetHistorial([FromQuery] int? localId = null)
     {
-        var historial = await _service.GetHistorialAsync();
+        var lid = localId ?? GetLocalIdFromClaims();
+        var historial = await _service.GetHistorialAsync(lid);
         return Ok(historial);
     }
 
-    /// <summary>
-    /// Retorna el detalle de un cierre de caja por id.
-    /// </summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<CierreCajaDto>> GetById(int id)
     {

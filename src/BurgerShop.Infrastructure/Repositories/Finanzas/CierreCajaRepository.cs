@@ -11,26 +11,40 @@ public class CierreCajaRepository : Repository<CierreCaja>, ICierreCajaRepositor
 {
     public CierreCajaRepository(BurgerShopDbContext context) : base(context) { }
 
-    public async Task<CierreCaja?> GetCajaAbiertaAsync()
+    public async Task<CierreCaja?> GetCajaAbiertaAsync(int? localId = null)
     {
-        return await _dbSet
+        var query = _dbSet
             .Include(c => c.Detalles).ThenInclude(d => d.FormaPago)
+            .Include(c => c.Local)
             .Include(c => c.Pedidos)
-            .FirstOrDefaultAsync(c => c.Estado == EstadoCaja.Abierta);
+            .Where(c => c.Estado == EstadoCaja.Abierta);
+
+        if (localId.HasValue)
+            query = query.Where(c => c.LocalId == localId.Value);
+
+        return await query.FirstOrDefaultAsync();
     }
 
     public async Task<CierreCaja?> GetByIdConDetallesAsync(int id)
     {
         return await _dbSet
             .Include(c => c.Detalles).ThenInclude(d => d.FormaPago)
+            .Include(c => c.Local)
             .Include(c => c.Pedidos)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public async Task<IEnumerable<CierreCaja>> GetHistorialAsync(int cantidad = 20)
+    public async Task<IEnumerable<CierreCaja>> GetHistorialAsync(int cantidad = 20, int? localId = null)
     {
-        return await _dbSet
+        var query = _dbSet
             .Include(c => c.Detalles).ThenInclude(d => d.FormaPago)
+            .Include(c => c.Local)
+            .AsQueryable();
+
+        if (localId.HasValue)
+            query = query.Where(c => c.LocalId == localId.Value);
+
+        return await query
             .OrderByDescending(c => c.FechaApertura)
             .Take(cantidad)
             .ToListAsync();
