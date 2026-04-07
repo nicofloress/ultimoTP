@@ -308,6 +308,8 @@ export default function ProductosPage() {
     }
     if (megaFiltro === 'promo') {
       lista = lista.filter(p => preciosPromoProductos.has(p.id));
+    } else if (megaFiltro === 'ofertas') {
+      lista = lista.filter(p => p.esOfertaSemanal);
     } else if (megaFiltro) {
       const mc = megaCategorias.find(m => m.key === megaFiltro);
       if (mc) {
@@ -330,6 +332,8 @@ export default function ProductosPage() {
     }
     if (megaFiltro === 'promo') {
       lista = lista.filter(c => preciosPromoCombos.has(c.id));
+    } else if (megaFiltro === 'ofertas') {
+      lista = lista.filter(c => c.esOfertaSemanal);
     } else if (megaFiltro && megaFiltro !== 'promo') {
       const mc = megaCategorias.find(m => m.key === megaFiltro);
       if (mc) {
@@ -486,6 +490,7 @@ export default function ProductosPage() {
           {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
             <button onClick={() => { setMegaFiltro('promo'); setGramajesFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${megaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
           )}
+          <button onClick={() => { setMegaFiltro('ofertas'); setGramajesFiltro(null); setLineaFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${megaFiltro === 'ofertas' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'}`}>Oferta Semanal</button>
           <button onClick={() => { setVerCombos(true); setMegaFiltro(null); setGramajesFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${verCombos ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
           {megaCategorias.map(mc => (
             <button key={mc.key} onClick={() => { setMegaFiltro(mc.key); setGramajesFiltro(null); setLineaFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${megaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
@@ -518,8 +523,7 @@ export default function ProductosPage() {
         />
         <span className="text-xs text-gray-400">
           {verCombos ? `${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`
-            : megaFiltro ? `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''} + ${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`
-            : `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''}`}
+            : `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''} + ${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`}
         </span>
       </div>
 
@@ -544,10 +548,10 @@ export default function ProductosPage() {
 
       {/* Grid de productos/combos */}
       <div className="flex-1 overflow-y-auto">
-        {(verCombos || megaFiltro === 'promo') ? (
+        {(verCombos || megaFiltro === 'promo' || megaFiltro === 'ofertas') ? (
           /* ---- COMBOS (o Promos: ambos) ---- */
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-            {megaFiltro === 'promo' && productosFiltrados.map(p => (
+            {(megaFiltro === 'promo' || megaFiltro === 'ofertas') && productosFiltrados.map(p => (
               <div
                 key={`prod-${p.id}`}
                 className="relative bg-red-50 border-2 border-red-200 rounded-lg p-3 hover:border-red-400 hover:shadow-md transition-all cursor-pointer group"
@@ -651,7 +655,7 @@ export default function ProductosPage() {
               </div>
             ))}
             {/* Combos que coinciden con la búsqueda */}
-            {(busqueda.trim() || megaFiltro) && combosFiltrados.map(c => (
+            {combosFiltrados.map(c => (
               <div
                 key={`combo-${c.id}`}
                 className={`relative border-2 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${preciosPromoCombos.has(c.id) ? 'bg-red-50 border-red-200 hover:border-red-400' : 'bg-purple-50 border-purple-200 hover:border-purple-400'}`}
