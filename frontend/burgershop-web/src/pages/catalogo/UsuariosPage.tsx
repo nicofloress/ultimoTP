@@ -35,6 +35,7 @@ export default function UsuariosPage() {
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [locales, setLocales] = useState<LocalDto[]>([]);
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(usuario?.localId || 0);
+  const [rolFiltro, setRolFiltro] = useState<number | ''>('');
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<UsuarioList | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -145,6 +146,13 @@ export default function UsuariosPage() {
               {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
             </div>
           )}
+        </div>
+        <div className="min-w-[180px]">
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Rol</label>
+          <select className={selectClass + ' w-full'} value={rolFiltro} onChange={e => setRolFiltro(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">Todos los roles</option>
+            {rolOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
         </div>
       </div>
 
@@ -263,7 +271,7 @@ export default function UsuariosPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {usuarios.filter(u => !localSeleccionado || u.localId === localSeleccionado).map(u => (
+            {usuarios.filter(u => (!localSeleccionado || u.localId === localSeleccionado) && (rolFiltro === '' || u.rol === rolFiltro)).map(u => (
               <tr key={u.id}>
                 <td className="px-4 py-3 text-sm font-medium">{u.nombreUsuario}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{u.nombreCompleto}</td>

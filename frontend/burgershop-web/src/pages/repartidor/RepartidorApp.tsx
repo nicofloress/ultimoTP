@@ -22,7 +22,7 @@ export default function RepartidorApp() {
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
   const [modalPedido, setModalPedido] = useState<Pedido | null>(null);
   const [notasEntrega, setNotasEntrega] = useState('');
-  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | null>(null);
+  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'pendiente' | null>(null);
   const [comprobanteBase64, setComprobanteBase64] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [chatAbierto, setChatAbierto] = useState(false);
@@ -150,12 +150,13 @@ export default function RepartidorApp() {
         notas: notasEntrega || undefined,
       };
 
-      if (!modalPedido.estaPago && metodoPago) {
+      if (!modalPedido.estaPago && metodoPago && metodoPago !== 'pendiente') {
         data.formaPagoId = metodoPago === 'efectivo' ? 1 : 2;
         if (metodoPago === 'transferencia' && comprobanteBase64) {
           data.comprobanteBase64 = comprobanteBase64;
         }
       }
+      // Si es "pendiente", no se envía formaPagoId → EstaPago queda false en el backend
 
       await marcarEntregado(modalPedido.id, data);
       showToast(`Entrega ${modalPedido.numeroTicket} completada`, 'success');
@@ -785,8 +786,8 @@ function EntregaModal({
   pedido: Pedido;
   notas: string;
   onNotasChange: (v: string) => void;
-  metodoPago: 'efectivo' | 'transferencia' | null;
-  onMetodoPagoChange: (v: 'efectivo' | 'transferencia' | null) => void;
+  metodoPago: 'efectivo' | 'transferencia' | 'pendiente' | null;
+  onMetodoPagoChange: (v: 'efectivo' | 'transferencia' | 'pendiente' | null) => void;
   comprobanteBase64: string | null;
   onComprobanteChange: (v: string | null) => void;
   onConfirm: () => void;
@@ -859,7 +860,7 @@ function EntregaModal({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Metodo de pago
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => { onMetodoPagoChange('efectivo'); onComprobanteChange(null); }}
@@ -883,6 +884,18 @@ function EntregaModal({
                 >
                   <span className="text-2xl">{'\uD83D\uDCF1'}</span>
                   Transferencia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { onMetodoPagoChange('pendiente'); onComprobanteChange(null); }}
+                  className={`py-3 rounded-lg font-semibold text-sm border-2 transition-all flex flex-col items-center gap-1 ${
+                    metodoPago === 'pendiente'
+                      ? 'border-orange-500 bg-orange-50 text-orange-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="text-2xl">{'\u23F3'}</span>
+                  Pago Pendiente
                 </button>
               </div>
 
