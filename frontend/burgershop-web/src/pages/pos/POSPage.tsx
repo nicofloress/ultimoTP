@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Producto, Combo, Categoria, CarritoItem, TipoPedido, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto, TipoCliente } from '../../types';
 import { Zona } from '../../types/logistica';
+import { parsearAtajo, filtrarCombosPorAtajo } from '../../utils/atajoCombo';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
@@ -301,10 +302,16 @@ export default function POSPage() {
     return false;
   });
 
-  const combosFiltrados = combos.filter(c => {
-    if (!c.activo || !busqueda) return false;
-    return c.nombre.toLowerCase().includes(busqueda.toLowerCase());
-  });
+  const combosFiltrados = useMemo(() => {
+    if (!busqueda) return [];
+    // Intentar parsear como atajo de combo
+    const atajo = parsearAtajo(busqueda);
+    if (atajo) {
+      return filtrarCombosPorAtajo(combos, atajo, productos, categorias);
+    }
+    // Búsqueda normal por nombre
+    return combos.filter(c => c.activo && c.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+  }, [busqueda, combos, productos, categorias]);
 
   // ===== MEGA-CATEGORIAS PARA MODAL CATALOGO =====
   const megaCategorias = useMemo(() => {
@@ -320,10 +327,10 @@ export default function POSPage() {
 
   const getMegaCatIds = (key: string) => megaCategorias.find(m => m.key === key)?.catIds ?? [];
 
-  const tieneSubfiltros = categoriaFiltro === 'hamburguesa' || categoriaFiltro === 'snacks';
+  const tieneSubfiltros = categoriaFiltro === 'hamburguesa' || categoriaFiltro === 'snacks' || categoriaFiltro === 'combos';
 
   const lineasDisponibles = useMemo(() => {
-    if (categoriaFiltro !== 'hamburguesa') return [];
+    if (categoriaFiltro !== 'hamburguesa' && categoriaFiltro !== 'combos') return [];
     const mc = megaCategorias.find(m => m.key === 'hamburguesa');
     if (!mc) return [];
     return categorias.filter(c => c.activa && mc.catIds.includes(c.id)).map(c => ({ id: c.id, nombre: c.nombre }));
@@ -333,13 +340,19 @@ export default function POSPage() {
 
   const gramajesDisponibles = useMemo(() => {
     if (!tieneSubfiltros) return [];
+    if (categoriaFiltro === 'combos') {
+      const prodIdsEnCombos = new Set(combos.filter(c => c.activo).flatMap(c => c.detalles.map(d => d.productoId)));
+      let prods = productos.filter(p => prodIdsEnCombos.has(p.id) && p.pesoGramos);
+      if (lineaFiltro) prods = prods.filter(p => p.categoriaId === lineaFiltro);
+      return prods.map(p => p.pesoGramos!).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+    }
     const catIds = getMegaCatIds(categoriaFiltro!);
     return productos
       .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : catIds.includes(p.categoriaId)) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
       .map(p => p.pesoGramos!)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => a - b);
-  }, [productos, categoriaFiltro, marcaFiltro, megaCategorias]);
+  }, [productos, combos, categoriaFiltro, marcaFiltro, megaCategorias, lineaFiltro]);
 
   const marcasDisponibles = useMemo(() => {
     if (!tieneSubfiltros) return [];
@@ -373,7 +386,15 @@ export default function POSPage() {
 
   const combosCatalogo = useMemo(() => {
     const activos = combos.filter(c => c.activo);
-    if (!categoriaFiltro || categoriaFiltro === 'combos') return categoriaFiltro === 'combos' ? activos : [];
+    if (!categoriaFiltro) return [];
+    if (categoriaFiltro === 'combos') {
+      if (!lineaFiltro && !gramajesFiltro) return activos;
+      let prods = productos;
+      if (lineaFiltro) prods = prods.filter(p => p.categoriaId === lineaFiltro);
+      if (gramajesFiltro) prods = prods.filter(p => p.pesoGramos === gramajesFiltro);
+      const prodIds = new Set(prods.map(p => p.id));
+      return activos.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
+    }
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
     if (categoriaFiltro === 'descuento') return [];
@@ -1255,7 +1276,7 @@ export default function POSPage() {
             </div>
 
             {/* Sub-filtro linea hamburguesa */}
-            {categoriaFiltro === 'hamburguesa' && lineasDisponibles.length > 1 && (
+            {(categoriaFiltro === 'hamburguesa' || categoriaFiltro === 'combos') && lineasDisponibles.length > 1 && (
               <div className="px-4 py-2 border-b border-gray-100 flex gap-1.5 items-center">
                 <span className="text-xs text-gray-500 font-medium mr-1">Linea:</span>
                 <button onClick={() => setLineaFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!lineaFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todas</button>

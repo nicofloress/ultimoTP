@@ -62,7 +62,7 @@ export default function CombosPage() {
     const mc = megaCategorias.find(m => m.key === filtro);
     if (!mc) return [];
     return productos
-      .filter(p => p.activo && mc.catIds.includes(p.categoriaId) && p.pesoGramos)
+      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : mc.catIds.includes(p.categoriaId)) && p.pesoGramos)
       .map(p => p.pesoGramos!)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => a - b);
