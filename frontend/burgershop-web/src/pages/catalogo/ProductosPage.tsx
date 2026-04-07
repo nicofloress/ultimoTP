@@ -194,8 +194,8 @@ export default function ProductosPage() {
 
   // Mega-categorías
   const megaCategorias = useMemo(() => {
-    const econId = categorias.find(c => c.nombre === 'Económica')?.id;
-    const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
+    const econId = categorias.find(c => c.nombre.includes('conomica') && !c.categoriaPadreId)?.id;
+    const premiumId = categorias.find(c => c.nombre.includes('Premium') && !c.categoriaPadreId)?.id;
     return [
       { key: 'eco', label: 'Hamburguesas Eco', catIds: [econId, ...categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id)].filter(Boolean) as number[] },
       { key: 'premium', label: 'Hamburguesas Premium', catIds: [premiumId, ...categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id)].filter(Boolean) as number[] },
