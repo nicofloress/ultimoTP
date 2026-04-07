@@ -2,6 +2,7 @@ using BurgerShop.Application.Notificaciones;
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Enums;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -103,6 +104,17 @@ public class PedidosController : ControllerBase
     {
         var count = await _service.PrepararTodosAsync();
         return Ok(new { actualizados = count });
+    }
+
+    [HttpGet("deposito")]
+    [Authorize(Roles = "Deposito,SuperAdmin")]
+    public async Task<ActionResult<IEnumerable<PedidoDto>>> GetDeposito()
+    {
+        int? localId = null;
+        var localIdClaim = User.FindFirstValue("localId");
+        if (int.TryParse(localIdClaim, out var parsed))
+            localId = parsed;
+        return Ok(await _service.GetPedidosDepositoAsync(localId));
     }
 
     [HttpGet("stats")]

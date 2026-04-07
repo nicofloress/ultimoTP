@@ -27,6 +27,9 @@ import CajaPage from './pages/finanzas/CajaPage';
 import RendicionesPage from './pages/finanzas/RendicionesPage';
 import CuentaCorrientePage from './pages/finanzas/CuentaCorrientePage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
+import DepositoPage from './pages/deposito/DepositoPage';
+import DepositoLogin from './pages/deposito/DepositoLogin';
+import { useAuth } from './context/AuthContext';
 import MovimientosPage from './pages/inventario/MovimientosPage';
 import ComprasPage from './pages/inventario/ComprasPage';
 import DevolucionesPage from './pages/inventario/DevolucionesPage';
@@ -45,6 +48,8 @@ export default function App() {
           <SignalRProvider>
             <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          <Route path="/deposito" element={<DepositoRoute />} />
 
           <Route path="/repartidor" element={
             <ProtectedRoute roles={[RolUsuario.Repartidor]}>
@@ -124,4 +129,29 @@ export default function App() {
       </ToastProvider>
     </BrowserRouter>
   );
+}
+
+function DepositoRoute() {
+  const { usuario, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-screen flex items-center justify-center bg-gray-900 text-white text-xl">
+        Cargando...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !usuario) {
+    return <DepositoLogin />;
+  }
+
+  const rolValido =
+    usuario.rol === RolUsuario.Deposito || usuario.rol === RolUsuario.SuperAdmin;
+
+  if (!rolValido) {
+    return <DepositoLogin error="Acceso denegado, solo usuarios de depósito" />;
+  }
+
+  return <DepositoPage />;
 }

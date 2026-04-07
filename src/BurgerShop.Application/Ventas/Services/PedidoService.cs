@@ -685,6 +685,13 @@ public class PedidoService : IPedidoService
             TotalBruto: Math.Round(totalBruto, 2));
     }
 
+    public async Task<IEnumerable<PedidoDto>> GetPedidosDepositoAsync(int? localId)
+    {
+        var desde = DateTime.Now.AddMinutes(-10);
+        var pedidos = await _pedidoRepo.GetPedidosDepositoAsync(desde, localId);
+        return pedidos.Select(ToDto);
+    }
+
     private static PagoPedidoDto MapPagoPedidoDto(PagoPedido p) => new(
         p.Id, p.FormaPagoId, p.FormaPago?.Nombre ?? "",
         p.Monto, p.PorcentajeRecargo, p.Recargo, p.TotalACobrar);
