@@ -10,6 +10,8 @@ import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { getZonas } from '../../api/zonas';
+import { buscarClientes } from '../../api/clientes';
+import { ClienteDto } from '../../types/ventas';
 import { getRepartidores } from '../../api/repartidores';
 import { getListasPrecios } from '../../api/listasPrecios';
 import { Repartidor } from '../../types/logistica';
@@ -78,6 +80,10 @@ export default function PedidosPage() {
   const [popoverCalendarioAbierto, setPopoverCalendarioAbierto] = useState(false);
   const [yaPago, setYaPago] = useState(false);
   const [mostrarExtras, setMostrarExtras] = useState(false);
+  const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [sugerenciasCliente, setSugerenciasCliente] = useState<ClienteDto[]>([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteDto | null>(null);
+  const clienteInputRef = useRef<HTMLDivElement>(null);
 
   // ===== MODAL ASIGNAR REPARTIDOR =====
   const [mostrarAsignarRepartidor, setMostrarAsignarRepartidor] = useState<Pedido | null>(null);
@@ -215,6 +221,35 @@ export default function PedidosPage() {
     }
   };
 
+  // ===== BUSCAR CLIENTE =====
+  const handleBuscarCliente = async (term: string) => {
+    setBusquedaCliente(term);
+    if (term.length >= 2) {
+      const results = await buscarClientes(term);
+      setSugerenciasCliente(results.filter(c => !localActivo || !c.localId || c.localId === localActivo));
+    } else {
+      setSugerenciasCliente([]);
+    }
+  };
+
+  const seleccionarCliente = (c: ClienteDto) => {
+    setClienteSeleccionado(c);
+    setBusquedaCliente(c.nombre + (c.telefono ? ` - ${c.telefono}` : ''));
+    setSugerenciasCliente([]);
+    if (c.telefono) setTelefono(c.telefono);
+    if (c.direccion) {
+      setDireccion(c.direccion);
+      geocodificarDireccion(c.direccion);
+    }
+    if (c.zonaId) setZonaSeleccionada(c.zonaId);
+  };
+
+  const limpiarCliente = () => {
+    setClienteSeleccionado(null);
+    setBusquedaCliente('');
+    setSugerenciasCliente([]);
+  };
+
   const actualizarItem = (index: number, field: keyof CarritoItem, value: number | string) => {
     setCarrito(carrito.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
@@ -249,8 +284,8 @@ export default function PedidosPage() {
     const econId = categorias.find(c => c.nombre === 'Económica')?.id;
     const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
     return [
-      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
-      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: [econId, ...categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id)].filter(Boolean) as number[] },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: [premiumId, ...categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id)].filter(Boolean) as number[] },
       { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
       { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
       { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
@@ -375,6 +410,9 @@ export default function PedidosPage() {
   // ===== LIMPIAR FORMULARIO =====
   const limpiarFormulario = () => {
     setEditandoPedido(null);
+    setClienteSeleccionado(null);
+    setBusquedaCliente('');
+    setSugerenciasCliente([]);
     setDireccion('');
     setTelefono('');
     setCarrito([]);
@@ -397,13 +435,15 @@ export default function PedidosPage() {
   const telefonoValido = telefonoDigitos.length >= 8;
   const formularioValido = esEdicionLimitada
     ? true
-    : carrito.length > 0 && direccion.trim() !== '' && telefonoValido && !!zonaSeleccionada;
+    : carrito.length > 0 && direccion.trim() !== '' && telefonoValido && !!zonaSeleccionada && (!yaPago || !!formaPagoSeleccionada);
 
   // ===== CREAR PEDIDO =====
   const handleCrearPedido = async () => {
     if (!formularioValido) return;
     await crearPedido({
       tipo: TipoPedido.Domicilio,
+      clienteId: clienteSeleccionado?.id,
+      nombreCliente: clienteSeleccionado?.nombre,
       direccionEntrega: direccion || undefined,
       telefonoCliente: telefono || undefined,
       zonaId: zonaSeleccionada,
@@ -524,6 +564,48 @@ export default function PedidosPage() {
                 </p>
               )}
             </div>
+
+            {/* Buscador de Cliente */}
+            {!esEdicionLimitada && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2" ref={clienteInputRef}>
+                <div className="relative">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={busquedaCliente}
+                    onChange={e => handleBuscarCliente(e.target.value)}
+                    placeholder="Buscar cliente por nombre o telefono..."
+                    className={`${inputClass} pl-8`}
+                  />
+                  {clienteSeleccionado && (
+                    <button onClick={limpiarCliente} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  {sugerenciasCliente.length > 0 && !clienteSeleccionado && (
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
+                      {sugerenciasCliente.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => seleccionarCliente(c)}
+                          className="w-full flex items-center justify-between px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0"
+                        >
+                          <div>
+                            <span className="font-medium text-gray-800">{c.nombre}</span>
+                            {c.telefono && <span className="text-gray-400 ml-2">{c.telefono}</span>}
+                          </div>
+                          {c.direccion && <span className="text-xs text-gray-400 max-w-[200px] truncate">{c.direccion}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Direccion */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">

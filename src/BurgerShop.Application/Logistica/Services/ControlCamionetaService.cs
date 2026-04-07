@@ -127,12 +127,14 @@ public class ControlCamionetaService : IControlCamionetaService
             [55] = default,
             [69] = default,
             [80] = default,
+            [100] = default,
             [110] = default
         };
 
-        // Premium: 80, 110, 120, 160, 198 (no existe 69gr Premium)
+        // Premium: 69, 80, 110, 120, 160, 198
         public Dictionary<int, (int Completa, int Media, int Sueltos)> Premium { get; } = new()
         {
+            [69] = default,
             [80] = default,
             [110] = default,
             [120] = default,
@@ -191,7 +193,7 @@ public class ControlCamionetaService : IControlCamionetaService
     {
         if (cantidad <= 0) return;
 
-        var seccion = producto.Categoria?.SeccionCamioneta ?? SeccionCamioneta.Otro;
+        var seccion = InferirSeccion(producto);
         var peso = producto.PesoGramos ?? 0;
         var bulto = producto.UnidadesPorBulto;
         var media = producto.UnidadesPorMedia;
@@ -259,6 +261,42 @@ public class ControlCamionetaService : IControlCamionetaService
     /// Para medallones y premium: determina cuántas completas y medias entran
     /// en la cantidad recibida y las acumula en el diccionario bajo la key dada.
     /// </summary>
+    /// <summary>
+    /// Infiere la sección de camioneta del producto. Prioridad:
+    /// 1. SeccionCamioneta de la categoría (si no es default/Ninguno)
+    /// 2. SeccionCamioneta del padre
+    /// 3. Inferencia por nombre de categoría o padre
+    /// </summary>
+    private static SeccionCamioneta InferirSeccion(Producto producto)
+    {
+        var cat = producto.Categoria;
+        if (cat == null) return SeccionCamioneta.Otro;
+
+        // Si tiene sección explícita (no default 0 ni Ninguno), usarla
+        if (cat.SeccionCamioneta != default && cat.SeccionCamioneta != SeccionCamioneta.Ninguno)
+            return cat.SeccionCamioneta;
+
+        // Intentar con el padre
+        if (cat.CategoriaPadre != null
+            && cat.CategoriaPadre.SeccionCamioneta != default
+            && cat.CategoriaPadre.SeccionCamioneta != SeccionCamioneta.Ninguno)
+            return cat.CategoriaPadre.SeccionCamioneta;
+
+        // Inferir por nombre de categoría o padre
+        var nombre = (cat.Nombre + " " + (cat.CategoriaPadre?.Nombre ?? "")).ToLowerInvariant();
+        if (nombre.Contains("premium")) return SeccionCamioneta.HamburguesaPremium;
+        if (nombre.Contains("econ")) return SeccionCamioneta.MedallonEconomico;
+        if (nombre.Contains("salchicha corta")) return SeccionCamioneta.SalchichaCorta;
+        if (nombre.Contains("salchicha larga")) return SeccionCamioneta.SalchichaLarga;
+        if (nombre.Contains("pan tradicional")) return SeccionCamioneta.PanTradicional;
+        if (nombre.Contains("pan maxi")) return SeccionCamioneta.PanMaxi;
+        if (nombre.Contains("pan pancho")) return SeccionCamioneta.PanPancho;
+        if (nombre.Contains("super pancho")) return SeccionCamioneta.PanSuperPancho;
+        if (nombre.Contains("aderezo")) return SeccionCamioneta.Aderezo;
+
+        return SeccionCamioneta.Otro;
+    }
+
     private static void ContarCompletaMedia(
         Dictionary<int, (int Completa, int Media, int Sueltos)> dict,
         int key,
@@ -266,7 +304,8 @@ public class ControlCamionetaService : IControlCamionetaService
         int unidadesPorBulto,
         int unidadesPorMedia)
     {
-        if (!dict.ContainsKey(key)) return;
+        if (!dict.ContainsKey(key))
+            dict[key] = default;
 
         var (completa, mediaCnt, sueltos) = ContarCompletaMediaSimple(cantidad, unidadesPorBulto, unidadesPorMedia);
         var anterior = dict[key];

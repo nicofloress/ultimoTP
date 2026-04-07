@@ -10,6 +10,7 @@ import { EmpresaDto, getEmpresas, crearEmpresa, actualizarEmpresa, eliminarEmpre
 import { LocalDto, getLocales, crearLocal, actualizarLocal, eliminarLocal } from '../../api/locales';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 
 type TabType = 'zonas' | 'repartidores' | 'formasPago' | 'tiposCliente' | 'categorias' | 'empresas' | 'locales';
 
@@ -279,6 +280,8 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
   const [showForm, setShowForm] = useState(false);
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
+  const { sugerencias: sugDirFiscal, buscarDirecciones: buscarDirFiscal } = useGooglePlaces();
+  const [mostrarSugDirFiscal, setMostrarSugDirFiscal] = useState(false);
 
   const cargar = () => getEmpresas().then(setEmpresas);
   useEffect(() => { cargar(); }, []);
@@ -361,7 +364,16 @@ function EmpresasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nomb
             <option value="">Condicion IVA...</option>
             {condicionesIva.map(c => (<option key={c} value={c}>{c}</option>))}
           </select>
-          <input type="text" value={form.direccionFiscal} onChange={e => setForm({ ...form, direccionFiscal: e.target.value })} placeholder="Direccion Fiscal" className="border rounded px-3 py-2" />
+          <div className="relative">
+            <input type="text" value={form.direccionFiscal} onChange={e => { setForm({ ...form, direccionFiscal: e.target.value }); buscarDirFiscal(e.target.value); setMostrarSugDirFiscal(true); }} onFocus={() => { if (sugDirFiscal.length > 0) setMostrarSugDirFiscal(true); }} onBlur={() => setTimeout(() => setMostrarSugDirFiscal(false), 200)} placeholder="Direccion Fiscal" className="border rounded px-3 py-2 w-full" />
+            {mostrarSugDirFiscal && sugDirFiscal.length > 0 && form.direccionFiscal.length >= 3 && (
+              <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
+                {sugDirFiscal.map(s => (
+                  <button key={s.placeId} type="button" onClick={() => { setForm({ ...form, direccionFiscal: s.descripcion }); setMostrarSugDirFiscal(false); }} className="w-full text-left px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0">{s.descripcion}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <input type="text" value={form.localidad} onChange={e => setForm({ ...form, localidad: e.target.value })} placeholder="Localidad" className="border rounded px-3 py-2" />
           <input type="text" value={form.provincia} onChange={e => setForm({ ...form, provincia: e.target.value })} placeholder="Provincia" className="border rounded px-3 py-2" />
           <input type="text" value={form.codigoPostal} onChange={e => setForm({ ...form, codigoPostal: e.target.value })} placeholder="Codigo Postal" className="border rounded px-3 py-2" />
@@ -424,6 +436,8 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
   const [showForm, setShowForm] = useState(false);
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
+  const { sugerencias: sugDirLocal, buscarDirecciones: buscarDirLocal } = useGooglePlaces();
+  const [mostrarSugDirLocal, setMostrarSugDirLocal] = useState(false);
 
   const cargar = () => getLocales().then(setLocales);
   useEffect(() => { cargar(); getEmpresas().then(setEmpresas); }, []);
@@ -482,7 +496,16 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
           <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2" required />
-          <input type="text" value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Direccion" className="border rounded px-3 py-2" />
+          <div className="relative">
+            <input type="text" value={form.direccion} onChange={e => { setForm({ ...form, direccion: e.target.value }); buscarDirLocal(e.target.value); setMostrarSugDirLocal(true); }} onFocus={() => { if (sugDirLocal.length > 0) setMostrarSugDirLocal(true); }} onBlur={() => setTimeout(() => setMostrarSugDirLocal(false), 200)} placeholder="Direccion" className="border rounded px-3 py-2 w-full" />
+            {mostrarSugDirLocal && sugDirLocal.length > 0 && form.direccion.length >= 3 && (
+              <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
+                {sugDirLocal.map(s => (
+                  <button key={s.placeId} type="button" onClick={() => { setForm({ ...form, direccion: s.descripcion }); setMostrarSugDirLocal(false); }} className="w-full text-left px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0">{s.descripcion}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <select value={form.empresaId} onChange={e => setForm({ ...form, empresaId: e.target.value })} className="border rounded px-3 py-2">
             <option value="">Sin empresa</option>
             {empresas.filter(emp => emp.activa).map(emp => (

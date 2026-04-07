@@ -97,8 +97,8 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria)
-            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria)
+            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
             .Include(p => p.Local)
             .Include(p => p.Zona)
             .Include(p => p.Repartidor)
@@ -318,8 +318,8 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria)
-            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria)
+            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
             .Include(p => p.Repartidor)
             .Where(p => p.RepartidorId != null
                 && (p.Estado == EstadoPedido.Asignado || p.Estado == EstadoPedido.EnCamino)
@@ -333,8 +333,8 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria)
-            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria)
+            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
             .Include(p => p.Repartidor)
             .Where(p => p.RepartidorId != null
                 && p.FechaAsignacion != null

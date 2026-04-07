@@ -197,8 +197,8 @@ export default function ProductosPage() {
     const econId = categorias.find(c => c.nombre === 'Económica')?.id;
     const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
     return [
-      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
-      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: [econId, ...categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id)].filter(Boolean) as number[] },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: [premiumId, ...categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id)].filter(Boolean) as number[] },
       { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
       { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
       { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },
@@ -318,9 +318,16 @@ export default function ProductosPage() {
     }
     if (megaFiltro === 'promo') {
       lista = lista.filter(c => preciosPromoCombos.has(c.id));
+    } else if (megaFiltro && megaFiltro !== 'promo') {
+      // Mostrar combos que contengan productos de la mega-categoría seleccionada
+      const mc = megaCategorias.find(m => m.key === megaFiltro);
+      if (mc) {
+        const prodIdsEnCat = new Set(productos.filter(p => mc.catIds.includes(p.categoriaId)).map(p => p.id));
+        lista = lista.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
+      }
     }
     return lista;
-  }, [combos, busqueda, megaFiltro, preciosPromoCombos]);
+  }, [combos, productos, busqueda, megaFiltro, megaCategorias, preciosPromoCombos]);
 
   const listaSeleccionada = listas.find(l => l.id === listaPrecioId);
 
@@ -478,7 +485,7 @@ export default function ProductosPage() {
         />
         <span className="text-xs text-gray-400">
           {verCombos ? `${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`
-            : megaFiltro === 'promo' ? `${productosFiltrados.length + combosFiltrados.length} en promo`
+            : megaFiltro ? `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''} + ${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`
             : `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''}`}
         </span>
       </div>
@@ -608,7 +615,7 @@ export default function ProductosPage() {
               </div>
             ))}
             {/* Combos que coinciden con la búsqueda */}
-            {busqueda.trim() && combosFiltrados.map(c => (
+            {(busqueda.trim() || megaFiltro) && combosFiltrados.map(c => (
               <div
                 key={`combo-${c.id}`}
                 className={`relative border-2 rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${preciosPromoCombos.has(c.id) ? 'bg-red-50 border-red-200 hover:border-red-400' : 'bg-purple-50 border-purple-200 hover:border-purple-400'}`}
@@ -637,7 +644,7 @@ export default function ProductosPage() {
                 )}
               </div>
             ))}
-            {productosFiltrados.length === 0 && (!busqueda.trim() || combosFiltrados.length === 0) && (
+            {productosFiltrados.length === 0 && combosFiltrados.length === 0 && (
               <div className="col-span-full text-center text-gray-400 py-8">No hay resultados</div>
             )}
           </div>

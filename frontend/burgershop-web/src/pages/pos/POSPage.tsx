@@ -129,7 +129,7 @@ export default function POSPage() {
       return;
     }
     const timeout = setTimeout(() => {
-      buscarClientes(busquedaCliente).then(setClientesSugeridos);
+      buscarClientes(busquedaCliente).then(r => setClientesSugeridos(r.filter(c => !localActivo || !c.localId || c.localId === localActivo)));
     }, 300);
     return () => clearTimeout(timeout);
   }, [busquedaCliente]);
@@ -311,8 +311,8 @@ export default function POSPage() {
     const econId = categorias.find(c => c.nombre === 'Económica')?.id;
     const premiumId = categorias.find(c => c.nombre === 'Premium')?.id;
     return [
-      { key: 'eco', label: 'Hamburguesas Eco', catIds: categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id) },
-      { key: 'premium', label: 'Hamburguesas Premium', catIds: categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id) },
+      { key: 'eco', label: 'Hamburguesas Eco', catIds: [econId, ...categorias.filter(c => c.categoriaPadreId === econId).map(c => c.id)].filter(Boolean) as number[] },
+      { key: 'premium', label: 'Hamburguesas Premium', catIds: [premiumId, ...categorias.filter(c => c.categoriaPadreId === premiumId).map(c => c.id)].filter(Boolean) as number[] },
       { key: 'salch-corta', label: 'Salchichas Cortas', catIds: categorias.filter(c => c.nombre === 'Salchicha Corta').map(c => c.id) },
       { key: 'salch-larga', label: 'Salchichas Largas', catIds: categorias.filter(c => c.nombre === 'Salchicha Larga').map(c => c.id) },
       { key: 'pan', label: 'Pan', catIds: categorias.filter(c => c.nombre.startsWith('Pan ')).map(c => c.id) },

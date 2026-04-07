@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
@@ -44,6 +45,8 @@ export default function ClientesPage() {
   const [busqueda, setBusqueda] = useState('');
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
+  const { sugerencias: sugerenciasDireccion, buscarDirecciones } = useGooglePlaces();
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
 
   const cargar = () => getClientes().then(setClientes);
 
@@ -187,15 +190,38 @@ export default function ClientesPage() {
               className="border rounded px-3 py-2 w-full"
             />
           </div>
-          <div>
+          <div className="relative">
             <label className="block text-xs font-medium text-gray-600 mb-1">Direccion</label>
             <input
               type="text"
               value={form.direccion}
-              onChange={e => setForm({ ...form, direccion: e.target.value })}
+              onChange={e => {
+                setForm({ ...form, direccion: e.target.value });
+                buscarDirecciones(e.target.value);
+                setMostrarSugerencias(true);
+              }}
+              onFocus={() => { if (sugerenciasDireccion.length > 0) setMostrarSugerencias(true); }}
+              onBlur={() => { setTimeout(() => setMostrarSugerencias(false), 200); }}
               placeholder="Direccion"
               className="border rounded px-3 py-2 w-full"
             />
+            {mostrarSugerencias && sugerenciasDireccion.length > 0 && form.direccion.length >= 3 && (
+              <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
+                {sugerenciasDireccion.map(s => (
+                  <button
+                    key={s.placeId}
+                    type="button"
+                    onClick={() => {
+                      setForm({ ...form, direccion: s.descripcion });
+                      setMostrarSugerencias(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0"
+                  >
+                    {s.descripcion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Zona</label>
