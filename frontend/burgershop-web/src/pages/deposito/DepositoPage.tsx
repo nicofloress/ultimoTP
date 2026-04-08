@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { getPedidosDeposito } from '../../api/deposito';
-import { Pedido } from '../../types';
+import { getVentasDeposito } from '../../api/deposito';
+import type { VentaDto } from '../../api/ventas';
 
 const playBeep = () => {
   try {
@@ -40,7 +40,7 @@ const formatMoney = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
 
 export default function DepositoPage() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [ventas, setVentas] = useState<VentaDto[]>([]);
   const [now, setNow] = useState<Date>(new Date());
   const [fadingOutId, setFadingOutId] = useState<number | null>(null);
   const idsAnterioresRef = useRef<Set<number>>(new Set());
@@ -50,29 +50,29 @@ export default function DepositoPage() {
   useEffect(() => {
     let cancelado = false;
 
-    const fetchPedidos = async () => {
+    const fetchVentas = async () => {
       try {
-        const data = await getPedidosDeposito();
+        const data = await getVentasDeposito();
         if (cancelado) return;
-        const idsActuales = new Set(data.map(p => p.id));
+        const idsActuales = new Set(data.map(v => v.id));
         if (!primeraCargaRef.current) {
-          const hayNuevo = data.some(p => !idsAnterioresRef.current.has(p.id));
-          if (hayNuevo) playBeep();
+          const hayNueva = data.some(v => !idsAnterioresRef.current.has(v.id));
+          if (hayNueva) playBeep();
         }
         idsAnterioresRef.current = idsActuales;
         primeraCargaRef.current = false;
-        // Ordenar por fechaCreacion ascendente (más viejo arriba)
-        const ordenados = [...data].sort(
-          (a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime()
+        // Ordenar por fecha ascendente (más vieja arriba)
+        const ordenadas = [...data].sort(
+          (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
         );
-        setPedidos(ordenados);
+        setVentas(ordenadas);
       } catch (e) {
         // ignore
       }
     };
 
-    fetchPedidos();
-    const interval = setInterval(fetchPedidos, 10000);
+    fetchVentas();
+    const interval = setInterval(fetchVentas, 10000);
     return () => {
       cancelado = true;
       clearInterval(interval);
@@ -85,22 +85,22 @@ export default function DepositoPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Detectar timer del primer pedido en 0 -> fade-out + remover
+  // Detectar timer de la primera venta en 0 -> fade-out + remover
   useEffect(() => {
-    if (pedidos.length === 0) return;
-    const primero = pedidos[0];
-    const segundosTranscurridos = (now.getTime() - new Date(primero.fechaCreacion).getTime()) / 1000;
+    if (ventas.length === 0) return;
+    const primera = ventas[0];
+    const segundosTranscurridos = (now.getTime() - new Date(primera.fecha).getTime()) / 1000;
     const restante = 600 - segundosTranscurridos;
-    if (restante <= 0 && fadingOutId !== primero.id) {
-      setFadingOutId(primero.id);
+    if (restante <= 0 && fadingOutId !== primera.id) {
+      setFadingOutId(primera.id);
       setTimeout(() => {
-        setPedidos(prev => prev.filter(p => p.id !== primero.id));
+        setVentas(prev => prev.filter(v => v.id !== primera.id));
         setFadingOutId(null);
       }, 1000);
     }
-  }, [now, pedidos, fadingOutId]);
+  }, [now, ventas, fadingOutId]);
 
-  const primeroId = pedidos[0]?.id;
+  const primeroId = ventas[0]?.id;
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-white">
@@ -109,27 +109,27 @@ export default function DepositoPage() {
         <div className="text-6xl font-mono font-bold text-orange-400">{formatTime(now)}</div>
         <div className="text-3xl font-bold">
           <span className="text-slate-400">Pedidos: </span>
-          <span className="text-white">{pedidos.length}</span>
+          <span className="text-white">{ventas.length}</span>
         </div>
       </header>
 
       <main className="px-8 py-6">
-        {pedidos.length === 0 ? (
+        {ventas.length === 0 ? (
           <div className="flex items-center justify-center h-[70vh]">
             <div className="text-5xl text-slate-500 font-semibold">Sin pedidos pendientes</div>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {pedidos.map(p => {
-              const esPrimero = p.id === primeroId;
-              const fading = fadingOutId === p.id;
+            {ventas.map(v => {
+              const esPrimero = v.id === primeroId;
+              const fading = fadingOutId === v.id;
               const segundosTranscurridos =
-                (now.getTime() - new Date(p.fechaCreacion).getTime()) / 1000;
+                (now.getTime() - new Date(v.fecha).getTime()) / 1000;
               const restante = 600 - segundosTranscurridos;
 
               return (
                 <div
-                  key={p.id}
+                  key={v.id}
                   className={[
                     'rounded-2xl p-8 shadow-2xl transition-opacity duration-1000',
                     fading ? 'opacity-0' : 'opacity-100',
@@ -141,10 +141,10 @@ export default function DepositoPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="text-6xl font-extrabold text-orange-400">
-                        #{p.numeroTicket}
+                        #{v.numeroVenta}
                       </div>
                       <div className="text-2xl text-slate-300 mt-2">
-                        Hora: <span className="font-bold text-white">{formatHora(p.fechaCreacion)}</span>
+                        Hora: <span className="font-bold text-white">{formatHora(v.fecha)}</span>
                       </div>
                     </div>
                     {esPrimero && (
@@ -163,10 +163,10 @@ export default function DepositoPage() {
                   </div>
 
                   <ul className="divide-y divide-slate-700 border-t border-b border-slate-700">
-                    {p.lineas.map(l => (
-                      <li key={l.id} className="py-3 flex items-baseline gap-6 text-3xl">
-                        <span className="font-extrabold text-orange-300 w-20">{l.cantidad}x</span>
-                        <span className="flex-1 font-semibold">{l.descripcion}</span>
+                    {v.detalles.map(d => (
+                      <li key={d.id} className="py-3 flex items-baseline gap-6 text-3xl">
+                        <span className="font-extrabold text-orange-300 w-20">{d.cantidad}x</span>
+                        <span className="flex-1 font-semibold">{d.descripcion}</span>
                       </li>
                     ))}
                   </ul>
@@ -174,7 +174,7 @@ export default function DepositoPage() {
                   <div className="flex items-center justify-end mt-4">
                     <div className="text-3xl">
                       <span className="text-slate-400 mr-3">Total:</span>
-                      <span className="font-extrabold text-white">{formatMoney(p.total)}</span>
+                      <span className="font-extrabold text-white">{formatMoney(v.total)}</span>
                     </div>
                   </div>
                 </div>
