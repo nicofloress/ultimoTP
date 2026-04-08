@@ -10,4 +10,5 @@ public interface IVentaRepository : IRepository<Venta>
     Task<IEnumerable<Venta>> GetByLocalAsync(int localId, DateTime? desde, DateTime? hasta);
     Task<int> GetSiguienteNumeroVentaAsync(DateTime fecha);
     Task<Venta?> GetByPedidoIdAsync(int pedidoId);
+    Task<IEnumerable<Venta>> GetVentasDepositoAsync(DateTime desde, int? localId);
 }
