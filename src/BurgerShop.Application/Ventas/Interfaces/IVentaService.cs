@@ -10,4 +10,5 @@ public interface IVentaService
     Task<IEnumerable<VentaDto>> GetByFechaAsync(DateTime fecha);
     Task<IEnumerable<VentaDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);
     Task<VentaDto?> GetByPedidoIdAsync(int pedidoId);
+    Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId);
 }

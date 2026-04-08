@@ -261,6 +261,13 @@ public class VentaService : IVentaService
         return venta is null ? null : ToDto(venta);
     }
 
+    public async Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId)
+    {
+        var desde = DateTime.Now.AddMinutes(-10);
+        var ventas = await _ventaRepo.GetVentasDepositoAsync(desde, localId);
+        return ventas.Select(ToDto);
+    }
+
     // ----------------------------------------------------------------
     // Movimientos de inventario para venta mostrador
     // ----------------------------------------------------------------

@@ -87,4 +87,19 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Usuario)
             .FirstOrDefaultAsync(v => v.PedidoId == pedidoId);
     }
+
+    public async Task<IEnumerable<Venta>> GetVentasDepositoAsync(DateTime desde, int? localId)
+    {
+        var query = _dbSet
+            .Include(v => v.Detalles)
+            .Where(v => v.TipoVenta == BurgerShop.Domain.Enums.TipoVenta.Mostrador
+                && v.Fecha >= desde);
+
+        if (localId.HasValue)
+            query = query.Where(v => v.LocalId == localId.Value);
+
+        return await query
+            .OrderBy(v => v.Fecha)
+            .ToListAsync();
+    }
 }

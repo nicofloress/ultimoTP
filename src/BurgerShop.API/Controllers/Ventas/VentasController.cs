@@ -54,4 +54,15 @@ public class VentasController : ControllerBase
         var venta = await _service.GetByPedidoIdAsync(pedidoId);
         return venta is null ? NotFound() : Ok(venta);
     }
+
+    [HttpGet("deposito")]
+    [Authorize(Roles = "Deposito,SuperAdmin")]
+    public async Task<ActionResult<IEnumerable<VentaDto>>> GetDeposito()
+    {
+        int? localId = null;
+        var localIdClaim = User.FindFirstValue("localId");
+        if (int.TryParse(localIdClaim, out var parsed))
+            localId = parsed;
+        return Ok(await _service.GetVentasDepositoAsync(localId));
+    }
 }
