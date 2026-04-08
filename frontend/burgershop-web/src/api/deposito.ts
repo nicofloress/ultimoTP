@@ -1,5 +1,5 @@
 import api from './client';
-import { Pedido } from '../types';
+import type { VentaDto } from './ventas';
 
-export const getPedidosDeposito = () =>
-  api.get<Pedido[]>('/pedidos/deposito').then(r => r.data);
+export const getVentasDeposito = () =>
+  api.get<VentaDto[]>('/ventas/deposito').then(r => r.data);
