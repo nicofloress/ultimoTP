@@ -392,9 +392,7 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
 
         if (localId.HasValue)
         {
-            query = query.Where(p => p.CierreCaja != null
-                && p.CierreCaja.UsuarioId != null
-                && _context.Usuarios.Any(u => u.Id == p.CierreCaja.UsuarioId && u.LocalId == localId.Value));
+            query = query.Where(p => p.LocalId == localId.Value);
         }
 
         return await query
