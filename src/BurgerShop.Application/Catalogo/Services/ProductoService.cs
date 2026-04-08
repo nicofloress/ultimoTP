@@ -61,7 +61,7 @@ public class ProductoService : IProductoService
             Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio,
             CategoriaId = dto.CategoriaId,
             ImagenUrl = dto.ImagenUrl,
-            NumeroInterno = dto.NumeroInterno,
+            NumeroInterno = string.IsNullOrWhiteSpace(dto.NumeroInterno) ? null : dto.NumeroInterno,
             PesoGramos = dto.PesoGramos,
             UnidadesPorBulto = dto.UnidadesPorBulto,
             Marca = dto.Marca,

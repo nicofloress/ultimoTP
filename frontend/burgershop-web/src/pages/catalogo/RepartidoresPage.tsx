@@ -171,10 +171,11 @@ export default function RepartidoresPage() {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Telefono</label>
             <input
-              type="text"
+              type="tel"
+              inputMode="numeric"
               value={form.telefono}
-              onChange={e => setForm({ ...form, telefono: e.target.value })}
-              placeholder="Telefono"
+              onChange={e => setForm({ ...form, telefono: e.target.value.replace(/[^0-9\-+() ]/g, '') })}
+              placeholder="Ej: 1155667788"
               className="border rounded px-3 py-2 w-full"
             />
           </div>
