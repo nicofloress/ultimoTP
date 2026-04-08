@@ -144,7 +144,7 @@ export default function CuentaCorrientePage() {
         clienteId: seleccionada.clienteId,
         monto: Number(pagoMonto),
         formaPagoId: Number(pagoFormaPagoId),
-        localId: 1,
+        localId: localSeleccionado || 1,
         observaciones: pagoObs || undefined,
       });
       showToast('Pago registrado correctamente', 'success');

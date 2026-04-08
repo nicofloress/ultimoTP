@@ -494,7 +494,7 @@ export default function POSPage() {
         tipoVenta: envioADomicilio ? 2 : 1, // 1=Mostrador, 2=Domicilio
         nombreCliente: nombreCliente || undefined,
         telefonoCliente: telefonoCliente || undefined,
-        localId: 1,
+        localId: localActivo || 1,
         formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
         descuento: descuentoCalculado,
         observaciones: obs,
