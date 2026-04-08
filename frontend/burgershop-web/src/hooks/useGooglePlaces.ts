@@ -140,7 +140,7 @@ export function useGooglePlaces() {
   }, []);
 
   return {
-    sugerencias, cargando, coordenadas,
+    sugerencias, cargando, coordenadas, setCoordenadas,
     buscarDirecciones, limpiarSugerencias,
     geocodificar, geocodificarDireccion, limpiarCoordenadas,
   };

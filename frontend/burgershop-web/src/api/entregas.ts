@@ -26,6 +26,7 @@ export interface CompletaMedia {
 
 export interface RepartidorTally {
   repartidorId: number;
+  repartidorLocalId?: number;
   nombre: string;
   vehiculo: string | null;
   fecha: string;

@@ -52,11 +52,18 @@ public class RequestLoggingMiddleware
             _logger.LogError(ex, "Excepción no controlada en {Method} {Path}",
                 context.Request.Method, context.Request.Path);
 
-            // Persistir en BD
-            await RegistrarLogAsync(
-                context,
-                stopwatch.ElapsedMilliseconds,
-                excepcion: ex);
+            // Persistir en BD (con manejo de error separado)
+            try
+            {
+                await RegistrarLogAsync(
+                    context,
+                    stopwatch.ElapsedMilliseconds,
+                    excepcion: ex);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogError(logEx, "Fallo al persistir log de excepción en BD. Error original: {Message}", ex.Message);
+            }
 
             // Escribir respuesta 500 genérica si aún no se envió nada al cliente
             if (!context.Response.HasStarted)

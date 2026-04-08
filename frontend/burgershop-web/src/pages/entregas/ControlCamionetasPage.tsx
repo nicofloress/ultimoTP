@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getControlCamioneta, RepartidorTally, CompletaMedia, descargarControlCamioneta } from '../../api/entregas';
+import { useLocalActivo } from '../../context/LocalContext';
 
 function formatCantidad(count: number): string {
   if (count <= 0) return '';
@@ -148,38 +149,42 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
               </>
             )}
 
-            {/* Salchichas Cortas */}
-            {(tally.salchichaCorta.completa > 0 || tally.salchichaCorta.media > 0 || tally.salchichaCorta.sueltos > 0) && (
+            {/* Salchichas Cortas + Largas combinadas */}
+            {(tally.salchichaCorta.completa > 0 || tally.salchichaCorta.media > 0 || tally.salchichaCorta.sueltos > 0 || tally.salchichaLarga.completa > 0 || tally.salchichaLarga.media > 0 || tally.salchichaLarga.sueltos > 0) && (
               <>
                 <tr className={colors.azulCielo}>
-                  <td colSpan={5} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Salchichas Cortas</td>
+                  <td colSpan={3} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Salchichas Cortas</td>
+                  <td colSpan={2} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Salchichas Largas</td>
                 </tr>
-                <tr className={checks['sc'] ? 'bg-gray-300 text-gray-500 line-through' : ''}>
+                {/* Fila 1: 30 cortas | 18 largas */}
+                <tr>
                   <td className="px-3 py-1.5 border border-gray-300">
-                    <input type="checkbox" checked={!!checks['sc']} onChange={(e) => toggle('sc', e.target.checked)} className="w-4 h-4" />
+                    <input type="checkbox" checked={!!checks['sc-30']} onChange={(e) => toggle('sc-30', e.target.checked)} className="w-4 h-4" />
                   </td>
-                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">Salch. Corta</td>
-                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaCorta.completa > 0 ? formatCantidad(tally.salchichaCorta.completa) : '-'}</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">30 un.</td>
                   <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaCorta.media > 0 ? formatCantidad(tally.salchichaCorta.media) : '-'}</td>
-                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaCorta.sueltos > 0 ? tally.salchichaCorta.sueltos : '-'}</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">18 un.</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">-</td>
                 </tr>
-              </>
-            )}
-
-            {/* Salchichas Largas */}
-            {(tally.salchichaLarga.completa > 0 || tally.salchichaLarga.media > 0 || tally.salchichaLarga.sueltos > 0) && (
-              <>
-                <tr className={colors.naranja}>
-                  <td colSpan={5} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Salchichas Largas</td>
-                </tr>
-                <tr className={checks['sl'] ? 'bg-gray-300 text-gray-500 line-through' : ''}>
+                {/* Fila 2: 60 cortas | 36 largas */}
+                <tr>
                   <td className="px-3 py-1.5 border border-gray-300">
-                    <input type="checkbox" checked={!!checks['sl']} onChange={(e) => toggle('sl', e.target.checked)} className="w-4 h-4" />
+                    <input type="checkbox" checked={!!checks['sc-60']} onChange={(e) => toggle('sc-60', e.target.checked)} className="w-4 h-4" />
                   </td>
-                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">Salch. Larga</td>
-                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaLarga.completa > 0 ? formatCantidad(tally.salchichaLarga.completa) : '-'}</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">60 un.</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaCorta.completa > 0 ? formatCantidad(tally.salchichaCorta.completa) : '-'}</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">36 un.</td>
                   <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaLarga.media > 0 ? formatCantidad(tally.salchichaLarga.media) : '-'}</td>
-                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaLarga.sueltos > 0 ? tally.salchichaLarga.sueltos : '-'}</td>
+                </tr>
+                {/* Fila 3: sueltas cortas | 60 largas */}
+                <tr>
+                  <td className="px-3 py-1.5 border border-gray-300">
+                    {tally.salchichaCorta.sueltos > 0 && <input type="checkbox" checked={!!checks['sc-s']} onChange={(e) => toggle('sc-s', e.target.checked)} className="w-4 h-4" />}
+                  </td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{tally.salchichaCorta.sueltos > 0 ? `${tally.salchichaCorta.sueltos} sueltas` : ''}</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaCorta.sueltos > 0 ? formatCantidad(1) : '-'}</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">60 un.</td>
+                  <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{tally.salchichaLarga.completa > 0 ? formatCantidad(tally.salchichaLarga.completa) : '-'}</td>
                 </tr>
               </>
             )}
@@ -279,6 +284,7 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
 }
 
 export default function ControlCamionetasPage() {
+  const { localActivo } = useLocalActivo();
   const [data, setData] = useState<RepartidorTally[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -286,7 +292,7 @@ export default function ControlCamionetasPage() {
   const fetchData = useCallback(async () => {
     try {
       const res = await getControlCamioneta();
-      setData(res.repartidores);
+      setData(localActivo ? res.repartidores.filter(r => !r.repartidorLocalId || r.repartidorLocalId === localActivo) : res.repartidores);
     } catch (err) {
       console.error('Error cargando control camioneta:', err);
     } finally {

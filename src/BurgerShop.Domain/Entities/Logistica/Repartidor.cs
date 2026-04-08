@@ -10,7 +10,7 @@ public class Repartidor
     public string? Telefono { get; set; }
     public string? Vehiculo { get; set; }
     public bool Activo { get; set; } = true;
-    public string CodigoAcceso { get; set; } = string.Empty;
+    public string? CodigoAcceso { get; set; }
     public int? LocalId { get; set; }
     public Local? Local { get; set; }
 

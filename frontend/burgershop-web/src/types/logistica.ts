@@ -24,7 +24,6 @@ export interface CrearRepartidorDto {
   nombre: string;
   telefono?: string;
   vehiculo?: string;
-  codigoAcceso?: string;
   localId?: number;
 }
 
@@ -33,7 +32,6 @@ export interface ActualizarRepartidorDto {
   telefono?: string;
   vehiculo?: string;
   activo: boolean;
-  codigoAcceso?: string;
   localId?: number;
 }
 

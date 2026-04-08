@@ -583,7 +583,7 @@ export default function ConfigPage() {
   const [editandoZona, setEditandoZona] = useState<Zona | null>(null);
 
   // Repartidor form
-  const [repForm, setRepForm] = useState({ nombre: '', telefono: '', vehiculo: '', codigoAcceso: '' });
+  const [repForm, setRepForm] = useState({ nombre: '', telefono: '', vehiculo: '' });
   const [editandoRep, setEditandoRep] = useState<Repartidor | null>(null);
   const [zonasAsignar, setZonasAsignar] = useState<number[]>([]);
 
@@ -638,13 +638,13 @@ export default function ConfigPage() {
     setGuardando(true);
     try {
       if (editandoRep) {
-        await updateRepartidor(editandoRep.id, { ...repForm, activo: editandoRep.activo, codigoAcceso: repForm.codigoAcceso || undefined });
+        await updateRepartidor(editandoRep.id, { ...repForm, activo: editandoRep.activo });
         showToast('Repartidor actualizado correctamente', 'success');
       } else {
         await createRepartidor(repForm);
         showToast('Repartidor creado correctamente', 'success');
       }
-      setRepForm({ nombre: '', telefono: '', vehiculo: '', codigoAcceso: '' }); setEditandoRep(null); cargar();
+      setRepForm({ nombre: '', telefono: '', vehiculo: '' }); setEditandoRep(null); cargar();
     } catch {
       showToast('Error al guardar repartidor', 'error');
     } finally {
@@ -883,7 +883,6 @@ export default function ConfigPage() {
             <input type="text" value={repForm.nombre} onChange={e => setRepForm({ ...repForm, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 flex-1" required />
             <input type="text" value={repForm.telefono} onChange={e => setRepForm({ ...repForm, telefono: e.target.value })} placeholder="Telefono" className="border rounded px-3 py-2" />
             <input type="text" value={repForm.vehiculo} onChange={e => setRepForm({ ...repForm, vehiculo: e.target.value })} placeholder="Vehiculo" className="border rounded px-3 py-2" />
-            <input type="text" value={repForm.codigoAcceso} onChange={e => setRepForm({ ...repForm, codigoAcceso: e.target.value })} placeholder="Codigo acceso" className="border rounded px-3 py-2 w-32" required={!editandoRep} />
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoRep ? 'Actualizar' : 'Crear')}</button>
           </form>
           <div className="space-y-4">
@@ -896,7 +895,7 @@ export default function ConfigPage() {
                     <p className="text-xs text-gray-400 mt-1">Zonas: {r.zonas.map(z => z.nombre).join(', ') || 'Sin asignar'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditandoRep(r); setRepForm({ nombre: r.nombre, telefono: r.telefono || '', vehiculo: r.vehiculo || '', codigoAcceso: '' }); }} className="text-sm text-blue-600 hover:underline">Editar</button>
+                    <button onClick={() => { setEditandoRep(r); setRepForm({ nombre: r.nombre, telefono: r.telefono || '', vehiculo: r.vehiculo || '' }); }} className="text-sm text-blue-600 hover:underline">Editar</button>
                     <button onClick={() => setConfirmacion({ visible: true, tipo: 'repartidor', id: r.id, nombre: r.nombre })} className="text-sm text-red-600 hover:underline">Desactivar</button>
                   </div>
                 </div>

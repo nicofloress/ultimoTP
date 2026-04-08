@@ -77,7 +77,13 @@ public class EntregasController : ControllerBase
 
     [HttpGet("por-zona")]
     public async Task<ActionResult<IEnumerable<PedidoDto>>> GetPorZona()
-        => Ok(await _pedidoService.GetListosParaRepartoHoyAsync());
+    {
+        var pedidos = await _pedidoService.GetListosParaRepartoHoyAsync();
+        var localIdClaim = User.FindFirst("localId")?.Value;
+        if (int.TryParse(localIdClaim, out var localId))
+            pedidos = pedidos.Where(p => p.LocalId == localId);
+        return Ok(pedidos);
+    }
 
     [HttpPost("empezar-reparto")]
     public async Task<ActionResult<IEnumerable<PedidoDto>>> EmpezarReparto(EmpezarRepartoDto dto)
@@ -110,7 +116,17 @@ public class EntregasController : ControllerBase
 
     [HttpGet("control-camioneta")]
     public async Task<ActionResult<ControlCamionetaDto>> GetControlCamioneta()
-        => Ok(await _controlCamionetaService.GetTalliesActivosHoyAsync());
+    {
+        var result = await _controlCamionetaService.GetTalliesActivosHoyAsync();
+        var localIdClaim = User.FindFirst("localId")?.Value;
+        if (int.TryParse(localIdClaim, out var localId))
+        {
+            result.Repartidores = result.Repartidores
+                .Where(t => t.RepartidorLocalId == null || t.RepartidorLocalId == localId)
+                .ToList();
+        }
+        return Ok(result);
+    }
 
     [HttpPost("control-camioneta")]
     public async Task<IActionResult> ControlCamioneta(EmpezarRepartoDto dto)

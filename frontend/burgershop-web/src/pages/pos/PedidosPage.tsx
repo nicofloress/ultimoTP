@@ -96,7 +96,7 @@ export default function PedidosPage() {
 
   const busquedaRef = useRef<HTMLInputElement>(null);
   const direccionRef = useRef<HTMLInputElement>(null);
-  const { sugerencias: sugerenciasDireccion, coordenadas, buscarDirecciones, limpiarSugerencias, geocodificar, geocodificarDireccion, limpiarCoordenadas } = useGooglePlaces();
+  const { sugerencias: sugerenciasDireccion, coordenadas, setCoordenadas, buscarDirecciones, limpiarSugerencias, geocodificar, geocodificarDireccion, limpiarCoordenadas } = useGooglePlaces();
   const [mostrarSugerenciasDireccion, setMostrarSugerenciasDireccion] = useState(false);
 
   // ===== CARGAR DATOS INICIALES =====
@@ -785,26 +785,29 @@ export default function PedidosPage() {
 
           {/* Columna derecha: Mapa interactivo (ocupa toda la altura) */}
           <div className="w-72 flex-shrink-0">
-            {coordenadas && direccion ? (
-              <div className="relative h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <GoogleMap coordenadas={coordenadas} className="h-full" />
+            <div className="relative h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <GoogleMap
+                coordenadas={coordenadas || { lat: -34.6037, lng: -58.3816 }}
+                className="h-full"
+                onClick={(coords, dir) => {
+                  setCoordenadas(coords);
+                  setDireccion(dir);
+                }}
+              />
+              {coordenadas && (
                 <button
-                  onClick={limpiarCoordenadas}
+                  onClick={() => { limpiarCoordenadas(); setDireccion(''); }}
                   className="absolute top-2 right-2 bg-white/90 text-gray-400 hover:text-gray-600 rounded-full p-1 shadow-sm transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
-              </div>
-            ) : (
-              <div className="h-full bg-white rounded-lg shadow-sm border border-dashed border-gray-300 flex items-center justify-center">
-                <div className="text-center">
-                  <svg className="w-10 h-10 mx-auto text-gray-200 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                  </svg>
-                  <span className="text-xs text-gray-400">Ingresa una direccion<br />para ver el mapa</span>
+              )}
+              {!coordenadas && (
+                <div className="absolute inset-0 flex items-end justify-center pb-3 pointer-events-none">
+                  <span className="bg-black/60 text-white text-[10px] px-2 py-1 rounded-full">Hace click en el mapa para seleccionar ubicacion</span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -1073,7 +1076,7 @@ export default function PedidosPage() {
               disabled={!formularioValido}
               className={`flex-[2] py-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                 formularioValido
-                  ? 'text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 focus:ring-amber-500'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >

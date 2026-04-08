@@ -8,6 +8,7 @@ public class ControlCamionetaDto
 public class RepartidorTallyDto
 {
     public int RepartidorId { get; set; }
+    public int? RepartidorLocalId { get; set; }
     public string Nombre { get; set; } = "";
     public string? Vehiculo { get; set; }
     public string Fecha { get; set; } = "";

@@ -89,6 +89,7 @@ public class ControlCamionetaService : IControlCamionetaService
             var dto = new RepartidorTallyDto
             {
                 RepartidorId = grupo.Key,
+                RepartidorLocalId = repartidor?.LocalId,
                 Nombre = repartidor?.Nombre ?? "Desconocido",
                 Vehiculo = repartidor?.Vehiculo,
                 Fecha = DateTime.Today.ToString("d/M/yyyy"),

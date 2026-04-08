@@ -654,7 +654,6 @@ export default function POSPage() {
 
   const tipoClienteActual = tiposCliente.find(tc => tc.id === tipoClienteSeleccionado);
   const permiteCuentaCorriente = !!tipoClienteActual?.permiteCuentaCorriente;
-  const listoParaGuardar = carrito.length > 0 && (modoPago === 'cuentaCorriente' || deuda <= 0);
 
   // Shared input class for consistent sizing
   const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
@@ -1190,11 +1189,9 @@ export default function POSPage() {
               className={`flex-[1.5] py-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                 guardando
                   ? 'bg-slate-500 text-white cursor-wait'
-                  : listoParaGuardar
+                  : carrito.length > 0
                     ? 'text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500'
-                    : carrito.length > 0
-                      ? 'text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 focus:ring-amber-500'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
               {guardando ? (

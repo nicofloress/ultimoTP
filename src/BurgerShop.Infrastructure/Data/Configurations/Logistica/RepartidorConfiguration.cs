@@ -12,9 +12,9 @@ public class RepartidorConfiguration : IEntityTypeConfiguration<Repartidor>
         builder.Property(r => r.Nombre).IsRequired().HasMaxLength(200);
         builder.Property(r => r.Telefono).HasMaxLength(50);
         builder.Property(r => r.Vehiculo).HasMaxLength(100);
-        builder.Property(r => r.CodigoAcceso).IsRequired().HasMaxLength(10);
+        builder.Property(r => r.CodigoAcceso).IsRequired(false).HasMaxLength(10);
 
-        builder.HasIndex(r => r.CodigoAcceso).IsUnique();
+        builder.HasIndex(r => r.CodigoAcceso).IsUnique().HasFilter("\"CodigoAcceso\" IS NOT NULL");
 
         builder.HasData(
             new Repartidor { Id = 1, Nombre = "Juan Pérez", Telefono = "11-1234-5678", Vehiculo = "Moto", CodigoAcceso = "1234", Activo = true },

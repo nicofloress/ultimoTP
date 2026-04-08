@@ -6,6 +6,7 @@ import { getZonas } from '../../api/zonas';
 import { getProductos } from '../../api/productos';
 import { crearPedido, getPedido } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
+import { useLocalActivo } from '../../context/LocalContext';
 import AdminChat from './AdminChat';
 
 // Separate from shared estadoColores: entregas uses different colors for visual distinction in the delivery context
@@ -21,6 +22,7 @@ const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 export default function EntregasPage() {
+  const { localActivo } = useLocalActivo();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [asignaciones, setAsignaciones] = useState<Map<number, number>>(new Map());
@@ -37,9 +39,13 @@ export default function EntregasPage() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const [p, r] = await Promise.all([getPedidosPorZona(), getRepartidores()]);
-      setPedidos(p);
-      setRepartidores(r.filter(rep => rep.activo));
+      const [p, r, z] = await Promise.all([getPedidosPorZona(), getRepartidores(), getZonas()]);
+      // Filtrar zonas del local
+      const zonasDelLocal = localActivo ? z.filter(zona => !zona.localId || zona.localId === localActivo) : z;
+      const zonaIdsLocal = new Set(zonasDelLocal.map(zona => zona.id));
+      // Filtrar pedidos: solo los de zonas del local
+      setPedidos(localActivo ? p.filter(ped => !ped.zonaId || zonaIdsLocal.has(ped.zonaId)) : p);
+      setRepartidores(r.filter(rep => rep.activo && (!localActivo || !rep.localId || rep.localId === localActivo)));
 
       // Auto-asignar repartidores en zonas que ya tienen repartidor activo
       setAsignaciones(prev => {
