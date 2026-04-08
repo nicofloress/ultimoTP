@@ -11,6 +11,10 @@ public static class FinanzasServiceExtensions
     {
         services.AddScoped<ICierreCajaRepository, CierreCajaRepository>();
         services.AddScoped<ICierreCajaService, CierreCajaService>();
+
+        services.AddScoped<IGastoRepository, GastoRepository>();
+        services.AddScoped<IGastoService, GastoService>();
+
         return services;
     }
 }

@@ -26,6 +26,7 @@ import ConfigPage from './pages/config/ConfigPage';
 import CajaPage from './pages/finanzas/CajaPage';
 import RendicionesPage from './pages/finanzas/RendicionesPage';
 import CuentaCorrientePage from './pages/finanzas/CuentaCorrientePage';
+import GastosPage from './pages/finanzas/GastosPage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
 import DepositoPage from './pages/deposito/DepositoPage';
 import DepositoLogin from './pages/deposito/DepositoLogin';
@@ -106,6 +107,9 @@ export default function App() {
             } />
             <Route path="/finanzas/rendiciones" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}><RendicionesPage /></ProtectedRoute>
+            } />
+            <Route path="/finanzas/gastos" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><GastosPage /></ProtectedRoute>
             } />
             <Route path="/inventario/movimientos" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}><MovimientosPage /></ProtectedRoute>

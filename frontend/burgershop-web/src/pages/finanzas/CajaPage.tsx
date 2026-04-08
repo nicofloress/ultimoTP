@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CierreCaja, EstadoCaja } from '../../types';
-import { getCajaAbierta, abrirCaja, cerrarCaja, getHistorialCajas } from '../../api/caja';
+import { getCajaAbierta, abrirCaja, cerrarCaja, getHistorialCajas, getCaja } from '../../api/caja';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
@@ -13,6 +13,8 @@ export default function CajaPage() {
   const [observacionesCierre, setObservacionesCierre] = useState('');
   const [detalleExpandido, setDetalleExpandido] = useState<number | null>(null);
   const [mostrarConfirmCierre, setMostrarConfirmCierre] = useState(false);
+  const [cajaDetalle, setCajaDetalle] = useState<CierreCaja | null>(null);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { showToast } = useGlobalToast();
 
   const cargarDatos = async () => {
@@ -60,6 +62,20 @@ export default function CajaPage() {
       showToast('Error al cerrar la caja', 'error');
     }
   };
+
+  const handleVerDetalle = async (id: number) => {
+    setCargandoDetalle(true);
+    try {
+      const caja = await getCaja(id);
+      setCajaDetalle(caja);
+    } catch {
+      showToast('Error al cargar detalle de caja', 'error');
+    } finally {
+      setCargandoDetalle(false);
+    }
+  };
+
+  const formatMonto = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const formatFecha = (fecha: string) => {
     return new Date(fecha).toLocaleString('es-AR', {
@@ -201,12 +217,20 @@ export default function CajaPage() {
                   placeholder="Observaciones opcionales al cerrar..."
                 />
               </div>
-              <button
-                onClick={handleCerrarCaja}
-                className="text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 px-6 py-2 font-medium transition-colors"
-              >
-                Cerrar Caja
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCerrarCaja}
+                  className="text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 px-6 py-2 font-medium transition-colors"
+                >
+                  Cerrar Caja
+                </button>
+                <button
+                  onClick={() => handleVerDetalle(cajaAbierta.id)}
+                  className="text-slate-700 bg-slate-50 border border-slate-300 rounded-md hover:bg-slate-100 px-6 py-2 font-medium transition-colors"
+                >
+                  Ver Detalle
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -283,6 +307,14 @@ export default function CajaPage() {
                               <span className="font-medium">Obs:</span> {caja.observaciones}
                             </p>
                           )}
+                          <div className="mt-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleVerDetalle(caja.id); }}
+                              className="text-slate-700 bg-slate-50 border border-slate-300 rounded-md hover:bg-slate-100 px-4 py-1.5 text-sm font-medium transition-colors"
+                            >
+                              Ver Detalle
+                            </button>
+                          </div>
                         </div>
                       )}
                     </td>
@@ -302,6 +334,162 @@ export default function CajaPage() {
         onConfirmar={confirmarCierreCaja}
         onCancelar={() => setMostrarConfirmCierre(false)}
       />
+
+      {/* Modal Detalle de Caja */}
+      {(cajaDetalle || cargandoDetalle) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !cargandoDetalle && setCajaDetalle(null)}>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4" onClick={e => e.stopPropagation()}>
+            {cargandoDetalle ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-gray-500">Cargando detalle...</div>
+              </div>
+            ) : cajaDetalle && (() => {
+              const esAbierta = cajaDetalle.estado === EstadoCaja.Abierta;
+              const detalleEfectivo = cajaDetalle.detalles.find(d => d.formaPagoNombre.toLowerCase() === 'efectivo');
+              const ventasEfectivo = detalleEfectivo?.montoTotal ?? 0;
+              const plataformas = cajaDetalle.detalles.filter(d => d.formaPagoNombre.toLowerCase() !== 'efectivo');
+              const dineroEnCaja = cajaDetalle.montoInicial + ventasEfectivo;
+              const diferenciaCaja = cajaDetalle.montoFinal != null ? cajaDetalle.montoFinal - dineroEnCaja : 0;
+              const totalVentasGeneral = cajaDetalle.detalles.reduce((s, d) => s + d.montoTotal, 0);
+
+              return (
+                <>
+                  {/* Header */}
+                  <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+                    <h3 className="text-lg font-bold">Caja #{cajaDetalle.id}</h3>
+                    <button onClick={() => setCajaDetalle(null)} className="text-white hover:text-gray-300 transition-colors text-2xl leading-none">&times;</button>
+                  </div>
+
+                  {/* Info superior */}
+                  <div className="px-6 py-4 border-b bg-gray-50">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-sm text-gray-600">
+                        Desde: {formatFecha(cajaDetalle.fechaApertura)} hs.
+                        {' - '}
+                        Hasta: {cajaDetalle.fechaCierre ? `${formatFecha(cajaDetalle.fechaCierre)} hs.` : 'Abierta'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded text-xs font-bold ${
+                        esAbierta ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'
+                      }`}>
+                        {esAbierta ? 'CAJA ABIERTA' : 'CAJA CERRADA'}
+                      </span>
+                      <button
+                        onClick={() => window.print()}
+                        className="ml-auto text-slate-600 bg-slate-50 border border-slate-300 rounded-md hover:bg-slate-100 px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Imprimir
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Cuerpo - 2 columnas */}
+                  <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Columna izquierda - Efectivo */}
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Efectivo</h4>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Detalle</th>
+                              <th className="text-right px-4 py-2 text-xs font-medium text-gray-500">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr>
+                              <td className="px-4 py-2 text-sm">Monto inicial</td>
+                              <td className="px-4 py-2 text-sm text-right">${formatMonto(cajaDetalle.montoInicial)}</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-2 text-sm text-green-700">+ Ingresos</td>
+                              <td className="px-4 py-2 text-sm text-right text-green-700">${formatMonto(0)}</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-2 text-sm text-red-600">- Retiros</td>
+                              <td className="px-4 py-2 text-sm text-right text-red-600">${formatMonto(0)}</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-2 text-sm text-green-700">+ Ventas</td>
+                              <td className="px-4 py-2 text-sm text-right text-green-700">${formatMonto(ventasEfectivo)}</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-2 text-sm text-red-600">- Compras</td>
+                              <td className="px-4 py-2 text-sm text-right text-red-600">${formatMonto(0)}</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-2 text-sm text-red-600">- Gastos</td>
+                              <td className="px-4 py-2 text-sm text-right text-red-600">${formatMonto(0)}</td>
+                            </tr>
+                            <tr className="bg-amber-50 border-t-2 border-amber-200">
+                              <td className="px-4 py-2 text-sm font-bold">Dinero en caja</td>
+                              <td className="px-4 py-2 text-sm text-right font-bold">${formatMonto(dineroEnCaja)}</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-2 text-sm">Diferencia de caja</td>
+                              <td className={`px-4 py-2 text-sm text-right font-medium ${diferenciaCaja < 0 ? 'text-red-600' : diferenciaCaja > 0 ? 'text-green-700' : ''}`}>
+                                ${formatMonto(diferenciaCaja)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Columna derecha - Plataformas de pago */}
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Plataformas de Pago</h4>
+                      {plataformas.length === 0 ? (
+                        <p className="text-gray-400 text-sm py-4">Sin operaciones en otras plataformas</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {plataformas.map(p => (
+                            <div key={p.id} className="border rounded-lg overflow-hidden">
+                              <div className="bg-slate-50 px-4 py-2 border-b">
+                                <span className="text-sm font-semibold text-slate-700">{p.formaPagoNombre}</span>
+                              </div>
+                              <div className="divide-y">
+                                <div className="flex justify-between px-4 py-2">
+                                  <span className="text-sm text-green-700">Ventas {p.formaPagoNombre}</span>
+                                  <span className="text-sm text-green-700">${formatMonto(p.montoTotal)}</span>
+                                </div>
+                                <div className="flex justify-between px-4 py-2">
+                                  <span className="text-sm text-red-600">Compras</span>
+                                  <span className="text-sm text-red-600">${formatMonto(0)}</span>
+                                </div>
+                                <div className="flex justify-between px-4 py-2 bg-amber-50 border-t border-amber-200">
+                                  <span className="text-sm font-bold">Total</span>
+                                  <span className="text-sm font-bold">${formatMonto(p.montoTotal)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="text-lg font-bold text-gray-800">
+                        TOTAL VENTAS: <span className="text-green-700">${formatMonto(totalVentasGeneral)}</span>
+                      </div>
+                    </div>
+                    {cajaDetalle.observaciones && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        <span className="font-medium">Observaciones:</span> {cajaDetalle.observaciones}
+                      </p>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

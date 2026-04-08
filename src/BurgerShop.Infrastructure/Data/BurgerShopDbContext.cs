@@ -46,6 +46,9 @@ public class BurgerShopDbContext : DbContext
     public DbSet<CuentaCorriente> CuentasCorrientes => Set<CuentaCorriente>();
     public DbSet<MovimientoCuentaCorriente> MovimientosCuentaCorriente => Set<MovimientoCuentaCorriente>();
 
+    // Gastos
+    public DbSet<Gasto> Gastos => Set<Gasto>();
+
     // Promociones
     public DbSet<Promocion> Promociones => Set<Promocion>();
     public DbSet<PromocionItem> PromocionItems => Set<PromocionItem>();
