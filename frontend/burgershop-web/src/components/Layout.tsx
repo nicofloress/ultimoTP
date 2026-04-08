@@ -43,7 +43,7 @@ const menuSections: MenuSection[] = [
       { to: '/catalogo/productos', label: 'Articulos', roles: [SA, AD] },
       { to: '/catalogo/repartidores', label: 'Repartidores', roles: [SA, AD] },
       { to: '/catalogo/proveedores', label: 'Proveedores', roles: [SA] },
-      { to: '/catalogo/listasprecios', label: 'Listas de Precios', roles: [SA, AD] },
+      { to: '/catalogo/listasprecios', label: 'Listas de Precios', roles: [SA] },
       { to: '/catalogo/usuarios', label: 'Usuarios', roles: [SA] },
       { to: '/catalogo/promociones', label: 'Promociones', roles: [SA] },
       { to: '/catalogo/zonas', label: 'Zonas', roles: [SA, AD] },

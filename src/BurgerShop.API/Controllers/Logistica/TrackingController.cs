@@ -28,9 +28,15 @@ public class TrackingController : ControllerBase
     }
 
     [HttpGet("activos")]
-    [Authorize(Roles = "SuperAdmin,Administrador")]
+    [Authorize(Roles = "SuperAdmin,Administrador,Local")]
     public async Task<ActionResult<IEnumerable<UbicacionDto>>> GetActivos()
-        => Ok(await _service.GetActivosAsync());
+    {
+        var ubicaciones = await _service.GetActivosAsync();
+        var localIdClaim = User.FindFirst("localId")?.Value;
+        if (int.TryParse(localIdClaim, out var localId))
+            ubicaciones = ubicaciones.Where(u => u.RepartidorLocalId == localId);
+        return Ok(ubicaciones);
+    }
 
     [HttpGet("repartidor/{id}")]
     public async Task<ActionResult<UbicacionDto>> GetByRepartidor(int id)

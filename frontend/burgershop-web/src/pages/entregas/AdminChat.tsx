@@ -128,7 +128,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
       >
         {/* Panel lateral - Lista de repartidores */}
         <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 flex-shrink-0">
-          <div className="p-4 border-b border-gray-200 bg-amber-600">
+          <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-b from-slate-500 to-slate-700">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-sm">Chat con Repartidores</h3>
               {totalNoLeidos > 0 && (
@@ -143,8 +143,8 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
               <button
                 key={r.id}
                 onClick={() => setSeleccionado(r)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-amber-50 transition-colors flex items-center justify-between ${
-                  seleccionado?.id === r.id ? 'bg-amber-100 border-l-4 border-l-amber-500' : ''
+                className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-slate-50 transition-colors flex items-center justify-between ${
+                  seleccionado?.id === r.id ? 'bg-slate-100 border-l-4 border-l-slate-500' : ''
                 }`}
               >
                 <div className="min-w-0 flex-1">
@@ -203,13 +203,13 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
                       <div
                         className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm shadow-sm ${
                           m.esDeAdmin
-                            ? 'bg-amber-500 text-white rounded-br-md'
+                            ? 'bg-slate-600 text-white rounded-br-md'
                             : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
                         }`}
                       >
                         <p className="whitespace-pre-wrap break-words">{m.texto}</p>
                         <div className={`text-[10px] mt-1 flex items-center gap-1 ${
-                          m.esDeAdmin ? 'text-amber-100 justify-end' : 'text-gray-400'
+                          m.esDeAdmin ? 'text-slate-300 justify-end' : 'text-gray-400'
                         }`}>
                           {formatHora(m.fechaEnvio)}
                           {m.esDeAdmin && (
@@ -232,13 +232,13 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
                     onChange={e => setTexto(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Escribe un mensaje..."
-                    className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                    className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
                     disabled={enviando}
                   />
                   <button
                     onClick={handleEnviar}
                     disabled={!texto.trim() || enviando}
-                    className="bg-amber-500 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    className="bg-slate-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

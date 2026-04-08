@@ -15,6 +15,10 @@ public class Producto
     public string? Marca { get; set; }
     public int UnidadesPorMedia { get; set; } = 0;
     public bool EsOfertaSemanal { get; set; }
+    public decimal PrecioCosto { get; set; }
+    public decimal PrecioVenta { get; set; }
+    public DateTime? FechaUltimaModificacionPrecio { get; set; }
+    public decimal DiferenciaPrecioCosto { get; set; }
 
     public Categoria Categoria { get; set; } = null!;
     public ICollection<ComboDetalle> ComboDetalles { get; set; } = new List<ComboDetalle>();

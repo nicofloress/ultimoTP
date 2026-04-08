@@ -12,7 +12,7 @@ import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, esOfertaSemanal: false };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0 };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -28,7 +28,7 @@ export default function ProductosPage() {
   const [showForm, setShowForm] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const { usuario } = useAuth();
-  const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const [confirmacionCombo, setConfirmacionCombo] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const [productoDetalle, setProductoDetalle] = useState<Producto | null>(null);
@@ -88,7 +88,7 @@ export default function ProductosPage() {
 
   const handleEditar = (p: Producto) => {
     setEditando(p);
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, esOfertaSemanal: p.esOfertaSemanal ?? false });
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0 });
     setShowForm(true);
   };
 
@@ -384,7 +384,7 @@ export default function ProductosPage() {
               ))}
             </select>
           </div>
-          {esAdmin && (
+          {esSuperAdmin && (
             <div className="flex items-center gap-2">
               <button onClick={() => abrirFormProducto()} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Producto
@@ -398,7 +398,7 @@ export default function ProductosPage() {
       </div>
 
       {/* Form admin */}
-      {showForm && esAdmin && (
+      {showForm && esSuperAdmin && (
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-3 grid grid-cols-2 gap-3 text-sm">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
@@ -415,10 +415,24 @@ export default function ProductosPage() {
             <label className="block text-xs font-medium text-gray-600 mb-1">Descripcion</label>
             <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2 w-full" />
           </div>
+          {esSuperAdmin && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Precio Costo</label>
+              <input type="number" value={form.precioCosto} onChange={e => setForm({ ...form, precioCosto: Number(e.target.value) })} placeholder="Precio de costo" className="border rounded px-3 py-2 w-full" min={0} step={0.01} />
+            </div>
+          )}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Precio</label>
-            <input type="number" value={form.precio} onChange={e => setForm({ ...form, precio: Number(e.target.value) })} placeholder="Precio" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
+            <label className="block text-xs font-medium text-gray-600 mb-1">Precio Venta</label>
+            <input type="number" value={form.precioVenta} onChange={e => setForm({ ...form, precioVenta: Number(e.target.value) })} placeholder="Precio de venta" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
           </div>
+          {esSuperAdmin && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Margen</label>
+              <div className={`border rounded px-3 py-2 w-full text-sm font-medium ${form.precioVenta - form.precioCosto > 0 ? 'bg-green-50 text-green-700' : form.precioVenta - form.precioCosto < 0 ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-500'}`}>
+                ${formatearNumero(form.precioVenta - form.precioCosto)} ({form.precioCosto > 0 ? ((form.precioVenta - form.precioCosto) / form.precioCosto * 100).toFixed(1) : '0'}%)
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Numero Interno</label>
             <input type="text" value={form.numeroInterno} onChange={e => setForm({ ...form, numeroInterno: e.target.value })} placeholder="Numero interno (ej: HAM-001)" className="border rounded px-3 py-2 w-full" />
@@ -453,7 +467,7 @@ export default function ProductosPage() {
       )}
 
       {/* Form combo */}
-      {showFormCombo && esAdmin && (
+      {showFormCombo && esSuperAdmin && (
         <form onSubmit={handleSubmitCombo} className="bg-white p-4 rounded-lg shadow mb-3 space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -465,10 +479,23 @@ export default function ProductosPage() {
               <input type="text" value={comboDescripcion} onChange={e => setComboDescripcion(e.target.value)} placeholder="Descripcion" className="border rounded px-3 py-2 w-full" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Precio del Combo</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Precio Venta del Combo</label>
               <input type="number" value={comboPrecio} onChange={e => setComboPrecio(Number(e.target.value))} placeholder="Precio combo" className="border rounded px-3 py-2 w-full" min={0} step={0.01} required />
             </div>
           </div>
+          {esSuperAdmin && comboDetalles.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-xs text-blue-700 flex items-center gap-4">
+              <span><span className="font-semibold">Costo estimado:</span> ${formatearNumero(comboDetalles.reduce((sum, d) => {
+                const prod = productos.find(p => p.id === d.productoId);
+                return sum + (prod?.precioCosto ?? 0) * d.cantidad;
+              }, 0))}</span>
+              {comboPrecio > 0 && (
+                <span><span className="font-semibold">Margen:</span> <span className={comboPrecio - comboDetalles.reduce((sum, d) => { const prod = productos.find(p => p.id === d.productoId); return sum + (prod?.precioCosto ?? 0) * d.cantidad; }, 0) > 0 ? 'text-green-700' : 'text-red-700'}>
+                  ${formatearNumero(comboPrecio - comboDetalles.reduce((sum, d) => { const prod = productos.find(p => p.id === d.productoId); return sum + (prod?.precioCosto ?? 0) * d.cantidad; }, 0))}
+                </span></span>
+              )}
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={comboEsOferta} onChange={e => setComboEsOferta(e.target.checked)} className="rounded border-gray-300 text-amber-600 focus:ring-amber-400" />
             Oferta Semanal
@@ -603,7 +630,7 @@ export default function ProductosPage() {
                   <div className="text-purple-600 font-bold mt-1">${formatearNumero(c.precio)}</div>
                 )}
                 <div className="text-[10px] text-gray-400 mt-1">{c.detalles.length} productos</div>
-                {esAdmin && (
+                {esSuperAdmin && (
                   <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleEditarCombo(c)} className="text-xs text-blue-600 hover:underline">Editar</button>
                     <button onClick={() => handleDuplicarCombo(c)} className="text-xs text-purple-600 hover:underline">Duplicar</button>
@@ -658,8 +685,15 @@ export default function ProductosPage() {
                   </div>
                 )}
 
+                {/* Precios costo/venta - solo SuperAdmin */}
+                {esSuperAdmin && (p.precioCosto ?? 0) > 0 && (
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    Costo: ${formatearNumero(p.precioCosto)} | Margen: <span className={(p.diferenciaPrecioCosto ?? 0) > 0 ? 'text-green-600' : 'text-red-600'}>${formatearNumero(p.diferenciaPrecioCosto)}</span>
+                  </div>
+                )}
+
                 {/* Botones admin */}
-                {esAdmin && (
+                {esSuperAdmin && (
                   <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleEditar(p)} className="text-xs text-blue-600 hover:underline">Editar</button>
                     <button onClick={() => setConfirmacion({ visible: true, id: p.id })} className="text-xs text-red-600 hover:underline">Desactivar</button>
@@ -691,7 +725,7 @@ export default function ProductosPage() {
                   <div className="text-purple-600 font-bold mt-1">${formatearNumero(c.precio)}</div>
                 )}
                 <div className="text-[10px] text-gray-400 mt-1">{c.detalles.length} productos</div>
-                {esAdmin && (
+                {esSuperAdmin && (
                   <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleEditarCombo(c)} className="text-xs text-blue-600 hover:underline">Editar</button>
                     <button onClick={() => handleDuplicarCombo(c)} className="text-xs text-purple-600 hover:underline">Duplicar</button>

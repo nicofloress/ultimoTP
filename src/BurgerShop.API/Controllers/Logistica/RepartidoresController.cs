@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Logistica;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SuperAdmin,Administrador")]
+[Authorize(Roles = "SuperAdmin,Administrador,Local")]
 public class RepartidoresController : ControllerBase
 {
     private readonly IRepartidorService _service;

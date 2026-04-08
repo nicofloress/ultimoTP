@@ -32,6 +32,10 @@ export interface Producto {
   marca?: string;
   unidadesPorMedia: number;
   esOfertaSemanal?: boolean;
+  precioCosto?: number;
+  precioVenta?: number;
+  fechaUltimaModificacionPrecio?: string;
+  diferenciaPrecioCosto?: number;
 }
 
 export interface ComboDetalle {

@@ -45,7 +45,24 @@ export default function RepartidoresPage() {
           activo: form.activo,
           localId,
         });
-        showToast('Repartidor actualizado correctamente', 'success');
+        // Si se ingresó usuario/contraseña, actualizar o crear usuario
+        if (form.nombreUsuario && form.password) {
+          try {
+            await crearUsuario({
+              nombreUsuario: form.nombreUsuario,
+              password: form.password,
+              nombreCompleto: form.nombre,
+              rol: RolUsuario.Repartidor,
+              repartidorId: editando.id,
+              localId,
+            });
+            showToast('Repartidor y usuario actualizados correctamente', 'success');
+          } catch {
+            showToast('Repartidor actualizado, pero error al actualizar usuario', 'error');
+          }
+        } else {
+          showToast('Repartidor actualizado correctamente', 'success');
+        }
       } else {
         const nuevoRep = await crearRepartidor({
           nombre: form.nombre,
@@ -111,26 +128,6 @@ export default function RepartidoresPage() {
     cargar();
   };
 
-  const crearUsuarioRepartidor = async (r: Repartidor) => {
-    const pwd = prompt(`Ingresa la contraseña para el usuario de ${r.nombre}:`);
-    if (!pwd) return;
-    const usr = prompt(`Ingresa el nombre de usuario:`, r.nombre.toLowerCase().replace(/\s+/g, ''));
-    if (!usr) return;
-    try {
-      await crearUsuario({
-        nombreUsuario: usr,
-        password: pwd,
-        nombreCompleto: r.nombre,
-        rol: RolUsuario.Repartidor,
-        repartidorId: r.id,
-        localId: r.localId,
-      });
-      showToast(`Usuario "${usr}" creado para ${r.nombre}`, 'success');
-    } catch {
-      showToast('Error al crear usuario (puede que ya exista)', 'error');
-    }
-  };
-
   const repartidoresFiltrados = repartidores.filter(r => !localSeleccionado || r.localId === localSeleccionado);
 
   return (
@@ -191,32 +188,6 @@ export default function RepartidoresPage() {
               className="border rounded px-3 py-2 w-full"
             />
           </div>
-          {!editando && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Usuario (login)</label>
-                <input
-                  type="text"
-                  value={form.nombreUsuario}
-                  onChange={e => setForm({ ...form, nombreUsuario: e.target.value })}
-                  placeholder="Nombre de usuario para login"
-                  className="border rounded px-3 py-2 w-full"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Contraseña</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
-                  placeholder="Contraseña del usuario"
-                  className="border rounded px-3 py-2 w-full"
-                  required
-                />
-              </div>
-            </>
-          )}
           {esSuperAdmin ? (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
@@ -233,6 +204,28 @@ export default function RepartidoresPage() {
               </div>
             </div>
           )}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Usuario (login)</label>
+            <input
+              type="text"
+              value={form.nombreUsuario}
+              onChange={e => setForm({ ...form, nombreUsuario: e.target.value })}
+              placeholder={editando ? 'Nuevo usuario (dejar vacio para no cambiar)' : 'Nombre de usuario para login'}
+              className="border rounded px-3 py-2 w-full"
+              required={!editando}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Contraseña</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
+              placeholder={editando ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña del usuario'}
+              className="border rounded px-3 py-2 w-full"
+              required={!editando}
+            />
+          </div>
           {editando && (
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -280,8 +273,7 @@ export default function RepartidoresPage() {
                 </td>
                 <td className="px-4 py-3 text-sm text-right space-x-3">
                   <button onClick={() => handleEditar(r)} className="text-blue-600 hover:underline">Editar</button>
-                  <button onClick={() => crearUsuarioRepartidor(r)} className="text-xs text-purple-600 hover:underline">Resetear Usuario</button>
-                  <button onClick={() => handleEliminar(r.id)} className="text-red-600 hover:underline">Eliminar</button>
+                  <button onClick={() => handleEliminar(r.id)} className="text-red-600 hover:underline">Desactivar</button>
                 </td>
               </tr>
             ))}

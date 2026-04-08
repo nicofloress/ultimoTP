@@ -303,13 +303,15 @@ export default function MovimientosPage() {
             </svg>
             Buscar
           </button>
-          <button
-            onClick={abrirModal}
-            className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
-          >
-            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Nuevo Movimiento
-          </button>
+          {esSuperAdmin && (
+            <button
+              onClick={abrirModal}
+              className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
+            >
+              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+              Nuevo Movimiento
+            </button>
+          )}
           {movimientosFiltrados.length > 0 && (
             <div className="flex gap-2 ml-3 pl-3 border-l border-gray-300">
               <button

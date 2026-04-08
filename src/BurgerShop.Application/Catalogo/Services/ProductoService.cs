@@ -49,7 +49,7 @@ public class ProductoService : IProductoService
         var p = await _repo.GetByIdAsync(id);
         if (p is null) return null;
         var cat = p.Categoria;
-        return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal);
+        return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto);
     }
 
     public async Task<ProductoDto> CreateAsync(CrearProductoDto dto)
@@ -58,7 +58,7 @@ public class ProductoService : IProductoService
         {
             Nombre = dto.Nombre,
             Descripcion = dto.Descripcion,
-            Precio = dto.Precio,
+            Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio,
             CategoriaId = dto.CategoriaId,
             ImagenUrl = dto.ImagenUrl,
             NumeroInterno = dto.NumeroInterno,
@@ -66,11 +66,15 @@ public class ProductoService : IProductoService
             UnidadesPorBulto = dto.UnidadesPorBulto,
             Marca = dto.Marca,
             UnidadesPorMedia = dto.UnidadesPorMedia,
-            EsOfertaSemanal = dto.EsOfertaSemanal
+            EsOfertaSemanal = dto.EsOfertaSemanal,
+            PrecioCosto = dto.PrecioCosto,
+            PrecioVenta = dto.PrecioVenta,
+            DiferenciaPrecioCosto = dto.PrecioVenta - dto.PrecioCosto,
+            FechaUltimaModificacionPrecio = DateTime.Now
         };
         await _repo.AddAsync(producto);
         await _repo.SaveChangesAsync();
-        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal);
+        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto);
     }
 
     public async Task<ProductoDto?> UpdateAsync(int id, ActualizarProductoDto dto)
@@ -80,7 +84,7 @@ public class ProductoService : IProductoService
 
         producto.Nombre = dto.Nombre;
         producto.Descripcion = dto.Descripcion;
-        producto.Precio = dto.Precio;
+        producto.Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio;
         producto.CategoriaId = dto.CategoriaId;
         producto.Activo = dto.Activo;
         producto.ImagenUrl = dto.ImagenUrl;
@@ -90,9 +94,17 @@ public class ProductoService : IProductoService
         producto.Marca = dto.Marca;
         producto.UnidadesPorMedia = dto.UnidadesPorMedia;
         producto.EsOfertaSemanal = dto.EsOfertaSemanal;
+
+        var preciosCambiaron = producto.PrecioCosto != dto.PrecioCosto || producto.PrecioVenta != dto.PrecioVenta;
+        producto.PrecioCosto = dto.PrecioCosto;
+        producto.PrecioVenta = dto.PrecioVenta;
+        producto.DiferenciaPrecioCosto = dto.PrecioVenta - dto.PrecioCosto;
+        if (preciosCambiaron)
+            producto.FechaUltimaModificacionPrecio = DateTime.Now;
+
         _repo.Update(producto);
         await _repo.SaveChangesAsync();
-        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal);
+        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto);
     }
 
     public async Task<bool> DeleteAsync(int id)
@@ -136,11 +148,11 @@ public class ProductoService : IProductoService
     }
 
     private static ProductoDto ToDto(Producto p)
-        => new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal);
+        => new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto);
 
     private static ProductoDto ToDtoConPrecioLista(Producto p, Dictionary<int, decimal> precios)
     {
         var precioLista = precios.TryGetValue(p.Id, out var precio) ? (decimal?)precio : null;
-        return new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, precioLista, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal);
+        return new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, precioLista, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto);
     }
 }
