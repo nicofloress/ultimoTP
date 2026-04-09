@@ -15,7 +15,7 @@ public class Movimiento
     public decimal Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
     public decimal MontoTotal { get; set; }
-    public int? PedidoId { get; set; }
+    public int? VentaId { get; set; }
     public int? UsuarioId { get; set; }
     public string? Observaciones { get; set; }
 
@@ -23,6 +23,6 @@ public class Movimiento
     public CodigoAccion CodigoAccion { get; set; } = null!;
     public Producto? Producto { get; set; }
     public Local Local { get; set; } = null!;
-    public Pedido? Pedido { get; set; }
+    public Venta? Venta { get; set; }
     public Usuario? Usuario { get; set; }
 }

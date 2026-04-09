@@ -32,7 +32,6 @@ public record MovimientoCuentaCorrienteDto(
 public record CrearCargoDto(
     int     ClienteId,
     decimal Monto,
-    int?    PedidoId,
     int?    VentaId,
     string? Observaciones);
 

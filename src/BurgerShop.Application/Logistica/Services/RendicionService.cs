@@ -12,17 +12,19 @@ namespace BurgerShop.Application.Logistica.Services;
 public class RendicionService : IRendicionService
 {
     private readonly IRendicionRepository _rendicionRepo;
-    private readonly IPedidoRepository _pedidoRepo;
+    private readonly IVentaRepository _ventaRepo;
     private readonly IMovimientoService _movimientoService;
-    private readonly IVentaService _ventaService;
     private readonly ICuentaCorrienteService _cuentaCorrienteService;
 
-    public RendicionService(IRendicionRepository rendicionRepo, IPedidoRepository pedidoRepo, IMovimientoService movimientoService, IVentaService ventaService, ICuentaCorrienteService cuentaCorrienteService)
+    public RendicionService(
+        IRendicionRepository rendicionRepo,
+        IVentaRepository ventaRepo,
+        IMovimientoService movimientoService,
+        ICuentaCorrienteService cuentaCorrienteService)
     {
         _rendicionRepo = rendicionRepo;
-        _pedidoRepo = pedidoRepo;
+        _ventaRepo = ventaRepo;
         _movimientoService = movimientoService;
-        _ventaService = ventaService;
         _cuentaCorrienteService = cuentaCorrienteService;
     }
 
@@ -33,44 +35,44 @@ public class RendicionService : IRendicionService
         if (existente is not null)
             throw new InvalidOperationException("Ya existe una rendicion para este reparto.");
 
-        // Obtener pedidos del repartidor de hoy y filtrar solo los del RepartoZona
-        var pedidos = (await _pedidoRepo.GetByRepartidorHoyAsync(dto.RepartidorId))
-            .Where(p => p.RepartoZonaId == dto.RepartoZonaId)
+        // Obtener ventas del repartidor de hoy y filtrar solo las del RepartoZona
+        var ventas = (await _ventaRepo.GetByRepartidorHoyAsync(dto.RepartidorId))
+            .Where(v => v.RepartoZonaId == dto.RepartoZonaId)
             .ToList();
 
-        // No debe poder crear si tiene pedidos EnCamino o Asignados en este reparto
-        var tienePendientes = pedidos.Any(p =>
-            p.Estado == EstadoPedido.EnCamino || p.Estado == EstadoPedido.Asignado);
+        // No debe poder crear si tiene ventas EnCamino o Asignadas en este reparto
+        var tienePendientes = ventas.Any(v =>
+            v.Estado == EstadoVenta.EnCamino || v.Estado == EstadoVenta.Asignado);
         if (tienePendientes)
-            throw new InvalidOperationException("No se puede crear la rendicion. Existen pedidos en camino o asignados sin finalizar.");
+            throw new InvalidOperationException("No se puede crear la rendicion. Existen ventas en camino o asignadas sin finalizar.");
 
         // Obtener el RepartoZona para verificar que está finalizado
-        var repartosZona = await _pedidoRepo.GetRepartosZonaByRepartidorHoyAsync(dto.RepartidorId);
+        var repartosZona = await _ventaRepo.GetRepartosZonaByRepartidorHoyAsync(dto.RepartidorId);
         var repartoZona = repartosZona.FirstOrDefault(r => r.Id == dto.RepartoZonaId);
         if (repartoZona is null)
             throw new InvalidOperationException("No se encontro el reparto de zona especificado.");
         if (repartoZona.Estado == EstadoReparto.EnCurso)
             throw new InvalidOperationException("No se puede crear la rendicion. El reparto de zona aun no fue finalizado.");
 
-        // Filtrar solo Entregados y NoEntregados
-        var entregados = pedidos.Where(p => p.Estado == EstadoPedido.Entregado).ToList();
-        var noEntregados = pedidos.Where(p => p.Estado == EstadoPedido.NoEntregado).ToList();
+        // Filtrar solo Entregadas y NoEntregadas
+        var entregadas = ventas.Where(v => v.Estado == EstadoVenta.Entregado).ToList();
+        var noEntregadas = ventas.Where(v => v.Estado == EstadoVenta.NoEntregado).ToList();
 
-        // Calcular totales por forma de pago para entregados
+        // Calcular totales por forma de pago para entregadas
         decimal totalEfectivo = 0;
         decimal totalTransferencia = 0;
         decimal totalCuentaCorriente = 0;
 
-        foreach (var pedido in entregados)
+        foreach (var venta in entregadas)
         {
-            // Pedidos de cuenta corriente: estaPago=true pero sin forma de pago (nota con [CTA CTE])
-            if (pedido.EstaPago && pedido.NotaInterna?.Contains("[CTA CTE]") == true)
+            // Ventas de cuenta corriente: estaPago=true pero sin forma de pago (nota con [CTA CTE])
+            if (venta.EstaPago && venta.NotaInterna?.Contains("[CTA CTE]") == true)
             {
-                totalCuentaCorriente += pedido.Total;
+                totalCuentaCorriente += venta.Total;
             }
-            else if (pedido.Pagos.Any())
+            else if (venta.Pagos.Any())
             {
-                foreach (var pago in pedido.Pagos)
+                foreach (var pago in venta.Pagos)
                 {
                     var nombreFormaPago = pago.FormaPago?.Nombre ?? "";
                     if (nombreFormaPago.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
@@ -79,17 +81,17 @@ public class RendicionService : IRendicionService
                         totalTransferencia += pago.TotalACobrar;
                 }
             }
-            else if (pedido.FormaPago is not null)
+            else if (venta.FormaPago is not null)
             {
-                if (pedido.FormaPago.Nombre.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
-                    totalEfectivo += pedido.Total;
+                if (venta.FormaPago.Nombre.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
+                    totalEfectivo += venta.Total;
                 else
-                    totalTransferencia += pedido.Total;
+                    totalTransferencia += venta.Total;
             }
         }
 
-        // Calcular total de no entregados
-        decimal totalNoEntregado = noEntregados.Sum(p => p.Total);
+        // Calcular total de no entregadas
+        decimal totalNoEntregado = noEntregadas.Sum(v => v.Total);
 
         var rendicion = new RendicionRepartidor
         {
@@ -100,47 +102,46 @@ public class RendicionService : IRendicionService
             TotalTransferencia = totalTransferencia,
             TotalCuentaCorriente = totalCuentaCorriente,
             TotalNoEntregado = totalNoEntregado,
-            CantidadEntregados = entregados.Count,
-            CantidadNoEntregados = noEntregados.Count,
+            CantidadEntregados = entregadas.Count,
+            CantidadNoEntregados = noEntregadas.Count,
             EfectivoDeclarado = dto.EfectivoDeclarado,
             Diferencia = dto.EfectivoDeclarado - totalEfectivo,
             Observaciones = dto.Observaciones,
             Aprobada = false
         };
 
-        // Crear detalles para cada pedido (entregados + no entregados)
-        foreach (var pedido in entregados)
+        // Crear detalles para cada venta (entregadas + no entregadas)
+        foreach (var venta in entregadas)
         {
             string? formaPago = null;
-            if (pedido.Pagos.Any())
+            if (venta.Pagos.Any())
             {
-                // Si tiene pagos mixtos, indicar la forma de pago principal
-                formaPago = string.Join(", ", pedido.Pagos.Select(p => p.FormaPago?.Nombre ?? "").Distinct());
+                formaPago = string.Join(", ", venta.Pagos.Select(p => p.FormaPago?.Nombre ?? "").Distinct());
             }
             else
             {
-                formaPago = pedido.FormaPago?.Nombre;
+                formaPago = venta.FormaPago?.Nombre;
             }
 
             rendicion.Detalles.Add(new RendicionDetalle
             {
-                PedidoId = pedido.Id,
-                NumeroTicket = pedido.NumeroTicket,
+                VentaId = venta.Id,
+                NumeroTicket = venta.NumeroTicket,
                 Estado = "Entregado",
                 FormaPago = formaPago,
-                Total = pedido.Total
+                Total = venta.Total
             });
         }
 
-        foreach (var pedido in noEntregados)
+        foreach (var venta in noEntregadas)
         {
             rendicion.Detalles.Add(new RendicionDetalle
             {
-                PedidoId = pedido.Id,
-                NumeroTicket = pedido.NumeroTicket,
+                VentaId = venta.Id,
+                NumeroTicket = venta.NumeroTicket,
                 Estado = "NoEntregado",
-                FormaPago = pedido.FormaPago?.Nombre,
-                Total = pedido.Total
+                FormaPago = venta.FormaPago?.Nombre,
+                Total = venta.Total
             });
         }
 
@@ -197,19 +198,19 @@ public class RendicionService : IRendicionService
         _rendicionRepo.Update(rendicion);
         await _rendicionRepo.SaveChangesAsync();
 
-        // Al aprobar, generar movimientos de CAJA (ING_VTA) para los pedidos entregados
+        // Al aprobar, generar movimientos de CAJA (ING_VTA) para las ventas entregadas
         if (dto.Aprobada)
         {
-            var pedidosEntregados = rendicion.Detalles
+            var ventasEntregadas = rendicion.Detalles
                 .Where(d => d.Estado == "Entregado")
-                .Select(d => d.PedidoId)
+                .Select(d => d.VentaId)
                 .ToList();
 
-            foreach (var pedidoId in pedidosEntregados)
+            foreach (var ventaId in ventasEntregadas)
             {
                 try
                 {
-                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(pedidoId, 1, null);
+                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(ventaId, 1, null);
                 }
                 catch
                 {
@@ -217,25 +218,12 @@ public class RendicionService : IRendicionService
                 }
             }
 
-            // Crear Ventas de tipo Domicilio para cada pedido entregado
-            foreach (var pedidoId in pedidosEntregados)
+            // Saldar cuentas corrientes si la venta fue cobrada en la entrega
+            foreach (var ventaId in ventasEntregadas)
             {
                 try
                 {
-                    await _ventaService.CrearVentaDomicilioAsync(pedidoId, 1, null);
-                }
-                catch
-                {
-                    // No bloquear la aprobación
-                }
-            }
-
-            // Saldar cuentas corrientes si el pedido fue cobrado en la entrega
-            foreach (var pedidoId in pedidosEntregados)
-            {
-                try
-                {
-                    await _cuentaCorrienteService.SaldarCargoPorPedidoAsync(pedidoId, null);
+                    await _cuentaCorrienteService.SaldarCargoPorVentaAsync(ventaId, null);
                 }
                 catch
                 {
@@ -251,7 +239,7 @@ public class RendicionService : IRendicionService
     public async Task<IEnumerable<RepartidorPendienteRendicionDto>> GetRepartidoresPendientesAsync()
     {
         // Obtener todos los repartos de hoy que estan finalizados
-        var repartosFinalizados = await _pedidoRepo.GetRepartosZonaFinalizadosHoyAsync();
+        var repartosFinalizados = await _ventaRepo.GetRepartosZonaFinalizadosHoyAsync();
 
         if (!repartosFinalizados.Any())
             return Enumerable.Empty<RepartidorPendienteRendicionDto>();
@@ -266,26 +254,26 @@ public class RendicionService : IRendicionService
             if (rendicionExistente is not null)
                 continue;
 
-            // Obtener pedidos de este repartidor hoy, filtrados por RepartoZonaId
-            var pedidos = (await _pedidoRepo.GetByRepartidorHoyAsync(reparto.RepartidorId))
-                .Where(p => p.RepartoZonaId == reparto.Id)
+            // Obtener ventas de este repartidor hoy, filtradas por RepartoZonaId
+            var ventas = (await _ventaRepo.GetByRepartidorHoyAsync(reparto.RepartidorId))
+                .Where(v => v.RepartoZonaId == reparto.Id)
                 .ToList();
 
-            // Verificar que no tenga pedidos activos en este reparto
-            if (pedidos.Any(p => p.Estado == EstadoPedido.Asignado || p.Estado == EstadoPedido.EnCamino))
+            // Verificar que no tenga ventas activas en este reparto
+            if (ventas.Any(v => v.Estado == EstadoVenta.Asignado || v.Estado == EstadoVenta.EnCamino))
                 continue;
 
-            var entregados = pedidos.Where(p => p.Estado == EstadoPedido.Entregado).ToList();
-            var noEntregados = pedidos.Where(p => p.Estado == EstadoPedido.NoEntregado).ToList();
+            var entregadas = ventas.Where(v => v.Estado == EstadoVenta.Entregado).ToList();
+            var noEntregadas = ventas.Where(v => v.Estado == EstadoVenta.NoEntregado).ToList();
 
             decimal totalEfectivo = 0;
             decimal totalTransferencia = 0;
 
-            foreach (var pedido in entregados)
+            foreach (var venta in entregadas)
             {
-                if (pedido.Pagos.Any())
+                if (venta.Pagos.Any())
                 {
-                    foreach (var pago in pedido.Pagos)
+                    foreach (var pago in venta.Pagos)
                     {
                         var nombreFormaPago = pago.FormaPago?.Nombre ?? "";
                         if (nombreFormaPago.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
@@ -294,41 +282,41 @@ public class RendicionService : IRendicionService
                             totalTransferencia += pago.TotalACobrar;
                     }
                 }
-                else if (pedido.FormaPago is not null)
+                else if (venta.FormaPago is not null)
                 {
-                    if (pedido.FormaPago.Nombre.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
-                        totalEfectivo += pedido.Total;
+                    if (venta.FormaPago.Nombre.Equals("Efectivo", StringComparison.OrdinalIgnoreCase))
+                        totalEfectivo += venta.Total;
                     else
-                        totalTransferencia += pedido.Total;
+                        totalTransferencia += venta.Total;
                 }
             }
 
-            decimal totalNoEntregado = noEntregados.Sum(p => p.Total);
+            decimal totalNoEntregado = noEntregadas.Sum(v => v.Total);
 
             var zonaDto = new RendicionZonaDto(
                 reparto.ZonaId,
                 reparto.Zona?.Nombre ?? string.Empty,
-                reparto.TotalPedidos,
+                reparto.TotalVentas,
                 reparto.TotalEntregados,
                 reparto.TotalNoEntregados,
                 reparto.TotalCancelados);
 
             var nombreRepartidor = reparto.Repartidor?.Nombre ?? string.Empty;
 
-            var pedidosDto = pedidos.Select(p =>
+            var ventasDto = ventas.Select(v =>
             {
-                string? formaPago = p.Pagos.Any()
-                    ? p.Pagos.FirstOrDefault()?.FormaPago?.Nombre
-                    : p.FormaPago?.Nombre;
+                string? formaPago = v.Pagos.Any()
+                    ? v.Pagos.FirstOrDefault()?.FormaPago?.Nombre
+                    : v.FormaPago?.Nombre;
 
                 return new PedidoPendienteRendicionDto(
-                    p.Id,
-                    p.NumeroTicket ?? "",
-                    p.Estado.ToString(),
-                    p.Cliente?.Nombre,
-                    p.DireccionEntrega,
+                    v.Id,
+                    v.NumeroTicket ?? "",
+                    v.Estado.ToString(),
+                    v.Cliente?.Nombre,
+                    v.DireccionEntrega,
                     formaPago,
-                    p.Total);
+                    v.Total);
             }).ToList();
 
             resultado.Add(new RepartidorPendienteRendicionDto(
@@ -337,12 +325,12 @@ public class RendicionService : IRendicionService
                 reparto.Id,
                 reparto.Zona?.Nombre ?? string.Empty,
                 new List<RendicionZonaDto> { zonaDto },
-                entregados.Count,
-                noEntregados.Count,
+                entregadas.Count,
+                noEntregadas.Count,
                 totalEfectivo,
                 totalTransferencia,
                 totalNoEntregado,
-                pedidosDto));
+                ventasDto));
         }
 
         return resultado;
@@ -350,12 +338,12 @@ public class RendicionService : IRendicionService
 
     public async Task<EstadoRepartoRepartidorDto> GetEstadoRepartoAsync(int repartidorId)
     {
-        var repartos = await _pedidoRepo.GetRepartosZonaByRepartidorHoyAsync(repartidorId);
+        var repartos = await _ventaRepo.GetRepartosZonaByRepartidorHoyAsync(repartidorId);
         var zonasFinalizadas = repartos.Count > 0 && repartos.All(r => r.Estado == EstadoReparto.Finalizado);
         var zonas = repartos.Select(z => new RendicionZonaDto(
             z.ZonaId,
             z.Zona?.Nombre ?? string.Empty,
-            z.TotalPedidos,
+            z.TotalVentas,
             z.TotalEntregados,
             z.TotalNoEntregados,
             z.TotalCancelados)).ToList();
@@ -364,7 +352,7 @@ public class RendicionService : IRendicionService
 
     private async Task<List<RepartoZona>> GetZonasParaRendicionAsync(RendicionRepartidor r)
     {
-        var todasZonas = await _pedidoRepo.GetRepartosZonaByRepartidorFechaAsync(r.RepartidorId, r.Fecha);
+        var todasZonas = await _ventaRepo.GetRepartosZonaByRepartidorFechaAsync(r.RepartidorId, r.Fecha);
         if (r.RepartoZonaId.HasValue)
             return todasZonas.Where(z => z.Id == r.RepartoZonaId.Value).ToList();
         return todasZonas;
@@ -374,19 +362,19 @@ public class RendicionService : IRendicionService
     {
         var detalles = r.Detalles.Select(d => new RendicionDetalleDto(
             d.Id,
-            d.PedidoId,
+            d.VentaId,
             d.NumeroTicket,
             d.Estado,
             d.FormaPago,
             d.Total,
-            d.Pedido?.Cliente?.Nombre,
-            d.Pedido?.DireccionEntrega,
-            d.Pedido?.Zona?.Nombre)).ToList();
+            d.Venta?.Cliente?.Nombre,
+            d.Venta?.DireccionEntrega,
+            d.Venta?.Zona?.Nombre)).ToList();
 
         var zonas = repartosZona.Select(z => new RendicionZonaDto(
             z.ZonaId,
             z.Zona?.Nombre ?? string.Empty,
-            z.TotalPedidos,
+            z.TotalVentas,
             z.TotalEntregados,
             z.TotalNoEntregados,
             z.TotalCancelados)).ToList();

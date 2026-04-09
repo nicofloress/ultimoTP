@@ -13,20 +13,20 @@ public class MovimientoService : IMovimientoService
     private readonly IMovimientoRepository      _movRepo;
     private readonly IArtiStockRepository       _stockRepo;
     private readonly IRepository<CodigoAccion>  _codigoRepo;
-    private readonly IPedidoRepository          _pedidoRepo;
+    private readonly IVentaRepository           _ventaRepo;
     private readonly IComboRepository           _comboRepo;
 
     public MovimientoService(
         IMovimientoRepository     movRepo,
         IArtiStockRepository      stockRepo,
         IRepository<CodigoAccion> codigoRepo,
-        IPedidoRepository         pedidoRepo,
+        IVentaRepository          ventaRepo,
         IComboRepository          comboRepo)
     {
         _movRepo    = movRepo;
         _stockRepo  = stockRepo;
         _codigoRepo = codigoRepo;
-        _pedidoRepo = pedidoRepo;
+        _ventaRepo  = ventaRepo;
         _comboRepo  = comboRepo;
     }
 
@@ -77,10 +77,10 @@ public class MovimientoService : IMovimientoService
     // Registrar movimientos automáticos al confirmar una venta
     // ----------------------------------------------------------------
     public async Task<IEnumerable<MovimientoDto>> RegistrarMovimientosVentaAsync(
-        int pedidoId, int localId, int? usuarioId)
+        int ventaId, int localId, int? usuarioId)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId)
-            ?? throw new InvalidOperationException($"Pedido {pedidoId} no encontrado.");
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId)
+            ?? throw new InvalidOperationException($"Venta {ventaId} no encontrada.");
 
         var codigoEgr = await _codigoRepo.GetByIdAsync(1)  // EGR_VTA
             ?? throw new InvalidOperationException("Código EGR_VTA (Id=1) no encontrado en la base de datos.");
@@ -89,17 +89,15 @@ public class MovimientoService : IMovimientoService
 
         var movimientos = new List<(Movimiento Movimiento, CodigoAccion Codigo)>();
         var ahora       = DateTime.Now;
-        var hoy         = ahora.Date;
 
         // Un movimiento EGR_VTA por cada producto o componente de combo
-        foreach (var linea in pedido.Lineas)
+        foreach (var linea in venta.Lineas)
         {
             if (linea.ProductoId.HasValue)
             {
-                // Producto suelto
                 var mov = CrearEgrVta(linea.ProductoId.Value, localId,
                     linea.Cantidad, linea.PrecioUnitario, linea.Subtotal,
-                    pedidoId, usuarioId, ahora, ahora);
+                    ventaId, usuarioId, ahora, ahora);
 
                 movimientos.Add((mov, codigoEgr));
                 await ActualizarArtiStockVentaAsync(linea.ProductoId.Value, localId, linea.Cantidad);
@@ -118,7 +116,7 @@ public class MovimientoService : IMovimientoService
                     Cantidad        = linea.Cantidad,
                     PrecioUnitario  = linea.PrecioUnitario,
                     MontoTotal      = linea.Subtotal,
-                    PedidoId        = pedidoId,
+                    VentaId         = ventaId,
                     UsuarioId       = usuarioId,
                     Observaciones   = combo?.Nombre ?? $"Combo #{linea.ComboId}"
                 };
@@ -136,7 +134,7 @@ public class MovimientoService : IMovimientoService
             }
         }
 
-        // Un movimiento ING_VTA por el total del pedido (ingreso de caja)
+        // Un movimiento ING_VTA por el total de la venta (ingreso de caja)
         var movIngreso = new Movimiento
         {
             FechaMovimiento = ahora,
@@ -145,9 +143,9 @@ public class MovimientoService : IMovimientoService
             ProductoId      = null,
             LocalId         = localId,
             Cantidad        = 1,
-            PrecioUnitario  = pedido.Total,
-            MontoTotal      = pedido.Total,
-            PedidoId        = pedidoId,
+            PrecioUnitario  = venta.Total,
+            MontoTotal      = venta.Total,
+            VentaId         = ventaId,
             UsuarioId       = usuarioId
         };
         movimientos.Add((movIngreso, codigoIng));
@@ -165,24 +163,23 @@ public class MovimientoService : IMovimientoService
     // ----------------------------------------------------------------
     // Solo movimientos de STOCK (EGR_VTA) — al finalizar reparto
     // ----------------------------------------------------------------
-    public async Task RegistrarMovimientosVentaStockAsync(int pedidoId, int localId, int? usuarioId)
+    public async Task RegistrarMovimientosVentaStockAsync(int ventaId, int localId, int? usuarioId)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId);
-        if (pedido is null) return;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+        if (venta is null) return;
 
         var codigoEgr = await _codigoRepo.GetByIdAsync(1); // EGR_VTA
         if (codigoEgr is null) return;
 
         var ahora = DateTime.Now;
-        var hoy = ahora.Date;
 
-        foreach (var linea in pedido.Lineas)
+        foreach (var linea in venta.Lineas)
         {
             if (linea.ProductoId.HasValue)
             {
                 var mov = CrearEgrVta(linea.ProductoId.Value, localId,
                     linea.Cantidad, linea.PrecioUnitario, linea.Subtotal,
-                    pedidoId, usuarioId, ahora, ahora);
+                    ventaId, usuarioId, ahora, ahora);
                 await _movRepo.AddAsync(mov);
                 await ActualizarArtiStockVentaAsync(linea.ProductoId.Value, localId, linea.Cantidad);
             }
@@ -200,7 +197,7 @@ public class MovimientoService : IMovimientoService
                     Cantidad        = linea.Cantidad,
                     PrecioUnitario  = linea.PrecioUnitario,
                     MontoTotal      = linea.Subtotal,
-                    PedidoId        = pedidoId,
+                    VentaId         = ventaId,
                     UsuarioId       = usuarioId,
                     Observaciones   = combo?.Nombre ?? $"Combo #{linea.ComboId}"
                 };
@@ -225,10 +222,10 @@ public class MovimientoService : IMovimientoService
     // ----------------------------------------------------------------
     // Solo movimiento de CAJA (ING_VTA) — al aprobar rendición
     // ----------------------------------------------------------------
-    public async Task RegistrarMovimientosVentaCajaAsync(int pedidoId, int localId, int? usuarioId)
+    public async Task RegistrarMovimientosVentaCajaAsync(int ventaId, int localId, int? usuarioId)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId);
-        if (pedido is null) return;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+        if (venta is null) return;
 
         var codigoIng = await _codigoRepo.GetByIdAsync(2); // ING_VTA
         if (codigoIng is null) return;
@@ -243,9 +240,9 @@ public class MovimientoService : IMovimientoService
             ProductoId      = null,
             LocalId         = localId,
             Cantidad        = 1,
-            PrecioUnitario  = pedido.Total,
-            MontoTotal      = pedido.Total,
-            PedidoId        = pedidoId,
+            PrecioUnitario  = venta.Total,
+            MontoTotal      = venta.Total,
+            VentaId         = ventaId,
             UsuarioId       = usuarioId
         };
 
@@ -254,13 +251,12 @@ public class MovimientoService : IMovimientoService
     }
 
     // ----------------------------------------------------------------
-    // Anular todos los movimientos de un pedido
+    // Anular todos los movimientos de una venta
     // ----------------------------------------------------------------
-    public async Task AnularMovimientosVentaAsync(int pedidoId, int? usuarioId)
+    public async Task AnularMovimientosVentaAsync(int ventaId, int? usuarioId)
     {
-        var originales = await _movRepo.GetByPedidoAsync(pedidoId);
+        var originales = await _movRepo.GetByVentaAsync(ventaId);
         var ahora      = DateTime.Now;
-        var hoy        = ahora.Date;
 
         foreach (var orig in originales)
         {
@@ -282,7 +278,7 @@ public class MovimientoService : IMovimientoService
                 Cantidad        = orig.Cantidad,
                 PrecioUnitario  = orig.PrecioUnitario,
                 MontoTotal      = orig.MontoTotal * -1,
-                PedidoId        = pedidoId,
+                VentaId         = ventaId,
                 UsuarioId       = usuarioId,
                 Observaciones   = $"Anulación de movimiento Id={orig.Id}"
             };
@@ -326,9 +322,9 @@ public class MovimientoService : IMovimientoService
         return items.Select(m => ToDto(m, m.CodigoAccion));
     }
 
-    public async Task<IEnumerable<MovimientoDto>> GetByPedidoAsync(int pedidoId)
+    public async Task<IEnumerable<MovimientoDto>> GetByVentaAsync(int ventaId)
     {
-        var items = await _movRepo.GetByPedidoAsync(pedidoId);
+        var items = await _movRepo.GetByVentaAsync(ventaId);
         return items.Select(m => ToDto(m, m.CodigoAccion));
     }
 
@@ -339,7 +335,7 @@ public class MovimientoService : IMovimientoService
     private static Movimiento CrearEgrVta(
         int productoId, int localId, decimal cantidad,
         decimal precioUnitario, decimal montoTotal,
-        int pedidoId, int? usuarioId,
+        int ventaId, int? usuarioId,
         DateTime fechaMov, DateTime fechaProceso)
     {
         return new Movimiento
@@ -352,7 +348,7 @@ public class MovimientoService : IMovimientoService
             Cantidad        = cantidad,
             PrecioUnitario  = precioUnitario,
             MontoTotal      = montoTotal,
-            PedidoId        = pedidoId,
+            VentaId         = ventaId,
             UsuarioId       = usuarioId
         };
     }
@@ -391,7 +387,6 @@ public class MovimientoService : IMovimientoService
     {
         var stock = await ObtenerOCrearArtiStockAsync(productoId, localId);
 
-        // Invertir el efecto que tuvo el movimiento original
         if (codigoOriginal.Codigo == "EGR_VTA")
             stock.VentaLocal   = Math.Max(0, stock.VentaLocal   - cantidad);
         else if (codigoOriginal.Signo == 1)
@@ -427,7 +422,8 @@ public class MovimientoService : IMovimientoService
             m.ProductoId,      m.Producto?.Nombre,
             m.LocalId,         m.Local?.Nombre ?? string.Empty,
             m.Cantidad,        m.PrecioUnitario, m.MontoTotal,
-            m.PedidoId,        m.Pedido?.NumeroTicket,
+            m.VentaId,         m.Venta?.NumeroTicket,
             m.UsuarioId,       m.Usuario?.NombreCompleto,
-            m.Observaciones);
+            m.Observaciones,
+            m.Venta?.NombreCliente ?? m.Venta?.Cliente?.Nombre);
 }

@@ -156,16 +156,16 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     db.Database.Migrate();
 
-    // Backfill: vincular pedidos existentes que tienen repartidor/zona con su RepartoZona
+    // Backfill: vincular ventas existentes que tienen repartidor/zona con su RepartoZona
     db.Database.ExecuteSqlRaw(@"
-        UPDATE ""Pedidos"" p
+        UPDATE ""Ventas"" v
         SET ""RepartoZonaId"" = rz.""Id""
         FROM ""RepartosZona"" rz
-        WHERE p.""RepartoZonaId"" IS NULL
-          AND p.""ZonaId"" = rz.""ZonaId""
-          AND p.""RepartidorId"" = rz.""RepartidorId""
+        WHERE v.""RepartoZonaId"" IS NULL
+          AND v.""ZonaId"" = rz.""ZonaId""
+          AND v.""RepartidorId"" = rz.""RepartidorId""
           AND rz.""Fecha"" = CURRENT_DATE
-          AND p.""FechaAsignacion""::date = CURRENT_DATE
+          AND v.""FechaAsignacion""::date = CURRENT_DATE
     ");
 }
 

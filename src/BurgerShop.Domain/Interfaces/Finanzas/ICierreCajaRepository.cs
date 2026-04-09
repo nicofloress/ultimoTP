@@ -6,5 +6,5 @@ public interface ICierreCajaRepository : IRepository<CierreCaja>
 {
     Task<CierreCaja?> GetCajaAbiertaAsync(int? localId = null);
     Task<CierreCaja?> GetByIdConDetallesAsync(int id);
-    Task<IEnumerable<CierreCaja>> GetHistorialAsync(int cantidad = 20, int? localId = null);
+    Task<IEnumerable<CierreCaja>> GetHistorialAsync(int cantidad = 50, int? localId = null, DateTime? fechaDesde = null, DateTime? fechaHasta = null);
 }

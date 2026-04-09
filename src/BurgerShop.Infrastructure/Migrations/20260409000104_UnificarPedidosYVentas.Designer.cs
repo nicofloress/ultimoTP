@@ -3,6 +3,7 @@ using System;
 using BurgerShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BurgerShop.Infrastructure.Migrations
 {
     [DbContext(typeof(BurgerShopDbContext))]
-    partial class BurgerShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409000104_UnificarPedidosYVentas")]
+    partial class UnificarPedidosYVentas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1884,9 +1887,6 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CantidadDomicilio")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
 
@@ -1908,9 +1908,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Property<string>("Observaciones")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
-
-                    b.Property<decimal>("TotalDomicilio")
-                        .HasColumnType("numeric");
 
                     b.Property<int?>("UsuarioId")
                         .HasColumnType("integer");

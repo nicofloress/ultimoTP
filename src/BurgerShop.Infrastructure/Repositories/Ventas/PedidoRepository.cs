@@ -7,140 +7,147 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BurgerShop.Infrastructure.Repositories.Ventas;
 
-public class PedidoRepository : Repository<Pedido>, IPedidoRepository
+public class VentaRepository : Repository<Venta>, IVentaRepository
 {
-    public PedidoRepository(BurgerShopDbContext context) : base(context) { }
+    public VentaRepository(BurgerShopDbContext context) : base(context) { }
 
-    public async Task<Pedido?> GetByIdWithLineasAsync(int id)
+    public async Task<Venta?> GetByIdWithLineasAsync(int id)
     {
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.Cliente)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Repartidor)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .Include(v => v.Lineas)
+            .Include(v => v.Cliente)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Repartidor)
+            .Include(v => v.Usuario)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .FirstOrDefaultAsync(v => v.Id == id);
     }
 
-    public async Task<IEnumerable<Pedido>> GetByFechaAsync(DateTime fecha)
+    public async Task<Venta?> GetByIdConDetallesAsync(int id)
+    {
+        return await GetByIdWithLineasAsync(id);
+    }
+
+    public async Task<IEnumerable<Venta>> GetByFechaAsync(DateTime fecha)
     {
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.Repartidor)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.FechaCreacion.Date == fecha.Date
-                || (p.FechaProgramada != null && p.FechaProgramada.Value.Date == fecha.Date))
-            .OrderByDescending(p => p.FechaCreacion)
+            .Include(v => v.Lineas)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.Repartidor)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Cliente)
+            .Include(v => v.Usuario)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.FechaCreacion.Date == fecha.Date
+                || (v.FechaProgramada != null && v.FechaProgramada.Value.Date == fecha.Date))
+            .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetByRangoFechasAsync(DateTime desde, DateTime hasta)
+    public async Task<IEnumerable<Venta>> GetByRangoFechasAsync(DateTime desde, DateTime hasta)
     {
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.Repartidor)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.FechaCreacion.Date >= desde.Date && p.FechaCreacion.Date <= hasta.Date)
-            .OrderByDescending(p => p.FechaCreacion)
+            .Include(v => v.Lineas)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.Repartidor)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Cliente)
+            .Include(v => v.Usuario)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.FechaCreacion.Date >= desde.Date && v.FechaCreacion.Date <= hasta.Date)
+            .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetByEstadoAsync(EstadoPedido estado)
+    public async Task<IEnumerable<Venta>> GetByEstadoAsync(EstadoVenta estado)
     {
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.Estado == estado)
-            .OrderByDescending(p => p.FechaCreacion)
+            .Include(v => v.Lineas)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.Estado == estado)
+            .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetByRepartidorHoyAsync(int repartidorId)
+    public async Task<IEnumerable<Venta>> GetByRepartidorHoyAsync(int repartidorId)
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.RepartidorId == repartidorId && p.FechaCreacion.Date == hoy)
-            .OrderByDescending(p => p.FechaCreacion)
+            .Include(v => v.Lineas)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.RepartidorId == repartidorId && v.FechaCreacion.Date == hoy)
+            .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetPendientesEntregaAsync()
+    public async Task<IEnumerable<Venta>> GetPendientesEntregaAsync()
     {
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.Tipo == TipoPedido.Domicilio
-                && p.Estado == EstadoPedido.Pendiente
-                && p.RepartidorId == null)
-            .OrderBy(p => p.FechaCreacion)
+            .Include(v => v.Lineas)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.Tipo == TipoVenta.Domicilio
+                && v.Estado == EstadoVenta.Pendiente
+                && v.RepartidorId == null)
+            .OrderBy(v => v.FechaCreacion)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetListosParaRepartoConProductosAsync()
+    public async Task<IEnumerable<Venta>> GetListosParaRepartoConProductosAsync()
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
-            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.Repartidor)
-            .Where(p => p.Tipo == TipoPedido.Domicilio
-                && p.Estado == EstadoPedido.Pendiente
-                && p.ZonaId != null
-                && (p.FechaProgramada == null
-                    ? p.FechaCreacion.Date == hoy
-                    : p.FechaProgramada.Value.Date <= hoy))
+            .Include(v => v.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.Repartidor)
+            .Where(v => v.Tipo == TipoVenta.Domicilio
+                && v.Estado == EstadoVenta.Pendiente
+                && v.ZonaId != null
+                && (v.FechaProgramada == null
+                    ? v.FechaCreacion.Date == hoy
+                    : v.FechaProgramada.Value.Date <= hoy))
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetListosParaRepartoHoyAsync()
+    public async Task<IEnumerable<Venta>> GetListosParaRepartoHoyAsync()
     {
         var hoy = DateTime.Today;
 
-        // IDs de repartos EnCurso de hoy
         var repartosEnCursoIds = await _context.RepartosZona
             .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso)
             .Select(r => r.Id)
             .ToListAsync();
 
         return await _dbSet
-            .Include(p => p.Lineas)
-            .Include(p => p.Local)
-            .Include(p => p.Zona)
-            .Include(p => p.FormaPago)
-            .Include(p => p.Repartidor)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.Tipo == TipoPedido.Domicilio
-                && p.ZonaId != null
-                && (p.FechaProgramada == null
-                    ? p.FechaCreacion.Date == hoy
-                    : p.FechaProgramada.Value.Date <= hoy)
+            .Include(v => v.Lineas)
+            .Include(v => v.Local)
+            .Include(v => v.Zona)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Repartidor)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.Tipo == TipoVenta.Domicilio
+                && v.ZonaId != null
+                && (v.FechaProgramada == null
+                    ? v.FechaCreacion.Date == hoy
+                    : v.FechaProgramada.Value.Date <= hoy)
                 && (
-                    // Pedidos nuevos sin reparto asignado
-                    (p.Estado == EstadoPedido.Pendiente && p.RepartoZonaId == null)
-                    // Pedidos de repartos EnCurso (cualquier estado)
-                    || (p.RepartoZonaId != null && repartosEnCursoIds.Contains(p.RepartoZonaId.Value))
+                    (v.Estado == EstadoVenta.Pendiente && v.RepartoZonaId == null)
+                    || (v.RepartoZonaId != null && repartosEnCursoIds.Contains(v.RepartoZonaId.Value))
                 ))
-            .OrderBy(p => p.ZonaId)
-            .ThenBy(p => p.FechaCreacion)
+            .OrderBy(v => v.ZonaId)
+            .ThenBy(v => v.FechaCreacion)
             .ToListAsync();
     }
 
@@ -148,9 +155,9 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         var prefix = $"T-{fecha:yyyyMMdd}-";
         var ultimoTicket = await _dbSet
-            .Where(p => p.NumeroTicket.StartsWith(prefix))
-            .OrderByDescending(p => p.NumeroTicket)
-            .Select(p => p.NumeroTicket)
+            .Where(v => v.NumeroTicket.StartsWith(prefix))
+            .OrderByDescending(v => v.NumeroTicket)
+            .Select(v => v.NumeroTicket)
             .FirstOrDefaultAsync();
 
         if (ultimoTicket == null) return 1;
@@ -163,7 +170,6 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     {
         var hoy = DateTime.Today;
 
-        // Buscar si hay un reparto activo (EnCurso) en esta zona hoy
         var reparto = await _context.RepartosZona
             .FirstOrDefaultAsync(r => r.ZonaId == zonaId
                 && r.Fecha == hoy
@@ -177,11 +183,10 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
 
     // --- RepartoZona ---
 
-    public async Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalPedidos)
+    public async Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas)
     {
         var hoy = DateTime.Today;
 
-        // Solo reutilizar si hay un reparto EnCurso (no finalizado)
         var existente = await _context.RepartosZona
             .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
@@ -189,7 +194,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
         {
             existente.RepartidorId = repartidorId;
             existente.FechaInicio = DateTime.Now;
-            existente.TotalPedidos = totalPedidos;
+            existente.TotalVentas = totalVentas;
             existente.TotalEntregados = 0;
             existente.TotalNoEntregados = 0;
             existente.TotalCancelados = 0;
@@ -197,7 +202,6 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             return existente;
         }
 
-        // Si el existente está Finalizado (o no existe), crear un nuevo registro
         var reparto = new RepartoZona
         {
             ZonaId = zonaId,
@@ -205,7 +209,7 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             Fecha = hoy,
             FechaInicio = DateTime.Now,
             Estado = EstadoReparto.EnCurso,
-            TotalPedidos = totalPedidos
+            TotalVentas = totalVentas
         };
 
         _context.RepartosZona.Add(reparto);
@@ -216,7 +220,6 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
     public async Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId)
     {
         var hoy = DateTime.Today;
-        // Finalizar el reparto EnCurso filtrando por zona Y repartidor para evitar colisiones
         var reparto = await _context.RepartosZona
             .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.RepartidorId == repartidorId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
@@ -225,21 +228,20 @@ public class PedidoRepository : Repository<Pedido>, IPedidoRepository
             reparto.Estado = EstadoReparto.Finalizado;
             reparto.FechaFinalizacion = DateTime.Now;
 
-            // Sincronizar contadores usando la FK RepartoZonaId para precisión exacta
-            var pedidosZona = await _dbSet
-                .Where(p => p.RepartoZonaId == reparto.Id)
+            var ventasZona = await _dbSet
+                .Where(v => v.RepartoZonaId == reparto.Id)
                 .ToListAsync();
 
-            reparto.TotalPedidos = pedidosZona.Count;
-            reparto.TotalEntregados = pedidosZona.Count(p => p.Estado == EstadoPedido.Entregado);
-            reparto.TotalNoEntregados = pedidosZona.Count(p => p.Estado == EstadoPedido.NoEntregado);
-            reparto.TotalCancelados = pedidosZona.Count(p => p.Estado == EstadoPedido.Cancelado);
+            reparto.TotalVentas = ventasZona.Count;
+            reparto.TotalEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.Entregado);
+            reparto.TotalNoEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.NoEntregado);
+            reparto.TotalCancelados = ventasZona.Count(v => v.Estado == EstadoVenta.Cancelado);
 
             await _context.SaveChangesAsync();
         }
     }
 
-public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
+    public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
     {
         var hoy = DateTime.Today;
         return await _context.RepartosZona
@@ -248,10 +250,9 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
                 && r.Estado == EstadoReparto.EnCurso);
     }
 
-    public async Task IncrementarContadorRepartoAsync(int zonaId, EstadoPedido estadoFinal)
+    public async Task IncrementarContadorRepartoAsync(int zonaId, EstadoVenta estadoFinal)
     {
         var hoy = DateTime.Today;
-        // Solo incrementar en el reparto EnCurso de la zona
         var reparto = await _context.RepartosZona
             .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
@@ -259,13 +260,13 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
 
         switch (estadoFinal)
         {
-            case EstadoPedido.Entregado:
+            case EstadoVenta.Entregado:
                 reparto.TotalEntregados++;
                 break;
-            case EstadoPedido.NoEntregado:
+            case EstadoVenta.NoEntregado:
                 reparto.TotalNoEntregados++;
                 break;
-            case EstadoPedido.Cancelado:
+            case EstadoVenta.Cancelado:
                 reparto.TotalCancelados++;
                 break;
         }
@@ -273,16 +274,15 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
         await _context.SaveChangesAsync();
     }
 
-    public async Task IncrementarTotalPedidosRepartoAsync(int zonaId)
+    public async Task IncrementarTotalVentasRepartoAsync(int zonaId)
     {
         var hoy = DateTime.Today;
-        // Solo incrementar en el reparto EnCurso de la zona
         var reparto = await _context.RepartosZona
             .FirstOrDefaultAsync(r => r.ZonaId == zonaId && r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso);
 
         if (reparto != null)
         {
-            reparto.TotalPedidos++;
+            reparto.TotalVentas++;
             await _context.SaveChangesAsync();
         }
     }
@@ -314,89 +314,115 @@ public async Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetActivosConProductosPorRepartidorHoyAsync()
+    public async Task<IEnumerable<Venta>> GetActivosConProductosPorRepartidorHoyAsync()
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
-            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
-            .Include(p => p.Repartidor)
-            .Where(p => p.RepartidorId != null
-                && (p.Estado == EstadoPedido.Asignado || p.Estado == EstadoPedido.EnCamino)
-                && (p.FechaProgramada == null
-                    ? p.FechaCreacion.Date == hoy
-                    : p.FechaProgramada.Value.Date <= hoy))
+            .Include(v => v.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Repartidor)
+            .Where(v => v.RepartidorId != null
+                && (v.Estado == EstadoVenta.Asignado || v.Estado == EstadoVenta.EnCamino)
+                && (v.FechaProgramada == null
+                    ? v.FechaCreacion.Date == hoy
+                    : v.FechaProgramada.Value.Date <= hoy))
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetTodosConProductosPorRepartidorHoyAsync()
+    public async Task<IEnumerable<Venta>> GetTodosConProductosPorRepartidorHoyAsync()
     {
         var hoy = DateTime.Today;
         return await _dbSet
-            .Include(p => p.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
-            .Include(p => p.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
-            .Include(p => p.Repartidor)
-            .Where(p => p.RepartidorId != null
-                && p.FechaAsignacion != null
-                && p.FechaAsignacion.Value.Date == hoy)
+            .Include(v => v.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Repartidor)
+            .Where(v => v.RepartidorId != null
+                && v.FechaAsignacion != null
+                && v.FechaAsignacion.Value.Date == hoy)
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Pedido>> GetByCierreCajaAsync(int cierreCajaId)
+    public async Task<IEnumerable<Venta>> GetByCierreCajaAsync(int cierreCajaId)
     {
         return await _dbSet
-            .Include(p => p.FormaPago)
-            .Include(p => p.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(p => p.CierreCajaId == cierreCajaId && p.Estado != EstadoPedido.Cancelado && p.Estado != EstadoPedido.NoEntregado)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Where(v => v.CierreCajaId == cierreCajaId && v.Estado != EstadoVenta.Cancelado && v.Estado != EstadoVenta.NoEntregado)
             .ToListAsync();
     }
 
     public async Task<int> GetCountByFechaAsync(DateTime fecha)
     {
         return await _dbSet
-            .Where(p => p.FechaCreacion.Date == fecha.Date
-                && p.Estado != EstadoPedido.Cancelado
-                && p.Estado != EstadoPedido.NoEntregado)
+            .Where(v => v.FechaCreacion.Date == fecha.Date
+                && v.Estado != EstadoVenta.Cancelado
+                && v.Estado != EstadoVenta.NoEntregado)
             .CountAsync();
     }
 
     public async Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta)
     {
         return await _dbSet
-            .Where(p => p.FechaCreacion.Date >= desde.Date
-                && p.FechaCreacion.Date <= hasta.Date
-                && p.Estado != EstadoPedido.Cancelado
-                && p.Estado != EstadoPedido.NoEntregado)
+            .Where(v => v.FechaCreacion.Date >= desde.Date
+                && v.FechaCreacion.Date <= hasta.Date
+                && v.Estado != EstadoVenta.Cancelado
+                && v.Estado != EstadoVenta.NoEntregado)
             .CountAsync();
     }
 
     public async Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha)
     {
         var resultado = await _dbSet
-            .Where(p => p.FechaCreacion.Date == fecha.Date
-                && p.Estado != EstadoPedido.Cancelado
-                && p.Estado != EstadoPedido.NoEntregado)
+            .Where(v => v.FechaCreacion.Date == fecha.Date
+                && v.Estado != EstadoVenta.Cancelado
+                && v.Estado != EstadoVenta.NoEntregado)
             .GroupBy(_ => 1)
-            .Select(g => new { Total = g.Sum(p => p.Total), Count = g.Count() })
+            .Select(g => new { Total = g.Sum(v => v.Total), Count = g.Count() })
             .FirstOrDefaultAsync();
 
         return resultado is null ? (0m, 0) : (resultado.Total, resultado.Count);
     }
 
-    public async Task<IEnumerable<Pedido>> GetPedidosDepositoAsync(DateTime desde, int? localId)
+    public async Task<IEnumerable<Venta>> GetVentasDepositoAsync(DateTime desde, int? localId)
     {
         var query = _dbSet
-            .Include(p => p.Lineas)
-            .Where(p => p.Tipo == TipoPedido.ParaLlevar
-                && p.FechaCreacion >= desde);
+            .Include(v => v.Lineas)
+            .Where(v => v.Tipo == TipoVenta.Mostrador
+                && v.FechaCreacion >= desde);
 
         if (localId.HasValue)
-        {
-            query = query.Where(p => p.LocalId == localId.Value);
-        }
+            query = query.Where(v => v.LocalId == localId.Value);
 
         return await query
-            .OrderBy(p => p.FechaCreacion)
+            .OrderBy(v => v.FechaCreacion)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetSiguienteNumeroVentaAsync(DateTime fecha)
+    {
+        var count = await _dbSet
+            .Where(v => v.FechaCreacion.Date == fecha.Date)
+            .CountAsync();
+        return count + 1;
+    }
+
+    public async Task<IEnumerable<Venta>> GetByLocalAsync(int localId, DateTime? desde = null, DateTime? hasta = null)
+    {
+        var query = _dbSet
+            .Include(v => v.Cliente)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Local)
+            .Include(v => v.Usuario)
+            .Where(v => v.LocalId == localId);
+
+        if (desde.HasValue)
+            query = query.Where(v => v.FechaCreacion.Date >= desde.Value.Date);
+
+        if (hasta.HasValue)
+            query = query.Where(v => v.FechaCreacion.Date <= hasta.Value.Date);
+
+        return await query
+            .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
 }

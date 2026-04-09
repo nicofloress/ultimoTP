@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { Producto, Combo, Categoria, CarritoItem, TipoPedido, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto, TipoCliente } from '../../types';
+import { Producto, Combo, Categoria, CarritoItem, TipoVenta, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto, TipoCliente } from '../../types';
 import { Zona } from '../../types/logistica';
 import { parsearAtajo, filtrarCombosPorAtajo } from '../../utils/atajoCombo';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
-import { crearPedido } from '../../api/pedidos';
-import { crearVentaMostrador } from '../../api/ventas';
+import { crearVenta } from '../../api/pedidos';
 import { TicketPrintProps } from '../../components/TicketPrint';
 import ComprobanteXPrint from '../../components/ComprobanteXPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
@@ -108,7 +107,7 @@ export default function POSPage() {
     getListasPrecios().then(setListasPrecios);
     getZonas().then(zs => setZonas(zs.filter(z => !localActivo || !z.localId || z.localId === localActivo)));
     getTiposCliente().then(setTiposCliente);
-    getCajaAbierta().then(caja => setCajaAbiertaId(caja?.id ?? null));
+    getCajaAbierta(localActivo || undefined).then(caja => setCajaAbiertaId(caja?.id ?? null));
     getPromociones().then(setPromociones).catch(() => {});
   }, []);
 
@@ -489,48 +488,24 @@ export default function POSPage() {
         ? `[CTA CTE] ${notaInterna || `Venta a crédito - ${clienteSeleccionado?.nombre || ''}`}`
         : (notaInterna || undefined);
 
-      // SIEMPRE crear Venta
-      const venta = await crearVentaMostrador({
-        tipoVenta: envioADomicilio ? 2 : 1, // 1=Mostrador, 2=Domicilio
+      // Crear Venta unificada (Mostrador o Domicilio)
+      const venta = await crearVenta({
+        tipo: envioADomicilio ? TipoVenta.Domicilio : TipoVenta.Mostrador,
         nombreCliente: nombreCliente || undefined,
         telefonoCliente: telefonoCliente || undefined,
-        localId: localActivo || 1,
+        direccionEntrega: envioADomicilio ? (direccionEnvio || undefined) : undefined,
+        zonaId: envioADomicilio ? (zonaSeleccionada || undefined) : undefined,
+        fechaProgramada: envioADomicilio && fechaProgramada ? fechaProgramada : undefined,
+        localId: localActivo || undefined,
         formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
         descuento: descuentoCalculado,
-        observaciones: obs,
+        notaInterna: obs,
+        tipoFactura,
         estaPago: !esCtaCte,
         clienteId: clienteSeleccionado?.id,
-        detalles: detallesCarrito,
         pagos: modoPago === 'dividido' ? pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0).map(p => ({ formaPagoId: p.formaPagoId, monto: p.monto })) : undefined,
+        lineas: detallesCarrito,
       });
-
-      // Si es envío a domicilio, ADEMÁS crear Pedido
-      let pedidoId: number | undefined;
-      if (envioADomicilio) {
-        try {
-          const pedido = await crearPedido({
-            tipo: TipoPedido.Domicilio,
-            nombreCliente: nombreCliente || undefined,
-            telefonoCliente: telefonoCliente || undefined,
-            direccionEntrega: direccionEnvio || undefined,
-            zonaId: zonaSeleccionada || undefined,
-            fechaProgramada: fechaProgramada || undefined,
-            descuento: descuentoCalculado,
-            formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
-            clienteId: clienteSeleccionado?.id,
-            notaInterna: obs,
-            tipoFactura,
-            estaPago: !esCtaCte,
-            pagos: modoPago === 'dividido' ? pagosDivididos : undefined,
-            localId: localActivo || undefined,
-            lineas: detallesCarrito,
-          });
-          pedidoId = pedido.id;
-        } catch {
-          showToast('Venta registrada pero error al crear pedido de envío', 'error');
-        }
-      }
-
       // Si es cuenta corriente, registrar cargo
       if (esCtaCte && clienteSeleccionado) {
         try {
@@ -538,15 +513,16 @@ export default function POSPage() {
             clienteId: clienteSeleccionado.id,
             monto: venta.total,
             ventaId: venta.id,
-            pedidoId,
-            observaciones: `Venta a crédito - ${venta.numeroVenta}`,
+            observaciones: `Venta a crédito - ${venta.numeroTicket}`,
           });
-        } catch {
-          showToast('Venta creada pero error al cargar a cuenta corriente', 'error');
+        } catch (err: unknown) {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error desconocido';
+          showToast(`Venta creada pero error al cargar a cuenta corriente: ${msg}`, 'error');
+          console.error('Error registrar cargo cta cte:', err);
         }
       }
 
-      setTicketCreado(venta.numeroVenta);
+      setTicketCreado(venta.numeroTicket);
 
       // Pre-armar ticket listo para imprimir
       const fpNombre = venta.formaPagoNombre
@@ -554,14 +530,14 @@ export default function POSPage() {
         || formasPago.find(f => f.id === formaPagoSeleccionada)?.nombre
         || 'Efectivo';
       const ticketListo = {
-        numeroTicket: venta.numeroVenta || '',
-        fecha: venta.fecha || new Date().toISOString(),
-        tipo: venta.tipoVenta ?? 1,
+        numeroTicket: venta.numeroTicket || '',
+        fecha: venta.fechaCreacion || new Date().toISOString(),
+        tipo: venta.tipo ?? 1,
         nombreCliente: venta.nombreCliente || nombreCliente || undefined,
         direccionEntrega: undefined as string | undefined,
         zonaNombre: undefined as string | undefined,
-        lineas: (venta.detalles && venta.detalles.length > 0)
-          ? venta.detalles.map((d: { descripcion: string; cantidad: number; precioUnitario: number; subtotal: number }) => ({
+        lineas: (venta.lineas && venta.lineas.length > 0)
+          ? venta.lineas.map((d: { descripcion: string; cantidad: number; precioUnitario: number; subtotal: number }) => ({
               descripcion: d.descripcion,
               cantidad: d.cantidad,
               precioUnitario: d.precioUnitario,
@@ -582,7 +558,7 @@ export default function POSPage() {
         recargo: venta.recargo,
         total: venta.total,
         formaPagoNombre: fpNombre,
-        notaInterna: venta.observaciones || undefined,
+        notaInterna: venta.notaInterna || undefined,
         tipoFactura: 0,
         pagos: venta.pagos?.map((p: { formaPagoNombre: string; monto: number; recargo: number; totalACobrar: number }) => ({
           formaPagoNombre: p.formaPagoNombre,
@@ -1538,7 +1514,7 @@ export default function POSPage() {
                 setMostrarAbrirCaja(false);
               } catch {
                 // Si ya hay caja abierta, recargar
-                getCajaAbierta().then(c => { if (c) setCajaAbiertaId(c.id); });
+                getCajaAbierta(localActivo || undefined).then(c => { if (c) setCajaAbiertaId(c.id); });
                 setMostrarAbrirCaja(false);
               }
             }} className="px-5 py-4 space-y-4">

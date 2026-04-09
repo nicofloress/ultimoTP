@@ -16,6 +16,8 @@ public class CierreCaja
     public int? UsuarioId { get; set; }
     public int? LocalId { get; set; }
     public Local? Local { get; set; }
+    public int CantidadDomicilio { get; set; }
+    public decimal TotalDomicilio { get; set; }
     public ICollection<CierreCajaDetalle> Detalles { get; set; } = new List<CierreCajaDetalle>();
-    public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+    public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
 }

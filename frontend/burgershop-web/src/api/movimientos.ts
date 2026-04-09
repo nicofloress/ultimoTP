@@ -24,11 +24,12 @@ export interface MovimientoDto {
   cantidad: number;
   precioUnitario: number;
   montoTotal: number;
-  pedidoId?: number;
+  ventaId?: number;
   numeroTicket?: string;
   usuarioId?: number;
   usuarioNombre?: string;
   observaciones?: string;
+  clienteNombre?: string;
 }
 
 export interface CrearMovimientoDto {

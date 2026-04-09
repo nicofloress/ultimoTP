@@ -13,7 +13,7 @@ public class RepartoZona
     public EstadoReparto Estado { get; set; } = EstadoReparto.EnCurso;
 
     // Contadores denormalizados
-    public int TotalPedidos { get; set; }
+    public int TotalVentas { get; set; }
     public int TotalEntregados { get; set; }
     public int TotalNoEntregados { get; set; }
     public int TotalCancelados { get; set; }

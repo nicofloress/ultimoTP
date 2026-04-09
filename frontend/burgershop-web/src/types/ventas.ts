@@ -1,4 +1,4 @@
-export interface LineaPedido {
+export interface LineaVenta {
   id: number;
   productoId?: number;
   comboId?: number;
@@ -9,12 +9,12 @@ export interface LineaPedido {
   notas?: string;
 }
 
-export interface Pedido {
+export interface Venta {
   id: number;
   numeroTicket: string;
   fechaCreacion: string;
-  tipo: TipoPedido;
-  estado: EstadoPedido;
+  tipo: TipoVenta;
+  estado: EstadoVenta;
   nombreCliente?: string;
   telefonoCliente?: string;
   direccionEntrega?: string;
@@ -42,16 +42,16 @@ export interface Pedido {
   localId?: number;
   localNombre?: string;
   repartoZonaId?: number | null;
-  lineas: LineaPedido[];
+  lineas: LineaVenta[];
   pagos?: PagoPedidoDto[];
 }
 
-export enum TipoPedido {
-  ParaLlevar = 1,
+export enum TipoVenta {
+  Mostrador = 1,
   Domicilio = 2,
 }
 
-export enum EstadoPedido {
+export enum EstadoVenta {
   Pendiente = 1,
   EnPreparacion = 2,
   Listo = 3,

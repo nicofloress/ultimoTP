@@ -52,10 +52,13 @@ public class CajaController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CierreCajaDto>>> GetHistorial([FromQuery] int? localId = null)
+    public async Task<ActionResult<IEnumerable<CierreCajaDto>>> GetHistorial(
+        [FromQuery] int? localId = null,
+        [FromQuery] DateTime? fechaDesde = null,
+        [FromQuery] DateTime? fechaHasta = null)
     {
         var lid = localId ?? GetLocalIdFromClaims();
-        var historial = await _service.GetHistorialAsync(lid);
+        var historial = await _service.GetHistorialAsync(lid, fechaDesde, fechaHasta);
         return Ok(historial);
     }
 

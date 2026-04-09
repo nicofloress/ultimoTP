@@ -29,9 +29,9 @@ public class RendicionDetalleConfiguration : IEntityTypeConfiguration<RendicionD
             .HasForeignKey(d => d.RendicionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(d => d.Pedido)
+        builder.HasOne(d => d.Venta)
             .WithMany()
-            .HasForeignKey(d => d.PedidoId)
+            .HasForeignKey(d => d.VentaId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

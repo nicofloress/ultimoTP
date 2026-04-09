@@ -1,13 +1,12 @@
-using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Ventas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BurgerShop.Infrastructure.Data.Configurations.Ventas;
 
-public class LineaPedidoConfiguration : IEntityTypeConfiguration<LineaPedido>
+public class LineaVentaConfiguration : IEntityTypeConfiguration<LineaVenta>
 {
-    public void Configure(EntityTypeBuilder<LineaPedido> builder)
+    public void Configure(EntityTypeBuilder<LineaVenta> builder)
     {
         builder.HasKey(l => l.Id);
         builder.Property(l => l.Descripcion).IsRequired().HasMaxLength(200);
@@ -15,9 +14,9 @@ public class LineaPedidoConfiguration : IEntityTypeConfiguration<LineaPedido>
         builder.Property(l => l.Subtotal).HasColumnType("decimal(18,2)");
         builder.Property(l => l.Notas).HasMaxLength(500);
 
-        builder.HasOne(l => l.Pedido)
-            .WithMany(p => p.Lineas)
-            .HasForeignKey(l => l.PedidoId);
+        builder.HasOne(l => l.Venta)
+            .WithMany(v => v.Lineas)
+            .HasForeignKey(l => l.VentaId);
 
         builder.HasOne(l => l.Producto)
             .WithMany()

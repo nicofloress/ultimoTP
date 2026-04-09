@@ -18,5 +18,5 @@ public interface ICuentaCorrienteRepository
     Task<IEnumerable<MovimientoCuentaCorriente>> GetMovimientosByCuentaAsync(
         int cuentaCorrienteId, DateTime? desde, DateTime? hasta);
     Task AddMovimientoAsync(MovimientoCuentaCorriente movimiento);
-    Task<MovimientoCuentaCorriente?> GetCargoPorPedidoAsync(int pedidoId);
+    Task<MovimientoCuentaCorriente?> GetCargoPorVentaAsync(int ventaId);
 }

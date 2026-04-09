@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Pedido, Mensaje, EstadoPedido } from '../../types';
+import { Venta, Mensaje, EstadoVenta } from '../../types';
 import { marcarEnCamino, marcarEntregado, marcarNoEntregado } from '../../api/entregas';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useAuth } from '../../context/AuthContext';
@@ -20,7 +20,7 @@ export default function RepartidorApp() {
   const { gpsStatus, lastPosition } = useGeoTracking(!!repartidorId);
 
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
-  const [modalPedido, setModalPedido] = useState<Pedido | null>(null);
+  const [modalPedido, setModalPedido] = useState<Venta | null>(null);
   const [notasEntrega, setNotasEntrega] = useState('');
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'pendiente' | null>(null);
   const [comprobanteBase64, setComprobanteBase64] = useState<string | null>(null);
@@ -68,11 +68,11 @@ export default function RepartidorApp() {
 
   const pendientes = useMemo(() => {
     return entregas
-      .filter(e => e.estado === EstadoPedido.Asignado || e.estado === EstadoPedido.EnCamino)
+      .filter(e => e.estado === EstadoVenta.Asignado || e.estado === EstadoVenta.EnCamino)
       .sort((a, b) => {
         // EnCamino primero, luego Asignado
-        if (a.estado === EstadoPedido.EnCamino && b.estado !== EstadoPedido.EnCamino) return -1;
-        if (b.estado === EstadoPedido.EnCamino && a.estado !== EstadoPedido.EnCamino) return 1;
+        if (a.estado === EstadoVenta.EnCamino && b.estado !== EstadoVenta.EnCamino) return -1;
+        if (b.estado === EstadoVenta.EnCamino && a.estado !== EstadoVenta.EnCamino) return 1;
         return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
       });
   }, [entregas]);
@@ -80,18 +80,18 @@ export default function RepartidorApp() {
   const completados = useMemo(() => {
     const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
     return entregas
-      .filter(e => e.estado === EstadoPedido.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy)
+      .filter(e => e.estado === EstadoVenta.Entregado && e.fechaEntrega && e.fechaEntrega.slice(0, 10) === hoy)
       .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
   }, [entregas]);
 
   const noEntregados = useMemo(() => {
     return entregas
-      .filter(e => e.estado === EstadoPedido.NoEntregado)
+      .filter(e => e.estado === EstadoVenta.NoEntregado)
       .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
   }, [entregas]);
 
   // Estado para modal de cancelacion
-  const [cancelarPedido, setCancelarPedido] = useState<Pedido | null>(null);
+  const [cancelarPedido, setCancelarPedido] = useState<Venta | null>(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
 
@@ -116,7 +116,7 @@ export default function RepartidorApp() {
   };
 
 
-  const handleEnCamino = async (pedido: Pedido) => {
+  const handleEnCamino = async (pedido: Venta) => {
     setActionLoading(pedido.id);
     try {
       await marcarEnCamino(pedido.id);
@@ -459,11 +459,11 @@ function PendientesTab({
   onCancelar,
   formatTime,
 }: {
-  pedidos: Pedido[];
+  pedidos: Venta[];
   actionLoading: number | null;
-  onEnCamino: (p: Pedido) => void;
-  onEntregado: (p: Pedido) => void;
-  onCancelar: (p: Pedido) => void;
+  onEnCamino: (p: Venta) => void;
+  onEntregado: (p: Venta) => void;
+  onCancelar: (p: Venta) => void;
   formatTime: (s: string) => string;
 }) {
   if (pedidos.length === 0) {
@@ -504,15 +504,15 @@ function PedidoCard({
   onCancelar,
   formatTime,
 }: {
-  pedido: Pedido;
+  pedido: Venta;
   actionLoading: number | null;
-  onEnCamino: (p: Pedido) => void;
-  onEntregado: (p: Pedido) => void;
-  onCancelar: (p: Pedido) => void;
+  onEnCamino: (p: Venta) => void;
+  onEntregado: (p: Venta) => void;
+  onCancelar: (p: Venta) => void;
   formatTime: (s: string) => string;
 }) {
-  const isAsignado = pedido.estado === EstadoPedido.Asignado;
-  const isEnCamino = pedido.estado === EstadoPedido.EnCamino;
+  const isAsignado = pedido.estado === EstadoVenta.Asignado;
+  const isEnCamino = pedido.estado === EstadoVenta.EnCamino;
   const loading = actionLoading === pedido.id;
 
   const borderColor = isAsignado ? 'border-l-amber-400' : 'border-l-blue-400';
@@ -642,7 +642,7 @@ function CompletadosTab({
   formatTime,
   onVerComprobante,
 }: {
-  pedidos: Pedido[];
+  pedidos: Venta[];
   formatTime: (s: string) => string;
   onVerComprobante: (src: string) => void;
 }) {
@@ -715,7 +715,7 @@ function CompletadosTab({
 function NoEntregadosTab({
   pedidos,
 }: {
-  pedidos: Pedido[];
+  pedidos: Venta[];
 }) {
   if (pedidos.length === 0) {
     return (
@@ -783,7 +783,7 @@ function EntregaModal({
   loading,
   formatTime,
 }: {
-  pedido: Pedido;
+  pedido: Venta;
   notas: string;
   onNotasChange: (v: string) => void;
   metodoPago: 'efectivo' | 'transferencia' | 'pendiente' | null;

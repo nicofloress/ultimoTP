@@ -23,13 +23,6 @@ public class MovimientoCuentaCorrienteConfiguration : IEntityTypeConfiguration<M
         // La FK ya queda definida en CuentaCorrienteConfiguration.HasMany(...).WithOne(...)
         // Solo necesitamos configurar las FKs opcionales aqui.
 
-        // Pedido — opcional, SetNull
-        builder.HasOne(m => m.Pedido)
-            .WithMany()
-            .HasForeignKey(m => m.PedidoId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.SetNull);
-
         // Venta — opcional, SetNull
         builder.HasOne(m => m.Venta)
             .WithMany()
@@ -53,7 +46,7 @@ public class MovimientoCuentaCorrienteConfiguration : IEntityTypeConfiguration<M
 
         // Indices
         builder.HasIndex(m => new { m.CuentaCorrienteId, m.FechaMovimiento });
-        builder.HasIndex(m => m.PedidoId)
-            .HasFilter("\"PedidoId\" IS NOT NULL");
+        builder.HasIndex(m => m.VentaId)
+            .HasFilter("\"VentaId\" IS NOT NULL");
     }
 }

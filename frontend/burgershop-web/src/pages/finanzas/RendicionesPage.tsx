@@ -7,8 +7,8 @@ import {
   getRepartidoresPendientes,
   crearRendicion,
 } from '../../api/rendiciones';
-import { getPedido } from '../../api/pedidos';
-import { Pedido } from '../../types';
+import { getVenta } from '../../api/pedidos';
+import { Venta } from '../../types';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
@@ -41,7 +41,7 @@ export default function RendicionesPage() {
 
   // Detalle de pedido expandido dentro del modal de rendición
   const [pedidoExpandidoId, setPedidoExpandidoId] = useState<number | null>(null);
-  const [pedidoExpandido, setPedidoExpandido] = useState<Pedido | null>(null);
+  const [pedidoExpandido, setPedidoExpandido] = useState<Venta | null>(null);
   const [cargandoPedido, setCargandoPedido] = useState(false);
 
   const verDetallePedido = async (pedidoId: number) => {
@@ -54,7 +54,7 @@ export default function RendicionesPage() {
     setPedidoExpandido(null);
     setCargandoPedido(true);
     try {
-      const data = await getPedido(pedidoId);
+      const data = await getVenta(pedidoId);
       setPedidoExpandido(data);
     } catch {
       showToast('Error al cargar detalle del pedido', 'error');

@@ -210,7 +210,8 @@ export default function MovimientosPage() {
     { key: 'cantidad', label: 'Cantidad' },
     { key: 'precioUnitario', label: 'Precio Unit.' },
     { key: 'montoTotal', label: 'Monto Total' },
-    { key: 'numeroTicket', label: 'Pedido' },
+    { key: 'numeroTicket', label: 'Ticket' },
+    { key: 'clienteNombre', label: 'Cliente' },
     { key: 'usuarioNombre', label: 'Usuario' },
     { key: 'observaciones', label: 'Observaciones' },
   ];
@@ -449,6 +450,7 @@ export default function MovimientosPage() {
                     <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>
                     <td className="px-3 py-2 whitespace-nowrap font-semibold">{formatMonto(m.montoTotal)}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{m.numeroTicket || '-'}</td>
+                    <td className="px-3 py-2">{m.clienteNombre || '-'}</td>
                     <td className="px-3 py-2">{m.usuarioNombre || '-'}</td>
                     <td className="px-3 py-2 text-xs text-gray-500 max-w-[200px] truncate">
                       {m.observaciones || '-'}

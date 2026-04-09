@@ -68,12 +68,12 @@ public class MovimientosController : ControllerBase
     }
 
     /// <summary>
-    /// Lista los movimientos asociados a un pedido específico.
+    /// Lista los movimientos asociados a una venta específica.
     /// </summary>
-    [HttpGet("pedido/{pedidoId}")]
-    public async Task<ActionResult<IEnumerable<MovimientoDto>>> GetByPedido(int pedidoId)
+    [HttpGet("venta/{ventaId}")]
+    public async Task<ActionResult<IEnumerable<MovimientoDto>>> GetByVenta(int ventaId)
     {
-        var movimientos = await _service.GetByPedidoAsync(pedidoId);
+        var movimientos = await _service.GetByVentaAsync(ventaId);
         return Ok(movimientos);
     }
 }

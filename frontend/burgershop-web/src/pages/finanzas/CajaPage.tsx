@@ -3,8 +3,15 @@ import { CierreCaja, EstadoCaja } from '../../types';
 import { getCajaAbierta, abrirCaja, cerrarCaja, getHistorialCajas, getCaja } from '../../api/caja';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import { useLocalActivo } from '../../context/LocalContext';
+
+const hoy = new Date();
+const hace7Dias = new Date(hoy);
+hace7Dias.setDate(hoy.getDate() - 7);
+const toInputDate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function CajaPage() {
+  const { localActivo } = useLocalActivo();
   const [cajaAbierta, setCajaAbierta] = useState<CierreCaja | null>(null);
   const [historial, setHistorial] = useState<CierreCaja[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -17,10 +24,57 @@ export default function CajaPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { showToast } = useGlobalToast();
 
+  // Filtros historial
+  const [fechaDesde, setFechaDesde] = useState(toInputDate(hace7Dias));
+  const [fechaHasta, setFechaHasta] = useState(toInputDate(hoy));
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+
+  // Ordenamiento historial
+  const [sortField, setSortField] = useState<string>('fechaApertura');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (field: string) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('desc'); }
+  };
+
+  const historialOrdenado = [...historial].sort((a, b) => {
+    let valA: number | string = 0;
+    let valB: number | string = 0;
+    switch (sortField) {
+      case 'fechaApertura': valA = a.fechaApertura; valB = b.fechaApertura; break;
+      case 'fechaCierre': valA = a.fechaCierre ?? ''; valB = b.fechaCierre ?? ''; break;
+      case 'montoInicial': valA = a.montoInicial; valB = b.montoInicial; break;
+      case 'montoFinal': valA = a.montoFinal ?? 0; valB = b.montoFinal ?? 0; break;
+      case 'cantidadPedidos': valA = a.cantidadPedidos; valB = b.cantidadPedidos; break;
+      case 'totalVentas': valA = a.totalVentas; valB = b.totalVentas; break;
+      case 'cantidadDomicilio': valA = a.cantidadDomicilio ?? 0; valB = b.cantidadDomicilio ?? 0; break;
+      case 'totalDomicilio': valA = a.totalDomicilio ?? 0; valB = b.totalDomicilio ?? 0; break;
+    }
+    if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const cargarHistorial = async () => {
+    setCargandoHistorial(true);
+    try {
+      const hist = await getHistorialCajas(localActivo || undefined, fechaDesde, fechaHasta);
+      setHistorial(hist);
+    } catch {
+      showToast('Error al cargar el historial', 'error');
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      const [caja, hist] = await Promise.all([getCajaAbierta(), getHistorialCajas()]);
+      const [caja, hist] = await Promise.all([
+        getCajaAbierta(localActivo || undefined),
+        getHistorialCajas(localActivo || undefined, fechaDesde, fechaHasta),
+      ]);
       setCajaAbierta(caja);
       setHistorial(hist);
     } catch {
@@ -145,7 +199,7 @@ export default function CajaPage() {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <p className="text-green-800 font-medium">Caja abierta</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
               <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Fecha Apertura</div>
                 <div className="text-sm font-semibold mt-1">{formatFecha(cajaAbierta.fechaApertura)}</div>
@@ -155,12 +209,20 @@ export default function CajaPage() {
                 <div className="text-sm font-semibold mt-1">${cajaAbierta.montoInicial.toLocaleString()}</div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Cant. Pedidos</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Cant. Ventas</div>
                 <div className="text-sm font-semibold mt-1">{cajaAbierta.cantidadPedidos}</div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 shadow-md border border-gray-200">
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Total Ventas</div>
                 <div className="text-lg font-bold mt-1 text-green-600">${cajaAbierta.totalVentas.toLocaleString()}</div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 shadow-md border border-blue-200">
+                <div className="text-xs text-blue-500 uppercase tracking-wider">Cant. Pedidos</div>
+                <div className="text-sm font-semibold mt-1">{cajaAbierta.cantidadDomicilio ?? 0}</div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 shadow-md border border-blue-200">
+                <div className="text-xs text-blue-500 uppercase tracking-wider">Total Pedidos</div>
+                <div className="text-lg font-bold mt-1 text-blue-600">${(cajaAbierta.totalDomicilio ?? 0).toLocaleString()}</div>
               </div>
             </div>
 
@@ -239,38 +301,115 @@ export default function CajaPage() {
       {/* Historial de Cierres */}
       <div className="bg-white rounded-lg shadow-xl border-2 border-gray-300 p-6">
         <h2 className="text-lg font-bold mb-4">Historial de Cierres</h2>
-        {historial.length === 0 ? (
-          <p className="text-gray-400 text-center py-8">No hay registros de caja</p>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+            <input
+              type="date"
+              value={fechaDesde}
+              onChange={e => setFechaDesde(e.target.value)}
+              className="border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+            <input
+              type="date"
+              value={fechaHasta}
+              onChange={e => setFechaHasta(e.target.value)}
+              className="border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            onClick={cargarHistorial}
+            disabled={cargandoHistorial}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium text-sm transition-colors disabled:opacity-60"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            {cargandoHistorial ? 'Buscando...' : 'Buscar'}
+          </button>
+        </div>
+
+        {historialOrdenado.length === 0 ? (
+          <p className="text-gray-400 text-center py-8">No hay registros de caja en el período seleccionado</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Fecha Apertura</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Fecha Cierre</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Monto Inicial</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Monto Final</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Cant. Pedidos</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Total Ventas</th>
+                  <th
+                    onClick={() => handleSort('fechaApertura')}
+                    className="cursor-pointer text-left px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                  >
+                    Fecha Apertura {sortField === 'fechaApertura' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('fechaCierre')}
+                    className="cursor-pointer text-left px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                  >
+                    Fecha Cierre {sortField === 'fechaCierre' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('montoInicial')}
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                  >
+                    Monto Inicial {sortField === 'montoInicial' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('montoFinal')}
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                  >
+                    Monto Final {sortField === 'montoFinal' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('cantidadPedidos')}
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                  >
+                    Cant. Ventas {sortField === 'cantidadPedidos' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('totalVentas')}
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                  >
+                    Total Ventas {sortField === 'totalVentas' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('cantidadDomicilio')}
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-blue-500 hover:text-blue-700 select-none"
+                  >
+                    Cant. Pedidos {sortField === 'cantidadDomicilio' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
+                  <th
+                    onClick={() => handleSort('totalDomicilio')}
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-blue-500 hover:text-blue-700 select-none"
+                  >
+                    Total Pedidos {sortField === 'totalDomicilio' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  </th>
                   <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {historial.map(caja => (
+                {historialOrdenado.map(caja => (
                   <tr key={caja.id} className="group">
-                    <td colSpan={7} className="p-0">
+                    <td colSpan={9} className="p-0">
                       <button
                         onClick={() => setDetalleExpandido(detalleExpandido === caja.id ? null : caja.id)}
                         className="w-full text-left hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-center">
-                          <div className="px-4 py-3 text-sm flex-1">{formatFecha(caja.fechaApertura)}</div>
-                          <div className="px-4 py-3 text-sm flex-1">{caja.fechaCierre ? formatFecha(caja.fechaCierre) : '-'}</div>
-                          <div className="px-4 py-3 text-sm text-right flex-1">${caja.montoInicial.toLocaleString()}</div>
-                          <div className="px-4 py-3 text-sm text-right flex-1">{caja.montoFinal != null ? `$${caja.montoFinal.toLocaleString()}` : '-'}</div>
-                          <div className="px-4 py-3 text-sm text-right flex-1">{caja.cantidadPedidos}</div>
-                          <div className="px-4 py-3 text-sm text-right font-medium flex-1">${caja.totalVentas.toLocaleString()}</div>
-                          <div className="px-4 py-3 text-sm text-center flex-1">
+                          <div className="px-4 py-3 text-sm" style={{ flex: '1 1 0' }}>{formatFecha(caja.fechaApertura)}</div>
+                          <div className="px-4 py-3 text-sm" style={{ flex: '1 1 0' }}>{caja.fechaCierre ? formatFecha(caja.fechaCierre) : '-'}</div>
+                          <div className="px-4 py-3 text-sm text-right" style={{ flex: '1 1 0' }}>${caja.montoInicial.toLocaleString()}</div>
+                          <div className="px-4 py-3 text-sm text-right" style={{ flex: '1 1 0' }}>{caja.montoFinal != null ? `$${caja.montoFinal.toLocaleString()}` : '-'}</div>
+                          <div className="px-4 py-3 text-sm text-right" style={{ flex: '1 1 0' }}>{caja.cantidadPedidos}</div>
+                          <div className="px-4 py-3 text-sm text-right font-medium" style={{ flex: '1 1 0' }}>${caja.totalVentas.toLocaleString()}</div>
+                          <div className="px-4 py-3 text-sm text-right text-blue-700" style={{ flex: '1 1 0' }}>{caja.cantidadDomicilio ?? 0}</div>
+                          <div className="px-4 py-3 text-sm text-right font-medium text-blue-700" style={{ flex: '1 1 0' }}>${(caja.totalDomicilio ?? 0).toLocaleString()}</div>
+                          <div className="px-4 py-3 text-sm text-center" style={{ flex: '1 1 0' }}>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                               caja.estado === EstadoCaja.Abierta
                                 ? 'bg-green-100 text-green-800'

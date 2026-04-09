@@ -1,19 +1,19 @@
 import api from './client';
-import { Pedido } from '../types';
+import { Venta } from '../types';
 
-export const getEntregasPendientes = () => api.get<Pedido[]>('/entregas/pendientes').then(r => r.data);
-export const asignarEntrega = (pedidoId: number, repartidorId: number) => api.post<Pedido>('/entregas/asignar', { pedidoId, repartidorId }).then(r => r.data);
-export const getEntregasRepartidor = (id: number) => api.get<Pedido[]>(`/entregas/repartidor/${id}`).then(r => r.data);
-export const marcarEnCamino = (pedidoId: number) => api.put<Pedido>(`/entregas/${pedidoId}/en-camino`).then(r => r.data);
-export const marcarEntregado = (pedidoId: number, data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string }) =>
-  api.put<Pedido>(`/entregas/${pedidoId}/entregar`, data).then(r => r.data);
+export const getEntregasPendientes = () => api.get<Venta[]>('/entregas/pendientes').then(r => r.data);
+export const asignarEntrega = (ventaId: number, repartidorId: number) => api.post<Venta>('/entregas/asignar', { pedidoId: ventaId, repartidorId }).then(r => r.data);
+export const getEntregasRepartidor = (id: number) => api.get<Venta[]>(`/entregas/repartidor/${id}`).then(r => r.data);
+export const marcarEnCamino = (ventaId: number) => api.put<Venta>(`/entregas/${ventaId}/en-camino`).then(r => r.data);
+export const marcarEntregado = (ventaId: number, data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string }) =>
+  api.put<Venta>(`/entregas/${ventaId}/entregar`, data).then(r => r.data);
 
 export const loginRepartidor = (codigoAcceso: string) => api.post<{ id: number; nombre: string }>('/auth/repartidor', { codigoAcceso }).then(r => r.data);
 
-export const marcarNoEntregado = (pedidoId: number, motivo: string) =>
-  api.put<Pedido>(`/entregas/${pedidoId}/no-entregado`, { motivo }).then(r => r.data);
+export const marcarNoEntregado = (ventaId: number, motivo: string) =>
+  api.put<Venta>(`/entregas/${ventaId}/no-entregado`, { motivo }).then(r => r.data);
 
-export const getPedidosPorZona = () => api.get<Pedido[]>('/entregas/por-zona').then(r => r.data);
+export const getPedidosPorZona = () => api.get<Venta[]>('/entregas/por-zona').then(r => r.data);
 export const finalizarRepartoZona = (zonaId: number, repartidorId: number) => api.post('/entregas/finalizar-reparto', { zonaId, repartidorId }).then(r => r.data);
 export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number }[]) =>
   api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);
@@ -33,8 +33,8 @@ export interface RepartidorTally {
   totalPedidos: number;
   medallones: Record<string, CompletaMedia>;
   premium: Record<string, CompletaMedia>;
-  salchichaCorta: CompletaMedia;
-  salchichaLarga: CompletaMedia;
+  salchichaCorta: Record<string, number>;
+  salchichaLarga: Record<string, number>;
   panTradicional: Record<string, number>;
   panMaxi: Record<string, number>;
   panPancho: Record<string, number>;

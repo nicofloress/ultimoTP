@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVentasDeposito } from '../../api/deposito';
-import type { VentaDto } from '../../api/ventas';
+import type { Venta } from '../../types';
 
 const playBeep = () => {
   try {
@@ -40,7 +40,7 @@ const formatMoney = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
 
 export default function DepositoPage() {
-  const [ventas, setVentas] = useState<VentaDto[]>([]);
+  const [ventas, setVentas] = useState<Venta[]>([]);
   const [now, setNow] = useState<Date>(new Date());
   const [fadingOutId, setFadingOutId] = useState<number | null>(null);
   const idsAnterioresRef = useRef<Set<number>>(new Set());
@@ -63,7 +63,7 @@ export default function DepositoPage() {
         primeraCargaRef.current = false;
         // Ordenar por fecha ascendente (más vieja arriba)
         const ordenadas = [...data].sort(
-          (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+          (a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime()
         );
         setVentas(ordenadas);
       } catch (e) {
@@ -89,7 +89,7 @@ export default function DepositoPage() {
   useEffect(() => {
     if (ventas.length === 0) return;
     const primera = ventas[0];
-    const segundosTranscurridos = (now.getTime() - new Date(primera.fecha).getTime()) / 1000;
+    const segundosTranscurridos = (now.getTime() - new Date(primera.fechaCreacion).getTime()) / 1000;
     const restante = 600 - segundosTranscurridos;
     if (restante <= 0 && fadingOutId !== primera.id) {
       setFadingOutId(primera.id);
@@ -124,7 +124,7 @@ export default function DepositoPage() {
               const esPrimero = v.id === primeroId;
               const fading = fadingOutId === v.id;
               const segundosTranscurridos =
-                (now.getTime() - new Date(v.fecha).getTime()) / 1000;
+                (now.getTime() - new Date(v.fechaCreacion).getTime()) / 1000;
               const restante = 600 - segundosTranscurridos;
 
               return (
@@ -141,10 +141,10 @@ export default function DepositoPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="text-6xl font-extrabold text-orange-400">
-                        #{v.numeroVenta}
+                        #{v.numeroTicket}
                       </div>
                       <div className="text-2xl text-slate-300 mt-2">
-                        Hora: <span className="font-bold text-white">{formatHora(v.fecha)}</span>
+                        Hora: <span className="font-bold text-white">{formatHora(v.fechaCreacion)}</span>
                       </div>
                     </div>
                     {esPrimero && (
@@ -163,7 +163,7 @@ export default function DepositoPage() {
                   </div>
 
                   <ul className="divide-y divide-slate-700 border-t border-b border-slate-700">
-                    {v.detalles.map(d => (
+                    {v.lineas.map(d => (
                       <li key={d.id} className="py-3 flex items-baseline gap-6 text-3xl">
                         <span className="font-extrabold text-orange-300 w-20">{d.cantidad}x</span>
                         <span className="flex-1 font-semibold">{d.descripcion}</span>

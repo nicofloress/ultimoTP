@@ -101,7 +101,6 @@ public class CuentaCorrienteService : ICuentaCorrienteService
             Tipo              = TipoMovimientoCuentaCorriente.Cargo,
             Monto             = dto.Monto,
             SaldoResultante   = nuevoSaldo,
-            PedidoId          = dto.PedidoId,
             VentaId           = dto.VentaId,
             UsuarioId         = usuarioId,
             Observaciones     = dto.Observaciones
@@ -215,10 +214,10 @@ public class CuentaCorrienteService : ICuentaCorrienteService
     // Saldar cargo cuando el pedido fue cobrado en la entrega
     // -----------------------------------------------------------------------
 
-    public async Task SaldarCargoPorPedidoAsync(int pedidoId, int? usuarioId)
+    public async Task SaldarCargoPorVentaAsync(int ventaId, int? usuarioId)
     {
-        var cargo = await _cuentaRepo.GetCargoPorPedidoAsync(pedidoId);
-        if (cargo is null) return; // No había cargo en cta cte para este pedido
+        var cargo = await _cuentaRepo.GetCargoPorVentaAsync(ventaId);
+        if (cargo is null) return; // No había cargo en cta cte para esta venta
 
         var cuenta = cargo.CuentaCorriente;
         if (cuenta is null) return;
@@ -234,9 +233,9 @@ public class CuentaCorrienteService : ICuentaCorrienteService
             Tipo              = TipoMovimientoCuentaCorriente.Pago,
             Monto             = cargo.Monto,
             SaldoResultante   = nuevoSaldo,
-            PedidoId          = pedidoId,
+            VentaId           = ventaId,
             UsuarioId         = usuarioId,
-            Observaciones     = $"Pago automatico - cobrado en entrega (Pedido #{pedidoId})"
+            Observaciones     = $"Pago automatico - cobrado en entrega (Venta #{ventaId})"
         };
 
         await _cuentaRepo.AddMovimientoAsync(pago);
@@ -308,10 +307,10 @@ public class CuentaCorrienteService : ICuentaCorrienteService
         Tipo:              m.Tipo.ToString(),
         Monto:             m.Monto,
         SaldoResultante:   m.SaldoResultante,
-        PedidoId:          m.PedidoId,
-        NumeroTicket:      m.Pedido?.NumeroTicket,
+        PedidoId:          null,
+        NumeroTicket:      m.Venta?.NumeroTicket,
         VentaId:           m.VentaId,
-        NumeroVenta:       m.Venta?.NumeroVenta,
+        NumeroVenta:       m.Venta?.NumeroTicket,
         MovimientoId:      m.MovimientoId,
         UsuarioId:         m.UsuarioId,
         UsuarioNombre:     m.Usuario?.NombreCompleto,

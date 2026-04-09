@@ -11,12 +11,12 @@ namespace BurgerShop.Application.Finanzas.Services;
 public class CierreCajaService : ICierreCajaService
 {
     private readonly ICierreCajaRepository _cajaRepo;
-    private readonly IPedidoRepository _pedidoRepo;
+    private readonly IVentaRepository _ventaRepo;
 
-    public CierreCajaService(ICierreCajaRepository cajaRepo, IPedidoRepository pedidoRepo)
+    public CierreCajaService(ICierreCajaRepository cajaRepo, IVentaRepository ventaRepo)
     {
         _cajaRepo = cajaRepo;
-        _pedidoRepo = pedidoRepo;
+        _ventaRepo = ventaRepo;
     }
 
     public async Task<CierreCajaDto?> GetCajaAbiertaAsync(int? localId = null)
@@ -24,8 +24,8 @@ public class CierreCajaService : ICierreCajaService
         var caja = await _cajaRepo.GetCajaAbiertaAsync(localId);
         if (caja is null) return null;
 
-        var pedidos = await _pedidoRepo.GetByCierreCajaAsync(caja.Id);
-        return ToDto(caja, pedidos.ToList());
+        var ventas = await _ventaRepo.GetByCierreCajaAsync(caja.Id);
+        return ToDto(caja, ventas.ToList());
     }
 
     public async Task<CierreCajaDto> AbrirCajaAsync(AbrirCajaDto dto)
@@ -46,7 +46,7 @@ public class CierreCajaService : ICierreCajaService
         await _cajaRepo.AddAsync(nuevaCaja);
         await _cajaRepo.SaveChangesAsync();
 
-        return ToDto(nuevaCaja, new List<Pedido>());
+        return ToDto(nuevaCaja, new List<Venta>());
     }
 
     public async Task<CierreCajaDto?> CerrarCajaAsync(int id, CerrarCajaDto dto)
@@ -54,15 +54,15 @@ public class CierreCajaService : ICierreCajaService
         var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
         if (caja is null) return null;
 
-        var pedidos = (await _pedidoRepo.GetByCierreCajaAsync(id)).ToList();
+        var ventas = (await _ventaRepo.GetByCierreCajaAsync(id)).ToList();
 
         var totalesPorFormaPago = new Dictionary<int, (decimal monto, int cantidad)>();
 
-        foreach (var pedido in pedidos)
+        foreach (var venta in ventas)
         {
-            if (pedido.Pagos.Any())
+            if (venta.Pagos.Any())
             {
-                foreach (var pago in pedido.Pagos)
+                foreach (var pago in venta.Pagos)
                 {
                     if (totalesPorFormaPago.TryGetValue(pago.FormaPagoId, out var existente))
                         totalesPorFormaPago[pago.FormaPagoId] = (existente.monto + pago.TotalACobrar, existente.cantidad + 1);
@@ -70,13 +70,13 @@ public class CierreCajaService : ICierreCajaService
                         totalesPorFormaPago[pago.FormaPagoId] = (pago.TotalACobrar, 1);
                 }
             }
-            else if (pedido.FormaPagoId.HasValue)
+            else if (venta.FormaPagoId.HasValue)
             {
-                var formaPagoId = pedido.FormaPagoId.Value;
+                var formaPagoId = venta.FormaPagoId.Value;
                 if (totalesPorFormaPago.TryGetValue(formaPagoId, out var existente))
-                    totalesPorFormaPago[formaPagoId] = (existente.monto + pedido.Total, existente.cantidad + 1);
+                    totalesPorFormaPago[formaPagoId] = (existente.monto + venta.Total, existente.cantidad + 1);
                 else
-                    totalesPorFormaPago[formaPagoId] = (pedido.Total, 1);
+                    totalesPorFormaPago[formaPagoId] = (venta.Total, 1);
             }
         }
 
@@ -92,6 +92,11 @@ public class CierreCajaService : ICierreCajaService
             });
         }
 
+        // Guardar datos de domicilio al momento del cierre para no recalcular en el historial
+        var ventasDomicilioAlCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio).ToList();
+        caja.CantidadDomicilio = ventasDomicilioAlCierre.Count;
+        caja.TotalDomicilio = ventasDomicilioAlCierre.Sum(v => v.Total);
+
         var sumaTotalVentas = totalesPorFormaPago.Values.Sum(v => v.monto);
         caja.MontoFinal = caja.MontoInicial + sumaTotalVentas;
         caja.Estado = EstadoCaja.Cerrada;
@@ -102,13 +107,13 @@ public class CierreCajaService : ICierreCajaService
         await _cajaRepo.SaveChangesAsync();
 
         var cajaActualizada = await _cajaRepo.GetByIdConDetallesAsync(id);
-        return ToDto(cajaActualizada!, pedidos);
+        return ToDto(cajaActualizada!, ventas);
     }
 
-    public async Task<IEnumerable<CierreCajaDto>> GetHistorialAsync(int? localId = null)
+    public async Task<IEnumerable<CierreCajaDto>> GetHistorialAsync(int? localId = null, DateTime? fechaDesde = null, DateTime? fechaHasta = null)
     {
-        var cajas = await _cajaRepo.GetHistorialAsync(20, localId);
-        return cajas.Select(c => ToDto(c, new List<Pedido>()));
+        var cajas = await _cajaRepo.GetHistorialAsync(50, localId, fechaDesde, fechaHasta);
+        return cajas.Select(c => ToDto(c, new List<Venta>()));
     }
 
     public async Task<CierreCajaDto?> GetByIdAsync(int id)
@@ -116,22 +121,84 @@ public class CierreCajaService : ICierreCajaService
         var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
         if (caja is null) return null;
 
-        var pedidos = await _pedidoRepo.GetByCierreCajaAsync(id);
-        return ToDto(caja, pedidos.ToList());
+        var ventas = await _ventaRepo.GetByCierreCajaAsync(id);
+        return ToDto(caja, ventas.ToList());
     }
 
-    private static CierreCajaDto ToDto(CierreCaja caja, List<Pedido> pedidos)
+    private static CierreCajaDto ToDto(CierreCaja caja, List<Venta> ventas)
     {
-        var detalles = caja.Detalles.Select(d => new CierreCajaDetalleDto(
-            d.Id,
-            d.FormaPagoId,
-            d.FormaPago?.Nombre ?? string.Empty,
-            d.MontoTotal,
-            d.CantidadOperaciones)).ToList();
+        List<CierreCajaDetalleDto> detalles;
+
+        if (caja.Detalles.Any())
+        {
+            // Caja cerrada: usar detalles persistidos
+            detalles = caja.Detalles.Select(d => new CierreCajaDetalleDto(
+                d.Id,
+                d.FormaPagoId,
+                d.FormaPago?.Nombre ?? string.Empty,
+                d.MontoTotal,
+                d.CantidadOperaciones)).ToList();
+        }
+        else
+        {
+            // Caja abierta: calcular detalles en vivo desde las ventas
+            var totalesPorFormaPago = new Dictionary<int, (string nombre, decimal monto, int cantidad)>();
+
+            foreach (var venta in ventas)
+            {
+                if (venta.Pagos.Any())
+                {
+                    foreach (var pago in venta.Pagos)
+                    {
+                        var nombre = pago.FormaPago?.Nombre ?? string.Empty;
+                        if (totalesPorFormaPago.TryGetValue(pago.FormaPagoId, out var existente))
+                            totalesPorFormaPago[pago.FormaPagoId] = (existente.nombre, existente.monto + pago.TotalACobrar, existente.cantidad + 1);
+                        else
+                            totalesPorFormaPago[pago.FormaPagoId] = (nombre, pago.TotalACobrar, 1);
+                    }
+                }
+                else if (venta.FormaPagoId.HasValue)
+                {
+                    var formaPagoId = venta.FormaPagoId.Value;
+                    var nombre = venta.FormaPago?.Nombre ?? string.Empty;
+                    if (totalesPorFormaPago.TryGetValue(formaPagoId, out var existente))
+                        totalesPorFormaPago[formaPagoId] = (existente.nombre, existente.monto + venta.Total, existente.cantidad + 1);
+                    else
+                        totalesPorFormaPago[formaPagoId] = (nombre, venta.Total, 1);
+                }
+            }
+
+            detalles = totalesPorFormaPago.Select(kvp => new CierreCajaDetalleDto(
+                0,
+                kvp.Key,
+                kvp.Value.nombre,
+                kvp.Value.monto,
+                kvp.Value.cantidad)).ToList();
+        }
 
         var totalVentas = detalles.Any()
             ? detalles.Sum(d => d.MontoTotal)
-            : pedidos.Sum(p => p.Total);
+            : ventas.Sum(v => v.Total);
+
+        // Para caja abierta: calcular en vivo desde las ventas cargadas.
+        // Para caja cerrada (historial): usar los campos persistidos en la entidad.
+        int cantidadDomicilio;
+        decimal totalDomicilio;
+        int cantidadVentas;
+
+        if (caja.Estado == EstadoCaja.Abierta)
+        {
+            var ventasDomicilio = ventas.Where(v => v.Tipo == TipoVenta.Domicilio).ToList();
+            cantidadDomicilio = ventasDomicilio.Count;
+            totalDomicilio = ventasDomicilio.Sum(v => v.Total);
+            cantidadVentas = ventas.Count;
+        }
+        else
+        {
+            cantidadDomicilio = caja.CantidadDomicilio;
+            totalDomicilio = caja.TotalDomicilio;
+            cantidadVentas = ventas.Any() ? ventas.Count : 0;
+        }
 
         return new CierreCajaDto(
             caja.Id,
@@ -145,7 +212,9 @@ public class CierreCajaService : ICierreCajaService
             caja.LocalId,
             caja.Local?.Nombre,
             detalles,
-            pedidos.Count,
-            totalVentas);
+            cantidadVentas,
+            totalVentas,
+            totalDomicilio,
+            cantidadDomicilio);
     }
 }

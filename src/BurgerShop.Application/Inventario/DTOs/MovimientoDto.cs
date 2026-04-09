@@ -6,9 +6,10 @@ public record MovimientoDto(
     int? ProductoId, string? ProductoNombre,
     int LocalId, string LocalNombre,
     decimal Cantidad, decimal PrecioUnitario, decimal MontoTotal,
-    int? PedidoId, string? NumeroTicket,
+    int? VentaId, string? NumeroTicket,
     int? UsuarioId, string? UsuarioNombre,
-    string? Observaciones);
+    string? Observaciones,
+    string? ClienteNombre = null);
 
 public record CrearMovimientoDto(
     int CodigoAccionId, int? ProductoId, int LocalId,

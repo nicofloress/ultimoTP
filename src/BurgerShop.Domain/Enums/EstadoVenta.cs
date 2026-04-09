@@ -1,6 +1,6 @@
 namespace BurgerShop.Domain.Enums;
 
-public enum EstadoPedido
+public enum EstadoVenta
 {
     Pendiente = 1,
     EnPreparacion = 2,

@@ -1,64 +1,76 @@
-using BurgerShop.Domain.Entities.Finanzas;
-using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Entities.Ventas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BurgerShop.Infrastructure.Data.Configurations.Ventas;
 
-public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
+public class VentaConfiguration : IEntityTypeConfiguration<Venta>
 {
-    public void Configure(EntityTypeBuilder<Pedido> builder)
+    public void Configure(EntityTypeBuilder<Venta> builder)
     {
-        builder.HasKey(p => p.Id);
-        builder.Property(p => p.NumeroTicket).IsRequired().HasMaxLength(20);
-        builder.Property(p => p.NombreCliente).HasMaxLength(200);
-        builder.Property(p => p.TelefonoCliente).HasMaxLength(50);
-        builder.Property(p => p.DireccionEntrega).HasMaxLength(500);
-        builder.Property(p => p.Subtotal).HasColumnType("decimal(18,2)");
-        builder.Property(p => p.Descuento).HasColumnType("decimal(18,2)");
-        builder.Property(p => p.Recargo).HasColumnType("decimal(18,2)");
-        builder.Property(p => p.Total).HasColumnType("decimal(18,2)");
-        builder.Property(p => p.NotasEntrega).HasMaxLength(1000);
-        builder.Property(p => p.NotaInterna).HasMaxLength(1000);
-        builder.Property(p => p.MotivoCancelacion).HasMaxLength(500);
+        builder.HasKey(v => v.Id);
+        builder.Property(v => v.NumeroTicket).IsRequired().HasMaxLength(20);
+        builder.Property(v => v.NombreCliente).HasMaxLength(200);
+        builder.Property(v => v.TelefonoCliente).HasMaxLength(50);
+        builder.Property(v => v.DireccionEntrega).HasMaxLength(500);
+        builder.Property(v => v.Subtotal).HasColumnType("decimal(18,2)");
+        builder.Property(v => v.Descuento).HasColumnType("decimal(18,2)");
+        builder.Property(v => v.Recargo).HasColumnType("decimal(18,2)");
+        builder.Property(v => v.Total).HasColumnType("decimal(18,2)");
+        builder.Property(v => v.NotasEntrega).HasMaxLength(1000);
+        builder.Property(v => v.NotaInterna).HasMaxLength(1000);
+        builder.Property(v => v.MotivoCancelacion).HasMaxLength(500);
+        builder.Property(v => v.Observaciones).HasMaxLength(1000);
 
-        builder.HasOne(p => p.Cliente)
-            .WithMany(c => c.Pedidos)
-            .HasForeignKey(p => p.ClienteId)
+        builder.HasOne(v => v.Cliente)
+            .WithMany(c => c.Ventas)
+            .HasForeignKey(v => v.ClienteId)
             .IsRequired(false);
 
-        builder.HasOne(p => p.Zona)
+        builder.HasOne(v => v.Local)
             .WithMany()
-            .HasForeignKey(p => p.ZonaId)
+            .HasForeignKey(v => v.LocalId)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
-        builder.HasOne(p => p.FormaPago)
+        builder.HasOne(v => v.Zona)
             .WithMany()
-            .HasForeignKey(p => p.FormaPagoId)
+            .HasForeignKey(v => v.ZonaId)
             .IsRequired(false);
 
-        builder.HasOne(p => p.Repartidor)
-            .WithMany(r => r.Pedidos)
-            .HasForeignKey(p => p.RepartidorId)
-            .IsRequired(false);
-
-        builder.HasOne(p => p.CierreCaja)
-            .WithMany(c => c.Pedidos)
-            .HasForeignKey(p => p.CierreCajaId)
-            .IsRequired(false);
-
-        builder.HasOne(p => p.RepartoZona)
+        builder.HasOne(v => v.FormaPago)
             .WithMany()
-            .HasForeignKey(p => p.RepartoZonaId)
+            .HasForeignKey(v => v.FormaPagoId)
+            .IsRequired(false);
+
+        builder.HasOne(v => v.Repartidor)
+            .WithMany(r => r.Ventas)
+            .HasForeignKey(v => v.RepartidorId)
+            .IsRequired(false);
+
+        builder.HasOne(v => v.CierreCaja)
+            .WithMany(c => c.Ventas)
+            .HasForeignKey(v => v.CierreCajaId)
+            .IsRequired(false);
+
+        builder.HasOne(v => v.RepartoZona)
+            .WithMany()
+            .HasForeignKey(v => v.RepartoZonaId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
-        builder.Property(p => p.FechaProgramada).IsRequired(false);
+        builder.HasOne(v => v.Usuario)
+            .WithMany()
+            .HasForeignKey(v => v.UsuarioId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
-        builder.HasIndex(p => p.NumeroTicket).IsUnique();
-        builder.HasIndex(p => p.FechaCreacion);
-        builder.HasIndex(p => p.FechaProgramada);
-        builder.HasIndex(p => p.Estado);
+        builder.Property(v => v.FechaProgramada).IsRequired(false);
+
+        builder.HasIndex(v => v.NumeroTicket).IsUnique();
+        builder.HasIndex(v => v.FechaCreacion);
+        builder.HasIndex(v => v.FechaProgramada);
+        builder.HasIndex(v => v.Estado);
+        builder.HasIndex(v => v.LocalId);
     }
 }

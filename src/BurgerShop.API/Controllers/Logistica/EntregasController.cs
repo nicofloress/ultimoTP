@@ -13,61 +13,61 @@ namespace BurgerShop.API.Controllers.Logistica;
 [Authorize(Roles = "SuperAdmin,Administrador,Repartidor")]
 public class EntregasController : ControllerBase
 {
-    private readonly IPedidoService _pedidoService;
+    private readonly IVentaService _ventaService;
     private readonly IControlCamionetaService _controlCamionetaService;
     private readonly INotificacionService _notificaciones;
 
     public EntregasController(
-        IPedidoService pedidoService,
+        IVentaService ventaService,
         IControlCamionetaService controlCamionetaService,
         INotificacionService notificaciones)
     {
-        _pedidoService = pedidoService;
+        _ventaService = ventaService;
         _controlCamionetaService = controlCamionetaService;
         _notificaciones = notificaciones;
     }
 
     [HttpGet("pendientes")]
-    public async Task<ActionResult<IEnumerable<PedidoDto>>> GetPendientes()
-        => Ok(await _pedidoService.GetPendientesEntregaAsync());
+    public async Task<ActionResult<IEnumerable<VentaDto>>> GetPendientes()
+        => Ok(await _ventaService.GetPendientesEntregaAsync());
 
     [HttpPost("asignar")]
-    public async Task<ActionResult<PedidoDto>> Asignar(AsignarEntregaDto dto)
+    public async Task<ActionResult<VentaDto>> Asignar(AsignarEntregaDto dto)
     {
-        var pedido = await _pedidoService.AsignarRepartidorAsync(dto.PedidoId, dto.RepartidorId);
-        if (pedido is null) return NotFound();
+        var venta = await _ventaService.AsignarRepartidorAsync(dto.VentaId, dto.RepartidorId);
+        if (venta is null) return NotFound();
         await _notificaciones.NotificarPedidoAsignadoAsync(
-            dto.RepartidorId, pedido.Id, pedido.NumeroTicket, pedido.DireccionEntrega);
-        return Ok(pedido);
+            dto.RepartidorId, venta.Id, venta.NumeroTicket, venta.DireccionEntrega);
+        return Ok(venta);
     }
 
     [HttpGet("repartidor/{id}")]
-    public async Task<ActionResult<IEnumerable<PedidoDto>>> GetByRepartidor(int id)
-        => Ok(await _pedidoService.GetEntregasRepartidorHoyAsync(id));
+    public async Task<ActionResult<IEnumerable<VentaDto>>> GetByRepartidor(int id)
+        => Ok(await _ventaService.GetEntregasRepartidorHoyAsync(id));
 
-    [HttpPut("{pedidoId}/en-camino")]
-    public async Task<ActionResult<PedidoDto>> MarcarEnCamino(int pedidoId)
+    [HttpPut("{ventaId}/en-camino")]
+    public async Task<ActionResult<VentaDto>> MarcarEnCamino(int ventaId)
     {
-        var pedido = await _pedidoService.MarcarEnCaminoAsync(pedidoId);
-        return pedido is null ? NotFound() : Ok(pedido);
+        var venta = await _ventaService.MarcarEnCaminoAsync(ventaId);
+        return venta is null ? NotFound() : Ok(venta);
     }
 
-    [HttpPut("{pedidoId}/entregar")]
-    public async Task<ActionResult<PedidoDto>> MarcarEntregado(int pedidoId, [FromBody] MarcarEntregadoDto dto)
+    [HttpPut("{ventaId}/entregar")]
+    public async Task<ActionResult<VentaDto>> MarcarEntregado(int ventaId, [FromBody] MarcarEntregadoDto dto)
     {
-        var pedido = await _pedidoService.MarcarEntregadoAsync(pedidoId, dto);
-        if (pedido is null) return NotFound();
-        await _notificaciones.NotificarPedidoEntregadoAsync(pedido.Id, pedido.NumeroTicket, pedido.RepartidorNombre);
-        return Ok(pedido);
+        var venta = await _ventaService.MarcarEntregadoAsync(ventaId, dto);
+        if (venta is null) return NotFound();
+        await _notificaciones.NotificarPedidoEntregadoAsync(venta.Id, venta.NumeroTicket, venta.RepartidorNombre);
+        return Ok(venta);
     }
 
-    [HttpPut("{pedidoId}/no-entregado")]
-    public async Task<ActionResult<PedidoDto>> MarcarNoEntregado(int pedidoId, [FromBody] CancelarPedidoDto dto)
+    [HttpPut("{ventaId}/no-entregado")]
+    public async Task<ActionResult<VentaDto>> MarcarNoEntregado(int ventaId, [FromBody] CancelarVentaDto dto)
     {
         try
         {
-            var pedido = await _pedidoService.MarcarNoEntregadoAsync(pedidoId, dto.Motivo);
-            return pedido is null ? NotFound() : Ok(pedido);
+            var venta = await _ventaService.MarcarNoEntregadoAsync(ventaId, dto.Motivo);
+            return venta is null ? NotFound() : Ok(venta);
         }
         catch (InvalidOperationException ex)
         {
@@ -76,30 +76,30 @@ public class EntregasController : ControllerBase
     }
 
     [HttpGet("por-zona")]
-    public async Task<ActionResult<IEnumerable<PedidoDto>>> GetPorZona()
+    public async Task<ActionResult<IEnumerable<VentaDto>>> GetPorZona()
     {
-        var pedidos = await _pedidoService.GetListosParaRepartoHoyAsync();
+        var ventas = await _ventaService.GetListosParaRepartoHoyAsync();
         var localIdClaim = User.FindFirst("localId")?.Value;
         if (int.TryParse(localIdClaim, out var localId))
-            pedidos = pedidos.Where(p => p.LocalId == localId);
-        return Ok(pedidos);
+            ventas = ventas.Where(v => v.LocalId == localId);
+        return Ok(ventas);
     }
 
     [HttpPost("empezar-reparto")]
-    public async Task<ActionResult<IEnumerable<PedidoDto>>> EmpezarReparto(EmpezarRepartoDto dto)
+    public async Task<ActionResult<IEnumerable<VentaDto>>> EmpezarReparto(EmpezarRepartoDto dto)
     {
         try
         {
-            var pedidos = (await _pedidoService.EmpezarRepartoAsync(dto)).ToList();
+            var ventas = (await _ventaService.EmpezarRepartoAsync(dto)).ToList();
 
             // Notificar a cada repartidor cuántos pedidos le tocaron
-            var asignaciones = pedidos
-                .Where(p => p.RepartidorId.HasValue)
-                .GroupBy(p => p.RepartidorId!.Value)
+            var asignaciones = ventas
+                .Where(v => v.RepartidorId.HasValue)
+                .GroupBy(v => v.RepartidorId!.Value)
                 .Select(g => (g.Key, g.Count()));
             await _notificaciones.NotificarRepartoIniciadoAsync(asignaciones);
 
-            return Ok(pedidos);
+            return Ok(ventas);
         }
         catch (InvalidOperationException ex)
         {
@@ -110,7 +110,7 @@ public class EntregasController : ControllerBase
     [HttpPost("finalizar-reparto")]
     public async Task<IActionResult> FinalizarReparto([FromBody] FinalizarRepartoDto dto)
     {
-        await _pedidoService.FinalizarRepartoZonaAsync(dto.ZonaId, dto.RepartidorId);
+        await _ventaService.FinalizarRepartoZonaAsync(dto.ZonaId, dto.RepartidorId);
         return Ok();
     }
 

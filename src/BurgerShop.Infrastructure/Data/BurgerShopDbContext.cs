@@ -19,8 +19,9 @@ public class BurgerShopDbContext : DbContext
     public DbSet<Combo> Combos => Set<Combo>();
     public DbSet<ComboDetalle> ComboDetalles => Set<ComboDetalle>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
-    public DbSet<Pedido> Pedidos => Set<Pedido>();
-    public DbSet<LineaPedido> LineasPedido => Set<LineaPedido>();
+    public DbSet<Venta> Ventas => Set<Venta>();
+    public DbSet<LineaVenta> LineasVenta => Set<LineaVenta>();
+    public DbSet<PagoVenta> PagosVenta => Set<PagoVenta>();
     public DbSet<FormaPago> FormasPago => Set<FormaPago>();
     public DbSet<Zona> Zonas => Set<Zona>();
     public DbSet<Repartidor> Repartidores => Set<Repartidor>();
@@ -29,10 +30,6 @@ public class BurgerShopDbContext : DbContext
     public DbSet<TipoCliente> TiposCliente => Set<TipoCliente>();
     public DbSet<ListaPrecio> ListasPrecios => Set<ListaPrecio>();
     public DbSet<ListaPrecioDetalle> ListasPreciosDetalle => Set<ListaPrecioDetalle>();
-    public DbSet<PagoPedido> PagosPedido => Set<PagoPedido>();
-    public DbSet<Venta> Ventas => Set<Venta>();
-    public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
-    public DbSet<PagoVenta> PagosVenta => Set<PagoVenta>();
     public DbSet<CierreCaja> CierresCaja => Set<CierreCaja>();
     public DbSet<CierreCajaDetalle> CierresCajaDetalle => Set<CierreCajaDetalle>();
     public DbSet<Mensaje> Mensajes => Set<Mensaje>();

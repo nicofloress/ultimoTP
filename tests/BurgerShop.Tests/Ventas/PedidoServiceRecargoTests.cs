@@ -12,7 +12,7 @@ using Moq;
 namespace BurgerShop.Tests.Ventas;
 
 /// <summary>
-/// Tests unitarios para PedidoService con foco en el cálculo de recargo
+/// Tests unitarios para VentaService con foco en el cálculo de recargo
 /// según la forma de pago seleccionada.
 ///
 /// Fórmula testeada:
@@ -21,16 +21,16 @@ namespace BurgerShop.Tests.Ventas;
 /// </summary>
 public class PedidoServiceRecargoTests
 {
-    private readonly Mock<IPedidoRepository>       _pedidoRepoMock;
-    private readonly Mock<IProductoRepository>     _productoRepoMock;
-    private readonly Mock<IComboRepository>        _comboRepoMock;
-    private readonly Mock<IRepository<FormaPago>>  _formaPagoRepoMock;
-    private readonly Mock<ICierreCajaRepository>   _cajaRepoMock;
-    private readonly PedidoService                 _service;
+    private readonly Mock<IVentaRepository>         _ventaRepoMock;
+    private readonly Mock<IProductoRepository>      _productoRepoMock;
+    private readonly Mock<IComboRepository>         _comboRepoMock;
+    private readonly Mock<IRepository<FormaPago>>   _formaPagoRepoMock;
+    private readonly Mock<ICierreCajaRepository>    _cajaRepoMock;
+    private readonly VentaService                   _service;
 
     public PedidoServiceRecargoTests()
     {
-        _pedidoRepoMock    = new Mock<IPedidoRepository>();
+        _ventaRepoMock     = new Mock<IVentaRepository>();
         _productoRepoMock  = new Mock<IProductoRepository>();
         _comboRepoMock     = new Mock<IComboRepository>();
         _formaPagoRepoMock = new Mock<IRepository<FormaPago>>();
@@ -41,8 +41,8 @@ public class PedidoServiceRecargoTests
             .Setup(r => r.GetCajaAbiertaAsync(It.IsAny<int?>()))
             .ReturnsAsync((BurgerShop.Domain.Entities.Finanzas.CierreCaja?)null);
 
-        _service = new PedidoService(
-            _pedidoRepoMock.Object,
+        _service = new VentaService(
+            _ventaRepoMock.Object,
             _productoRepoMock.Object,
             _comboRepoMock.Object,
             _formaPagoRepoMock.Object,
@@ -50,24 +50,29 @@ public class PedidoServiceRecargoTests
             new Mock<IMovimientoService>().Object);
 
         // Setup genérico: GetSiguienteNumeroTicketAsync devuelve 1
-        _pedidoRepoMock
+        _ventaRepoMock
             .Setup(r => r.GetSiguienteNumeroTicketAsync(It.IsAny<DateTime>()))
             .ReturnsAsync(1);
 
-        // Setup genérico: AddAsync no hace nada especial
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .ReturnsAsync((Pedido p) => p);
+        // Setup genérico: GetSiguienteNumeroVentaAsync devuelve 1
+        _ventaRepoMock
+            .Setup(r => r.GetSiguienteNumeroVentaAsync(It.IsAny<DateTime>()))
+            .ReturnsAsync(1);
 
-        _pedidoRepoMock
+        // Setup genérico: AddAsync no hace nada especial
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .ReturnsAsync((Venta v) => v);
+
+        _ventaRepoMock
             .Setup(r => r.SaveChangesAsync())
             .ReturnsAsync(1);
 
-        // Setup genérico: GetByIdWithLineasAsync devuelve el pedido que se guardó
+        // Setup genérico: GetByIdWithLineasAsync devuelve la venta que se guardó
         // (se sobreescribe por test cuando se necesita un valor específico)
-        _pedidoRepoMock
+        _ventaRepoMock
             .Setup(r => r.GetByIdWithLineasAsync(It.IsAny<int>()))
-            .ReturnsAsync((int id) => BuildPedidoConId(id));
+            .ReturnsAsync((int id) => BuildVentaConId(id));
     }
 
     // -----------------------------------------------------------------------
@@ -75,16 +80,16 @@ public class PedidoServiceRecargoTests
     // -----------------------------------------------------------------------
 
     /// <summary>
-    /// Crea un DTO mínimo de creación de pedido con una línea de producto.
+    /// Crea un DTO mínimo de creación de venta con una línea de producto.
     /// </summary>
-    private static CrearPedidoDto BuildCrearPedidoDto(
+    private static CrearVentaDto BuildCrearVentaDto(
         int? formaPagoId = null,
         decimal descuento = 0m,
         decimal precioUnitario = 100m,
         int cantidad = 1)
     {
-        return new CrearPedidoDto(
-            Tipo: TipoPedido.ParaLlevar,
+        return new CrearVentaDto(
+            Tipo: TipoVenta.Mostrador,
             ClienteId: null,
             NombreCliente: "Test Cliente",
             TelefonoCliente: null,
@@ -94,7 +99,7 @@ public class PedidoServiceRecargoTests
             FormaPagoId: formaPagoId,
             NotaInterna: null,
             TipoFactura: TipoFactura.FacturaB,
-            Lineas: new List<CrearLineaPedidoDto>
+            Lineas: new List<CrearLineaVentaDto>
             {
                 new(ProductoId: 1, ComboId: null,
                     Cantidad: cantidad, PrecioUnitario: precioUnitario, Notas: null)
@@ -102,20 +107,20 @@ public class PedidoServiceRecargoTests
     }
 
     /// <summary>
-    /// Construye un Pedido mínimo para que GetByIdWithLineasAsync no devuelva null.
-    /// El PedidoService llama a GetByIdWithLineasAsync(pedido.Id) luego del AddAsync,
+    /// Construye una Venta mínima para que GetByIdWithLineasAsync no devuelva null.
+    /// El VentaService llama a GetByIdWithLineasAsync(venta.Id) luego del AddAsync,
     /// y usa ese resultado para construir el DTO de retorno. Como en tests el Id
-    /// queda en 0 (no hay BD real), construimos un pedido básico con Id = id.
+    /// queda en 0 (no hay BD real), construimos una venta básica con Id = id.
     /// </summary>
-    private static Pedido BuildPedidoConId(int id) =>
+    private static Venta BuildVentaConId(int id) =>
         new()
         {
             Id = id,
-            NumeroTicket = $"T-20260305-0001",
+            NumeroTicket = $"V-20260305-0001",
             FechaCreacion = DateTime.Now,
-            Tipo = TipoPedido.ParaLlevar,
-            Estado = EstadoPedido.Pendiente,
-            Lineas = new List<LineaPedido>()
+            Tipo = TipoVenta.Mostrador,
+            Estado = EstadoVenta.Pendiente,
+            Lineas = new List<LineaVenta>()
         };
 
     private void SetupProductoRepo(int productoId, string nombre = "Hamburguesa")
@@ -149,22 +154,22 @@ public class PedidoServiceRecargoTests
         SetupProductoRepo(1);
 
         // dto sin FormaPagoId (null)
-        var dto = BuildCrearPedidoDto(formaPagoId: null, descuento: 0m, precioUnitario: 200m, cantidad: 1);
+        var dto = BuildCrearVentaDto(formaPagoId: null, descuento: 0m, precioUnitario: 200m, cantidad: 1);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(0m, pedidoGuardado!.Recargo);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(0m, ventaGuardada!.Recargo);
         // Total = subtotal - descuento + recargo = 200 - 0 + 0 = 200
-        Assert.Equal(200m, pedidoGuardado.Total);
+        Assert.Equal(200m, ventaGuardada.Total);
 
         // No se debe consultar la tabla de formas de pago
         _formaPagoRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
@@ -177,22 +182,22 @@ public class PedidoServiceRecargoTests
         SetupProductoRepo(1);
         SetupFormaPago(formaPagoId: 1, porcentajeRecargo: 0m);
 
-        var dto = BuildCrearPedidoDto(formaPagoId: 1, descuento: 0m, precioUnitario: 500m, cantidad: 1);
+        var dto = BuildCrearVentaDto(formaPagoId: 1, descuento: 0m, precioUnitario: 500m, cantidad: 1);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
         // PorcentajeRecargo = 0 → la condición (porcentajeRecargo > 0) es falsa → recargo = 0
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(0m,   pedidoGuardado!.Recargo);
-        Assert.Equal(500m, pedidoGuardado.Total);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(0m,   ventaGuardada!.Recargo);
+        Assert.Equal(500m, ventaGuardada.Total);
     }
 
     [Fact]
@@ -206,22 +211,22 @@ public class PedidoServiceRecargoTests
         SetupProductoRepo(1);
         SetupFormaPago(formaPagoId: 2, porcentajeRecargo: 10m);
 
-        var dto = BuildCrearPedidoDto(formaPagoId: 2, descuento: 0m, precioUnitario: 1000m, cantidad: 1);
+        var dto = BuildCrearVentaDto(formaPagoId: 2, descuento: 0m, precioUnitario: 1000m, cantidad: 1);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(1000m, pedidoGuardado!.Subtotal);
-        Assert.Equal(100m,  pedidoGuardado.Recargo);
-        Assert.Equal(1100m, pedidoGuardado.Total);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(1000m, ventaGuardada!.Subtotal);
+        Assert.Equal(100m,  ventaGuardada.Recargo);
+        Assert.Equal(1100m, ventaGuardada.Total);
     }
 
     [Fact]
@@ -235,22 +240,22 @@ public class PedidoServiceRecargoTests
         SetupProductoRepo(1);
         SetupFormaPago(formaPagoId: 2, porcentajeRecargo: 10m);
 
-        var dto = BuildCrearPedidoDto(formaPagoId: 2, descuento: 200m, precioUnitario: 1000m, cantidad: 1);
+        var dto = BuildCrearVentaDto(formaPagoId: 2, descuento: 200m, precioUnitario: 1000m, cantidad: 1);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(1000m, pedidoGuardado!.Subtotal);
-        Assert.Equal(80m,   pedidoGuardado.Recargo);
-        Assert.Equal(880m,  pedidoGuardado.Total);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(1000m, ventaGuardada!.Subtotal);
+        Assert.Equal(80m,   ventaGuardada.Recargo);
+        Assert.Equal(880m,  ventaGuardada.Total);
     }
 
     [Fact]
@@ -264,22 +269,22 @@ public class PedidoServiceRecargoTests
         SetupProductoRepo(1);
         SetupFormaPago(formaPagoId: 3, porcentajeRecargo: 5m);
 
-        var dto = BuildCrearPedidoDto(formaPagoId: 3, descuento: 0m, precioUnitario: 100m, cantidad: 3);
+        var dto = BuildCrearVentaDto(formaPagoId: 3, descuento: 0m, precioUnitario: 100m, cantidad: 3);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(300m, pedidoGuardado!.Subtotal);
-        Assert.Equal(15m,  pedidoGuardado.Recargo);
-        Assert.Equal(315m, pedidoGuardado.Total);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(300m, ventaGuardada!.Subtotal);
+        Assert.Equal(15m,  ventaGuardada.Recargo);
+        Assert.Equal(315m, ventaGuardada.Total);
     }
 
     [Fact]
@@ -294,25 +299,25 @@ public class PedidoServiceRecargoTests
             .Setup(r => r.GetByIdAsync(999))
             .ReturnsAsync((FormaPago?)null);
 
-        var dto = BuildCrearPedidoDto(formaPagoId: 999, descuento: 0m, precioUnitario: 500m, cantidad: 1);
+        var dto = BuildCrearVentaDto(formaPagoId: 999, descuento: 0m, precioUnitario: 500m, cantidad: 1);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(0m,   pedidoGuardado!.Recargo);
-        Assert.Equal(500m, pedidoGuardado.Total);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(0m,   ventaGuardada!.Recargo);
+        Assert.Equal(500m, ventaGuardada.Total);
     }
 
     // -----------------------------------------------------------------------
-    // Tests: Subtotal y campos del pedido
+    // Tests: Subtotal y campos de la venta
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -330,8 +335,8 @@ public class PedidoServiceRecargoTests
             .Setup(r => r.GetByIdAsync(2))
             .ReturnsAsync(new Producto { Id = 2, Nombre = "Papas Fritas" });
 
-        var dto = new CrearPedidoDto(
-            Tipo: TipoPedido.ParaLlevar,
+        var dto = new CrearVentaDto(
+            Tipo: TipoVenta.Mostrador,
             ClienteId: null,
             NombreCliente: "Cliente Test",
             TelefonoCliente: null,
@@ -341,27 +346,27 @@ public class PedidoServiceRecargoTests
             FormaPagoId: null,
             NotaInterna: null,
             TipoFactura: TipoFactura.FacturaB,
-            Lineas: new List<CrearLineaPedidoDto>
+            Lineas: new List<CrearLineaVentaDto>
             {
                 new(ProductoId: 1, ComboId: null, Cantidad: 2, PrecioUnitario: 150m, Notas: null),
                 new(ProductoId: 2, ComboId: null, Cantidad: 1, PrecioUnitario: 50m,  Notas: null)
             });
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(350m, pedidoGuardado!.Subtotal);
-        Assert.Equal(0m,   pedidoGuardado.Recargo);
-        Assert.Equal(350m, pedidoGuardado.Total);
-        Assert.Equal(2,    pedidoGuardado.Lineas.Count);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(350m, ventaGuardada!.Subtotal);
+        Assert.Equal(0m,   ventaGuardada.Recargo);
+        Assert.Equal(350m, ventaGuardada.Total);
+        Assert.Equal(2,    ventaGuardada.Lineas.Count);
     }
 
     [Fact]
@@ -369,20 +374,20 @@ public class PedidoServiceRecargoTests
     {
         // Arrange
         SetupProductoRepo(1);
-        var dto = BuildCrearPedidoDto();
+        var dto = BuildCrearVentaDto();
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(EstadoPedido.Pendiente, pedidoGuardado!.Estado);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(EstadoVenta.Pendiente, ventaGuardada!.Estado);
     }
 
     [Fact]
@@ -390,20 +395,20 @@ public class PedidoServiceRecargoTests
     {
         // Arrange
         SetupProductoRepo(1);
-        var dto = BuildCrearPedidoDto();
+        var dto = BuildCrearVentaDto();
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
-        // Assert: el ticket tiene formato "T-YYYYMMDD-NNNN"
-        Assert.NotNull(pedidoGuardado);
-        Assert.Matches(@"^T-\d{8}-\d{4}$", pedidoGuardado!.NumeroTicket);
+        // Assert: el ticket tiene formato "V-YYYYMMDD-NNNN" (tipo Mostrador)
+        Assert.NotNull(ventaGuardada);
+        Assert.Matches(@"^V-\d{8}-\d{4}$", ventaGuardada!.NumeroTicket);
     }
 
     [Fact]
@@ -411,14 +416,14 @@ public class PedidoServiceRecargoTests
     {
         // Arrange
         SetupProductoRepo(1);
-        var dto = BuildCrearPedidoDto();
+        var dto = BuildCrearVentaDto();
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        _pedidoRepoMock.Verify(r => r.AddAsync(It.IsAny<Pedido>()), Times.Once);
-        _pedidoRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+        _ventaRepoMock.Verify(r => r.AddAsync(It.IsAny<Venta>()), Times.Once);
+        _ventaRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     // -----------------------------------------------------------------------
@@ -443,24 +448,24 @@ public class PedidoServiceRecargoTests
         else
             SetupFormaPago(formaPagoId: 5, porcentajeRecargo: 0m);
 
-        var dto = BuildCrearPedidoDto(
+        var dto = BuildCrearVentaDto(
             formaPagoId: 5,
             descuento: descuento,
             precioUnitario: precio,
             cantidad: 1);
 
-        Pedido? pedidoGuardado = null;
-        _pedidoRepoMock
-            .Setup(r => r.AddAsync(It.IsAny<Pedido>()))
-            .Callback<Pedido>(p => pedidoGuardado = p)
-            .ReturnsAsync((Pedido p) => p);
+        Venta? ventaGuardada = null;
+        _ventaRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Venta>()))
+            .Callback<Venta>(v => ventaGuardada = v)
+            .ReturnsAsync((Venta v) => v);
 
         // Act
         await _service.CreateAsync(dto);
 
         // Assert
-        Assert.NotNull(pedidoGuardado);
-        Assert.Equal(recargoEsperado, pedidoGuardado!.Recargo);
-        Assert.Equal(totalEsperado,   pedidoGuardado.Total);
+        Assert.NotNull(ventaGuardada);
+        Assert.Equal(recargoEsperado, ventaGuardada!.Recargo);
+        Assert.Equal(totalEsperado,   ventaGuardada.Total);
     }
 }

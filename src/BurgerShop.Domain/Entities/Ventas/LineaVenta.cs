@@ -2,7 +2,7 @@ using BurgerShop.Domain.Entities.Catalogo;
 
 namespace BurgerShop.Domain.Entities.Ventas;
 
-public class VentaDetalle
+public class LineaVenta
 {
     public int Id { get; set; }
     public int VentaId { get; set; }

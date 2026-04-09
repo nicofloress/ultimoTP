@@ -75,7 +75,6 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
         int cuentaCorrienteId, DateTime? desde, DateTime? hasta)
     {
         var query = _context.MovimientosCuentaCorriente
-            .Include(m => m.Pedido)
             .Include(m => m.Venta)
             .Include(m => m.Movimiento)
             .Include(m => m.Usuario)
@@ -97,11 +96,11 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
         await _context.MovimientosCuentaCorriente.AddAsync(movimiento);
     }
 
-    public async Task<MovimientoCuentaCorriente?> GetCargoPorPedidoAsync(int pedidoId)
+    public async Task<MovimientoCuentaCorriente?> GetCargoPorVentaAsync(int ventaId)
     {
         return await _context.MovimientosCuentaCorriente
             .Include(m => m.CuentaCorriente)
-            .FirstOrDefaultAsync(m => m.PedidoId == pedidoId
+            .FirstOrDefaultAsync(m => m.VentaId == ventaId
                 && m.Tipo == Domain.Enums.TipoMovimientoCuentaCorriente.Cargo);
     }
 }

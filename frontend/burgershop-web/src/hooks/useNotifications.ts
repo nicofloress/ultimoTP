@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Pedido, EstadoPedido } from '../types';
+import { Venta, EstadoVenta } from '../types';
 import { getEntregasRepartidor } from '../api/entregas';
 
 interface UseNotificationsReturn {
   pendingCount: number;
-  entregas: Pedido[];
+  entregas: Venta[];
   refresh: () => Promise<void>;
   lastRefresh: Date | null;
   isRefreshing: boolean;
 }
 
 export function useNotifications(repartidorId: number | null, pollingInterval = 15000): UseNotificationsReturn {
-  const [entregas, setEntregas] = useState<Pedido[]>([]);
+  const [entregas, setEntregas] = useState<Venta[]>([]);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -41,7 +41,7 @@ export function useNotifications(repartidorId: number | null, pollingInterval = 
   }, [repartidorId, pollingInterval, refresh]);
 
   const pendingCount = entregas.filter(
-    e => e.estado === EstadoPedido.Asignado || e.estado === EstadoPedido.EnCamino
+    e => e.estado === EstadoVenta.Asignado || e.estado === EstadoVenta.EnCamino
   ).length;
 
   return { pendingCount, entregas, refresh, lastRefresh, isRefreshing };

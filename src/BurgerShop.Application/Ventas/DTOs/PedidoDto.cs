@@ -2,15 +2,29 @@ using BurgerShop.Domain.Enums;
 
 namespace BurgerShop.Application.Ventas.DTOs;
 
-public record PedidoDto(
-    int Id, string NumeroTicket, DateTime FechaCreacion,
-    TipoPedido Tipo, EstadoPedido Estado,
-    int? ClienteId, string? NombreCliente, string? TelefonoCliente, string? DireccionEntrega,
-    int? ZonaId, string? ZonaNombre,
-    decimal Subtotal, decimal Descuento, decimal Recargo, decimal Total,
-    int? FormaPagoId, string? FormaPagoNombre,
-    int? RepartidorId, string? RepartidorNombre,
-    DateTime? FechaAsignacion, DateTime? FechaEntrega, string? NotasEntrega,
+public record VentaDto(
+    int Id,
+    string NumeroTicket,
+    DateTime FechaCreacion,
+    TipoVenta Tipo,
+    EstadoVenta Estado,
+    int? ClienteId,
+    string? NombreCliente,
+    string? TelefonoCliente,
+    string? DireccionEntrega,
+    int? ZonaId,
+    string? ZonaNombre,
+    decimal Subtotal,
+    decimal Descuento,
+    decimal Recargo,
+    decimal Total,
+    int? FormaPagoId,
+    string? FormaPagoNombre,
+    int? RepartidorId,
+    string? RepartidorNombre,
+    DateTime? FechaAsignacion,
+    DateTime? FechaEntrega,
+    string? NotasEntrega,
     string? NotaInterna,
     TipoFactura TipoFactura,
     DateTime? FechaProgramada,
@@ -18,41 +32,28 @@ public record PedidoDto(
     bool EstaPago,
     int? LocalId,
     string? LocalNombre,
-    List<LineaPedidoDto> Lineas,
-    List<PagoPedidoDto>? Pagos = null,
+    int? UsuarioId,
+    string? UsuarioNombre,
+    string? Observaciones,
+    List<LineaVentaDto> Lineas,
+    List<PagoVentaDto>? Pagos = null,
     string? ComprobanteEntrega = null,
     string? MotivoCancelacion = null,
     int? RepartoZonaId = null);
 
-public record LineaPedidoDto(
-    int Id, int? ProductoId, int? ComboId, string Descripcion,
-    int Cantidad, decimal PrecioUnitario, decimal Subtotal, string? Notas);
+public record LineaVentaDto(
+    int Id,
+    int? ProductoId,
+    int? ComboId,
+    string Descripcion,
+    int Cantidad,
+    decimal PrecioUnitario,
+    decimal Subtotal,
+    string? Notas);
 
-public record CrearPedidoDto(
-    TipoPedido Tipo,
+public record CrearVentaDto(
+    TipoVenta Tipo,
     int? ClienteId,
-    string? NombreCliente, string? TelefonoCliente, string? DireccionEntrega,
-    int? ZonaId, decimal Descuento,
-    int? FormaPagoId,
-    string? NotaInterna,
-    TipoFactura TipoFactura,
-    List<CrearLineaPedidoDto> Lineas,
-    DateTime? FechaProgramada = null,
-    bool EstaPago = false,
-    List<CrearPagoPedidoDto>? Pagos = null,
-    int? LocalId = null);
-
-public record CrearLineaPedidoDto(
-    int? ProductoId, int? ComboId,
-    int Cantidad, decimal PrecioUnitario, string? Notas);
-
-public record CrearPagoPedidoDto(int FormaPagoId, decimal Monto);
-
-public record PagoPedidoDto(
-    int Id, int FormaPagoId, string FormaPagoNombre,
-    decimal Monto, decimal PorcentajeRecargo, decimal Recargo, decimal TotalACobrar);
-
-public record ActualizarPedidoDto(
     string? NombreCliente,
     string? TelefonoCliente,
     string? DireccionEntrega,
@@ -61,15 +62,49 @@ public record ActualizarPedidoDto(
     int? FormaPagoId,
     string? NotaInterna,
     TipoFactura TipoFactura,
-    List<CrearLineaPedidoDto> Lineas,
+    List<CrearLineaVentaDto> Lineas,
     DateTime? FechaProgramada = null,
     bool EstaPago = false,
-    List<CrearPagoPedidoDto>? Pagos = null);
+    List<CrearPagoVentaDto>? Pagos = null,
+    int? LocalId = null,
+    string? Observaciones = null);
 
-public record CambiarEstadoDto(EstadoPedido NuevoEstado);
-public record CancelarPedidoDto(string Motivo);
+public record CrearLineaVentaDto(
+    int? ProductoId,
+    int? ComboId,
+    int Cantidad,
+    decimal PrecioUnitario,
+    string? Notas);
 
-public record AsignarEntregaDto(int PedidoId, int RepartidorId);
+public record CrearPagoVentaDto(int FormaPagoId, decimal Monto);
+
+public record PagoVentaDto(
+    int Id,
+    int FormaPagoId,
+    string FormaPagoNombre,
+    decimal Monto,
+    decimal PorcentajeRecargo,
+    decimal Recargo,
+    decimal TotalACobrar);
+
+public record ActualizarVentaDto(
+    string? NombreCliente,
+    string? TelefonoCliente,
+    string? DireccionEntrega,
+    int? ZonaId,
+    decimal Descuento,
+    int? FormaPagoId,
+    string? NotaInterna,
+    TipoFactura TipoFactura,
+    List<CrearLineaVentaDto> Lineas,
+    DateTime? FechaProgramada = null,
+    bool EstaPago = false,
+    List<CrearPagoVentaDto>? Pagos = null);
+
+public record CambiarEstadoDto(EstadoVenta NuevoEstado);
+public record CancelarVentaDto(string Motivo);
+
+public record AsignarEntregaDto(int VentaId, int RepartidorId);
 
 public record MarcarEntregadoDto(
     string? Notas = null,
@@ -81,23 +116,30 @@ public record AsignacionZonaDto(int ZonaId, int RepartidorId);
 public record FinalizarRepartoDto(int ZonaId, int RepartidorId);
 
 public record TicketDto(
-    string NumeroTicket, DateTime Fecha, TipoPedido Tipo,
-    string? NombreCliente, string? DireccionEntrega, string? ZonaNombre,
-    List<LineaPedidoDto> Lineas,
-    decimal Subtotal, decimal Descuento, decimal Recargo, decimal Total,
+    string NumeroTicket,
+    DateTime Fecha,
+    TipoVenta Tipo,
+    string? NombreCliente,
+    string? DireccionEntrega,
+    string? ZonaNombre,
+    List<LineaVentaDto> Lineas,
+    decimal Subtotal,
+    decimal Descuento,
+    decimal Recargo,
+    decimal Total,
     string? FormaPagoNombre,
     string? NotaInterna,
     TipoFactura TipoFactura,
-    List<PagoPedidoDto>? Pagos = null);
+    List<PagoVentaDto>? Pagos = null);
 
-public record PedidoStatsDto(
-    int PedidosHoy,
-    int PedidosAyer,
+public record VentaStatsDto(
+    int VentasHoy,
+    int VentasAyer,
     decimal PorcentajeVariacionAyer,
-    int PedidosUltimos7Dias,
+    int VentasUltimos7Dias,
     decimal PorcentajeVariacion7Dias,
-    int PedidosAnioAnterior,
+    int VentasAnioAnterior,
     decimal PorcentajeVariacionAnio,
-    int TotalPedidosFecha,
+    int TotalVentasFecha,
     decimal TicketPromedio,
     decimal TotalBruto);

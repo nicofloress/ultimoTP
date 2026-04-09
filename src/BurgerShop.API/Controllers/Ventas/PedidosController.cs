@@ -9,62 +9,67 @@ using Microsoft.AspNetCore.Mvc;
 namespace BurgerShop.API.Controllers.Ventas;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/ventas")]
 [Authorize]
-public class PedidosController : ControllerBase
+public class VentasController : ControllerBase
 {
-    private readonly IPedidoService _service;
+    private readonly IVentaService _service;
     private readonly INotificacionService _notificaciones;
 
-    public PedidosController(IPedidoService service, INotificacionService notificaciones)
+    public VentasController(IVentaService service, INotificacionService notificaciones)
     {
         _service = service;
         _notificaciones = notificaciones;
     }
 
     [HttpPost]
-    public async Task<ActionResult<PedidoDto>> Create(CrearPedidoDto dto)
+    [Authorize(Roles = "SuperAdmin,Administrador,Local")]
+    public async Task<ActionResult<VentaDto>> Create(CrearVentaDto dto)
     {
-        var pedido = await _service.CreateAsync(dto);
-        await _notificaciones.NotificarNuevoPedidoAsync(pedido.Id, pedido.NumeroTicket, pedido.Tipo.ToString());
-        return CreatedAtAction(nameof(GetById), new { id = pedido.Id }, pedido);
+        int? usuarioId = null;
+        if (int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid))
+            usuarioId = uid;
+
+        var venta = await _service.CreateAsync(dto, usuarioId);
+        await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString());
+        return CreatedAtAction(nameof(GetById), new { id = venta.Id }, venta);
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PedidoDto>>> GetAll(
-        [FromQuery] DateTime? fecha, [FromQuery] DateTime? fechaHasta, [FromQuery] EstadoPedido? estado, [FromQuery] int? localId)
+    public async Task<ActionResult<IEnumerable<VentaDto>>> GetAll(
+        [FromQuery] DateTime? fecha, [FromQuery] DateTime? fechaHasta, [FromQuery] EstadoVenta? estado, [FromQuery] int? localId)
     {
         // Si no viene localId explícito, usar el del JWT
         var lid = localId ?? (int.TryParse(User.FindFirst("localId")?.Value, out var parsed) ? parsed : (int?)null);
 
-        IEnumerable<PedidoDto> pedidos;
+        IEnumerable<VentaDto> ventas;
         if (fechaHasta.HasValue)
-            pedidos = await _service.GetByRangoFechasAsync(fecha ?? DateTime.Today, fechaHasta.Value);
+            ventas = await _service.GetByRangoFechasAsync(fecha ?? DateTime.Today, fechaHasta.Value);
         else
-            pedidos = await _service.GetByFechaAsync(fecha ?? DateTime.Today);
+            ventas = await _service.GetByFechaAsync(fecha ?? DateTime.Today);
 
         if (lid.HasValue)
-            pedidos = pedidos.Where(p => p.LocalId == lid.Value);
+            ventas = ventas.Where(v => v.LocalId == lid.Value);
         if (estado.HasValue)
-            pedidos = pedidos.Where(p => p.Estado == estado.Value);
-        return Ok(pedidos);
+            ventas = ventas.Where(v => v.Estado == estado.Value);
+        return Ok(ventas);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<PedidoDto>> GetById(int id)
+    public async Task<ActionResult<VentaDto>> GetById(int id)
     {
-        var pedido = await _service.GetByIdAsync(id);
-        return pedido is null ? NotFound() : Ok(pedido);
+        var venta = await _service.GetByIdAsync(id);
+        return venta is null ? NotFound() : Ok(venta);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<PedidoDto>> Update(int id, [FromBody] ActualizarPedidoDto dto)
+    public async Task<ActionResult<VentaDto>> Update(int id, [FromBody] ActualizarVentaDto dto)
     {
         try
         {
-            var pedido = await _service.UpdateAsync(id, dto);
-            if (pedido == null) return NotFound();
-            return Ok(pedido);
+            var venta = await _service.UpdateAsync(id, dto);
+            if (venta == null) return NotFound();
+            return Ok(venta);
         }
         catch (InvalidOperationException ex)
         {
@@ -73,23 +78,23 @@ public class PedidosController : ControllerBase
     }
 
     [HttpPut("{id}/estado")]
-    public async Task<ActionResult<PedidoDto>> CambiarEstado(int id, CambiarEstadoDto dto)
+    public async Task<ActionResult<VentaDto>> CambiarEstado(int id, CambiarEstadoDto dto)
     {
-        var pedido = await _service.CambiarEstadoAsync(id, dto.NuevoEstado);
-        if (pedido is null) return NotFound();
-        await _notificaciones.NotificarCambioEstadoAsync(pedido.Id, pedido.NumeroTicket, dto.NuevoEstado.ToString());
-        return Ok(pedido);
+        var venta = await _service.CambiarEstadoAsync(id, dto.NuevoEstado);
+        if (venta is null) return NotFound();
+        await _notificaciones.NotificarCambioEstadoAsync(venta.Id, venta.NumeroTicket, dto.NuevoEstado.ToString());
+        return Ok(venta);
     }
 
     [HttpPut("{id}/cancelar")]
-    public async Task<ActionResult<PedidoDto>> Cancelar(int id, [FromBody] CancelarPedidoDto dto)
+    public async Task<ActionResult<VentaDto>> Cancelar(int id, [FromBody] CancelarVentaDto dto)
     {
         try
         {
-            var pedido = await _service.CancelarAsync(id, dto.Motivo);
-            if (pedido is null) return NotFound();
-            await _notificaciones.NotificarPedidoCanceladoAsync(pedido.Id, pedido.NumeroTicket);
-            return Ok(pedido);
+            var venta = await _service.CancelarAsync(id, dto.Motivo);
+            if (venta is null) return NotFound();
+            await _notificaciones.NotificarPedidoCanceladoAsync(venta.Id, venta.NumeroTicket);
+            return Ok(venta);
         }
         catch (InvalidOperationException ex)
         {
@@ -113,17 +118,17 @@ public class PedidosController : ControllerBase
 
     [HttpGet("deposito")]
     [Authorize(Roles = "Deposito,SuperAdmin")]
-    public async Task<ActionResult<IEnumerable<PedidoDto>>> GetDeposito()
+    public async Task<ActionResult<IEnumerable<VentaDto>>> GetDeposito()
     {
         int? localId = null;
         var localIdClaim = User.FindFirstValue("localId");
         if (int.TryParse(localIdClaim, out var parsed))
             localId = parsed;
-        return Ok(await _service.GetPedidosDepositoAsync(localId));
+        return Ok(await _service.GetVentasDepositoAsync(localId));
     }
 
     [HttpGet("stats")]
-    public async Task<ActionResult<PedidoStatsDto>> GetStats([FromQuery] DateTime? fecha)
+    public async Task<ActionResult<VentaStatsDto>> GetStats([FromQuery] DateTime? fecha)
     {
         var stats = await _service.GetStatsAsync(fecha ?? DateTime.Today);
         return Ok(stats);

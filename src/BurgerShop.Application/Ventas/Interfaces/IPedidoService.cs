@@ -3,27 +3,27 @@ using BurgerShop.Domain.Enums;
 
 namespace BurgerShop.Application.Ventas.Interfaces;
 
-public interface IPedidoService
+public interface IVentaService
 {
-    Task<PedidoDto> CreateAsync(CrearPedidoDto dto);
-    Task<PedidoDto?> UpdateAsync(int id, ActualizarPedidoDto dto);
-    Task<PedidoDto?> GetByIdAsync(int id);
-    Task<IEnumerable<PedidoDto>> GetByFechaAsync(DateTime fecha);
-    Task<IEnumerable<PedidoDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);
-    Task<IEnumerable<PedidoDto>> GetByEstadoAsync(EstadoPedido estado);
-    Task<PedidoDto?> CambiarEstadoAsync(int id, EstadoPedido nuevoEstado);
-    Task<PedidoDto?> CancelarAsync(int id, string motivoCancelacion);
-    Task<PedidoDto?> MarcarNoEntregadoAsync(int id, string motivo);
+    Task<VentaDto> CreateAsync(CrearVentaDto dto, int? usuarioId = null);
+    Task<VentaDto?> UpdateAsync(int id, ActualizarVentaDto dto);
+    Task<VentaDto?> GetByIdAsync(int id);
+    Task<IEnumerable<VentaDto>> GetByFechaAsync(DateTime fecha);
+    Task<IEnumerable<VentaDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);
+    Task<IEnumerable<VentaDto>> GetByEstadoAsync(EstadoVenta estado);
+    Task<VentaDto?> CambiarEstadoAsync(int id, EstadoVenta nuevoEstado);
+    Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion);
+    Task<VentaDto?> MarcarNoEntregadoAsync(int id, string motivo);
     Task<TicketDto?> GetTicketAsync(int id);
-    Task<IEnumerable<PedidoDto>> GetPendientesEntregaAsync();
-    Task<PedidoDto?> AsignarRepartidorAsync(int pedidoId, int repartidorId);
-    Task<IEnumerable<PedidoDto>> GetEntregasRepartidorHoyAsync(int repartidorId);
-    Task<PedidoDto?> MarcarEnCaminoAsync(int pedidoId);
-    Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, MarcarEntregadoDto dto);
-    Task<IEnumerable<PedidoDto>> GetListosParaRepartoHoyAsync();
-    Task<IEnumerable<PedidoDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
+    Task<IEnumerable<VentaDto>> GetPendientesEntregaAsync();
+    Task<VentaDto?> AsignarRepartidorAsync(int ventaId, int repartidorId);
+    Task<IEnumerable<VentaDto>> GetEntregasRepartidorHoyAsync(int repartidorId);
+    Task<VentaDto?> MarcarEnCaminoAsync(int ventaId);
+    Task<VentaDto?> MarcarEntregadoAsync(int ventaId, MarcarEntregadoDto dto);
+    Task<IEnumerable<VentaDto>> GetListosParaRepartoHoyAsync();
+    Task<IEnumerable<VentaDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
     Task<int> PrepararTodosAsync();
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
-    Task<PedidoStatsDto> GetStatsAsync(DateTime fecha);
-    Task<IEnumerable<PedidoDto>> GetPedidosDepositoAsync(int? localId);
+    Task<VentaStatsDto> GetStatsAsync(DateTime fecha);
+    Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId);
 }

@@ -11,18 +11,18 @@ namespace BurgerShop.Application.Logistica.Services;
 
 public class ControlCamionetaService : IControlCamionetaService
 {
-    private readonly IPedidoRepository _pedidoRepo;
+    private readonly IVentaRepository _ventaRepo;
     private readonly IRepartidorRepository _repartidorRepo;
 
-    public ControlCamionetaService(IPedidoRepository pedidoRepo, IRepartidorRepository repartidorRepo)
+    public ControlCamionetaService(IVentaRepository ventaRepo, IRepartidorRepository repartidorRepo)
     {
-        _pedidoRepo = pedidoRepo;
+        _ventaRepo = ventaRepo;
         _repartidorRepo = repartidorRepo;
     }
 
     public async Task<byte[]> GenerarExcelAsync(IEnumerable<(int ZonaId, int RepartidorId)> asignaciones)
     {
-        var pedidos = (await _pedidoRepo.GetListosParaRepartoConProductosAsync()).ToList();
+        var pedidos = (await _ventaRepo.GetListosParaRepartoConProductosAsync()).ToList();
         var asignacionesList = asignaciones.ToList();
         var zonaRepartidor = asignacionesList.ToDictionary(a => a.ZonaId, a => a.RepartidorId);
 
@@ -35,17 +35,17 @@ public class ControlCamionetaService : IControlCamionetaService
                 repartidores[repId] = (rep.Nombre, rep.Vehiculo);
         }
 
-        // Agrupar pedidos por repartidor
-        var pedidosPorRepartidor = new Dictionary<int, List<Pedido>>();
+        // Agrupar ventas por repartidor
+        var pedidosPorRepartidor = new Dictionary<int, List<Venta>>();
         foreach (var pedido in pedidos)
         {
             if (pedido.ZonaId == null || !zonaRepartidor.TryGetValue(pedido.ZonaId.Value, out var repId))
                 continue;
-            if (pedido.Estado != EstadoPedido.Pendiente)
+            if (pedido.Estado != EstadoVenta.Pendiente)
                 continue;
 
             if (!pedidosPorRepartidor.ContainsKey(repId))
-                pedidosPorRepartidor[repId] = new List<Pedido>();
+                pedidosPorRepartidor[repId] = new List<Venta>();
             pedidosPorRepartidor[repId].Add(pedido);
         }
 
@@ -71,7 +71,7 @@ public class ControlCamionetaService : IControlCamionetaService
 
     public async Task<ControlCamionetaDto> GetTalliesActivosHoyAsync()
     {
-        var pedidos = (await _pedidoRepo.GetTodosConProductosPorRepartidorHoyAsync()).ToList();
+        var pedidos = (await _ventaRepo.GetTodosConProductosPorRepartidorHoyAsync()).ToList();
 
         var result = new ControlCamionetaDto();
 
@@ -82,9 +82,9 @@ public class ControlCamionetaService : IControlCamionetaService
             var repartidor = grupo.First().Repartidor;
             var tallies = CalcularTallies(grupo.ToList());
             var todosTerminales = grupo.All(p =>
-                p.Estado == EstadoPedido.Entregado ||
-                p.Estado == EstadoPedido.Cancelado ||
-                p.Estado == EstadoPedido.NoEntregado);
+                p.Estado == EstadoVenta.Entregado ||
+                p.Estado == EstadoVenta.Cancelado ||
+                p.Estado == EstadoVenta.NoEntregado);
 
             var dto = new RepartidorTallyDto
             {
@@ -100,8 +100,8 @@ public class ControlCamionetaService : IControlCamionetaService
                 Premium = tallies.Premium
                     .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
                     .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
-                SalchichaCorta = new CompletaMediaDto { Completa = tallies.SalchichaCorta.Completa, Media = tallies.SalchichaCorta.Media, Sueltos = tallies.SalchichaCorta.Sueltos },
-                SalchichaLarga = new CompletaMediaDto { Completa = tallies.SalchichaLarga.Completa, Media = tallies.SalchichaLarga.Media, Sueltos = tallies.SalchichaLarga.Sueltos },
+                SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanMaxi = tallies.PanMaxi.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
@@ -143,9 +143,9 @@ public class ControlCamionetaService : IControlCamionetaService
             [198] = default
         };
 
-        // Salchichas: (Completa, Media, Sueltos)
-        public (int Completa, int Media, int Sueltos) SalchichaCorta { get; set; }
-        public (int Completa, int Media, int Sueltos) SalchichaLarga { get; set; }
+        // Salchichas: cantidad → palotes (igual que panes, se llevan de a 6 en 6)
+        public Dictionary<int, int> SalchichaCorta { get; } = new();
+        public Dictionary<int, int> SalchichaLarga { get; } = new();
 
         // Panes: la cantidad del combo ES la key → palotes (1 palote = 1 paquete de esa cantidad)
         // Las keys se generan dinámicamente según lo que aparezca
@@ -160,7 +160,7 @@ public class ControlCamionetaService : IControlCamionetaService
         public Dictionary<string, int> Otros { get; } = new();
     }
 
-    private TallyData CalcularTallies(List<Pedido> pedidos)
+    private TallyData CalcularTallies(List<Venta> pedidos)
     {
         var data = new TallyData();
 
@@ -213,20 +213,12 @@ public class ControlCamionetaService : IControlCamionetaService
                 break;
 
             case SeccionCamioneta.SalchichaCorta:
-            {
-                var (c, m, s) = ContarCompletaMediaSimple(cantidad, bulto, media);
-                data.SalchichaCorta = (data.SalchichaCorta.Completa + c, data.SalchichaCorta.Media + m, data.SalchichaCorta.Sueltos + s);
-                // NO auto-agregar panes Pancho
+                TallyPan(data.SalchichaCorta, cantidad);
                 break;
-            }
 
             case SeccionCamioneta.SalchichaLarga:
-            {
-                var (c, m, s) = ContarCompletaMediaSimple(cantidad, bulto, media);
-                data.SalchichaLarga = (data.SalchichaLarga.Completa + c, data.SalchichaLarga.Media + m, data.SalchichaLarga.Sueltos + s);
-                // NO auto-agregar SuperPanchos
+                TallyPan(data.SalchichaLarga, cantidad);
                 break;
-            }
 
             case SeccionCamioneta.PanTradicional:
                 // La cantidad del combo (ej: 30 panes) ES la key del tally; se suma 1 palote
@@ -283,16 +275,16 @@ public class ControlCamionetaService : IControlCamionetaService
             && cat.CategoriaPadre.SeccionCamioneta != SeccionCamioneta.Ninguno)
             return cat.CategoriaPadre.SeccionCamioneta;
 
-        // Inferir por nombre de categoría o padre
-        var nombre = (cat.Nombre + " " + (cat.CategoriaPadre?.Nombre ?? "")).ToLowerInvariant();
-        if (nombre.Contains("premium")) return SeccionCamioneta.HamburguesaPremium;
-        if (nombre.Contains("econ")) return SeccionCamioneta.MedallonEconomico;
+        // Inferir por nombre de categoría, padre, o del propio producto
+        var nombre = (cat.Nombre + " " + (cat.CategoriaPadre?.Nombre ?? "") + " " + producto.Nombre).ToLowerInvariant();
         if (nombre.Contains("salchicha corta")) return SeccionCamioneta.SalchichaCorta;
         if (nombre.Contains("salchicha larga")) return SeccionCamioneta.SalchichaLarga;
+        if (nombre.Contains("premium")) return SeccionCamioneta.HamburguesaPremium;
+        if (nombre.Contains("econ")) return SeccionCamioneta.MedallonEconomico;
         if (nombre.Contains("pan tradicional")) return SeccionCamioneta.PanTradicional;
         if (nombre.Contains("pan maxi")) return SeccionCamioneta.PanMaxi;
-        if (nombre.Contains("pan pancho")) return SeccionCamioneta.PanPancho;
-        if (nombre.Contains("super pancho")) return SeccionCamioneta.PanSuperPancho;
+        if (nombre.Contains("super pancho") || nombre.Contains("superpancho")) return SeccionCamioneta.PanSuperPancho;
+        if (nombre.Contains("pan pancho") || nombre.Contains("pancho")) return SeccionCamioneta.PanPancho;
         if (nombre.Contains("aderezo")) return SeccionCamioneta.Aderezo;
 
         return SeccionCamioneta.Otro;
@@ -483,15 +475,15 @@ public class ControlCamionetaService : IControlCamionetaService
         SetCell(ws, 19, 4, "54", fs);
         SetTally(ws, 19, 5, GetPan(t.PanSuperPancho, 54), fs);
 
-        // ── R20: SALCHICHAS CORTAS - 30 (media) | SUPERPANCHO paquete 60 ──
+        // ── R20: SALCHICHAS CORTAS - 30 | SUPERPANCHO paquete 60 ──
         SetCell(ws, 20, 1, "30", fs);
-        SetTally(ws, 20, 2, t.SalchichaCorta.Media, fs);
+        SetTally(ws, 20, 2, GetPan(t.SalchichaCorta, 30), fs);
         SetCell(ws, 20, 4, "60", fs);
         SetTally(ws, 20, 5, GetPan(t.PanSuperPancho, 60), fs);
 
-        // ── R21: SALCHICHAS CORTAS - 60 (completa) ──
+        // ── R21: SALCHICHAS CORTAS - 60 ──
         SetCell(ws, 21, 1, "60", fs);
-        SetTally(ws, 21, 2, t.SalchichaCorta.Completa, fs);
+        SetTally(ws, 21, 2, GetPan(t.SalchichaCorta, 60), fs);
 
         // ── R22: Fila vacía separador ──
 
@@ -501,7 +493,7 @@ public class ControlCamionetaService : IControlCamionetaService
 
         // ── R24: SALCHICHAS LARGAS - 18 | Aderezo 1 ──
         SetCell(ws, 24, 1, "18", fs);
-        SetTally(ws, 24, 2, t.SalchichaLarga.Media, fs);  // media = 36, pero 18 es media de media
+        SetTally(ws, 24, 2, GetPan(t.SalchichaLarga, 18), fs);
         var aderezos = t.Aderezos.OrderBy(x => x.Key).ToList();
         if (aderezos.Count >= 1)
         {
@@ -509,9 +501,9 @@ public class ControlCamionetaService : IControlCamionetaService
             SetTally(ws, 24, 5, aderezos[0].Value, fs);
         }
 
-        // ── R25: SALCHICHAS LARGAS - 36 (media) | Aderezo 2 (si existe) ──
+        // ── R25: SALCHICHAS LARGAS - 36 | Aderezo 2 (si existe) ──
         SetCell(ws, 25, 1, "36", fs);
-        SetTally(ws, 25, 2, t.SalchichaLarga.Media, fs);
+        SetTally(ws, 25, 2, GetPan(t.SalchichaLarga, 36), fs);
         if (aderezos.Count >= 2)
         {
             SetCell(ws, 25, 4, aderezos[1].Key, fs);
@@ -520,12 +512,13 @@ public class ControlCamionetaService : IControlCamionetaService
 
         // ── R26: SALCHICHAS LARGAS - 54 | Header SALSAS ──
         SetCell(ws, 26, 1, "54", fs);
+        SetTally(ws, 26, 2, GetPan(t.SalchichaLarga, 54), fs);
 
         MergeSet(ws, 26, 4, 26, 6, "SALSAS", fs, bold: true, bg: CAmarillo);
 
-        // ── R27: SALCHICHAS LARGAS - 60 (completa) ──
+        // ── R27: SALCHICHAS LARGAS - 60 ──
         SetCell(ws, 27, 1, "60", fs);
-        SetTally(ws, 27, 2, t.SalchichaLarga.Completa, fs);
+        SetTally(ws, 27, 2, GetPan(t.SalchichaLarga, 60), fs);
 
         // ── R28: Fila vacía separador ──
 

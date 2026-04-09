@@ -13,8 +13,8 @@ public class RendicionRepository : Repository<RendicionRepartidor>, IRendicionRe
     {
         return await _dbSet
             .Include(r => r.Repartidor)
-            .Include(r => r.Detalles).ThenInclude(d => d.Pedido).ThenInclude(p => p.Cliente)
-            .Include(r => r.Detalles).ThenInclude(d => d.Pedido).ThenInclude(p => p.Zona)
+            .Include(r => r.Detalles).ThenInclude(d => d.Venta).ThenInclude(v => v.Cliente)
+            .Include(r => r.Detalles).ThenInclude(d => d.Venta).ThenInclude(v => v.Zona)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
@@ -22,8 +22,8 @@ public class RendicionRepository : Repository<RendicionRepartidor>, IRendicionRe
     {
         return await _dbSet
             .Include(r => r.Repartidor)
-            .Include(r => r.Detalles).ThenInclude(d => d.Pedido).ThenInclude(p => p.Cliente)
-            .Include(r => r.Detalles).ThenInclude(d => d.Pedido).ThenInclude(p => p.Zona)
+            .Include(r => r.Detalles).ThenInclude(d => d.Venta).ThenInclude(v => v.Cliente)
+            .Include(r => r.Detalles).ThenInclude(d => d.Venta).ThenInclude(v => v.Zona)
             .Where(r => r.RepartidorId == repartidorId)
             .OrderByDescending(r => r.Fecha)
             .ToListAsync();
@@ -33,8 +33,8 @@ public class RendicionRepository : Repository<RendicionRepartidor>, IRendicionRe
     {
         var query = _dbSet
             .Include(r => r.Repartidor)
-            .Include(r => r.Detalles).ThenInclude(d => d.Pedido).ThenInclude(p => p.Cliente)
-            .Include(r => r.Detalles).ThenInclude(d => d.Pedido).ThenInclude(p => p.Zona)
+            .Include(r => r.Detalles).ThenInclude(d => d.Venta).ThenInclude(v => v.Cliente)
+            .Include(r => r.Detalles).ThenInclude(d => d.Venta).ThenInclude(v => v.Zona)
             .AsQueryable();
 
         if (fechaDesde.HasValue)

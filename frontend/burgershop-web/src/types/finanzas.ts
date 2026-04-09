@@ -23,6 +23,8 @@ export interface CierreCaja {
   detalles: CierreCajaDetalle[];
   cantidadPedidos: number;
   totalVentas: number;
+  totalDomicilio: number;
+  cantidadDomicilio: number;
 }
 
 export interface AbrirCajaDto {

@@ -19,8 +19,9 @@ public class RepartidorTallyDto
     // Premium: key = peso (80, 110, 120, 160, 198)
     public Dictionary<string, CompletaMediaDto> Premium { get; set; } = new();
 
-    public CompletaMediaDto SalchichaCorta { get; set; } = new();
-    public CompletaMediaDto SalchichaLarga { get; set; } = new();
+    // Salchichas: key = qty (18, 36, 60, etc.), value = palotes count
+    public Dictionary<string, int> SalchichaCorta { get; set; } = new();
+    public Dictionary<string, int> SalchichaLarga { get; set; } = new();
 
     // Panes: key = qty (30, 60, etc.), value = palotes count
     public Dictionary<string, int> PanTradicional { get; set; } = new();

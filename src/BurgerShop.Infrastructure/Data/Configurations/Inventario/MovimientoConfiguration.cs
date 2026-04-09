@@ -41,10 +41,10 @@ public class MovimientoConfiguration : IEntityTypeConfiguration<Movimiento>
             .HasForeignKey(m => m.LocalId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Pedido — opcional, se desvincula si se borra el pedido
-        builder.HasOne(m => m.Pedido)
+        // Venta — opcional, se desvincula si se borra la venta
+        builder.HasOne(m => m.Venta)
             .WithMany()
-            .HasForeignKey(m => m.PedidoId)
+            .HasForeignKey(m => m.VentaId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
 

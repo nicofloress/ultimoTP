@@ -21,5 +21,5 @@ public class Cliente
     public TipoCliente? TipoCliente { get; set; }
     public ListaPrecio? ListaPrecio { get; set; }
     public Local? Local { get; set; }
-    public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+    public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
 }

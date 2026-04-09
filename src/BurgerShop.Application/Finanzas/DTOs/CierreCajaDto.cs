@@ -15,7 +15,9 @@ public record CierreCajaDto(
     string? LocalNombre,
     List<CierreCajaDetalleDto> Detalles,
     int CantidadPedidos,
-    decimal TotalVentas);
+    decimal TotalVentas,
+    decimal TotalDomicilio = 0,
+    int CantidadDomicilio = 0);
 
 public record CierreCajaDetalleDto(
     int Id,

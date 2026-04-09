@@ -16,8 +16,8 @@ public interface ICuentaCorrienteService
     Task<MovimientoCuentaCorrienteDto> RegistrarPagoAsync(CrearPagoCtaCteDto dto, int? usuarioId);
     Task<MovimientoCuentaCorrienteDto> RegistrarAjusteAsync(CrearAjusteDto dto, int? usuarioId);
 
-    // Saldar cargo cuando el pedido fue cobrado en la entrega
-    Task SaldarCargoPorPedidoAsync(int pedidoId, int? usuarioId);
+    // Saldar cargo cuando la venta fue cobrada en la entrega
+    Task SaldarCargoPorVentaAsync(int ventaId, int? usuarioId);
 
     // Gestión
     Task<CuentaCorrienteDto> ActualizarLimiteCreditoAsync(int clienteId, decimal limite);

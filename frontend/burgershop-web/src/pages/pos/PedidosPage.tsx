@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
-  Pedido, EstadoPedido, estadoLabels, estadoColores,
-  Producto, Combo, Categoria, CarritoItem, TipoPedido,
+  Venta, EstadoVenta, estadoLabels, estadoColores,
+  Producto, Combo, Categoria, CarritoItem, TipoVenta,
   FormaPago, Zona, TipoFactura, ListaPrecio,
 } from '../../types';
-import { getPedidos, crearPedido, cambiarEstado, cancelarPedido, actualizarPedido } from '../../api/pedidos';
+import { getVentas, crearVenta, cambiarEstado, cancelarVenta, actualizarVenta } from '../../api/pedidos';
 import { parsearAtajo, filtrarCombosPorAtajo } from '../../utils/atajoCombo';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
@@ -35,10 +35,10 @@ const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text
 
 // Estados activos para filtrar en el panel derecho (entregas se ven en pantalla Entregas)
 const estadosFiltro = [
-  EstadoPedido.Pendiente,
-  EstadoPedido.Entregado,
-  EstadoPedido.Cancelado,
-  EstadoPedido.NoEntregado,
+  EstadoVenta.Pendiente,
+  EstadoVenta.Entregado,
+  EstadoVenta.Cancelado,
+  EstadoVenta.NoEntregado,
 ];
 
 export default function PedidosPage() {
@@ -57,13 +57,13 @@ export default function PedidosPage() {
   const [promociones, setPromociones] = useState<PromocionDto[]>([]);
 
   // ===== PANEL DERECHO: PEDIDOS =====
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [filtroEstado, setFiltroEstado] = useState<EstadoPedido | null>(null);
+  const [pedidos, setPedidos] = useState<Venta[]>([]);
+  const [filtroEstado, setFiltroEstado] = useState<EstadoVenta | null>(null);
   const [busquedaTicket, setBusquedaTicket] = useState('');
 
   // ===== PANEL IZQUIERDO: FORMULARIO =====
-  const [editandoPedido, setEditandoPedido] = useState<Pedido | null>(null);
-  const esEdicionLimitada = editandoPedido?.estado === EstadoPedido.Asignado;
+  const [editandoPedido, setEditandoPedido] = useState<Venta | null>(null);
+  const esEdicionLimitada = editandoPedido?.estado === EstadoVenta.Asignado;
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -88,10 +88,10 @@ export default function PedidosPage() {
   const clienteInputRef = useRef<HTMLDivElement>(null);
 
   // ===== MODAL ASIGNAR REPARTIDOR =====
-  const [mostrarAsignarRepartidor, setMostrarAsignarRepartidor] = useState<Pedido | null>(null);
+  const [mostrarAsignarRepartidor, setMostrarAsignarRepartidor] = useState<Venta | null>(null);
 
   // ===== MODAL CANCELAR PEDIDO =====
-  const [pedidoCancelar, setPedidoCancelar] = useState<Pedido | null>(null);
+  const [pedidoCancelar, setPedidoCancelar] = useState<Venta | null>(null);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
 
   const busquedaRef = useRef<HTMLInputElement>(null);
@@ -187,7 +187,8 @@ export default function PedidosPage() {
   const cargarPedidos = useCallback(() => {
     const params: { estado?: number } = {};
     if (filtroEstado) params.estado = filtroEstado;
-    getPedidos(undefined, params.estado, undefined, localActivo || undefined).then(setPedidos);
+    getVentas(undefined, params.estado, undefined, localActivo || undefined)
+      .then(ventas => setPedidos(ventas.filter(v => v.tipo === TipoVenta.Domicilio)));
   }, [filtroEstado, localActivo]);
 
   useEffect(() => { cargarPedidos(); }, [cargarPedidos]);
@@ -402,8 +403,8 @@ export default function PedidosPage() {
   });
 
   // ===== CARGAR PEDIDO EN FORMULARIO (EDITAR) =====
-  const cargarPedidoEnFormulario = (pedido: Pedido) => {
-    if (pedido.estado !== EstadoPedido.Pendiente && pedido.estado !== EstadoPedido.Asignado) {
+  const cargarPedidoEnFormulario = (pedido: Venta) => {
+    if (pedido.estado !== EstadoVenta.Pendiente && pedido.estado !== EstadoVenta.Asignado) {
       addToast('Solo se pueden editar pedidos en estado Pendiente o Asignado', 'info');
       return;
     }
@@ -474,8 +475,8 @@ export default function PedidosPage() {
     if (!formularioValido) return;
     setCreandoPedido(true);
     try {
-    await crearPedido({
-      tipo: TipoPedido.Domicilio,
+    await crearVenta({
+      tipo: TipoVenta.Domicilio,
       clienteId: clienteSeleccionado?.id,
       nombreCliente: clienteSeleccionado?.nombre,
       direccionEntrega: direccion || undefined,
@@ -510,7 +511,7 @@ export default function PedidosPage() {
   const handleGuardarCambios = async () => {
     if (!editandoPedido || !formularioValido) return;
     try {
-      await actualizarPedido(editandoPedido.id, {
+      await actualizarVenta(editandoPedido.id, {
         nombreCliente: editandoPedido.nombreCliente || undefined,
         telefonoCliente: telefono || undefined,
         direccionEntrega: direccion || undefined,
@@ -539,13 +540,13 @@ export default function PedidosPage() {
   };
 
   // ===== CAMBIAR ESTADO =====
-  const handleCambiarEstado = async (id: number, nuevoEstado: EstadoPedido) => {
+  const handleCambiarEstado = async (id: number, nuevoEstado: EstadoVenta) => {
     await cambiarEstado(id, nuevoEstado);
     cargarPedidos();
     if (editandoPedido?.id === id) limpiarFormulario();
   };
 
-  const handleCancelar = (pedido: Pedido) => {
+  const handleCancelar = (pedido: Venta) => {
     setPedidoCancelar(pedido);
     setMotivoCancelacion('');
   };
@@ -556,21 +557,21 @@ export default function PedidosPage() {
     const motivo = motivoCancelacion.trim();
     setPedidoCancelar(null);
     setMotivoCancelacion('');
-    await cancelarPedido(id, motivo);
+    await cancelarVenta(id, motivo);
     cargarPedidos();
     if (editandoPedido?.id === id) limpiarFormulario();
   };
 
-  const siguienteEstado = (_estado: EstadoPedido): EstadoPedido | null => {
+  const siguienteEstado = (_estado: EstadoVenta): EstadoVenta | null => {
     // Ya no hay transición manual de estado desde PedidosPage
     // Los pedidos pasan a Asignado desde EntregasPage (Empezar Reparto)
     return null;
   };
 
   // ===== ASIGNAR REPARTIDOR =====
-  const handleAsignarRepartidor = async (pedido: Pedido, _repartidorId: number) => {
+  const handleAsignarRepartidor = async (pedido: Venta, _repartidorId: number) => {
     // Asignar = cambiar estado a Asignado y luego EnCamino, o directamente poner repartidorId via update
-    await cambiarEstado(pedido.id, EstadoPedido.Asignado);
+    await cambiarEstado(pedido.id, EstadoVenta.Asignado);
     setMostrarAsignarRepartidor(null);
     cargarPedidos();
   };
@@ -1194,7 +1195,7 @@ export default function PedidosPage() {
                   )}
                 </div>
                 <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                  {siguienteEstado(p.estado) && p.estado !== EstadoPedido.Cancelado && p.estado !== EstadoPedido.Entregado && p.estado !== EstadoPedido.NoEntregado && (
+                  {siguienteEstado(p.estado) && p.estado !== EstadoVenta.Cancelado && p.estado !== EstadoVenta.Entregado && p.estado !== EstadoVenta.NoEntregado && (
                     <button
                       onClick={() => handleCambiarEstado(p.id, siguienteEstado(p.estado)!)}
                       className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors font-medium"
@@ -1202,7 +1203,7 @@ export default function PedidosPage() {
                       {estadoLabels[siguienteEstado(p.estado)!]}
                     </button>
                   )}
-                  {p.estado === EstadoPedido.Listo && (
+                  {p.estado === EstadoVenta.Listo && (
                     <button
                       onClick={() => setMostrarAsignarRepartidor(p)}
                       className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded hover:bg-purple-100 transition-colors font-medium"
@@ -1210,7 +1211,7 @@ export default function PedidosPage() {
                       Repartidor
                     </button>
                   )}
-                  {p.estado !== EstadoPedido.Cancelado && p.estado !== EstadoPedido.Entregado && p.estado !== EstadoPedido.NoEntregado && (
+                  {p.estado !== EstadoVenta.Cancelado && p.estado !== EstadoVenta.Entregado && p.estado !== EstadoVenta.NoEntregado && (
                     <button
                       onClick={() => handleCancelar(p)}
                       className="text-[10px] bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded hover:bg-red-100 transition-colors font-medium"
@@ -1228,7 +1229,7 @@ export default function PedidosPage() {
                 </div>
               )}
               {/* Motivo cancelacion */}
-              {(p.estado === EstadoPedido.Cancelado || p.estado === EstadoPedido.NoEntregado) && p.motivoCancelacion && (
+              {(p.estado === EstadoVenta.Cancelado || p.estado === EstadoVenta.NoEntregado) && p.motivoCancelacion && (
                 <div className="text-[10px] text-red-600 mt-0.5 italic">
                   Motivo: {p.motivoCancelacion}
                 </div>

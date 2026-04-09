@@ -122,6 +122,18 @@ public class RequestLoggingMiddleware
             using var scope = _scopeFactory.CreateScope();
             var logService = scope.ServiceProvider.GetRequiredService<ILogService>();
 
+            // Resolver localNombre desde la BD si tenemos localId
+            if (localId.HasValue && string.IsNullOrEmpty(localNombre))
+            {
+                try
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<BurgerShop.Infrastructure.Data.BurgerShopDbContext>();
+                    var local = await db.Locales.FindAsync(localId.Value);
+                    localNombre = local?.Nombre;
+                }
+                catch { /* no bloquear el logging */ }
+            }
+
             await logService.RegistrarErrorAsync(
                 origen: origen,
                 mensaje: mensaje,

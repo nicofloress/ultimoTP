@@ -16,7 +16,7 @@ public class MovimientoRepository : Repository<Movimiento>, IMovimientoRepositor
             .Include(m => m.CodigoAccion)
             .Include(m => m.Producto)
             .Include(m => m.Local)
-            .Include(m => m.Pedido)
+            .Include(m => m.Venta).ThenInclude(v => v!.Cliente)
             .Include(m => m.Usuario)
             .Where(m => m.LocalId == localId);
 
@@ -37,7 +37,7 @@ public class MovimientoRepository : Repository<Movimiento>, IMovimientoRepositor
             .Include(m => m.CodigoAccion)
             .Include(m => m.Producto)
             .Include(m => m.Local)
-            .Include(m => m.Pedido)
+            .Include(m => m.Venta).ThenInclude(v => v!.Cliente)
             .Include(m => m.Usuario)
             .Where(m => m.ProductoId == productoId && m.LocalId == localId);
 
@@ -52,15 +52,15 @@ public class MovimientoRepository : Repository<Movimiento>, IMovimientoRepositor
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Movimiento>> GetByPedidoAsync(int pedidoId)
+    public async Task<IEnumerable<Movimiento>> GetByVentaAsync(int ventaId)
     {
         return await _dbSet
             .Include(m => m.CodigoAccion)
             .Include(m => m.Producto)
             .Include(m => m.Local)
-            .Include(m => m.Pedido)
+            .Include(m => m.Venta).ThenInclude(v => v!.Cliente)
             .Include(m => m.Usuario)
-            .Where(m => m.PedidoId == pedidoId)
+            .Where(m => m.VentaId == ventaId)
             .OrderByDescending(m => m.FechaMovimiento)
             .ToListAsync();
     }

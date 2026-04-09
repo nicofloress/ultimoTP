@@ -1,36 +1,36 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Pedido, Repartidor, EstadoPedido, estadoLabels, TipoPedido } from '../../types';
+import { Venta, Repartidor, EstadoVenta, estadoLabels, TipoVenta } from '../../types';
 import { getPedidosPorZona, empezarReparto, finalizarRepartoZona } from '../../api/entregas';
 import { getRepartidores } from '../../api/repartidores';
 import { getZonas } from '../../api/zonas';
 import { getProductos } from '../../api/productos';
-import { crearPedido, getPedido } from '../../api/pedidos';
+import { crearVenta, getVenta } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
 import { useLocalActivo } from '../../context/LocalContext';
 import AdminChat from './AdminChat';
 
 // Separate from shared estadoColores: entregas uses different colors for visual distinction in the delivery context
-const estadoColorEntrega: Partial<Record<EstadoPedido, string>> = {
-  [EstadoPedido.Pendiente]: 'bg-yellow-100 text-yellow-800',
-  [EstadoPedido.Asignado]: 'bg-amber-100 text-amber-800',
-  [EstadoPedido.EnCamino]: 'bg-indigo-100 text-indigo-800',
-  [EstadoPedido.Entregado]: 'bg-green-100 text-green-700',
-  [EstadoPedido.Cancelado]: 'bg-red-100 text-red-700',
-  [EstadoPedido.NoEntregado]: 'bg-rose-100 text-rose-700',
+const estadoColorEntrega: Partial<Record<EstadoVenta, string>> = {
+  [EstadoVenta.Pendiente]: 'bg-yellow-100 text-yellow-800',
+  [EstadoVenta.Asignado]: 'bg-amber-100 text-amber-800',
+  [EstadoVenta.EnCamino]: 'bg-indigo-100 text-indigo-800',
+  [EstadoVenta.Entregado]: 'bg-green-100 text-green-700',
+  [EstadoVenta.Cancelado]: 'bg-red-100 text-red-700',
+  [EstadoVenta.NoEntregado]: 'bg-rose-100 text-rose-700',
 };
 
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 export default function EntregasPage() {
   const { localActivo } = useLocalActivo();
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<Venta[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [asignaciones, setAsignaciones] = useState<Map<number, number>>(new Map());
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [creandoTest, setCreandoTest] = useState(false);
-  const [pedidoDetalle, setPedidoDetalle] = useState<Pedido | null>(null);
+  const [pedidoDetalle, setPedidoDetalle] = useState<Venta | null>(null);
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { showToast } = useGlobalToast();
@@ -52,7 +52,7 @@ export default function EntregasPage() {
         const next = new Map(prev);
         p.forEach(ped => {
           if (ped.zonaId && ped.repartidorId &&
-            (ped.estado === EstadoPedido.Asignado || ped.estado === EstadoPedido.EnCamino)) {
+            (ped.estado === EstadoVenta.Asignado || ped.estado === EstadoVenta.EnCamino)) {
             if (!next.has(ped.zonaId)) {
               next.set(ped.zonaId, ped.repartidorId);
             }
@@ -99,8 +99,8 @@ export default function EntregasPage() {
           });
         }
         const zona = pick(zonasActivas);
-        await crearPedido({
-          tipo: TipoPedido.Domicilio,
+        await crearVenta({
+          tipo: TipoVenta.Domicilio,
           nombreCliente: nombres[i],
           telefonoCliente: `11${Math.floor(10000000 + Math.random() * 90000000)}`,
           direccionEntrega: `${pick(calles)} ${100 + Math.floor(Math.random() * 9000)}, Hurlingham`,
@@ -130,7 +130,7 @@ export default function EntregasPage() {
 
   // Agrupar pedidos simplemente por zonaId
   const pedidosPorZona = useMemo(() => {
-    const map = new Map<number, { zonaId: number; zona: string; pedidos: Pedido[] }>();
+    const map = new Map<number, { zonaId: number; zona: string; pedidos: Venta[] }>();
 
     pedidos.forEach(p => {
       if (!p.zonaId) return;
@@ -151,7 +151,7 @@ export default function EntregasPage() {
 
   // Pedidos pendientes de despacho (Pendiente) — para el boton Empezar Reparto
   const pedidosPendientes = useMemo(() =>
-    pedidos.filter(p => p.estado === EstadoPedido.Pendiente),
+    pedidos.filter(p => p.estado === EstadoVenta.Pendiente),
     [pedidos]
   );
 
@@ -159,7 +159,7 @@ export default function EntregasPage() {
   const zonasPendientesDespacho = useMemo(() => {
     const ids = new Set<number>();
     for (const [zonaId, data] of pedidosPorZona.entries()) {
-      if (data.pedidos.some(p => p.estado === EstadoPedido.Pendiente)) {
+      if (data.pedidos.some(p => p.estado === EstadoVenta.Pendiente)) {
         ids.add(zonaId);
       }
     }
@@ -225,7 +225,7 @@ export default function EntregasPage() {
   const verDetalle = async (pedidoId: number) => {
     setCargandoDetalle(true);
     try {
-      const detalle = await getPedido(pedidoId);
+      const detalle = await getVenta(pedidoId);
       setPedidoDetalle(detalle);
     } catch (err) {
       console.error('Error cargando detalle:', err);
@@ -307,16 +307,16 @@ export default function EntregasPage() {
             {Array.from(pedidosPorZona.entries()).map(([zonaId, data]) => {
               const totalZona = data.pedidos.reduce((sum, p) => sum + p.total, 0);
               const repartidorAsignado = asignaciones.get(zonaId);
-              const pendientesZona = data.pedidos.filter(p => p.estado === EstadoPedido.Pendiente).length;
-              const asignadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Asignado).length;
-              const enCaminoZona = data.pedidos.filter(p => p.estado === EstadoPedido.EnCamino).length;
-              const entregadosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Entregado).length;
-              const canceladosZona = data.pedidos.filter(p => p.estado === EstadoPedido.Cancelado).length;
+              const pendientesZona = data.pedidos.filter(p => p.estado === EstadoVenta.Pendiente).length;
+              const asignadosZona = data.pedidos.filter(p => p.estado === EstadoVenta.Asignado).length;
+              const enCaminoZona = data.pedidos.filter(p => p.estado === EstadoVenta.EnCamino).length;
+              const entregadosZona = data.pedidos.filter(p => p.estado === EstadoVenta.Entregado).length;
+              const canceladosZona = data.pedidos.filter(p => p.estado === EstadoVenta.Cancelado).length;
               const tienePendientes = pendientesZona > 0;
               const repartidorDeZona = data.pedidos.find(p => p.repartidorNombre)?.repartidorNombre;
               // Zona completada: todos los pedidos en estado final y al menos uno fue despachado
               const todosFinales = data.pedidos.length > 0
-                && data.pedidos.every(p => p.estado === EstadoPedido.Entregado || p.estado === EstadoPedido.Cancelado || p.estado === EstadoPedido.NoEntregado);
+                && data.pedidos.every(p => p.estado === EstadoVenta.Entregado || p.estado === EstadoVenta.Cancelado || p.estado === EstadoVenta.NoEntregado);
               return (
                 <div
                   key={zonaId}
@@ -401,7 +401,7 @@ export default function EntregasPage() {
                     {data.pedidos.map(pedido => (
                       <div
                         key={pedido.id}
-                        className={`rounded-md border p-2.5 transition-colors shadow-sm ${pedido.estado === EstadoPedido.Cancelado || pedido.estado === EstadoPedido.NoEntregado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
+                        className={`rounded-md border p-2.5 transition-colors shadow-sm ${pedido.estado === EstadoVenta.Cancelado || pedido.estado === EstadoVenta.NoEntregado ? 'bg-red-50 border-red-200 opacity-70' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
@@ -435,9 +435,9 @@ export default function EntregasPage() {
                             Tel: {pedido.telefonoCliente}
                           </p>
                         )}
-                        {(pedido.estado === EstadoPedido.Cancelado || pedido.estado === EstadoPedido.NoEntregado) && pedido.motivoCancelacion && (
+                        {(pedido.estado === EstadoVenta.Cancelado || pedido.estado === EstadoVenta.NoEntregado) && pedido.motivoCancelacion && (
                           <p className="text-xs text-red-600 mt-1 italic">
-                            {pedido.estado === EstadoPedido.NoEntregado ? 'Motivo no entrega' : 'Motivo cancelacion'}: {pedido.motivoCancelacion}
+                            {pedido.estado === EstadoVenta.NoEntregado ? 'Motivo no entrega' : 'Motivo cancelacion'}: {pedido.motivoCancelacion}
                           </p>
                         )}
                         <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-gray-200">
@@ -514,7 +514,7 @@ export default function EntregasPage() {
             <div className="px-6 py-4 space-y-3 max-h-64 overflow-y-auto">
               {Array.from(pedidosPorZona.entries()).filter(([zonaId]) => zonasPendientesDespacho.has(zonaId)).map(([zonaId, data]) => {
                 const rep = repartidores.find(r => r.id === asignaciones.get(zonaId));
-                const pendientes = data.pedidos.filter(p => p.estado === EstadoPedido.Pendiente);
+                const pendientes = data.pedidos.filter(p => p.estado === EstadoVenta.Pendiente);
                 const totalZona = pendientes.reduce((sum, p) => sum + p.total, 0);
                 return (
                   <div key={zonaId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -672,9 +672,9 @@ export default function EntregasPage() {
                         <span className="font-medium text-gray-800 text-right max-w-[250px]">{pedidoDetalle.notaInterna}</span>
                       </div>
                     )}
-                    {(pedidoDetalle.estado === EstadoPedido.Cancelado || pedidoDetalle.estado === EstadoPedido.NoEntregado) && pedidoDetalle.motivoCancelacion && (
+                    {(pedidoDetalle.estado === EstadoVenta.Cancelado || pedidoDetalle.estado === EstadoVenta.NoEntregado) && pedidoDetalle.motivoCancelacion && (
                       <div className="flex justify-between">
-                        <span className="text-red-500">{pedidoDetalle.estado === EstadoPedido.NoEntregado ? 'Motivo no entrega' : 'Motivo cancelacion'}</span>
+                        <span className="text-red-500">{pedidoDetalle.estado === EstadoVenta.NoEntregado ? 'Motivo no entrega' : 'Motivo cancelacion'}</span>
                         <span className="font-medium text-red-700 text-right max-w-[250px]">{pedidoDetalle.motivoCancelacion}</span>
                       </div>
                     )}

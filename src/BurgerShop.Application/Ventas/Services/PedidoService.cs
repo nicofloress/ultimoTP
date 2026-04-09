@@ -1,3 +1,4 @@
+using BurgerShop.Application.Inventario.DTOs;
 using BurgerShop.Application.Inventario.Interfaces;
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
@@ -10,24 +11,24 @@ using BurgerShop.Domain.Interfaces.Finanzas;
 
 namespace BurgerShop.Application.Ventas.Services;
 
-public class PedidoService : IPedidoService
+public class VentaService : IVentaService
 {
-    private readonly IPedidoRepository _pedidoRepo;
+    private readonly IVentaRepository _ventaRepo;
     private readonly IProductoRepository _productoRepo;
     private readonly IComboRepository _comboRepo;
     private readonly IRepository<FormaPago> _formaPagoRepo;
     private readonly ICierreCajaRepository _cajaRepo;
     private readonly IMovimientoService _movimientoService;
 
-    public PedidoService(
-        IPedidoRepository pedidoRepo,
+    public VentaService(
+        IVentaRepository ventaRepo,
         IProductoRepository productoRepo,
         IComboRepository comboRepo,
         IRepository<FormaPago> formaPagoRepo,
         ICierreCajaRepository cajaRepo,
         IMovimientoService movimientoService)
     {
-        _pedidoRepo = pedidoRepo;
+        _ventaRepo = ventaRepo;
         _productoRepo = productoRepo;
         _comboRepo = comboRepo;
         _formaPagoRepo = formaPagoRepo;
@@ -35,11 +36,22 @@ public class PedidoService : IPedidoService
         _movimientoService = movimientoService;
     }
 
-    public async Task<PedidoDto> CreateAsync(CrearPedidoDto dto)
+    public async Task<VentaDto> CreateAsync(CrearVentaDto dto, int? usuarioId = null)
     {
         var ahora = DateTime.Now;
-        var numero = await _pedidoRepo.GetSiguienteNumeroTicketAsync(ahora);
-        var ticket = $"T-{ahora:yyyyMMdd}-{numero:D4}";
+
+        // Generar numero de ticket según tipo
+        string ticket;
+        if (dto.Tipo == TipoVenta.Mostrador)
+        {
+            var numero = await _ventaRepo.GetSiguienteNumeroVentaAsync(ahora);
+            ticket = $"V-{ahora:yyyyMMdd}-{numero:D4}";
+        }
+        else
+        {
+            var numero = await _ventaRepo.GetSiguienteNumeroTicketAsync(ahora);
+            ticket = $"T-{ahora:yyyyMMdd}-{numero:D4}";
+        }
 
         if (dto.FechaProgramada.HasValue)
         {
@@ -51,12 +63,17 @@ public class PedidoService : IPedidoService
                     "La fecha programada debe ser desde hoy y no mayor a 14 días.");
         }
 
-        var pedido = new Pedido
+        // El estado inicial depende del tipo
+        var estadoInicial = dto.Tipo == TipoVenta.Mostrador
+            ? EstadoVenta.Entregado
+            : EstadoVenta.Pendiente;
+
+        var venta = new Venta
         {
             NumeroTicket = ticket,
             FechaCreacion = ahora,
             Tipo = dto.Tipo,
-            Estado = EstadoPedido.Pendiente,
+            Estado = estadoInicial,
             ClienteId = dto.ClienteId,
             NombreCliente = dto.NombreCliente,
             TelefonoCliente = dto.TelefonoCliente,
@@ -67,7 +84,9 @@ public class PedidoService : IPedidoService
             TipoFactura = dto.TipoFactura,
             FechaProgramada = dto.FechaProgramada,
             EstaPago = dto.EstaPago,
-            LocalId = dto.LocalId
+            LocalId = dto.LocalId,
+            Observaciones = dto.Observaciones,
+            UsuarioId = usuarioId
         };
 
         decimal subtotal = 0;
@@ -90,7 +109,7 @@ public class PedidoService : IPedidoService
             }
 
             var lineaSubtotal = linea.PrecioUnitario * linea.Cantidad;
-            pedido.Lineas.Add(new LineaPedido
+            venta.Lineas.Add(new LineaVenta
             {
                 ProductoId = linea.ProductoId,
                 ComboId = linea.ComboId,
@@ -103,13 +122,13 @@ public class PedidoService : IPedidoService
             subtotal += lineaSubtotal;
         }
 
-        pedido.Subtotal = subtotal;
+        venta.Subtotal = subtotal;
 
         if (dto.Pagos is { Count: > 0 })
         {
             // Modo pago dividido: múltiples formas de pago
             decimal recargoTotal = 0;
-            pedido.FormaPagoId = null;
+            venta.FormaPagoId = null;
 
             foreach (var pagoDto in dto.Pagos)
             {
@@ -118,7 +137,7 @@ public class PedidoService : IPedidoService
                 var recargoPago = pagoDto.Monto * porcentaje / 100m;
                 var totalACobrar = pagoDto.Monto + recargoPago;
 
-                pedido.Pagos.Add(new PagoPedido
+                venta.Pagos.Add(new PagoVenta
                 {
                     FormaPagoId = pagoDto.FormaPagoId,
                     Monto = pagoDto.Monto,
@@ -130,13 +149,13 @@ public class PedidoService : IPedidoService
                 recargoTotal += recargoPago;
             }
 
-            pedido.Recargo = recargoTotal;
-            pedido.Total = subtotal - dto.Descuento + recargoTotal;
+            venta.Recargo = recargoTotal;
+            venta.Total = subtotal - dto.Descuento + recargoTotal;
         }
         else
         {
             // Modo pago simple: una sola forma de pago
-            pedido.FormaPagoId = dto.FormaPagoId;
+            venta.FormaPagoId = dto.FormaPagoId;
             decimal recargo = 0;
 
             if (dto.FormaPagoId.HasValue)
@@ -148,81 +167,80 @@ public class PedidoService : IPedidoService
                 }
             }
 
-            pedido.Recargo = recargo;
-            pedido.Total = subtotal - dto.Descuento + recargo;
+            venta.Recargo = recargo;
+            venta.Total = subtotal - dto.Descuento + recargo;
         }
 
         // Si es Domicilio con zona, verificar si ya hay reparto activo en esa zona
-        if (dto.Tipo == TipoPedido.Domicilio && dto.ZonaId.HasValue)
+        if (dto.Tipo == TipoVenta.Domicilio && dto.ZonaId.HasValue)
         {
-            var repartoActivo = await _pedidoRepo.GetRepartoZonaActivoHoyAsync(dto.ZonaId.Value);
+            var repartoActivo = await _ventaRepo.GetRepartoZonaActivoHoyAsync(dto.ZonaId.Value);
             if (repartoActivo != null)
             {
-                pedido.RepartidorId = repartoActivo.RepartidorId;
-                pedido.Estado = EstadoPedido.Asignado;
-                pedido.FechaAsignacion = ahora;
-                pedido.RepartoZonaId = repartoActivo.Id;
+                venta.RepartidorId = repartoActivo.RepartidorId;
+                venta.Estado = EstadoVenta.Asignado;
+                venta.FechaAsignacion = ahora;
+                venta.RepartoZonaId = repartoActivo.Id;
             }
         }
 
-        // Asignar caja abierta si existe
-        var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync();
+        // Asignar caja abierta si existe (filtrar por local)
+        var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
         if (cajaAbierta is not null)
         {
-            pedido.CierreCajaId = cajaAbierta.Id;
+            venta.CierreCajaId = cajaAbierta.Id;
         }
 
-        await _pedidoRepo.AddAsync(pedido);
-        await _pedidoRepo.SaveChangesAsync();
+        await _ventaRepo.AddAsync(venta);
+        await _ventaRepo.SaveChangesAsync();
 
-        // Si se auto-asignó, incrementar contador del reparto
-        if (pedido.Estado == EstadoPedido.Asignado && pedido.ZonaId.HasValue)
+        // Si se auto-asignó a un reparto activo, incrementar contador
+        if (venta.Estado == EstadoVenta.Asignado && venta.ZonaId.HasValue)
         {
-            await _pedidoRepo.IncrementarTotalPedidosRepartoAsync(pedido.ZonaId.Value);
+            await _ventaRepo.IncrementarTotalVentasRepartoAsync(venta.ZonaId.Value);
         }
 
-        var created = await _pedidoRepo.GetByIdWithLineasAsync(pedido.Id);
+        var created = await _ventaRepo.GetByIdWithLineasAsync(venta.Id);
 
-        // Ventas POS (ParaLlevar): generar movimientos de stock + caja inmediatamente
-        if (dto.Tipo == TipoPedido.ParaLlevar)
+        // Ventas Mostrador: generar movimientos de stock + caja inmediatamente
+        if (dto.Tipo == TipoVenta.Mostrador)
         {
             try
             {
-                await _movimientoService.RegistrarMovimientosVentaStockAsync(pedido.Id, 1, null);
-                // Solo generar ingreso de caja si está pago (no es cuenta corriente)
+                await _movimientoService.RegistrarMovimientosVentaStockAsync(venta.Id, dto.LocalId ?? 1, usuarioId);
                 if (dto.EstaPago)
-                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(pedido.Id, 1, null);
+                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(venta.Id, dto.LocalId ?? 1, usuarioId);
             }
             catch
             {
-                // No bloquear la creación del pedido si falla el registro de movimientos
+                // No bloquear la creación si falla el registro de movimientos
             }
         }
 
         return ToDto(created!);
     }
 
-    public async Task<PedidoDto?> UpdateAsync(int id, ActualizarPedidoDto dto)
+    public async Task<VentaDto?> UpdateAsync(int id, ActualizarVentaDto dto)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+        if (venta is null) return null;
 
-        if (pedido.Estado != EstadoPedido.Pendiente && pedido.Estado != EstadoPedido.Asignado)
+        if (venta.Estado != EstadoVenta.Pendiente && venta.Estado != EstadoVenta.Asignado)
             throw new InvalidOperationException(
-                $"No se puede editar un pedido en estado '{pedido.Estado}'. Solo se permite en estado Pendiente o Asignado.");
+                $"No se puede editar una venta en estado '{venta.Estado}'. Solo se permite en estado Pendiente o Asignado.");
 
         // En estado Asignado solo se permite editar teléfono, estaPago y formaPago
-        if (pedido.Estado == EstadoPedido.Asignado)
+        if (venta.Estado == EstadoVenta.Asignado)
         {
-            pedido.TelefonoCliente = dto.TelefonoCliente;
-            pedido.EstaPago = dto.EstaPago;
+            venta.TelefonoCliente = dto.TelefonoCliente;
+            venta.EstaPago = dto.EstaPago;
 
             // Recalcular recargo si cambia la forma de pago
             if (dto.Pagos is { Count: > 0 })
             {
-                pedido.Pagos.Clear();
+                venta.Pagos.Clear();
                 decimal recargoTotal = 0;
-                pedido.FormaPagoId = null;
+                venta.FormaPagoId = null;
 
                 foreach (var pagoDto in dto.Pagos)
                 {
@@ -231,7 +249,7 @@ public class PedidoService : IPedidoService
                     var recargoPago = pagoDto.Monto * porcentaje / 100m;
                     var totalACobrar = pagoDto.Monto + recargoPago;
 
-                    pedido.Pagos.Add(new PagoPedido
+                    venta.Pagos.Add(new PagoVenta
                     {
                         FormaPagoId = pagoDto.FormaPagoId,
                         Monto = pagoDto.Monto,
@@ -243,13 +261,13 @@ public class PedidoService : IPedidoService
                     recargoTotal += recargoPago;
                 }
 
-                pedido.Recargo = recargoTotal;
-                pedido.Total = pedido.Subtotal - pedido.Descuento + recargoTotal;
+                venta.Recargo = recargoTotal;
+                venta.Total = venta.Subtotal - venta.Descuento + recargoTotal;
             }
             else
             {
-                pedido.Pagos.Clear();
-                pedido.FormaPagoId = dto.FormaPagoId;
+                venta.Pagos.Clear();
+                venta.FormaPagoId = dto.FormaPagoId;
                 decimal recargo = 0;
 
                 if (dto.FormaPagoId.HasValue)
@@ -257,18 +275,18 @@ public class PedidoService : IPedidoService
                     var formaPago = await _formaPagoRepo.GetByIdAsync(dto.FormaPagoId.Value);
                     if (formaPago is not null && formaPago.PorcentajeRecargo > 0)
                     {
-                        recargo = (pedido.Subtotal - pedido.Descuento) * formaPago.PorcentajeRecargo / 100m;
+                        recargo = (venta.Subtotal - venta.Descuento) * formaPago.PorcentajeRecargo / 100m;
                     }
                 }
 
-                pedido.Recargo = recargo;
-                pedido.Total = pedido.Subtotal - pedido.Descuento + recargo;
+                venta.Recargo = recargo;
+                venta.Total = venta.Subtotal - venta.Descuento + recargo;
             }
 
-            _pedidoRepo.Update(pedido);
-            await _pedidoRepo.SaveChangesAsync();
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
 
-            var updatedAsignado = await _pedidoRepo.GetByIdWithLineasAsync(pedido.Id);
+            var updatedAsignado = await _ventaRepo.GetByIdWithLineasAsync(venta.Id);
             return ToDto(updatedAsignado!);
         }
 
@@ -282,18 +300,18 @@ public class PedidoService : IPedidoService
                     "La fecha programada debe ser a partir de mañana y no mayor a 14 días desde hoy.");
         }
 
-        pedido.NombreCliente = dto.NombreCliente;
-        pedido.TelefonoCliente = dto.TelefonoCliente;
-        pedido.DireccionEntrega = dto.DireccionEntrega;
-        pedido.ZonaId = dto.ZonaId;
-        pedido.Descuento = dto.Descuento;
-        pedido.NotaInterna = dto.NotaInterna;
-        pedido.TipoFactura = dto.TipoFactura;
-        pedido.FechaProgramada = dto.FechaProgramada;
-        pedido.EstaPago = dto.EstaPago;
+        venta.NombreCliente = dto.NombreCliente;
+        venta.TelefonoCliente = dto.TelefonoCliente;
+        venta.DireccionEntrega = dto.DireccionEntrega;
+        venta.ZonaId = dto.ZonaId;
+        venta.Descuento = dto.Descuento;
+        venta.NotaInterna = dto.NotaInterna;
+        venta.TipoFactura = dto.TipoFactura;
+        venta.FechaProgramada = dto.FechaProgramada;
+        venta.EstaPago = dto.EstaPago;
 
         // Reemplazar líneas existentes con las nuevas
-        pedido.Lineas.Clear();
+        venta.Lineas.Clear();
         decimal subtotal = 0;
 
         foreach (var linea in dto.Lineas)
@@ -315,7 +333,7 @@ public class PedidoService : IPedidoService
             }
 
             var lineaSubtotal = linea.PrecioUnitario * linea.Cantidad;
-            pedido.Lineas.Add(new LineaPedido
+            venta.Lineas.Add(new LineaVenta
             {
                 ProductoId = linea.ProductoId,
                 ComboId = linea.ComboId,
@@ -328,14 +346,13 @@ public class PedidoService : IPedidoService
             subtotal += lineaSubtotal;
         }
 
-        pedido.Subtotal = subtotal;
+        venta.Subtotal = subtotal;
 
         if (dto.Pagos is { Count: > 0 })
         {
-            // Modo pago dividido: múltiples formas de pago
-            pedido.Pagos.Clear();
+            venta.Pagos.Clear();
             decimal recargoTotal = 0;
-            pedido.FormaPagoId = null;
+            venta.FormaPagoId = null;
 
             foreach (var pagoDto in dto.Pagos)
             {
@@ -344,7 +361,7 @@ public class PedidoService : IPedidoService
                 var recargoPago = pagoDto.Monto * porcentaje / 100m;
                 var totalACobrar = pagoDto.Monto + recargoPago;
 
-                pedido.Pagos.Add(new PagoPedido
+                venta.Pagos.Add(new PagoVenta
                 {
                     FormaPagoId = pagoDto.FormaPagoId,
                     Monto = pagoDto.Monto,
@@ -356,14 +373,13 @@ public class PedidoService : IPedidoService
                 recargoTotal += recargoPago;
             }
 
-            pedido.Recargo = recargoTotal;
-            pedido.Total = subtotal - dto.Descuento + recargoTotal;
+            venta.Recargo = recargoTotal;
+            venta.Total = subtotal - dto.Descuento + recargoTotal;
         }
         else
         {
-            // Modo pago simple: una sola forma de pago
-            pedido.Pagos.Clear();
-            pedido.FormaPagoId = dto.FormaPagoId;
+            venta.Pagos.Clear();
+            venta.FormaPagoId = dto.FormaPagoId;
             decimal recargo = 0;
 
             if (dto.FormaPagoId.HasValue)
@@ -375,265 +391,261 @@ public class PedidoService : IPedidoService
                 }
             }
 
-            pedido.Recargo = recargo;
-            pedido.Total = subtotal - dto.Descuento + recargo;
+            venta.Recargo = recargo;
+            venta.Total = subtotal - dto.Descuento + recargo;
         }
 
-        _pedidoRepo.Update(pedido);
-        await _pedidoRepo.SaveChangesAsync();
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
 
-        var updated = await _pedidoRepo.GetByIdWithLineasAsync(pedido.Id);
+        var updated = await _ventaRepo.GetByIdWithLineasAsync(venta.Id);
         return ToDto(updated!);
     }
 
-    public async Task<PedidoDto?> GetByIdAsync(int id)
+    public async Task<VentaDto?> GetByIdAsync(int id)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
-        return pedido is null ? null : ToDto(pedido);
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+        return venta is null ? null : ToDto(venta);
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetByFechaAsync(DateTime fecha)
+    public async Task<IEnumerable<VentaDto>> GetByFechaAsync(DateTime fecha)
     {
-        var pedidos = await _pedidoRepo.GetByFechaAsync(fecha);
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetByFechaAsync(fecha);
+        return ventas.Select(ToDto);
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta)
+    public async Task<IEnumerable<VentaDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta)
     {
-        var pedidos = await _pedidoRepo.GetByRangoFechasAsync(desde, hasta);
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetByRangoFechasAsync(desde, hasta);
+        return ventas.Select(ToDto);
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetByEstadoAsync(EstadoPedido estado)
+    public async Task<IEnumerable<VentaDto>> GetByEstadoAsync(EstadoVenta estado)
     {
-        var pedidos = await _pedidoRepo.GetByEstadoAsync(estado);
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetByEstadoAsync(estado);
+        return ventas.Select(ToDto);
     }
 
-    public async Task<PedidoDto?> CambiarEstadoAsync(int id, EstadoPedido nuevoEstado)
+    public async Task<VentaDto?> CambiarEstadoAsync(int id, EstadoVenta nuevoEstado)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+        if (venta is null) return null;
 
-        pedido.Estado = nuevoEstado;
-        _pedidoRepo.Update(pedido);
-        await _pedidoRepo.SaveChangesAsync();
-        return ToDto(pedido);
+        venta.Estado = nuevoEstado;
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
+        return ToDto(venta);
     }
 
-    public async Task<PedidoDto?> CancelarAsync(int id, string motivoCancelacion)
+    public async Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion)
     {
         if (string.IsNullOrWhiteSpace(motivoCancelacion))
             throw new InvalidOperationException("El motivo de cancelación es obligatorio.");
 
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+        if (venta is null) return null;
 
-        pedido.Estado = EstadoPedido.Cancelado;
-        pedido.MotivoCancelacion = motivoCancelacion.Trim();
-        _pedidoRepo.Update(pedido);
-        await _pedidoRepo.SaveChangesAsync();
+        venta.Estado = EstadoVenta.Cancelado;
+        venta.MotivoCancelacion = motivoCancelacion.Trim();
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
 
-        // Incrementar contador en RepartoZona
-        if (pedido.ZonaId.HasValue)
-            await _pedidoRepo.IncrementarContadorRepartoAsync(pedido.ZonaId.Value, EstadoPedido.Cancelado);
+        if (venta.ZonaId.HasValue)
+            await _ventaRepo.IncrementarContadorRepartoAsync(venta.ZonaId.Value, EstadoVenta.Cancelado);
 
-        return ToDto(pedido);
+        return ToDto(venta);
     }
 
-    public async Task<PedidoDto?> MarcarNoEntregadoAsync(int id, string motivo)
+    public async Task<VentaDto?> MarcarNoEntregadoAsync(int id, string motivo)
     {
         if (string.IsNullOrWhiteSpace(motivo))
             throw new InvalidOperationException("El motivo de no entrega es obligatorio.");
 
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+        if (venta is null) return null;
 
-        if (pedido.Estado != EstadoPedido.EnCamino)
-            throw new InvalidOperationException("Solo se puede marcar como no entregado un pedido en camino.");
+        if (venta.Estado != EstadoVenta.EnCamino)
+            throw new InvalidOperationException("Solo se puede marcar como no entregada una venta en camino.");
 
-        pedido.Estado = EstadoPedido.NoEntregado;
-        pedido.MotivoCancelacion = motivo.Trim();
-        _pedidoRepo.Update(pedido);
-        await _pedidoRepo.SaveChangesAsync();
+        venta.Estado = EstadoVenta.NoEntregado;
+        venta.MotivoCancelacion = motivo.Trim();
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
 
-        // Incrementar contador en RepartoZona
-        if (pedido.ZonaId.HasValue)
-            await _pedidoRepo.IncrementarContadorRepartoAsync(pedido.ZonaId.Value, EstadoPedido.NoEntregado);
+        if (venta.ZonaId.HasValue)
+            await _ventaRepo.IncrementarContadorRepartoAsync(venta.ZonaId.Value, EstadoVenta.NoEntregado);
 
-        return ToDto(pedido);
+        return ToDto(venta);
     }
 
     public async Task<TicketDto?> GetTicketAsync(int id)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(id);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+        if (venta is null) return null;
 
-        var pagos = pedido.Pagos.Any()
-            ? pedido.Pagos.Select(MapPagoPedidoDto).ToList()
+        var pagos = venta.Pagos.Any()
+            ? venta.Pagos.Select(MapPagoVentaDto).ToList()
             : null;
 
         return new TicketDto(
-            pedido.NumeroTicket, pedido.FechaCreacion, pedido.Tipo,
-            pedido.NombreCliente, pedido.DireccionEntrega, pedido.Zona?.Nombre,
-            pedido.Lineas.Select(l => new LineaPedidoDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
-            pedido.Subtotal, pedido.Descuento, pedido.Recargo, pedido.Total,
-            pedido.FormaPago?.Nombre,
-            pedido.NotaInterna,
-            pedido.TipoFactura,
+            venta.NumeroTicket,
+            venta.FechaCreacion,
+            venta.Tipo,
+            venta.NombreCliente,
+            venta.DireccionEntrega,
+            venta.Zona?.Nombre,
+            venta.Lineas.Select(l => new LineaVentaDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
+            venta.Subtotal,
+            venta.Descuento,
+            venta.Recargo,
+            venta.Total,
+            venta.FormaPago?.Nombre,
+            venta.NotaInterna,
+            venta.TipoFactura,
             pagos);
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetPendientesEntregaAsync()
+    public async Task<IEnumerable<VentaDto>> GetPendientesEntregaAsync()
     {
-        var pedidos = await _pedidoRepo.GetPendientesEntregaAsync();
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetPendientesEntregaAsync();
+        return ventas.Select(ToDto);
     }
 
-    public async Task<PedidoDto?> AsignarRepartidorAsync(int pedidoId, int repartidorId)
+    public async Task<VentaDto?> AsignarRepartidorAsync(int ventaId, int repartidorId)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+        if (venta is null) return null;
 
-        pedido.RepartidorId = repartidorId;
-        pedido.Estado = EstadoPedido.Asignado;
-        pedido.FechaAsignacion = DateTime.Now;
-        _pedidoRepo.Update(pedido);
-        await _pedidoRepo.SaveChangesAsync();
+        venta.RepartidorId = repartidorId;
+        venta.Estado = EstadoVenta.Asignado;
+        venta.FechaAsignacion = DateTime.Now;
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
 
-        var updated = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId);
+        var updated = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
         return ToDto(updated!);
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetEntregasRepartidorHoyAsync(int repartidorId)
+    public async Task<IEnumerable<VentaDto>> GetEntregasRepartidorHoyAsync(int repartidorId)
     {
-        var pedidos = await _pedidoRepo.GetByRepartidorHoyAsync(repartidorId);
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetByRepartidorHoyAsync(repartidorId);
+        return ventas.Select(ToDto);
     }
 
-    public async Task<PedidoDto?> MarcarEnCaminoAsync(int pedidoId)
+    public async Task<VentaDto?> MarcarEnCaminoAsync(int ventaId)
     {
-        return await CambiarEstadoAsync(pedidoId, EstadoPedido.EnCamino);
+        return await CambiarEstadoAsync(ventaId, EstadoVenta.EnCamino);
     }
 
-    public async Task<PedidoDto?> MarcarEntregadoAsync(int pedidoId, MarcarEntregadoDto dto)
+    public async Task<VentaDto?> MarcarEntregadoAsync(int ventaId, MarcarEntregadoDto dto)
     {
-        var pedido = await _pedidoRepo.GetByIdWithLineasAsync(pedidoId);
-        if (pedido is null) return null;
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+        if (venta is null) return null;
 
-        pedido.Estado = EstadoPedido.Entregado;
-        pedido.FechaEntrega = DateTime.Now;
-        pedido.NotasEntrega = dto.Notas;
+        venta.Estado = EstadoVenta.Entregado;
+        venta.FechaEntrega = DateTime.Now;
+        venta.NotasEntrega = dto.Notas;
 
-        // Si se informa forma de pago al entregar, actualizar pago
         if (dto.FormaPagoId.HasValue)
         {
-            pedido.FormaPagoId = dto.FormaPagoId.Value;
-            pedido.EstaPago = true;
+            venta.FormaPagoId = dto.FormaPagoId.Value;
+            venta.EstaPago = true;
         }
 
-        // Guardar comprobante de transferencia si viene
         if (!string.IsNullOrEmpty(dto.ComprobanteBase64))
         {
-            pedido.ComprobanteEntrega = dto.ComprobanteBase64;
+            venta.ComprobanteEntrega = dto.ComprobanteBase64;
         }
 
-        _pedidoRepo.Update(pedido);
-        await _pedidoRepo.SaveChangesAsync();
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
 
-        // Incrementar contador en RepartoZona
-        if (pedido.ZonaId.HasValue)
-            await _pedidoRepo.IncrementarContadorRepartoAsync(pedido.ZonaId.Value, EstadoPedido.Entregado);
+        if (venta.ZonaId.HasValue)
+            await _ventaRepo.IncrementarContadorRepartoAsync(venta.ZonaId.Value, EstadoVenta.Entregado);
 
-        return ToDto(pedido);
+        return ToDto(venta);
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetListosParaRepartoHoyAsync()
+    public async Task<IEnumerable<VentaDto>> GetListosParaRepartoHoyAsync()
     {
-        var pedidos = await _pedidoRepo.GetListosParaRepartoHoyAsync();
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetListosParaRepartoHoyAsync();
+        return ventas.Select(ToDto);
     }
 
-    public async Task<IEnumerable<PedidoDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto)
+    public async Task<IEnumerable<VentaDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto)
     {
-        // Traer todos los pedidos del día tipo Domicilio con zona
-        var pedidos = await _pedidoRepo.GetListosParaRepartoHoyAsync();
-        // Solo trabajar con pedidos que aún no fueron despachados
-        var pedidosList = pedidos
-            .Where(p => p.Estado == EstadoPedido.Pendiente)
+        var ventas = await _ventaRepo.GetListosParaRepartoHoyAsync();
+        var ventasList = ventas
+            .Where(v => v.Estado == EstadoVenta.Pendiente)
             .ToList();
 
-        if (!pedidosList.Any())
-            return Enumerable.Empty<PedidoDto>();
+        if (!ventasList.Any())
+            return Enumerable.Empty<VentaDto>();
 
         var ahora = DateTime.Now;
 
         foreach (var asignacion in dto.Asignaciones)
         {
-            // Obtener los pedidos de esta zona específica
-            var pedidosDeZona = pedidosList
-                .Where(p => p.ZonaId == asignacion.ZonaId)
+            var ventasDeZona = ventasList
+                .Where(v => v.ZonaId == asignacion.ZonaId)
                 .ToList();
 
-            // Crear/reutilizar registro RepartoZona ANTES de asignar pedidos
-            // para poder asociar el RepartoZonaId en cada pedido
             RepartoZona? repartoZona = null;
-            if (pedidosDeZona.Any())
+            if (ventasDeZona.Any())
             {
-                repartoZona = await _pedidoRepo.CrearRepartoZonaAsync(
+                repartoZona = await _ventaRepo.CrearRepartoZonaAsync(
                     asignacion.ZonaId,
                     asignacion.RepartidorId,
-                    pedidosDeZona.Count);
+                    ventasDeZona.Count);
             }
 
-            foreach (var pedido in pedidosDeZona)
+            foreach (var venta in ventasDeZona)
             {
-                pedido.RepartidorId = asignacion.RepartidorId;
-                pedido.Estado = EstadoPedido.Asignado;
-                pedido.FechaAsignacion = ahora;
+                venta.RepartidorId = asignacion.RepartidorId;
+                venta.Estado = EstadoVenta.Asignado;
+                venta.FechaAsignacion = ahora;
                 if (repartoZona != null)
-                    pedido.RepartoZonaId = repartoZona.Id;
-                _pedidoRepo.Update(pedido);
+                    venta.RepartoZonaId = repartoZona.Id;
+                _ventaRepo.Update(venta);
             }
         }
 
-        await _pedidoRepo.SaveChangesAsync();
+        await _ventaRepo.SaveChangesAsync();
 
-        // Retornar los pedidos actualizados mapeados a DTO
-        var pedidosActualizados = pedidosList
-            .Where(p => dto.Asignaciones.Any(a => a.ZonaId == p.ZonaId))
+        var ventasActualizadas = ventasList
+            .Where(v => dto.Asignaciones.Any(a => a.ZonaId == v.ZonaId))
             .ToList();
 
-        return pedidosActualizados.Select(ToDto);
+        return ventasActualizadas.Select(ToDto);
     }
 
     public async Task<int> PrepararTodosAsync()
     {
-        // Ya no se usa EnPreparacion, este método no tiene efecto
+        // Sin efecto: EstadoVenta no tiene EnPreparacion activo
         return 0;
     }
 
     public async Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId)
     {
-        await _pedidoRepo.FinalizarRepartoZonaAsync(zonaId, repartidorId);
+        await _ventaRepo.FinalizarRepartoZonaAsync(zonaId, repartidorId);
 
-        // Generar movimientos de stock (EGR_VTA) para todos los pedidos entregados del reparto
+        // Generar movimientos de stock (EGR_VTA) para todas las ventas entregadas del reparto
         try
         {
-            var repartosZona = await _pedidoRepo.GetRepartosZonaByRepartidorHoyAsync(repartidorId);
+            var repartosZona = await _ventaRepo.GetRepartosZonaByRepartidorHoyAsync(repartidorId);
             var reparto = repartosZona.FirstOrDefault(r => r.ZonaId == zonaId);
             if (reparto != null)
             {
-                var pedidos = await _pedidoRepo.GetByRepartidorHoyAsync(repartidorId);
-                var entregados = pedidos
-                    .Where(p => p.RepartoZonaId == reparto.Id && p.Estado == EstadoPedido.Entregado)
+                var ventas = await _ventaRepo.GetByRepartidorHoyAsync(repartidorId);
+                var entregadas = ventas
+                    .Where(v => v.RepartoZonaId == reparto.Id && v.Estado == EstadoVenta.Entregado)
                     .ToList();
 
-                foreach (var pedido in entregados)
+                foreach (var venta in entregadas)
                 {
                     try
                     {
-                        await _movimientoService.RegistrarMovimientosVentaStockAsync(pedido.Id, 1, null);
+                        await _movimientoService.RegistrarMovimientosVentaStockAsync(venta.Id, venta.LocalId ?? 1, null);
                     }
                     catch
                     {
@@ -648,79 +660,94 @@ public class PedidoService : IPedidoService
         }
     }
 
-    public async Task<PedidoStatsDto> GetStatsAsync(DateTime fecha)
+    public async Task<VentaStatsDto> GetStatsAsync(DateTime fecha)
     {
         var hoy = DateTime.Today;
         var ayer = hoy.AddDays(-1);
-        var hace7Dias = hoy.AddDays(-6);           // hoy inclusive = 7 días
-        var hace14Dias = hoy.AddDays(-13);          // 7 días anteriores
-        var hace8Dias = hoy.AddDays(-7);            // inicio del período anterior
+        var hace7Dias = hoy.AddDays(-6);
+        var hace14Dias = hoy.AddDays(-13);
+        var hace8Dias = hoy.AddDays(-7);
         var mismoHaceUnAnio = hoy.AddYears(-1);
 
-        // Conteos comparativos (siempre relativos a hoy)
-        var pedidosHoy = await _pedidoRepo.GetCountByFechaAsync(hoy);
-        var pedidosAyer = await _pedidoRepo.GetCountByFechaAsync(ayer);
-        var pedidosUltimos7Dias = await _pedidoRepo.GetCountByRangoAsync(hace7Dias, hoy);
-        var pedidos7DiasAnteriores = await _pedidoRepo.GetCountByRangoAsync(hace14Dias, hace8Dias);
-        var pedidosAnioAnterior = await _pedidoRepo.GetCountByFechaAsync(mismoHaceUnAnio);
+        var ventasHoy = await _ventaRepo.GetCountByFechaAsync(hoy);
+        var ventasAyer = await _ventaRepo.GetCountByFechaAsync(ayer);
+        var ventasUltimos7Dias = await _ventaRepo.GetCountByRangoAsync(hace7Dias, hoy);
+        var ventas7DiasAnteriores = await _ventaRepo.GetCountByRangoAsync(hace14Dias, hace8Dias);
+        var ventasAnioAnterior = await _ventaRepo.GetCountByFechaAsync(mismoHaceUnAnio);
 
-        // Totales para la fecha seleccionada
-        var (totalBruto, totalPedidosFecha) = await _pedidoRepo.GetTotalesByFechaAsync(fecha);
-        var ticketPromedio = totalPedidosFecha > 0 ? totalBruto / totalPedidosFecha : 0m;
+        var (totalBruto, totalVentasFecha) = await _ventaRepo.GetTotalesByFechaAsync(fecha);
+        var ticketPromedio = totalVentasFecha > 0 ? totalBruto / totalVentasFecha : 0m;
 
-        // Cálculo de porcentajes: ((actual - anterior) / anterior) * 100. Si anterior = 0 → 0
         static decimal Porcentaje(int actual, int anterior) =>
             anterior == 0 ? 0m : Math.Round(((decimal)(actual - anterior) / anterior) * 100m, 1);
 
-        return new PedidoStatsDto(
-            PedidosHoy: pedidosHoy,
-            PedidosAyer: pedidosAyer,
-            PorcentajeVariacionAyer: Porcentaje(pedidosHoy, pedidosAyer),
-            PedidosUltimos7Dias: pedidosUltimos7Dias,
-            PorcentajeVariacion7Dias: Porcentaje(pedidosUltimos7Dias, pedidos7DiasAnteriores),
-            PedidosAnioAnterior: pedidosAnioAnterior,
-            PorcentajeVariacionAnio: Porcentaje(pedidosHoy, pedidosAnioAnterior),
-            TotalPedidosFecha: totalPedidosFecha,
+        return new VentaStatsDto(
+            VentasHoy: ventasHoy,
+            VentasAyer: ventasAyer,
+            PorcentajeVariacionAyer: Porcentaje(ventasHoy, ventasAyer),
+            VentasUltimos7Dias: ventasUltimos7Dias,
+            PorcentajeVariacion7Dias: Porcentaje(ventasUltimos7Dias, ventas7DiasAnteriores),
+            VentasAnioAnterior: ventasAnioAnterior,
+            PorcentajeVariacionAnio: Porcentaje(ventasHoy, ventasAnioAnterior),
+            TotalVentasFecha: totalVentasFecha,
             TicketPromedio: Math.Round(ticketPromedio, 2),
             TotalBruto: Math.Round(totalBruto, 2));
     }
 
-    public async Task<IEnumerable<PedidoDto>> GetPedidosDepositoAsync(int? localId)
+    public async Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId)
     {
         var desde = DateTime.Now.AddMinutes(-10);
-        var pedidos = await _pedidoRepo.GetPedidosDepositoAsync(desde, localId);
-        return pedidos.Select(ToDto);
+        var ventas = await _ventaRepo.GetVentasDepositoAsync(desde, localId);
+        return ventas.Select(ToDto);
     }
 
-    private static PagoPedidoDto MapPagoPedidoDto(PagoPedido p) => new(
+    private static PagoVentaDto MapPagoVentaDto(PagoVenta p) => new(
         p.Id, p.FormaPagoId, p.FormaPago?.Nombre ?? "",
         p.Monto, p.PorcentajeRecargo, p.Recargo, p.TotalACobrar);
 
-    private static PedidoDto ToDto(Pedido p)
+    private static VentaDto ToDto(Venta v)
     {
-        var pagos = p.Pagos.Any()
-            ? p.Pagos.Select(MapPagoPedidoDto).ToList()
+        var pagos = v.Pagos.Any()
+            ? v.Pagos.Select(MapPagoVentaDto).ToList()
             : null;
 
-        return new PedidoDto(
-            p.Id, p.NumeroTicket, p.FechaCreacion, p.Tipo, p.Estado,
-            p.ClienteId, p.NombreCliente, p.TelefonoCliente, p.DireccionEntrega,
-            p.ZonaId, p.Zona?.Nombre,
-            p.Subtotal, p.Descuento, p.Recargo, p.Total,
-            p.FormaPagoId, p.FormaPago?.Nombre,
-            p.RepartidorId, p.Repartidor?.Nombre,
-            p.FechaAsignacion, p.FechaEntrega, p.NotasEntrega,
-            p.NotaInterna,
-            p.TipoFactura,
-            p.FechaProgramada,
-            p.FechaProgramada != null,
-            p.EstaPago,
-            p.LocalId,
-            p.Local?.Nombre,
-            p.Lineas.Select(l => new LineaPedidoDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
+        return new VentaDto(
+            v.Id,
+            v.NumeroTicket,
+            v.FechaCreacion,
+            v.Tipo,
+            v.Estado,
+            v.ClienteId,
+            v.NombreCliente,
+            v.TelefonoCliente,
+            v.DireccionEntrega,
+            v.ZonaId,
+            v.Zona?.Nombre,
+            v.Subtotal,
+            v.Descuento,
+            v.Recargo,
+            v.Total,
+            v.FormaPagoId,
+            v.FormaPago?.Nombre,
+            v.RepartidorId,
+            v.Repartidor?.Nombre,
+            v.FechaAsignacion,
+            v.FechaEntrega,
+            v.NotasEntrega,
+            v.NotaInterna,
+            v.TipoFactura,
+            v.FechaProgramada,
+            v.FechaProgramada != null,
+            v.EstaPago,
+            v.LocalId,
+            v.Local?.Nombre,
+            v.UsuarioId,
+            v.Usuario?.NombreCompleto,
+            v.Observaciones,
+            v.Lineas.Select(l => new LineaVentaDto(l.Id, l.ProductoId, l.ComboId, l.Descripcion, l.Cantidad, l.PrecioUnitario, l.Subtotal, l.Notas)).ToList(),
             pagos,
-            p.ComprobanteEntrega,
-            p.MotivoCancelacion,
-            p.RepartoZonaId);
+            v.ComprobanteEntrega,
+            v.MotivoCancelacion,
+            v.RepartoZonaId);
     }
 }

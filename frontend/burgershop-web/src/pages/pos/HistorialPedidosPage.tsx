@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Pedido, EstadoPedido, estadoLabels, estadoColores, TipoPedido } from '../../types';
-import { getPedidos, getPedidoStats, PedidoStats, cancelarPedido } from '../../api/pedidos';
+import { Venta, EstadoVenta, estadoLabels, estadoColores, TipoVenta } from '../../types';
+import { getVentas, getVentaStats, VentaStats, cancelarVenta } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
 import { getLocales, LocalDto } from '../../api/locales';
 import { useAuth } from '../../context/AuthContext';
@@ -9,9 +9,9 @@ import { RolUsuario } from '../../types/auth';
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
-const tipoLabels: Record<TipoPedido, string> = {
-  [TipoPedido.ParaLlevar]: 'Para Llevar',
-  [TipoPedido.Domicilio]: 'Domicilio',
+const tipoLabels: Record<TipoVenta, string> = {
+  [TipoVenta.Mostrador]: 'Mostrador',
+  [TipoVenta.Domicilio]: 'Domicilio',
 };
 
 function formatFecha(fecha: string) {
@@ -49,15 +49,15 @@ export default function HistorialPedidosPage() {
   const [fechaHasta, setFechaHasta] = useState(getHoy());
   const [estadoFiltro, setEstadoFiltro] = useState<number | ''>('');
   const [busqueda, setBusqueda] = useState('');
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<Venta[]>([]);
   const [cargando, setCargando] = useState(false);
-  const [seleccionado, setSeleccionado] = useState<Pedido | null>(null);
+  const [seleccionado, setSeleccionado] = useState<Venta | null>(null);
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
   const { showToast } = useGlobalToast();
   const [mostrarAnular, setMostrarAnular] = useState(false);
   const [motivoAnulacion, setMotivoAnulacion] = useState('');
   const [anulando, setAnulando] = useState(false);
-  const [stats, setStats] = useState<PedidoStats | null>(null);
+  const [stats, setStats] = useState<VentaStats | null>(null);
   const [locales, setLocales] = useState<LocalDto[]>([]);
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [ordenCol, setOrdenCol] = useState<string>('fechaCreacion');
@@ -68,7 +68,7 @@ export default function HistorialPedidosPage() {
   }, []);
 
   useEffect(() => {
-    getPedidoStats(fechaDesde).then(setStats).catch(() => {});
+    getVentaStats(fechaDesde).then(setStats).catch(() => {});
   }, [fechaDesde]);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function HistorialPedidosPage() {
       try {
         const estado = estadoFiltro !== '' ? estadoFiltro : undefined;
         const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
-        const data = await getPedidos(fechaDesde, estado, hasta, localSeleccionado || undefined);
+        const data = await getVentas(fechaDesde, estado, hasta, localSeleccionado || undefined);
         setPedidos(data);
       } catch (err) {
         console.error('Error cargando historial:', err);
@@ -199,12 +199,12 @@ export default function HistorialPedidosPage() {
             className={selectClass}
           >
             <option value="">Todos los estados</option>
-            <option value={EstadoPedido.Pendiente}>{estadoLabels[EstadoPedido.Pendiente]}</option>
-            <option value={EstadoPedido.Asignado}>{estadoLabels[EstadoPedido.Asignado]}</option>
-            <option value={EstadoPedido.EnCamino}>{estadoLabels[EstadoPedido.EnCamino]}</option>
-            <option value={EstadoPedido.Entregado}>{estadoLabels[EstadoPedido.Entregado]}</option>
-            <option value={EstadoPedido.Cancelado}>{estadoLabels[EstadoPedido.Cancelado]}</option>
-            <option value={EstadoPedido.NoEntregado}>{estadoLabels[EstadoPedido.NoEntregado]}</option>
+            <option value={EstadoVenta.Pendiente}>{estadoLabels[EstadoVenta.Pendiente]}</option>
+            <option value={EstadoVenta.Asignado}>{estadoLabels[EstadoVenta.Asignado]}</option>
+            <option value={EstadoVenta.EnCamino}>{estadoLabels[EstadoVenta.EnCamino]}</option>
+            <option value={EstadoVenta.Entregado}>{estadoLabels[EstadoVenta.Entregado]}</option>
+            <option value={EstadoVenta.Cancelado}>{estadoLabels[EstadoVenta.Cancelado]}</option>
+            <option value={EstadoVenta.NoEntregado}>{estadoLabels[EstadoVenta.NoEntregado]}</option>
           </select>
           <input
             type="text"
@@ -287,7 +287,7 @@ export default function HistorialPedidosPage() {
                     <td className="px-4 py-2.5 text-center">
                       {p.estaPago ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Pagado</span>
-                      ) : p.estado === EstadoPedido.Entregado ? (
+                      ) : p.estado === EstadoVenta.Entregado ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">Pago Pendiente</span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">No pago</span>
@@ -466,7 +466,7 @@ export default function HistorialPedidosPage() {
             <div className="flex justify-center pt-1">
               {seleccionado.estaPago ? (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Pagado</span>
-              ) : seleccionado.estado === EstadoPedido.Entregado ? (
+              ) : seleccionado.estado === EstadoVenta.Entregado ? (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Pago Pendiente</span>
               ) : (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-600">No pago</span>
@@ -474,7 +474,7 @@ export default function HistorialPedidosPage() {
             </div>
 
             {/* Boton anular — solo si no está cancelado ni entregado */}
-            {seleccionado.estado !== EstadoPedido.Cancelado && seleccionado.estado !== EstadoPedido.Entregado && (
+            {seleccionado.estado !== EstadoVenta.Cancelado && seleccionado.estado !== EstadoVenta.Entregado && (
               <div className="pt-2">
                 {!mostrarAnular ? (
                   <button
@@ -498,13 +498,13 @@ export default function HistorialPedidosPage() {
                           if (!motivoAnulacion.trim()) { showToast('Ingresa un motivo', 'error'); return; }
                           setAnulando(true);
                           try {
-                            await cancelarPedido(seleccionado.id, motivoAnulacion.trim());
+                            await cancelarVenta(seleccionado.id, motivoAnulacion.trim());
                             showToast('Pedido anulado correctamente', 'success');
                             setSeleccionado(null);
                             setMostrarAnular(false);
                             setMotivoAnulacion('');
                             // Recargar
-                            const data = await getPedidos(fechaDesde, undefined, fechaHasta !== fechaDesde ? fechaHasta : undefined, localSeleccionado || undefined);
+                            const data = await getVentas(fechaDesde, undefined, fechaHasta !== fechaDesde ? fechaHasta : undefined, localSeleccionado || undefined);
                             setPedidos(data);
                           } catch {
                             showToast('Error al anular pedido', 'error');
@@ -530,7 +530,7 @@ export default function HistorialPedidosPage() {
             )}
 
             {/* Motivo cancelacion si ya esta anulado */}
-            {seleccionado.estado === EstadoPedido.Cancelado && seleccionado.motivoCancelacion && (
+            {seleccionado.estado === EstadoVenta.Cancelado && seleccionado.motivoCancelacion && (
               <div className="pt-2">
                 <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700">
                   <span className="font-semibold">Motivo:</span> {seleccionado.motivoCancelacion}

@@ -22,7 +22,7 @@ public record RendicionDto(
 
 public record RendicionDetalleDto(
     int Id,
-    int PedidoId,
+    int VentaId,
     string NumeroTicket,
     string Estado,
     string? FormaPago,

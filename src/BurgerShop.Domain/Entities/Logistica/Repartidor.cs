@@ -15,5 +15,5 @@ public class Repartidor
     public Local? Local { get; set; }
 
     public ICollection<RepartidorZona> RepartidorZonas { get; set; } = new List<RepartidorZona>();
-    public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+    public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
 }
