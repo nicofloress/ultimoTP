@@ -6,4 +6,6 @@ public interface IControlCamionetaService
 {
     Task<byte[]> GenerarExcelAsync(IEnumerable<(int ZonaId, int RepartidorId)> asignaciones);
     Task<ControlCamionetaDto> GetTalliesActivosHoyAsync();
+    Task<string> CalcularYSerializarTallyAsync(int repartidorId, int repartoZonaId);
+    Task<ControlCamionetaHistorialDto> GetHistorialAsync(DateTime fecha);
 }

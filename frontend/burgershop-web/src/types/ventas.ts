@@ -42,6 +42,9 @@ export interface Venta {
   localId?: number;
   localNombre?: string;
   repartoZonaId?: number | null;
+  usuarioId?: number;
+  usuarioNombre?: string;
+  observaciones?: string;
   lineas: LineaVenta[];
   pagos?: PagoPedidoDto[];
 }

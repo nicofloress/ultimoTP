@@ -46,3 +46,24 @@ public class CompletaMediaDto
     public int Media { get; set; }
     public int Sueltos { get; set; }
 }
+
+public class ControlCamionetaHistorialDto
+{
+    public List<ControlCamionetaHistorialItemDto> Items { get; set; } = new();
+}
+
+public class ControlCamionetaHistorialItemDto
+{
+    public int RepartoZonaId { get; set; }
+    public string ZonaNombre { get; set; } = "";
+    public string RepartidorNombre { get; set; } = "";
+    public string? RepartidorVehiculo { get; set; }
+    public int? RepartidorLocalId { get; set; }
+    public DateTime FechaInicio { get; set; }
+    public DateTime? FechaFinalizacion { get; set; }
+    public int TotalVentas { get; set; }
+    public int TotalEntregados { get; set; }
+    public int TotalNoEntregados { get; set; }
+    public int TotalCancelados { get; set; }
+    public RepartidorTallyDto? Tally { get; set; }
+}

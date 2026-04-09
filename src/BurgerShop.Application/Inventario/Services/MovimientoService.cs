@@ -234,7 +234,7 @@ public class MovimientoService : IMovimientoService
 
         var movIngreso = new Movimiento
         {
-            FechaMovimiento = ahora.Date,
+            FechaMovimiento = ahora,
             FechaProceso    = ahora,
             CodigoAccionId  = codigoIng.Id,
             ProductoId      = null,

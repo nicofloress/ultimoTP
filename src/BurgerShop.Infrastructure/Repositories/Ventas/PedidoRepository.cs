@@ -314,6 +314,32 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .ToListAsync();
     }
 
+    public async Task GuardarTallyRepartoAsync(int zonaId, int repartidorId, string tallyJson)
+    {
+        var hoy = DateTime.Today;
+        var reparto = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.ZonaId == zonaId
+                && r.RepartidorId == repartidorId
+                && r.Fecha == hoy
+                && r.Estado == EstadoReparto.Finalizado);
+
+        if (reparto != null)
+        {
+            reparto.TallyJson = tallyJson;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<List<RepartoZona>> GetRepartosZonaFinalizadosByFechaAsync(DateTime fecha)
+    {
+        return await _context.RepartosZona
+            .Include(r => r.Zona)
+            .Include(r => r.Repartidor)
+            .Where(r => r.Fecha == fecha.Date && r.Estado == EstadoReparto.Finalizado)
+            .OrderBy(r => r.FechaFinalizacion)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Venta>> GetActivosConProductosPorRepartidorHoyAsync()
     {
         var hoy = DateTime.Today;
@@ -329,16 +355,33 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Venta>> GetConProductosPorRepartoZonaAsync(int repartoZonaId)
+    {
+        return await _dbSet
+            .Include(v => v.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
+            .Include(v => v.Repartidor)
+            .Where(v => v.RepartoZonaId == repartoZonaId)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Venta>> GetTodosConProductosPorRepartidorHoyAsync()
     {
         var hoy = DateTime.Today;
+
+        // Solo traer ventas que pertenecen a repartos actualmente EnCurso
+        var repartosEnCursoIds = await _context.RepartosZona
+            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso)
+            .Select(r => r.Id)
+            .ToListAsync();
+
         return await _dbSet
             .Include(v => v.Lineas).ThenInclude(l => l.Producto).ThenInclude(pr => pr!.Categoria).ThenInclude(c => c!.CategoriaPadre)
             .Include(v => v.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
             .Include(v => v.Repartidor)
             .Where(v => v.RepartidorId != null
-                && v.FechaAsignacion != null
-                && v.FechaAsignacion.Value.Date == hoy)
+                && v.RepartoZonaId != null
+                && repartosEnCursoIds.Contains(v.RepartoZonaId.Value))
             .ToListAsync();
     }
 

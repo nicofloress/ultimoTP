@@ -110,8 +110,45 @@ public class EntregasController : ControllerBase
     [HttpPost("finalizar-reparto")]
     public async Task<IActionResult> FinalizarReparto([FromBody] FinalizarRepartoDto dto)
     {
+        // Obtener el reparto activo para poder capturar su Id antes de finalizar
+        var repartoActivo = await _ventaService.GetRepartoZonaActivoHoyAsync(dto.ZonaId);
+
+        // Calcular y serializar el tally mientras el reparto sigue EnCurso (tiene productos cargados)
+        string? tallyJson = null;
+        if (repartoActivo != null)
+        {
+            tallyJson = await _controlCamionetaService.CalcularYSerializarTallyAsync(
+                dto.RepartidorId, repartoActivo.Id);
+        }
+
+        // Finalizar el reparto
         await _ventaService.FinalizarRepartoZonaAsync(dto.ZonaId, dto.RepartidorId);
+
+        // Guardar el snapshot del tally en el registro ya finalizado
+        if (repartoActivo != null && !string.IsNullOrEmpty(tallyJson) && tallyJson != "{}")
+        {
+            await _ventaService.GuardarTallyRepartoAsync(dto.ZonaId, dto.RepartidorId, tallyJson);
+        }
+
         return Ok();
+    }
+
+    [HttpGet("control-camioneta/historial")]
+    [Authorize(Roles = "SuperAdmin,Administrador,Local,Repartidor")]
+    public async Task<ActionResult<ControlCamionetaHistorialDto>> GetHistorialControlCamioneta([FromQuery] DateTime? fecha)
+    {
+        var fechaConsulta = fecha?.Date ?? DateTime.Today;
+        var result = await _controlCamionetaService.GetHistorialAsync(fechaConsulta);
+
+        var localIdClaim = User.FindFirst("localId")?.Value;
+        if (int.TryParse(localIdClaim, out var localId))
+        {
+            result.Items = result.Items
+                .Where(i => i.RepartidorLocalId == null || i.RepartidorLocalId == localId)
+                .ToList();
+        }
+
+        return Ok(result);
     }
 
     [HttpGet("control-camioneta")]

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getControlCamioneta, RepartidorTally, CompletaMedia, descargarControlCamioneta } from '../../api/entregas';
+import {
+  getControlCamioneta, RepartidorTally, CompletaMedia, descargarControlCamioneta,
+  getControlCamionetaHistorial, ControlCamionetaHistorialItem
+} from '../../api/entregas';
 import { useLocalActivo } from '../../context/LocalContext';
 
 function formatCantidad(count: number): string {
@@ -42,15 +45,19 @@ interface CheckRowProps {
   label: string;
   value: string;
   bg?: string;
+  readonly?: boolean;
 }
 
-function CheckRow({ id, checked, onChange, label, value, bg }: CheckRowProps) {
+function CheckRow({ id, checked, onChange, label, value, bg, readonly = false }: CheckRowProps) {
   if (!value) return null;
   const rowClass = checked ? 'bg-gray-300 text-gray-500 line-through' : (bg || '');
   return (
     <tr className={rowClass}>
       <td className="px-3 py-1.5 border border-gray-300">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(id, e.target.checked)} className="w-4 h-4" />
+        {readonly
+          ? <span className="inline-block w-4 h-4" />
+          : <input type="checkbox" checked={checked} onChange={(e) => onChange(id, e.target.checked)} className="w-4 h-4" />
+        }
       </td>
       <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{label}</td>
       <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm">{value}</td>
@@ -69,16 +76,19 @@ function TallySection({ title, bg, colSpan = 3, children }: { title: string; bg:
   );
 }
 
-function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
-  const [checks, setChecks] = useState<Record<string, boolean>>(() => loadChecks(tally.repartidorId));
+function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; readonly?: boolean }) {
+  const [checks, setChecks] = useState<Record<string, boolean>>(() =>
+    readonly ? {} : loadChecks(tally.repartidorId)
+  );
 
   const toggle = useCallback((id: string, v: boolean) => {
+    if (readonly) return;
     setChecks(prev => {
       const next = { ...prev, [id]: v };
       saveChecks(tally.repartidorId, next);
       return next;
     });
-  }, [tally.repartidorId]);
+  }, [tally.repartidorId, readonly]);
 
   const renderCompletaMediaRow = (prefix: string, peso: string, cm: CompletaMedia) => {
     if (cm.completa <= 0 && cm.media <= 0 && cm.sueltos <= 0) return null;
@@ -89,7 +99,10 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
     return (
       <tr key={`${prefix}-${peso}`} className={rowClass}>
         <td className="px-3 py-1.5 border border-gray-300">
-          <input type="checkbox" checked={isChecked} onChange={(e) => { toggle(idC, e.target.checked); toggle(idM, e.target.checked); }} className="w-4 h-4" />
+          {readonly
+            ? <span className="inline-block w-4 h-4" />
+            : <input type="checkbox" checked={isChecked} onChange={(e) => { toggle(idC, e.target.checked); toggle(idM, e.target.checked); }} className="w-4 h-4" />
+          }
         </td>
         <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{peso} GR</td>
         <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{cm.completa > 0 ? formatCantidad(cm.completa) : '-'}</td>
@@ -103,7 +116,7 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
     return Object.entries(panes).sort(([a], [b]) => Number(a) - Number(b)).map(([qty, count]) => {
       if (count <= 0) return null;
       const id = `${prefix}-${qty}`;
-      return <CheckRow key={id} id={id} checked={!!checks[id]} onChange={toggle} label={`${qty} un.`} value={formatCantidad(count)} bg={bg} />;
+      return <CheckRow key={id} id={id} checked={!!checks[id]} onChange={toggle} label={`${qty} un.`} value={formatCantidad(count)} bg={bg} readonly={readonly} />;
     });
   };
 
@@ -166,7 +179,10 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
                     return (
                       <tr key={`sal-${i}`}>
                         <td className="px-3 py-1.5 border border-gray-300">
-                          {ck != null && <input type="checkbox" checked={!!checks[`sc-${ck}`]} onChange={(e) => toggle(`sc-${ck}`, e.target.checked)} className="w-4 h-4" />}
+                          {ck != null && (readonly
+                            ? <span className="inline-block w-4 h-4" />
+                            : <input type="checkbox" checked={!!checks[`sc-${ck}`]} onChange={(e) => toggle(`sc-${ck}`, e.target.checked)} className="w-4 h-4" />
+                          )}
                         </td>
                         <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{ck != null ? `${ck} un.` : ''}</td>
                         <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{ck != null ? formatCantidad(tally.salchichaCorta[ck.toString()]) : '-'}</td>
@@ -190,7 +206,10 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
                   return (
                     <tr key={id} className={checks[id] ? 'bg-gray-300 text-gray-500 line-through' : ''}>
                       <td className="px-3 py-1.5 border border-gray-300">
-                        <input type="checkbox" checked={!!checks[id]} onChange={(e) => toggle(id, e.target.checked)} className="w-4 h-4" />
+                        {readonly
+                          ? <span className="inline-block w-4 h-4" />
+                          : <input type="checkbox" checked={!!checks[id]} onChange={(e) => toggle(id, e.target.checked)} className="w-4 h-4" />
+                        }
                       </td>
                       <td colSpan={2} className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{nombre}</td>
                       <td colSpan={2} className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{cantidad}</td>
@@ -247,7 +266,7 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
               <TallySection title="Aderezos / Salsas" bg={colors.amarillo}>
                 {Object.entries(tally.aderezos).sort(([a], [b]) => a.localeCompare(b)).map(([nombre, cantidad]) => {
                   const id = `ade-${nombre}`;
-                  return <CheckRow key={id} id={id} checked={!!checks[id]} onChange={toggle} label={nombre} value={cantidad.toString()} />;
+                  return <CheckRow key={id} id={id} checked={!!checks[id]} onChange={toggle} label={nombre} value={cantidad.toString()} readonly={readonly} />;
                 })}
               </TallySection>
             )}
@@ -273,6 +292,128 @@ function RepartidorPanel({ tally }: { tally: RepartidorTally }) {
   );
 }
 
+// ─── Componente de historial ─────────────────────────────────────────────────
+
+function formatHora(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function HistorialItem({ item }: { item: ControlCamionetaHistorialItem }) {
+  const [expandido, setExpandido] = useState(false);
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      {/* Cabecera del ítem */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
+        <div className="flex items-center gap-4">
+          <div>
+            <span className="font-semibold text-gray-800">{item.repartidorNombre}</span>
+            {item.repartidorVehiculo && (
+              <span className="ml-2 text-xs text-gray-500">— {item.repartidorVehiculo}</span>
+            )}
+          </div>
+          <span className="text-xs text-gray-400">Zona: {item.zonaNombre}</span>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex gap-3 text-xs">
+            <span className="text-green-700 font-medium">{item.totalEntregados} entregados</span>
+            {item.totalNoEntregados > 0 && (
+              <span className="text-red-600 font-medium">{item.totalNoEntregados} no entregados</span>
+            )}
+            {item.totalCancelados > 0 && (
+              <span className="text-gray-500">{item.totalCancelados} cancelados</span>
+            )}
+          </div>
+          <div className="text-xs text-gray-500">
+            {formatHora(item.fechaInicio)} — {item.fechaFinalizacion ? formatHora(item.fechaFinalizacion) : '?'}
+          </div>
+          <button
+            onClick={() => setExpandido(v => !v)}
+            disabled={!item.tally}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              item.tally
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {!item.tally ? 'Sin tally' : expandido ? 'Ocultar tally' : 'Ver tally'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tally expandido */}
+      {expandido && item.tally && (
+        <div className="p-4 opacity-80">
+          <RepartidorPanel tally={item.tally} readonly />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SeccionHistorial({ localActivo }: { localActivo: number | null }) {
+  const hoy = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const [fecha, setFecha] = useState(hoy);
+  const [items, setItems] = useState<ControlCamionetaHistorialItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const cargarHistorial = useCallback(async (f: string) => {
+    setLoading(true);
+    try {
+      const res = await getControlCamionetaHistorial(f);
+      const filtrados = localActivo
+        ? res.items.filter(i => !i.repartidorLocalId || i.repartidorLocalId === localActivo)
+        : res.items;
+      setItems(filtrados);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [localActivo]);
+
+  useEffect(() => {
+    cargarHistorial(fecha);
+  }, [fecha, cargarHistorial]);
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-gradient-to-b from-slate-400 to-slate-600 rounded-lg shadow px-4 py-2.5 flex items-center justify-between">
+        <h3 className="text-base font-bold text-white">Historial de repartos finalizados</h3>
+        <input
+          type="date"
+          value={fecha}
+          onChange={e => setFecha(e.target.value)}
+          className="text-sm border border-slate-300 rounded px-2 py-1 bg-white text-gray-700"
+        />
+      </div>
+
+      {loading && (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-500" />
+        </div>
+      )}
+
+      {!loading && items.length === 0 && (
+        <div className="bg-white rounded-lg shadow-sm border px-4 py-8 text-center text-gray-400 text-sm">
+          No hay repartos finalizados para esta fecha
+        </div>
+      )}
+
+      {!loading && items.map(item => (
+        <HistorialItem key={item.repartoZonaId} item={item} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
 export default function ControlCamionetasPage() {
   const { localActivo } = useLocalActivo();
   const [data, setData] = useState<RepartidorTally[]>([]);
@@ -288,7 +429,7 @@ export default function ControlCamionetasPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [localActivo]);
 
   useEffect(() => {
     fetchData();
@@ -304,96 +445,88 @@ export default function ControlCamionetasPage() {
     );
   }
 
-  if (data.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-        <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3.75M3.375 14.25h17.25M21 11.25V8.625c0-.621-.504-1.125-1.125-1.125H5.25c-.621 0-1.125.504-1.125 1.125v2.625" />
-        </svg>
-        <p className="text-lg font-medium">No hay repartos activos hoy</p>
-        <p className="text-sm text-gray-400 mt-1">Los repartos con estado Asignado o En Camino apareceran aqui</p>
-      </div>
-    );
-  }
-
-  const activeTally = data[activeTab];
+  const activeTally = data[activeTab] ?? null;
 
   return (
-    <div className="space-y-4">
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5">
-        <h2 className="text-lg font-bold text-white">Control de Camionetas</h2>
-      </div>
-      {/* Header with tabs and download button */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          {data.map((rep, idx) => (
-            <button
-              key={rep.repartidorId}
-              onClick={() => setActiveTab(idx)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                idx === activeTab
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {rep.nombre}
-              <span className="ml-2 text-xs text-gray-400">({rep.totalPedidos} ped.)</span>
-              {rep.finalizado && (
-                <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">Finalizado</span>
-              )}
-            </button>
-          ))}
+    <div className="space-y-6">
+      {/* ── Sección activos ─────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5">
+          <h2 className="text-lg font-bold text-white">Control de Camionetas</h2>
         </div>
 
-        <button
-          onClick={() => {
-            descargarControlCamioneta([]);
-          }}
-          className="px-4 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-medium flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Descargar Excel
-        </button>
-      </div>
-
-      {/* Repartidor info header */}
-      {activeTally && (
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Repartidor:</span>
-              <span className="ml-2 font-semibold">{activeTally.nombre}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Camioneta:</span>
-              <span className="ml-2 font-semibold">{activeTally.vehiculo || '-'}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Fecha:</span>
-              <span className="ml-2 font-semibold">{activeTally.fecha}</span>
-            </div>
+        {data.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border flex flex-col items-center justify-center py-12 text-gray-500">
+            <svg className="w-14 h-14 mb-3 text-gray-300" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3.75M3.375 14.25h17.25M21 11.25V8.625c0-.621-.504-1.125-1.125-1.125H5.25c-.621 0-1.125.504-1.125 1.125v2.625" />
+            </svg>
+            <p className="font-medium">No hay repartos activos en este momento</p>
+            <p className="text-sm text-gray-400 mt-1">Los repartos en curso apareceran aqui</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <>
+            {/* Tabs + botón Excel */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                {data.map((rep, idx) => (
+                  <button
+                    key={rep.repartidorId}
+                    onClick={() => setActiveTab(idx)}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      idx === activeTab
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {rep.nombre}
+                    <span className="ml-2 text-xs text-gray-400">({rep.totalPedidos} ped.)</span>
+                  </button>
+                ))}
+              </div>
 
-      {/* Finalizado banner */}
-      {activeTally?.finalizado && (
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3">
-          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm font-medium text-green-700">Reparto finalizado — todos los pedidos fueron entregados o cerrados</span>
-        </div>
-      )}
+              <button
+                onClick={() => descargarControlCamioneta([])}
+                className="px-4 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Descargar Excel
+              </button>
+            </div>
 
-      {/* Tally content */}
-      {activeTally && (
-        <div className={`bg-white rounded-lg shadow-sm border p-4${activeTally.finalizado ? ' opacity-60' : ''}`}>
-          <RepartidorPanel key={activeTally.repartidorId} tally={activeTally} />
-        </div>
-      )}
+            {/* Info repartidor activo */}
+            {activeTally && (
+              <div className="bg-white rounded-lg shadow-sm border p-4">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Repartidor:</span>
+                    <span className="ml-2 font-semibold">{activeTally.nombre}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Camioneta:</span>
+                    <span className="ml-2 font-semibold">{activeTally.vehiculo || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Fecha:</span>
+                    <span className="ml-2 font-semibold">{activeTally.fecha}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tally activo */}
+            {activeTally && (
+              <div className="bg-white rounded-lg shadow-sm border p-4">
+                <RepartidorPanel key={activeTally.repartidorId} tally={activeTally} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Sección historial ───────────────────────────────────────────── */}
+      <SeccionHistorial localActivo={localActivo} />
     </div>
   );
 }

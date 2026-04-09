@@ -50,6 +50,28 @@ export interface ControlCamionetaData {
 
 export const getControlCamioneta = () => api.get<ControlCamionetaData>('/entregas/control-camioneta').then(r => r.data);
 
+export interface ControlCamionetaHistorialItem {
+  repartoZonaId: number;
+  zonaNombre: string;
+  repartidorNombre: string;
+  repartidorVehiculo: string | null;
+  repartidorLocalId?: number;
+  fechaInicio: string;
+  fechaFinalizacion: string | null;
+  totalVentas: number;
+  totalEntregados: number;
+  totalNoEntregados: number;
+  totalCancelados: number;
+  tally: RepartidorTally | null;
+}
+
+export interface ControlCamionetaHistorial {
+  items: ControlCamionetaHistorialItem[];
+}
+
+export const getControlCamionetaHistorial = (fecha: string) =>
+  api.get<ControlCamionetaHistorial>(`/entregas/control-camioneta/historial?fecha=${fecha}`).then(r => r.data);
+
 export const descargarControlCamioneta = async (asignaciones: { zonaId: number; repartidorId: number }[]) => {
   const response = await api.post('/entregas/control-camioneta', { asignaciones }, { responseType: 'blob' });
   const url = window.URL.createObjectURL(new Blob([response.data]));

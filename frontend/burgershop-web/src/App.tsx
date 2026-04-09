@@ -9,6 +9,7 @@ import LoginPage from './pages/auth/LoginPage';
 import POSPage from './pages/pos/POSPage';
 import PedidosPage from './pages/pos/PedidosPage';
 import HistorialPedidosPage from './pages/pos/HistorialPedidosPage';
+import VentasPage from './pages/pos/VentasPage';
 import CatalogoLayout from './pages/catalogo/CatalogoLayout';
 
 import ProductosPage from './pages/catalogo/ProductosPage';
@@ -66,6 +67,7 @@ export default function App() {
           }>
             {/* Todas las rutas — SuperAdmin siempre accede via ProtectedRoute */}
             <Route path="/" element={<POSPage />} />
+            <Route path="/ventas" element={<VentasPage />} />
             <Route path="/pedidos" element={<PedidosPage />} />
             <Route path="/historial" element={<HistorialPedidosPage />} />
             <Route path="/reparto" element={<EntregasPage />} />

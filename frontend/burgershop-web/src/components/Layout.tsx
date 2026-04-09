@@ -24,6 +24,7 @@ const menuSections: MenuSection[] = [
   {
     items: [
       { to: '/', label: 'POS', end: true },
+      { to: '/ventas', label: 'Ventas' },
     ],
   },
   {

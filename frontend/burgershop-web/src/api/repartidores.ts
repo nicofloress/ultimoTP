@@ -1,7 +1,8 @@
 import client from './client';
 import { Repartidor, CrearRepartidorDto, ActualizarRepartidorDto } from '../types/logistica';
 
-export const getRepartidores = () => client.get<Repartidor[]>('/repartidores').then(r => r.data);
+export const getRepartidores = (incluirInactivos = false) =>
+  client.get<Repartidor[]>('/repartidores', { params: incluirInactivos ? { incluirInactivos: true } : undefined }).then(r => r.data);
 export const getRepartidor = (id: number) => client.get<Repartidor>(`/repartidores/${id}`).then(r => r.data);
 export const crearRepartidor = (data: CrearRepartidorDto) => client.post<Repartidor>('/repartidores', data).then(r => r.data);
 export const actualizarRepartidor = (id: number, data: ActualizarRepartidorDto) => client.put<Repartidor>(`/repartidores/${id}`, data).then(r => r.data);

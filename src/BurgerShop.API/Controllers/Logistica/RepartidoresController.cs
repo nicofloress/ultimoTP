@@ -15,8 +15,13 @@ public class RepartidoresController : ControllerBase
     public RepartidoresController(IRepartidorService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RepartidorDto>>> GetAll()
-        => Ok(await _service.GetActivosAsync());
+    public async Task<ActionResult<IEnumerable<RepartidorDto>>> GetAll([FromQuery] bool incluirInactivos = false)
+    {
+        var repartidores = incluirInactivos
+            ? await _service.GetAllAsync()
+            : await _service.GetActivosAsync();
+        return Ok(repartidores);
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<RepartidorDto>> GetById(int id)

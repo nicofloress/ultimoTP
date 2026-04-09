@@ -226,42 +226,6 @@ export default function CajaPage() {
               </div>
             </div>
 
-            {/* Resumen por Forma de Pago */}
-            {cajaAbierta.detalles && cajaAbierta.detalles.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Resumen por Forma de Pago</h3>
-                <div className="bg-white border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Forma de Pago</th>
-                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500">Cant. Operaciones</th>
-                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500">Monto Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {cajaAbierta.detalles.map(d => (
-                        <tr key={d.id}>
-                          <td className="px-4 py-2 text-sm">{d.formaPagoNombre}</td>
-                          <td className="px-4 py-2 text-sm text-right">{d.cantidadOperaciones}</td>
-                          <td className="px-4 py-2 text-sm text-right font-medium">${d.montoTotal.toLocaleString()}</td>
-                        </tr>
-                      ))}
-                      <tr className="bg-amber-50 font-bold border-t-2 border-amber-200">
-                        <td className="px-4 py-2 text-sm">Total</td>
-                        <td className="px-4 py-2 text-sm text-right">
-                          {cajaAbierta.detalles.reduce((s, d) => s + d.cantidadOperaciones, 0)}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-right">
-                          ${cajaAbierta.detalles.reduce((s, d) => s + d.montoTotal, 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
             {cajaAbierta.observaciones && (
               <div className="mb-4 text-sm text-gray-600">
                 <span className="font-medium">Observaciones:</span> {cajaAbierta.observaciones}

@@ -660,6 +660,16 @@ public class VentaService : IVentaService
         }
     }
 
+    public async Task GuardarTallyRepartoAsync(int zonaId, int repartidorId, string tallyJson)
+    {
+        await _ventaRepo.GuardarTallyRepartoAsync(zonaId, repartidorId, tallyJson);
+    }
+
+    public async Task<Domain.Entities.Logistica.RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId)
+    {
+        return await _ventaRepo.GetRepartoZonaActivoHoyAsync(zonaId);
+    }
+
     public async Task<VentaStatsDto> GetStatsAsync(DateTime fecha)
     {
         var hoy = DateTime.Today;

@@ -18,6 +18,11 @@ public class RepartoZona
     public int TotalNoEntregados { get; set; }
     public int TotalCancelados { get; set; }
 
+    /// <summary>
+    /// Snapshot del tally serializado en JSON al momento de finalizar el reparto.
+    /// </summary>
+    public string? TallyJson { get; set; }
+
     // Navegación
     public Zona Zona { get; set; } = null!;
     public Repartidor Repartidor { get; set; } = null!;

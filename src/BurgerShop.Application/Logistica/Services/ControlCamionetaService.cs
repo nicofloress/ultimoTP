@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BurgerShop.Application.Logistica.DTOs;
 using BurgerShop.Application.Logistica.Interfaces;
 using BurgerShop.Domain.Entities.Catalogo;
@@ -115,6 +116,93 @@ public class ControlCamionetaService : IControlCamionetaService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Calcula y serializa el tally de un reparto completo usando los pedidos con productos.
+    /// Se debe llamar ANTES de finalizar el reparto (cuando el estado aún es EnCurso),
+    /// o con el RepartoZonaId exacto para recuperar todos sus pedidos.
+    /// </summary>
+    public async Task<string> CalcularYSerializarTallyAsync(int repartidorId, int repartoZonaId)
+    {
+        // Obtener todos los pedidos del reparto con productos cargados
+        var pedidosReparto = (await _ventaRepo.GetConProductosPorRepartoZonaAsync(repartoZonaId)).ToList();
+
+        if (!pedidosReparto.Any())
+            return "{}";
+
+        var repartidor = pedidosReparto.First().Repartidor;
+        var tallies = CalcularTallies(pedidosReparto);
+
+        var dto = new RepartidorTallyDto
+        {
+            RepartidorId = repartidorId,
+            RepartidorLocalId = repartidor?.LocalId,
+            Nombre = repartidor?.Nombre ?? "Desconocido",
+            Vehiculo = repartidor?.Vehiculo,
+            Fecha = DateTime.Today.ToString("d/M/yyyy"),
+            TotalPedidos = pedidosReparto.Count,
+            Medallones = tallies.Medallones
+                .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
+                .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
+            Premium = tallies.Premium
+                .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
+                .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
+            SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            PanMaxi = tallies.PanMaxi.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
+            Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
+            Finalizado = true
+        };
+
+        return JsonSerializer.Serialize(dto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    }
+
+    public async Task<ControlCamionetaHistorialDto> GetHistorialAsync(DateTime fecha)
+    {
+        var repartos = await _ventaRepo.GetRepartosZonaFinalizadosByFechaAsync(fecha);
+
+        var resultado = new ControlCamionetaHistorialDto();
+
+        foreach (var reparto in repartos)
+        {
+            RepartidorTallyDto? tally = null;
+            if (!string.IsNullOrEmpty(reparto.TallyJson) && reparto.TallyJson != "{}")
+            {
+                try
+                {
+                    tally = JsonSerializer.Deserialize<RepartidorTallyDto>(
+                        reparto.TallyJson,
+                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                }
+                catch
+                {
+                    // Si falla la deserialización, tally queda null
+                }
+            }
+
+            resultado.Items.Add(new ControlCamionetaHistorialItemDto
+            {
+                RepartoZonaId = reparto.Id,
+                ZonaNombre = reparto.Zona?.Nombre ?? $"Zona {reparto.ZonaId}",
+                RepartidorNombre = reparto.Repartidor?.Nombre ?? "Desconocido",
+                RepartidorVehiculo = reparto.Repartidor?.Vehiculo,
+                RepartidorLocalId = reparto.Repartidor?.LocalId,
+                FechaInicio = reparto.FechaInicio,
+                FechaFinalizacion = reparto.FechaFinalizacion,
+                TotalVentas = reparto.TotalVentas,
+                TotalEntregados = reparto.TotalEntregados,
+                TotalNoEntregados = reparto.TotalNoEntregados,
+                TotalCancelados = reparto.TotalCancelados,
+                Tally = tally
+            });
+        }
+
+        return resultado;
     }
 
     #region Tally Calculation

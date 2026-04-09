@@ -16,6 +16,7 @@ public interface IVentaRepository : IRepository<Venta>
     Task<IEnumerable<Venta>> GetListosParaRepartoConProductosAsync();
     Task<IEnumerable<Venta>> GetActivosConProductosPorRepartidorHoyAsync();
     Task<IEnumerable<Venta>> GetTodosConProductosPorRepartidorHoyAsync();
+    Task<IEnumerable<Venta>> GetConProductosPorRepartoZonaAsync(int repartoZonaId);
     Task<int> GetSiguienteNumeroTicketAsync(DateTime fecha);
     Task<IEnumerable<Venta>> GetByCierreCajaAsync(int cierreCajaId);
     Task<int?> GetRepartidorActivoEnZonaHoyAsync(int zonaId);
@@ -23,12 +24,14 @@ public interface IVentaRepository : IRepository<Venta>
     // RepartoZona
     Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas);
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
+    Task GuardarTallyRepartoAsync(int zonaId, int repartidorId, string tallyJson);
     Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task IncrementarContadorRepartoAsync(int zonaId, EstadoVenta estadoFinal);
     Task IncrementarTotalVentasRepartoAsync(int zonaId);
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorHoyAsync(int repartidorId);
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorFechaAsync(int repartidorId, DateTime fecha);
     Task<List<RepartoZona>> GetRepartosZonaFinalizadosHoyAsync();
+    Task<List<RepartoZona>> GetRepartosZonaFinalizadosByFechaAsync(DateTime fecha);
 
     // Stats
     Task<int> GetCountByFechaAsync(DateTime fecha);

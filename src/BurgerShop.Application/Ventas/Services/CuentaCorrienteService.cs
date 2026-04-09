@@ -139,7 +139,7 @@ public class CuentaCorrienteService : ICuentaCorrienteService
             LocalId:         dto.LocalId,
             Cantidad:        1,
             PrecioUnitario:  dto.Monto,
-            FechaMovimiento: DateTime.Today,
+            FechaMovimiento: DateTime.Now,
             Observaciones:   dto.Observaciones ?? $"Pago cuenta corriente - {cuenta.Cliente?.Nombre ?? $"Cliente #{dto.ClienteId}"}");
 
         var movimientoRegistrado = await _movimientoService.RegistrarMovimientoAsync(movDto, usuarioId);

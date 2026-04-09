@@ -37,14 +37,14 @@ export const getTicket = (id: number) => api.get(`/ventas/${id}/ticket`).then(r 
 export const prepararTodos = () => api.put('/ventas/preparar-todos').then(r => r.data);
 
 export interface VentaStats {
-  pedidosHoy: number;
-  pedidosAyer: number;
+  ventasHoy: number;
+  ventasAyer: number;
   porcentajeVariacionAyer: number;
-  pedidosUltimos7Dias: number;
+  ventasUltimos7Dias: number;
   porcentajeVariacion7Dias: number;
-  pedidosAnioAnterior: number;
+  ventasAnioAnterior: number;
   porcentajeVariacionAnio: number;
-  totalPedidosFecha: number;
+  totalVentasFecha: number;
   ticketPromedio: number;
   totalBruto: number;
 }

@@ -24,13 +24,14 @@ export default function RepartidoresPage() {
   const [guardando, setGuardando] = useState(false);
   const [locales, setLocales] = useState<LocalDto[]>([]);
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
-  const cargar = () => getRepartidores().then(setRepartidores);
+  const cargar = () => getRepartidores(mostrarInactivos).then(setRepartidores);
 
   useEffect(() => {
     cargar();
     getLocales().then(setLocales);
-  }, []);
+  }, [mostrarInactivos]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,17 +143,28 @@ export default function RepartidoresPage() {
         </button>
       </div>
 
-      {/* Filtro por local */}
-      <div className="mb-4 flex items-center gap-3">
-        <label className="text-sm font-medium text-gray-600">Local:</label>
-        {esSuperAdmin ? (
-          <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass}>
-            <option value={0}>Todos los locales</option>
-            {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-          </select>
-        ) : (
-          <div className="text-sm text-gray-700 font-medium">{locales.find(l => l.id === usuario?.localId)?.nombre || `Local ${usuario?.localId}`}</div>
-        )}
+      {/* Filtros */}
+      <div className="mb-4 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-600">Local:</label>
+          {esSuperAdmin ? (
+            <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass}>
+              <option value={0}>Todos los locales</option>
+              {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          ) : (
+            <div className="text-sm text-gray-700 font-medium">{locales.find(l => l.id === usuario?.localId)?.nombre || `Local ${usuario?.localId}`}</div>
+          )}
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={mostrarInactivos}
+            onChange={e => setMostrarInactivos(e.target.checked)}
+            className="w-4 h-4 accent-amber-500"
+          />
+          <span className="text-sm font-medium text-gray-600">Mostrar inactivos</span>
+        </label>
       </div>
 
       {showForm && (
@@ -262,7 +274,7 @@ export default function RepartidoresPage() {
           </thead>
           <tbody className="divide-y">
             {repartidoresFiltrados.map(r => (
-              <tr key={r.id}>
+              <tr key={r.id} className={!r.activo ? 'opacity-50' : undefined}>
                 <td className="px-4 py-3 text-sm font-medium">{r.nombre}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{r.telefono || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{r.vehiculo || '-'}</td>
