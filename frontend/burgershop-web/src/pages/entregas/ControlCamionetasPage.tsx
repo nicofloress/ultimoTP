@@ -162,39 +162,6 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
               </>
             )}
 
-            {/* Salchichas Cortas + Largas combinadas */}
-            {(Object.keys(tally.salchichaCorta).length > 0 || Object.keys(tally.salchichaLarga).length > 0) && (
-              <>
-                <tr className={colors.azulCielo}>
-                  <td colSpan={3} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Salchichas Cortas</td>
-                  <td colSpan={2} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Salchichas Largas</td>
-                </tr>
-                {(() => {
-                  const cortasKeys = Object.keys(tally.salchichaCorta).map(Number).sort((a, b) => a - b);
-                  const largasKeys = Object.keys(tally.salchichaLarga).map(Number).sort((a, b) => a - b);
-                  const maxRows = Math.max(cortasKeys.length, largasKeys.length, 1);
-                  return Array.from({ length: maxRows }, (_, i) => {
-                    const ck = cortasKeys[i];
-                    const lk = largasKeys[i];
-                    return (
-                      <tr key={`sal-${i}`}>
-                        <td className="px-3 py-1.5 border border-gray-300">
-                          {ck != null && (readonly
-                            ? <span className="inline-block w-4 h-4" />
-                            : <input type="checkbox" checked={!!checks[`sc-${ck}`]} onChange={(e) => toggle(`sc-${ck}`, e.target.checked)} className="w-4 h-4" />
-                          )}
-                        </td>
-                        <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{ck != null ? `${ck} un.` : ''}</td>
-                        <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{ck != null ? formatCantidad(tally.salchichaCorta[ck.toString()]) : '-'}</td>
-                        <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{lk != null ? `${lk} un.` : ''}</td>
-                        <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{lk != null ? formatCantidad(tally.salchichaLarga[lk.toString()]) : '-'}</td>
-                      </tr>
-                    );
-                  });
-                })()}
-              </>
-            )}
-
             {/* Otros */}
             {Object.keys(tally.otros).length > 0 && (
               <>
@@ -220,6 +187,51 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
             )}
           </tbody>
         </table>
+
+        {/* Salchichas Cortas + Largas - tabla separada de 6 columnas */}
+        {(Object.keys(tally.salchichaCorta).length > 0 || Object.keys(tally.salchichaLarga).length > 0) && (
+          <table className="w-full border-collapse mt-1">
+            <thead>
+              <tr className={colors.azulCielo}>
+                <th className="w-8 px-2 py-2 border border-gray-300"></th>
+                <th className="px-3 py-2 border border-gray-300 text-left text-sm font-bold" colSpan={2}>Salchichas Cortas</th>
+                <th className="w-8 px-2 py-2 border border-gray-300"></th>
+                <th className="px-3 py-2 border border-gray-300 text-left text-sm font-bold" colSpan={2}>Salchichas Largas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const cortasKeys = Object.keys(tally.salchichaCorta).map(Number).sort((a, b) => a - b);
+                const largasKeys = Object.keys(tally.salchichaLarga).map(Number).sort((a, b) => a - b);
+                const maxRows = Math.max(cortasKeys.length, largasKeys.length, 1);
+                return Array.from({ length: maxRows }, (_, i) => {
+                  const ck = cortasKeys[i];
+                  const lk = largasKeys[i];
+                  return (
+                    <tr key={`sal-${i}`}>
+                      <td className="px-2 py-1.5 border border-gray-300 text-center">
+                        {ck != null && (readonly
+                          ? <span className="inline-block w-4 h-4" />
+                          : <input type="checkbox" checked={!!checks[`sc-${ck}`]} onChange={(e) => toggle(`sc-${ck}`, e.target.checked)} className="w-4 h-4" />
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{ck != null ? `${ck} un.` : ''}</td>
+                      <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{ck != null ? formatCantidad(tally.salchichaCorta[ck.toString()]) : '-'}</td>
+                      <td className="px-2 py-1.5 border border-gray-300 text-center">
+                        {lk != null && (readonly
+                          ? <span className="inline-block w-4 h-4" />
+                          : <input type="checkbox" checked={!!checks[`sl-${lk}`]} onChange={(e) => toggle(`sl-${lk}`, e.target.checked)} className="w-4 h-4" />
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{lk != null ? `${lk} un.` : ''}</td>
+                      <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{lk != null ? formatCantidad(tally.salchichaLarga[lk.toString()]) : '-'}</td>
+                    </tr>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* RIGHT COLUMN - Panes + Aderezos */}

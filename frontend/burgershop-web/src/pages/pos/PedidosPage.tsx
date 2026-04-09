@@ -312,16 +312,17 @@ export default function PedidosPage() {
   const [lineaFiltro, setLineaFiltro] = useState<number | null>(null);
 
   const gramajesDisponibles = useMemo(() => {
-    if (!tieneSubfiltros) return [];
+    // Gramaje solo tiene sentido para hamburguesas y combos (que contienen hamburguesas)
+    if (categoriaFiltro !== 'hamburguesa' && categoriaFiltro !== 'combos') return [];
+    const hamburguesaCatIds = getMegaCatIds('hamburguesa');
     if (categoriaFiltro === 'combos') {
       const prodIdsEnCombos = new Set(combos.filter(c => c.activo).flatMap(c => c.detalles.map(d => d.productoId)));
-      let prods = productos.filter(p => prodIdsEnCombos.has(p.id) && p.pesoGramos);
+      let prods = productos.filter(p => prodIdsEnCombos.has(p.id) && p.pesoGramos && hamburguesaCatIds.includes(p.categoriaId));
       if (lineaFiltro) prods = prods.filter(p => p.categoriaId === lineaFiltro);
       return prods.map(p => p.pesoGramos!).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
     }
-    const catIds = getMegaCatIds(categoriaFiltro!);
     return productos
-      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : catIds.includes(p.categoriaId)) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
+      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : hamburguesaCatIds.includes(p.categoriaId)) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
       .map(p => p.pesoGramos!)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => a - b);
@@ -1393,7 +1394,7 @@ export default function PedidosPage() {
                 </button>
               ))}
               {/* Combos (todos si chip Combos, o relacionados si mega-categoria) */}
-              {(categoriaFiltro === 'combos' ? combos.filter(c => c.activo) : combosCatalogo).map(c => (
+              {combosCatalogo.map(c => (
                 <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); setMostrarCatalogo(false); }} className={`relative border-2 rounded-lg p-2.5 text-left hover:shadow-md active:scale-[0.98] transition-all group ${
                   preciosPromoCombos.has(c.id)
                     ? 'bg-red-50 border-red-200 hover:border-red-400'

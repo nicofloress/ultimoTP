@@ -39,10 +39,14 @@ const formatMMSS = (segundos: number) => {
 const formatMoney = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
 
+/** Tiempo visible en segundos según cantidad de líneas: <=2 → 5min, >=3 → 10min */
+const getTiempoVenta = (lineas: number) => lineas >= 3 ? 600 : 300;
+
 export default function DepositoPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [now, setNow] = useState<Date>(new Date());
   const [fadingOutId, setFadingOutId] = useState<number | null>(null);
+  const [descartadas, setDescartadas] = useState<Set<number>>(new Set());
   const idsAnterioresRef = useRef<Set<number>>(new Set());
   const primeraCargaRef = useRef(true);
 
@@ -85,22 +89,35 @@ export default function DepositoPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Detectar timer de la primera venta en 0 -> fade-out + remover
+  // Detectar ventas cuyo timer llegó a 0 -> fade-out + remover
   useEffect(() => {
-    if (ventas.length === 0) return;
-    const primera = ventas[0];
-    const segundosTranscurridos = (now.getTime() - new Date(primera.fechaCreacion).getTime()) / 1000;
-    const restante = 600 - segundosTranscurridos;
-    if (restante <= 0 && fadingOutId !== primera.id) {
-      setFadingOutId(primera.id);
-      setTimeout(() => {
-        setVentas(prev => prev.filter(v => v.id !== primera.id));
-        setFadingOutId(null);
-      }, 1000);
+    if (ventasVisibles.length === 0) return;
+    for (const v of ventasVisibles) {
+      const tiempo = getTiempoVenta(v.lineas.length);
+      const transcurridos = (now.getTime() - new Date(v.fechaCreacion).getTime()) / 1000;
+      const restante = tiempo - transcurridos;
+      if (restante <= 0 && fadingOutId !== v.id) {
+        setFadingOutId(v.id);
+        setTimeout(() => {
+          setDescartadas(prev => new Set(prev).add(v.id));
+          setFadingOutId(null);
+        }, 1000);
+        break; // una a la vez
+      }
     }
-  }, [now, ventas, fadingOutId]);
+  }, [now, ventas, fadingOutId, descartadas]);
 
-  const primeroId = ventas[0]?.id;
+  const ventasVisibles = ventas.filter(v => !descartadas.has(v.id));
+
+  const descartarManual = (id: number) => {
+    setFadingOutId(id);
+    setTimeout(() => {
+      setDescartadas(prev => new Set(prev).add(id));
+      setFadingOutId(null);
+    }, 500);
+  };
+
+  const primeroId = ventasVisibles[0]?.id;
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-white">
@@ -109,35 +126,44 @@ export default function DepositoPage() {
         <div className="text-6xl font-mono font-bold text-orange-400">{formatTime(now)}</div>
         <div className="text-3xl font-bold">
           <span className="text-slate-400">Pedidos: </span>
-          <span className="text-white">{ventas.length}</span>
+          <span className="text-white">{ventasVisibles.length}</span>
         </div>
       </header>
 
       <main className="px-8 py-6">
-        {ventas.length === 0 ? (
+        {ventasVisibles.length === 0 ? (
           <div className="flex items-center justify-center h-[70vh]">
             <div className="text-5xl text-slate-500 font-semibold">Sin pedidos pendientes</div>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {ventas.map(v => {
+            {ventasVisibles.map(v => {
               const esPrimero = v.id === primeroId;
               const fading = fadingOutId === v.id;
+              const tiempo = getTiempoVenta(v.lineas.length);
               const segundosTranscurridos =
                 (now.getTime() - new Date(v.fechaCreacion).getTime()) / 1000;
-              const restante = 600 - segundosTranscurridos;
+              const restante = tiempo - segundosTranscurridos;
 
               return (
                 <div
                   key={v.id}
                   className={[
-                    'rounded-2xl p-8 shadow-2xl transition-opacity duration-1000',
+                    'relative rounded-2xl p-8 shadow-2xl transition-opacity duration-1000',
                     fading ? 'opacity-0' : 'opacity-100',
                     esPrimero
                       ? 'bg-slate-800 border-8 border-orange-500 ring-4 ring-yellow-400/40'
                       : 'bg-slate-800 border-2 border-slate-700',
                   ].join(' ')}
                 >
+                  {/* Boton X para descartar */}
+                  <button
+                    onClick={() => descartarManual(v.id)}
+                    className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-slate-700 hover:bg-red-600 text-slate-400 hover:text-white transition-colors text-3xl font-bold leading-none"
+                  >
+                    &times;
+                  </button>
+
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="text-6xl font-extrabold text-orange-400">
@@ -145,6 +171,7 @@ export default function DepositoPage() {
                       </div>
                       <div className="text-2xl text-slate-300 mt-2">
                         Hora: <span className="font-bold text-white">{formatHora(v.fechaCreacion)}</span>
+                        <span className="ml-4 text-lg text-slate-500">({v.lineas.length >= 3 ? '10' : '5'} min)</span>
                       </div>
                     </div>
                     {esPrimero && (
