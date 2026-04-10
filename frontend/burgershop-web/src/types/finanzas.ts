@@ -21,10 +21,14 @@ export interface CierreCaja {
   observaciones?: string;
   usuarioId?: number;
   detalles: CierreCajaDetalle[];
-  cantidadPedidos: number;
-  totalVentas: number;
-  totalDomicilio: number;
+  cantidadTotal: number;
+  totalGeneral: number;
+  cantidadMostrador: number;
+  totalMostrador: number;
   cantidadDomicilio: number;
+  totalDomicilio: number;
+  cantidadCtaCte: number;
+  totalCtaCte: number;
 }
 
 export interface AbrirCajaDto {

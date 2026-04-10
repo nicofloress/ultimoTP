@@ -18,6 +18,10 @@ public class CierreCaja
     public Local? Local { get; set; }
     public int CantidadDomicilio { get; set; }
     public decimal TotalDomicilio { get; set; }
+    public int CantidadMostrador { get; set; }
+    public decimal TotalMostrador { get; set; }
+    public int CantidadCtaCte { get; set; }
+    public decimal TotalCtaCte { get; set; }
     public ICollection<CierreCajaDetalle> Detalles { get; set; } = new List<CierreCajaDetalle>();
     public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
 }

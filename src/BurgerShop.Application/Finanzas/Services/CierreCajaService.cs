@@ -92,10 +92,17 @@ public class CierreCajaService : ICierreCajaService
             });
         }
 
-        // Guardar datos de domicilio al momento del cierre para no recalcular en el historial
-        var ventasDomicilioAlCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio).ToList();
-        caja.CantidadDomicilio = ventasDomicilioAlCierre.Count;
-        caja.TotalDomicilio = ventasDomicilioAlCierre.Sum(v => v.Total);
+        // Guardar desgloses al momento del cierre para no recalcular en el historial
+        var ventasMostradorCierre = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && v.EstaPago).ToList();
+        var ventasDomicilioCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && v.EstaPago).ToList();
+        var ventasCtaCteCierre = ventas.Where(v => !v.EstaPago).ToList();
+
+        caja.CantidadMostrador = ventasMostradorCierre.Count;
+        caja.TotalMostrador = ventasMostradorCierre.Sum(v => v.Total);
+        caja.CantidadDomicilio = ventasDomicilioCierre.Count;
+        caja.TotalDomicilio = ventasDomicilioCierre.Sum(v => v.Total);
+        caja.CantidadCtaCte = ventasCtaCteCierre.Count;
+        caja.TotalCtaCte = ventasCtaCteCierre.Sum(v => v.Total);
 
         var sumaTotalVentas = totalesPorFormaPago.Values.Sum(v => v.monto);
         caja.MontoFinal = caja.MontoInicial + sumaTotalVentas;
@@ -144,9 +151,20 @@ public class CierreCajaService : ICierreCajaService
             // Caja abierta: calcular detalles en vivo desde las ventas
             var totalesPorFormaPago = new Dictionary<int, (string nombre, decimal monto, int cantidad)>();
 
+            // ID ficticio para Cuenta Corriente (no es una forma de pago real)
+            const int ctaCteId = -1;
+
             foreach (var venta in ventas)
             {
-                if (venta.Pagos.Any())
+                if (!venta.EstaPago)
+                {
+                    // Venta a cuenta corriente
+                    if (totalesPorFormaPago.TryGetValue(ctaCteId, out var existenteCta))
+                        totalesPorFormaPago[ctaCteId] = (existenteCta.nombre, existenteCta.monto + venta.Total, existenteCta.cantidad + 1);
+                    else
+                        totalesPorFormaPago[ctaCteId] = ("Cuenta Corriente", venta.Total, 1);
+                }
+                else if (venta.Pagos.Any())
                 {
                     foreach (var pago in venta.Pagos)
                     {
@@ -176,28 +194,37 @@ public class CierreCajaService : ICierreCajaService
                 kvp.Value.cantidad)).ToList();
         }
 
-        var totalVentas = detalles.Any()
+        var totalGeneral = detalles.Any()
             ? detalles.Sum(d => d.MontoTotal)
             : ventas.Sum(v => v.Total);
 
-        // Para caja abierta: calcular en vivo desde las ventas cargadas.
-        // Para caja cerrada (historial): usar los campos persistidos en la entidad.
-        int cantidadDomicilio;
-        decimal totalDomicilio;
-        int cantidadVentas;
+        // Calcular desglose por tipo
+        int cantidadMostrador, cantidadDomicilio, cantidadCtaCte, cantidadTotal;
+        decimal totalMostrador, totalDomicilio, totalCtaCte;
 
         if (caja.Estado == EstadoCaja.Abierta)
         {
-            var ventasDomicilio = ventas.Where(v => v.Tipo == TipoVenta.Domicilio).ToList();
-            cantidadDomicilio = ventasDomicilio.Count;
-            totalDomicilio = ventasDomicilio.Sum(v => v.Total);
-            cantidadVentas = ventas.Count;
+            var mostrador = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && v.EstaPago).ToList();
+            var domicilio = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && v.EstaPago).ToList();
+            var ctaCte = ventas.Where(v => !v.EstaPago).ToList();
+
+            cantidadMostrador = mostrador.Count;
+            totalMostrador = mostrador.Sum(v => v.Total);
+            cantidadDomicilio = domicilio.Count;
+            totalDomicilio = domicilio.Sum(v => v.Total);
+            cantidadCtaCte = ctaCte.Count;
+            totalCtaCte = ctaCte.Sum(v => v.Total);
+            cantidadTotal = ventas.Count;
         }
         else
         {
+            cantidadMostrador = caja.CantidadMostrador;
+            totalMostrador = caja.TotalMostrador;
             cantidadDomicilio = caja.CantidadDomicilio;
             totalDomicilio = caja.TotalDomicilio;
-            cantidadVentas = ventas.Any() ? ventas.Count : 0;
+            cantidadCtaCte = caja.CantidadCtaCte;
+            totalCtaCte = caja.TotalCtaCte;
+            cantidadTotal = cantidadMostrador + cantidadDomicilio + cantidadCtaCte;
         }
 
         return new CierreCajaDto(
@@ -212,9 +239,13 @@ public class CierreCajaService : ICierreCajaService
             caja.LocalId,
             caja.Local?.Nombre,
             detalles,
-            cantidadVentas,
-            totalVentas,
+            cantidadTotal,
+            totalGeneral,
+            cantidadMostrador,
+            totalMostrador,
+            cantidadDomicilio,
             totalDomicilio,
-            cantidadDomicilio);
+            cantidadCtaCte,
+            totalCtaCte);
     }
 }
