@@ -18,7 +18,8 @@ public record RendicionDto(
     DateTime? FechaAprobacion,
     List<RendicionDetalleDto> Detalles,
     List<RendicionZonaDto> Zonas,
-    int? RepartoZonaId);
+    int? RepartoZonaId,
+    int? RepartidorLocalId = null);
 
 public record RendicionDetalleDto(
     int Id,
@@ -73,4 +74,5 @@ public record RepartidorPendienteRendicionDto(
     decimal TotalEfectivo,
     decimal TotalTransferencia,
     decimal TotalNoEntregado,
-    List<PedidoPendienteRendicionDto> Pedidos);
+    List<PedidoPendienteRendicionDto> Pedidos,
+    int? RepartidorLocalId = null);

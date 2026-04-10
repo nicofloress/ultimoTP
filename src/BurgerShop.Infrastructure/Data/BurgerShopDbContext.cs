@@ -27,6 +27,7 @@ public class BurgerShopDbContext : DbContext
     public DbSet<Repartidor> Repartidores => Set<Repartidor>();
     public DbSet<RepartidorZona> RepartidorZonas => Set<RepartidorZona>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
+    public DbSet<Marca> Marcas => Set<Marca>();
     public DbSet<TipoCliente> TiposCliente => Set<TipoCliente>();
     public DbSet<ListaPrecio> ListasPrecios => Set<ListaPrecio>();
     public DbSet<ListaPrecioDetalle> ListasPreciosDetalle => Set<ListaPrecioDetalle>();

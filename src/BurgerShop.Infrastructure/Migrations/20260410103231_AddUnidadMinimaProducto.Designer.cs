@@ -3,6 +3,7 @@ using System;
 using BurgerShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BurgerShop.Infrastructure.Migrations
 {
     [DbContext(typeof(BurgerShopDbContext))]
-    partial class BurgerShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410103231_AddUnidadMinimaProducto")]
+    partial class AddUnidadMinimaProducto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -952,36 +955,6 @@ namespace BurgerShop.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ListasPreciosDetalle");
-                });
-
-            modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Marca", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int?>("ProveedorId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProveedorId");
-
-                    b.ToTable("Marcas");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Producto", b =>
@@ -3487,16 +3460,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("ListaPrecio");
 
                     b.Navigation("Producto");
-                });
-
-            modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Marca", b =>
-                {
-                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Proveedor", "Proveedor")
-                        .WithMany()
-                        .HasForeignKey("ProveedorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Proveedor");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Producto", b =>

@@ -35,7 +35,7 @@ export default function ZonasPage() {
     e.preventDefault();
     setGuardando(true);
     try {
-      const localId = form.localId || (esSuperAdmin ? undefined : usuario?.localId);
+      const localId = form.localId || (esSuperAdmin ? (localSeleccionado || undefined) : usuario?.localId);
       if (editando) {
         await updateZona(editando.id, {
           nombre: form.nombre,
@@ -99,27 +99,32 @@ export default function ZonasPage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
         <h2 className="text-lg font-bold text-white">Zonas</h2>
-        <button
-          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
-        >
-          {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nueva Zona</>)}
-        </button>
       </div>
 
-      {/* Filtro por local */}
-      <div className="mb-4 flex items-center gap-3">
-        <label className="text-sm font-medium text-gray-600">Local:</label>
-        {esSuperAdmin ? (
-          <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass}>
-            <option value={0}>Todos los locales</option>
-            {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-          </select>
-        ) : (
-          <div className="text-sm text-gray-700 font-medium">{locales.find(l => l.id === usuario?.localId)?.nombre || `Local ${usuario?.localId}`}</div>
-        )}
+      {/* Filtros */}
+      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2 min-w-[200px]">
+          <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
+          {esSuperAdmin ? (
+            <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass + ' w-full'}>
+              <option value={0}>Todos los locales</option>
+              {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          ) : (
+            <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+              {locales.find(l => l.id === usuario?.localId)?.nombre || `Local ${usuario?.localId}`}
+            </div>
+          )}
+        </div>
+        <div className="flex-1" />
+        <button
+          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
+          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
+        >
+          {showForm ? 'Cerrar' : (<><svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nueva Zona</>)}
+        </button>
       </div>
 
       {showForm && (

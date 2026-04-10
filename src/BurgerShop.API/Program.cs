@@ -156,6 +156,34 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     db.Database.Migrate();
 
+    // Backfill: setear UnidadMinima según categoría
+    // Hamburguesas (mega=1 o hijas de mega=1) = 2
+    // Salchichas (mega=2 o hijas de mega=2) = 6
+    // Panes tradicional/maxi (mega=3, nombres con tradicional/maxi) = 4
+    // Panes pancho/superpancho (mega=3, nombres con pancho) = 6
+    db.Database.ExecuteSqlRaw(@"
+        UPDATE ""Productos"" SET ""UnidadMinima"" = 2
+        WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 1
+            UNION SELECT ""Id"" FROM ""Categorias"" WHERE ""CategoriaPadreId"" IN (SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 1)
+        );
+        UPDATE ""Productos"" SET ""UnidadMinima"" = 6
+        WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 2
+            UNION SELECT ""Id"" FROM ""Categorias"" WHERE ""CategoriaPadreId"" IN (SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 2)
+        );
+        UPDATE ""Productos"" SET ""UnidadMinima"" = 4
+        WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" ILIKE '%tradicional%' OR ""Nombre"" ILIKE '%maxi%'
+        );
+        UPDATE ""Productos"" SET ""UnidadMinima"" = 6
+        WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" ILIKE '%pancho%'
+        );
+
+        UPDATE ""Productos"" SET ""UnidadMinima"" = 1 WHERE ""UnidadMinima"" = 0;
+    ");
+
     // Backfill: vincular ventas existentes que tienen repartidor/zona con su RepartoZona
     db.Database.ExecuteSqlRaw(@"
         UPDATE ""Ventas"" v

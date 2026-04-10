@@ -12,6 +12,8 @@ export interface ArtiStockDto {
   stockMinimo?: number;
   ultimaModificacion: string;
   esPuntoVenta: boolean;
+  unidadesPorBulto: number;
+  bultos: number;
 }
 
 export const getStockPorLocal = (localId: number) =>

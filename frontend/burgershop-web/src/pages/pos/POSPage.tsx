@@ -434,12 +434,20 @@ export default function POSPage() {
   // --- Crear pedido ---
   const handleCrearPedido = async () => {
     if (carrito.length === 0 || guardando) return;
+    if (total <= 0) {
+      showToast('El total de la venta debe ser mayor a 0', 'error');
+      return;
+    }
     if (!cajaAbiertaId) {
       showToast('Debe abrir la caja antes de registrar una venta', 'error');
       return;
     }
     if (modoPago === 'total' && !formaPagoSeleccionada) {
       showToast('Debe seleccionar una forma de pago', 'error');
+      return;
+    }
+    if (modoPago === 'total' && montoPagado <= 0) {
+      showToast('Debe ingresar el monto pagado', 'error');
       return;
     }
     const pagosValidos = pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0);
@@ -492,7 +500,7 @@ export default function POSPage() {
       // Crear Venta unificada (Mostrador o Domicilio)
       const venta = await crearVenta({
         tipo: envioADomicilio ? TipoVenta.Domicilio : TipoVenta.Mostrador,
-        nombreCliente: nombreCliente || undefined,
+        nombreCliente: nombreCliente || clienteSeleccionado?.nombre || 'Consumidor Final',
         telefonoCliente: telefonoCliente || undefined,
         direccionEntrega: envioADomicilio ? (direccionEnvio || undefined) : undefined,
         zonaId: envioADomicilio ? (zonaSeleccionada || undefined) : undefined,

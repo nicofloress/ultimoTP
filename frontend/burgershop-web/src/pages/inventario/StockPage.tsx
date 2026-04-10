@@ -182,8 +182,9 @@ export default function StockPage() {
     { key: 'ingresoLocal', label: 'Ingresos', align: 'text-right' },
     { key: 'egresoLocal', label: 'Egresos', align: 'text-right' },
     { key: 'ventaLocal', label: 'Ventas', align: 'text-right' },
-    { key: 'stockFinal', label: 'Stock Final', align: 'text-right' },
-    { key: 'stockMinimo', label: 'Stock Minimo', align: 'text-right' },
+    { key: 'stockFinal', label: 'Stock (Paq.)', align: 'text-right' },
+    { key: 'bultos', label: 'Bultos', align: 'text-right' },
+    { key: 'stockMinimo', label: 'Stock Min.', align: 'text-right' },
     { key: 'ultimaModificacion', label: 'Ultima Modificacion' },
   ];
 
@@ -348,6 +349,9 @@ export default function StockPage() {
                       esNegativo ? 'text-red-600 font-bold' : esBajo ? 'text-red-600' : s.stockMinimo != null ? 'text-green-600' : ''
                     }`}>
                       {s.stockFinal}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-500 font-mono">
+                      {s.bultos > 0 ? s.bultos : '-'}
                     </td>
                     <td className="px-3 py-2 text-right text-gray-500">
                       {s.stockMinimo != null ? s.stockMinimo : '-'}

@@ -5,6 +5,7 @@ public record ArtiStockDto(
     int LocalId, string LocalNombre,
     decimal IngresoLocal, decimal EgresoLocal, decimal VentaLocal,
     decimal StockFinal, decimal? StockMinimo,
-    DateTime UltimaModificacion, bool EsPuntoVenta);
+    DateTime UltimaModificacion, bool EsPuntoVenta,
+    int UnidadesPorBulto = 1, decimal Bultos = 0);
 
 public record ActualizarStockMinimoDto(int ProductoId, int LocalId, decimal StockMinimo);

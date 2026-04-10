@@ -14,12 +14,14 @@ public static class CatalogoServiceExtensions
         services.AddScoped<IComboRepository, ComboRepository>();
         services.AddScoped<IListaPrecioRepository, ListaPrecioRepository>();
         services.AddScoped<IPromocionRepository, PromocionRepository>();
+        services.AddScoped<IMarcaRepository, MarcaRepository>();
 
         // Services
         services.AddScoped<ICategoriaService, CategoriaService>();
         services.AddScoped<IProductoService, ProductoService>();
         services.AddScoped<IComboService, ComboService>();
         services.AddScoped<IProveedorService, ProveedorService>();
+        services.AddScoped<IMarcaService, MarcaService>();
         services.AddScoped<IListaPrecioService, ListaPrecioService>();
         services.AddScoped<IPromocionService, PromocionService>();
 

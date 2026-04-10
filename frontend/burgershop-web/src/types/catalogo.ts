@@ -31,6 +31,7 @@ export interface Producto {
   precioLista?: number;
   marca?: string;
   unidadesPorMedia: number;
+  unidadMinima: number;
   esOfertaSemanal?: boolean;
   precioCosto?: number;
   precioVenta?: number;

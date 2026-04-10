@@ -236,21 +236,21 @@ export default function CombosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {combosFiltrados.map(c => (
-          <div key={c.id} className="bg-white rounded-lg shadow p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h3 className="font-bold text-lg">{c.nombre}</h3>
-                {c.descripcion && <p className="text-sm text-gray-500">{c.descripcion}</p>}
+          <div key={c.id} className="bg-white rounded-lg shadow p-4 overflow-hidden min-w-0">
+            <div className="flex justify-between items-start mb-2 gap-2 min-w-0">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-bold text-lg truncate">{c.nombre}</h3>
+                {c.descripcion && <p className="text-sm text-gray-500 truncate">{c.descripcion}</p>}
               </div>
-              <span className="text-lg font-bold text-amber-600">${c.precio.toLocaleString()}</span>
+              <span className="text-lg font-bold text-amber-600 whitespace-nowrap shrink-0">${c.precio.toLocaleString()}</span>
             </div>
             <ul className="text-sm text-gray-600 mb-3">
               {c.detalles.map(d => (
-                <li key={d.productoId}>- {d.productoNombre} x{d.cantidad}</li>
+                <li key={d.productoId} className="truncate">- {d.productoNombre} x{d.cantidad}</li>
               ))}
             </ul>
             {esAdmin && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button onClick={() => handleEditar(c)} className="text-sm text-blue-600 hover:underline">Editar</button>
                 <button onClick={() => setConfirmacion({ visible: true, id: c.id })} className="text-sm text-red-600 hover:underline">Desactivar</button>
               </div>

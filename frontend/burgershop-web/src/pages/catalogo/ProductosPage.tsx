@@ -11,8 +11,9 @@ import { useGlobalToast } from '../../components/Toast';
 import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
+import { getMarcasActivas, MarcaDto } from '../../api/marcas';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0 };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0 };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -42,6 +43,7 @@ export default function ProductosPage() {
   const [comboDetalles, setComboDetalles] = useState<{ productoId: number; cantidad: number }[]>([]);
   const [comboEsOferta, setComboEsOferta] = useState(false);
   const [promociones, setPromociones] = useState<PromocionDto[]>([]);
+  const [marcas, setMarcas] = useState<MarcaDto[]>([]);
   const { localActivo } = useLocalActivo();
 
   const cargar = async () => {
@@ -57,7 +59,11 @@ export default function ProductosPage() {
     setListas(lstas);
   };
 
-  useEffect(() => { cargar(); getPromociones().then(setPromociones).catch(() => {}); }, []);
+  useEffect(() => {
+    cargar();
+    getPromociones().then(setPromociones).catch(() => {});
+    getMarcasActivas().then(setMarcas).catch(() => {});
+  }, []);
 
   // Recargar productos cuando cambia la lista de precios
   useEffect(() => {
@@ -88,7 +94,7 @@ export default function ProductosPage() {
 
   const handleEditar = (p: Producto) => {
     setEditando(p);
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0 });
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0 });
     setShowForm(true);
   };
 
@@ -439,7 +445,16 @@ export default function ProductosPage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Marca</label>
-            <input type="text" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} placeholder="Marca" className="border rounded px-3 py-2 w-full" />
+            <select
+              value={form.marca}
+              onChange={e => setForm({ ...form, marca: e.target.value })}
+              className="border rounded px-3 py-2 w-full"
+            >
+              <option value="">Sin marca</option>
+              {marcas.map(m => (
+                <option key={m.id} value={m.nombre}>{m.nombre}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Peso (gramos)</label>
@@ -452,6 +467,10 @@ export default function ProductosPage() {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Unidades por Medio Bulto</label>
             <input type="number" value={form.unidadesPorMedia} onChange={e => setForm({ ...form, unidadesPorMedia: Number(e.target.value) })} placeholder="Unidades por media" className="border rounded px-3 py-2 w-full" min={0} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Unidad Minima (paquete)</label>
+            <input type="number" value={form.unidadMinima} onChange={e => setForm({ ...form, unidadMinima: Number(e.target.value) })} placeholder="Ej: 2 hamburguesas, 6 salchichas" className="border rounded px-3 py-2 w-full" min={1} />
           </div>
           <div className="col-span-2">
             <label className="flex items-center gap-2 text-sm">

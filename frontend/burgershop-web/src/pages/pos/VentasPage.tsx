@@ -4,6 +4,9 @@ import { getVentas, getVentaStats, VentaStats } from '../../api/pedidos';
 import { getLocales, LocalDto } from '../../api/locales';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import { useGlobalToast } from '../../components/Toast';
+import { TicketPrintProps } from '../../components/TicketPrint';
+import ComprobanteXPrint from '../../components/ComprobanteXPrint';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -50,6 +53,32 @@ export default function VentasPage() {
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [ordenCol, setOrdenCol] = useState<string>('fechaCreacion');
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
+  const [ventaAcciones, setVentaAcciones] = useState<Venta | null>(null);
+  const [mostrarComprobante, setMostrarComprobante] = useState(false);
+  const [ticketParaImprimir, setTicketParaImprimir] = useState<TicketPrintProps['ticket'] | null>(null);
+  const { showToast } = useGlobalToast();
+
+  const imprimirVenta = (v: Venta) => {
+    const ticket: TicketPrintProps['ticket'] = {
+      numeroTicket: v.numeroTicket,
+      fecha: v.fechaCreacion,
+      tipo: v.tipo,
+      nombreCliente: v.nombreCliente,
+      direccionEntrega: v.direccionEntrega,
+      zonaNombre: v.zonaNombre,
+      lineas: v.lineas.map(l => ({ descripcion: l.descripcion, cantidad: l.cantidad, precioUnitario: l.precioUnitario, subtotal: l.subtotal })),
+      subtotal: v.subtotal,
+      descuento: v.descuento,
+      recargo: v.recargo,
+      total: v.total,
+      formaPagoNombre: v.pagos && v.pagos.length > 0 ? v.pagos.map(p => p.formaPagoNombre).join(' / ') : v.formaPagoNombre,
+      notaInterna: v.notaInterna || v.observaciones,
+      tipoFactura: v.tipoFactura ?? 0,
+      pagos: v.pagos?.map(p => ({ formaPagoNombre: p.formaPagoNombre, monto: p.monto, recargo: p.recargo, totalACobrar: p.totalACobrar })),
+    };
+    setTicketParaImprimir(ticket);
+    setMostrarComprobante(true);
+  };
 
   useEffect(() => {
     getLocales().then(setLocales);
@@ -201,6 +230,7 @@ export default function VentasPage() {
                     ['formaPagoNombre', 'Forma Pago', ''],
                     ['total', 'Total', 'text-right'],
                     ['estaPago', 'Pago', 'text-center'],
+                    ['acciones', 'Acciones', 'text-center'],
                   ] as [string, string, string][]).map(([col, label, align]) => (
                     <th
                       key={col}
@@ -238,6 +268,14 @@ export default function VentasPage() {
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">Cta Cte</span>
                       )}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setVentaAcciones(v); }}
+                        className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded hover:bg-blue-100 transition-colors"
+                      >
+                        Acciones
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -364,6 +402,81 @@ export default function VentasPage() {
               ) : (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">Cuenta Corriente</span>
               )}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => imprimirVenta(seleccionado)}
+                className="flex-1 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125H8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
+                </svg>
+                Imprimir / Facturar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comprobante para imprimir */}
+      {mostrarComprobante && ticketParaImprimir && (
+        <ComprobanteXPrint ticket={ticketParaImprimir} onClose={() => setMostrarComprobante(false)} />
+      )}
+
+      {/* Modal Acciones */}
+      {ventaAcciones && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setVentaAcciones(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-5 rounded-t-xl text-center border-b">
+              <h3 className="text-xl font-bold text-gray-800">ACCIONES - {ventaAcciones.numeroTicket}</h3>
+              <p className="text-sm text-gray-500 mt-1">${ventaAcciones.total.toLocaleString('es-AR')} - {ventaAcciones.nombreCliente || 'Consumidor Final'}</p>
+            </div>
+            <div className="grid grid-cols-4 gap-4 p-8">
+              {/* Imprimir A4 */}
+              <button
+                onClick={() => { imprimirVenta(ventaAcciones); setVentaAcciones(null); }}
+                className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
+              >
+                <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125H8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
+                </svg>
+                <span className="font-bold text-sm text-gray-700">IMPRIMIR A4</span>
+              </button>
+              {/* Imprimir Ticket */}
+              <button
+                onClick={() => { imprimirVenta(ventaAcciones); setVentaAcciones(null); }}
+                className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
+              >
+                <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                </svg>
+                <span className="font-bold text-sm text-gray-700">TICKET</span>
+              </button>
+              {/* Facturar */}
+              <button
+                onClick={() => { setVentaAcciones(null); showToast('Facturación AFIP: próximamente', 'success'); }}
+                className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
+              >
+                <svg className="w-12 h-12 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+                <span className="font-bold text-sm text-gray-700">FACTURAR</span>
+              </button>
+              {/* Enviar WhatsApp */}
+              <button
+                onClick={() => { setVentaAcciones(null); showToast('Envío por WhatsApp: próximamente', 'success'); }}
+                className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
+              >
+                <svg className="w-12 h-12 text-gray-700" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                <span className="font-bold text-sm text-gray-700">WHATSAPP</span>
+              </button>
+            </div>
+            <div className="border-t px-8 py-4 text-center">
+              <button onClick={() => setVentaAcciones(null)} className="text-gray-500 hover:text-gray-700 font-medium text-sm">
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

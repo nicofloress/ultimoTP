@@ -264,7 +264,12 @@ public class ControlCamionetaService : IControlCamionetaService
                     {
                         if (detalle.Producto != null
                             && (detalle.Producto.Categoria?.SeccionCamioneta ?? SeccionCamioneta.Otro) != SeccionCamioneta.Aderezo)
-                            ProcesarProducto(data, detalle.Producto, linea.Cantidad * detalle.Cantidad);
+                        {
+                            // ComboDetalle.Cantidad está en paquetes, multiplicar por UnidadMinima
+                            // para obtener unidades reales (medallones, salchichas, panes individuales)
+                            var um = detalle.Producto.UnidadMinima > 1 ? detalle.Producto.UnidadMinima : 1;
+                            ProcesarProducto(data, detalle.Producto, linea.Cantidad * detalle.Cantidad * um);
+                        }
                     }
                 }
                 else if (linea.ProductoId != null && linea.Producto != null)
@@ -272,19 +277,9 @@ public class ControlCamionetaService : IControlCamionetaService
                     // Productos sueltos: cada "unidad" vendida es 1 paquete.
                     // Salchichas: 1 paquete = 6 unidades. Hamburguesas: 1 paquete = 2 medallones.
                     // Para el tally necesitamos la cantidad REAL de unidades (salchichas/medallones individuales).
-                    var seccion = InferirSeccion(linea.Producto);
-                    var unidadesPorPaquete = seccion switch
-                    {
-                        SeccionCamioneta.SalchichaCorta => 6,
-                        SeccionCamioneta.SalchichaLarga => 6,
-                        SeccionCamioneta.MedallonEconomico => 2,
-                        SeccionCamioneta.HamburguesaPremium => 2,
-                        SeccionCamioneta.PanPancho => 6,
-                        SeccionCamioneta.PanSuperPancho => 6,
-                        SeccionCamioneta.PanTradicional => 4,
-                        SeccionCamioneta.PanMaxi => 4,
-                        _ => 1
-                    };
+                    // Cada "unidad" vendida es 1 paquete. UnidadMinima indica cuántas
+                    // unidades reales tiene cada paquete (ej: salchichas=6, hamburguesas=2, panes=4/6)
+                    var unidadesPorPaquete = linea.Producto.UnidadMinima > 1 ? linea.Producto.UnidadMinima : 1;
                     ProcesarProducto(data, linea.Producto, linea.Cantidad * unidadesPorPaquete);
                 }
             }

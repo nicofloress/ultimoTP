@@ -5,6 +5,7 @@ using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Entities.Logistica;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
+using BurgerShop.Domain.Interfaces.Finanzas;
 using BurgerShop.Domain.Interfaces.Logistica;
 
 namespace BurgerShop.Application.Logistica.Services;
@@ -15,17 +16,20 @@ public class RendicionService : IRendicionService
     private readonly IVentaRepository _ventaRepo;
     private readonly IMovimientoService _movimientoService;
     private readonly ICuentaCorrienteService _cuentaCorrienteService;
+    private readonly ICierreCajaRepository _cajaRepo;
 
     public RendicionService(
         IRendicionRepository rendicionRepo,
         IVentaRepository ventaRepo,
         IMovimientoService movimientoService,
-        ICuentaCorrienteService cuentaCorrienteService)
+        ICuentaCorrienteService cuentaCorrienteService,
+        ICierreCajaRepository cajaRepo)
     {
         _rendicionRepo = rendicionRepo;
         _ventaRepo = ventaRepo;
         _movimientoService = movimientoService;
         _cuentaCorrienteService = cuentaCorrienteService;
+        _cajaRepo = cajaRepo;
     }
 
     public async Task<RendicionDto> CrearRendicionAsync(CrearRendicionDto dto)
@@ -198,7 +202,7 @@ public class RendicionService : IRendicionService
         _rendicionRepo.Update(rendicion);
         await _rendicionRepo.SaveChangesAsync();
 
-        // Al aprobar, generar movimientos de CAJA (ING_VTA) para las ventas entregadas
+        // Al aprobar, generar movimientos de CAJA (ING_VTA) y vincular a caja abierta
         if (dto.Aprobada)
         {
             var ventasEntregadas = rendicion.Detalles
@@ -206,11 +210,28 @@ public class RendicionService : IRendicionService
                 .Select(d => d.VentaId)
                 .ToList();
 
+            // Obtener las ventas para saber el localId y vincularlas a la caja
             foreach (var ventaId in ventasEntregadas)
             {
                 try
                 {
-                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(ventaId, 1, null);
+                    var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+                    var localId = venta?.LocalId ?? 1;
+
+                    // Registrar movimiento de caja con el local correcto
+                    await _movimientoService.RegistrarMovimientosVentaCajaAsync(ventaId, localId, null);
+
+                    // Vincular la venta a la caja abierta del local (si hay una)
+                    if (venta != null && venta.CierreCajaId == null)
+                    {
+                        var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(localId);
+                        if (cajaAbierta != null)
+                        {
+                            venta.CierreCajaId = cajaAbierta.Id;
+                            _ventaRepo.Update(venta);
+                            await _ventaRepo.SaveChangesAsync();
+                        }
+                    }
                 }
                 catch
                 {
@@ -330,7 +351,8 @@ public class RendicionService : IRendicionService
                 totalEfectivo,
                 totalTransferencia,
                 totalNoEntregado,
-                ventasDto));
+                ventasDto,
+                reparto.Repartidor?.LocalId));
         }
 
         return resultado;
@@ -397,6 +419,7 @@ public class RendicionService : IRendicionService
             r.FechaAprobacion,
             detalles,
             zonas,
-            r.RepartoZonaId);
+            r.RepartoZonaId,
+            r.Repartidor?.LocalId);
     }
 }

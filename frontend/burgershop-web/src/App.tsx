@@ -39,6 +39,7 @@ import StockPage from './pages/inventario/StockPage';
 
 import PromocionesPage from './pages/catalogo/PromocionesPage';
 import ZonasPage from './pages/catalogo/ZonasPage';
+import MarcasPage from './pages/catalogo/MarcasPage';
 import LogsPage from './pages/sistema/LogsPage';
 import { RolUsuario } from './types/auth';
 
@@ -102,6 +103,9 @@ export default function App() {
               } />
               <Route path="zonas" element={
                 <ProtectedRoute roles={[RolUsuario.Administrador]}><ZonasPage /></ProtectedRoute>
+              } />
+              <Route path="marcas" element={
+                <ProtectedRoute roles={[RolUsuario.Administrador]}><MarcasPage /></ProtectedRoute>
               } />
             </Route>
             <Route path="/finanzas/caja" element={

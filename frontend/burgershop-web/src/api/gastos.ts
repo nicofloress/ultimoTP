@@ -23,7 +23,7 @@ export interface GastoDto {
 
 export interface GastoStatsDto {
   cantidadGastos: number;
-  gastosPagos: number;
+  gastosPagados: number;
   gastosAdeudados: number;
   gastosTotal: number;
 }

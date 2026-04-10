@@ -509,11 +509,11 @@ export default function RendicionesPage() {
                   <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">Pedidos incluidos</h4>
                   <div className="space-y-2">
                     {detalle.detalles.map(d => {
-                      const isSelected = pedidoExpandidoId === d.pedidoId;
+                      const isSelected = pedidoExpandidoId === d.ventaId;
                       return (
                         <button
                           key={d.id}
-                          onClick={() => verDetallePedido(d.pedidoId)}
+                          onClick={() => verDetallePedido(d.ventaId)}
                           className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors ${
                             isSelected ? 'bg-blue-100 border border-blue-300 ring-1 ring-blue-300' : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
                           }`}

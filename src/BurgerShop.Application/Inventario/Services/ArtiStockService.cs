@@ -37,10 +37,15 @@ public class ArtiStockService : IArtiStockService
     }
 
     // ---------------------------------------------------------------
-    private static ArtiStockDto ToDto(ArtiStock a) =>
-        new(a.ProductoId, a.Producto?.Nombre ?? string.Empty,
+    private static ArtiStockDto ToDto(ArtiStock a)
+    {
+        var bulto = a.Producto?.UnidadesPorBulto ?? 1;
+        var bultos = bulto > 0 ? Math.Round(a.StockFinal / bulto, 2) : 0;
+        return new(a.ProductoId, a.Producto?.Nombre ?? string.Empty,
             a.LocalId,    a.Local?.Nombre    ?? string.Empty,
             a.IngresoLocal, a.EgresoLocal, a.VentaLocal,
             a.StockFinal, a.StockMinimo,
-            a.UltimaModificacion, a.EsPuntoVenta);
+            a.UltimaModificacion, a.EsPuntoVenta,
+            bulto, bultos);
+    }
 }

@@ -48,6 +48,7 @@ const menuSections: MenuSection[] = [
       { to: '/catalogo/usuarios', label: 'Usuarios', roles: [SA] },
       { to: '/catalogo/promociones', label: 'Promociones', roles: [SA] },
       { to: '/catalogo/zonas', label: 'Zonas', roles: [SA, AD] },
+      { to: '/catalogo/marcas', label: 'Marcas', roles: [SA, AD] },
     ],
   },
   {

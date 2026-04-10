@@ -3,6 +3,8 @@ import { Venta, EstadoVenta, estadoLabels, estadoColores, TipoVenta } from '../.
 import { getVentas, getVentaStats, VentaStats, cancelarVenta } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
 import { getLocales, LocalDto } from '../../api/locales';
+import { getFormasPagoActivas } from '../../api/formasPago';
+import { FormaPago } from '../../types/ventas';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 
@@ -62,9 +64,12 @@ export default function HistorialPedidosPage() {
   const [localSeleccionado, setLocalSeleccionado] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [ordenCol, setOrdenCol] = useState<string>('fechaCreacion');
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
+  const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+  const [formaPagoFiltro, setFormaPagoFiltro] = useState<number | ''>('');
 
   useEffect(() => {
     getLocales().then(setLocales);
+    getFormasPagoActivas().then(setFormasPago);
   }, []);
 
   useEffect(() => {
@@ -93,8 +98,19 @@ export default function HistorialPedidosPage() {
     else { setOrdenCol(col); setOrdenDir('asc'); }
   };
 
+  const getFormaPagoLabel = (p: Venta) => {
+    if (p.pagos && p.pagos.length > 0) return p.pagos.map(pg => pg.formaPagoNombre).join(' / ');
+    return p.formaPagoNombre || (p.estaPago ? '-' : 'Cta Cte');
+  };
+
   const pedidosFiltrados = useMemo(() => {
     let lista = pedidos;
+    if (formaPagoFiltro !== '') {
+      lista = lista.filter(p => {
+        if (p.pagos && p.pagos.length > 0) return p.pagos.some(pg => pg.formaPagoId === formaPagoFiltro);
+        return p.formaPagoId === formaPagoFiltro;
+      });
+    }
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
       lista = lista.filter(p =>
@@ -117,6 +133,7 @@ export default function HistorialPedidosPage() {
         case 'repartidorNombre': va = a.repartidorNombre || ''; vb = b.repartidorNombre || ''; break;
         case 'estado': va = a.estado; vb = b.estado; break;
         case 'total': va = a.total; vb = b.total; break;
+        case 'formaPago': va = getFormaPagoLabel(a); vb = getFormaPagoLabel(b); break;
         case 'estaPago': va = a.estaPago ? 1 : 0; vb = b.estaPago ? 1 : 0; break;
         default: return 0;
       }
@@ -124,7 +141,7 @@ export default function HistorialPedidosPage() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [pedidos, busqueda, ordenCol, ordenDir]);
+  }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro]);
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] overflow-hidden gap-4">
@@ -206,6 +223,16 @@ export default function HistorialPedidosPage() {
             <option value={EstadoVenta.Cancelado}>{estadoLabels[EstadoVenta.Cancelado]}</option>
             <option value={EstadoVenta.NoEntregado}>{estadoLabels[EstadoVenta.NoEntregado]}</option>
           </select>
+          <select
+            value={formaPagoFiltro}
+            onChange={e => setFormaPagoFiltro(e.target.value === '' ? '' : Number(e.target.value))}
+            className={selectClass}
+          >
+            <option value="">Todos los medios</option>
+            {formasPago.map(fp => (
+              <option key={fp.id} value={fp.id}>{fp.nombre}</option>
+            ))}
+          </select>
           <input
             type="text"
             placeholder="Buscar ticket, cliente, direccion..."
@@ -247,6 +274,7 @@ export default function HistorialPedidosPage() {
                     ['zonaNombre', 'Zona', ''],
                     ['repartidorNombre', 'Repartidor', ''],
                     ['estado', 'Estado', ''],
+                    ['formaPago', 'Medio Pago', ''],
                     ['total', 'Total', 'text-right'],
                     ['estaPago', 'Pago', 'text-center'],
                   ] as [string, string, string][]).map(([col, label, align]) => (
@@ -283,6 +311,7 @@ export default function HistorialPedidosPage() {
                         {estadoLabels[p.estado]}
                       </span>
                     </td>
+                    <td className="px-4 py-2.5 text-gray-600 text-xs">{getFormaPagoLabel(p)}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-amber-600">${p.total.toLocaleString('es-AR')}</td>
                     <td className="px-4 py-2.5 text-center">
                       {p.estaPago ? (
@@ -302,11 +331,33 @@ export default function HistorialPedidosPage() {
 
         {/* Totales */}
         {pedidosFiltrados.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-2 bg-slate-700 rounded-lg mt-2 text-sm flex-shrink-0 shadow-lg">
-            <span className="text-slate-400">{pedidosFiltrados.length} pedido{pedidosFiltrados.length !== 1 ? 's' : ''}</span>
-            <span className="font-bold text-amber-400">
-              Total: ${pedidosFiltrados.reduce((sum, p) => sum + p.total, 0).toLocaleString('es-AR')}
-            </span>
+          <div className="px-4 py-2 bg-slate-700 rounded-lg mt-2 text-sm flex-shrink-0 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">{pedidosFiltrados.length} pedido{pedidosFiltrados.length !== 1 ? 's' : ''}</span>
+              <div className="flex gap-4 items-center">
+                {(() => {
+                  const totales: Record<string, number> = {};
+                  pedidosFiltrados.forEach(p => {
+                    if (p.pagos && p.pagos.length > 0) {
+                      p.pagos.forEach(pg => {
+                        totales[pg.formaPagoNombre] = (totales[pg.formaPagoNombre] || 0) + pg.totalACobrar;
+                      });
+                    } else {
+                      const nombre = p.formaPagoNombre || (p.estaPago ? 'Otro' : 'Cta Cte');
+                      totales[nombre] = (totales[nombre] || 0) + p.total;
+                    }
+                  });
+                  return Object.entries(totales).map(([nombre, monto]) => (
+                    <span key={nombre} className="text-slate-300 text-xs">
+                      {nombre}: <span className="text-white font-semibold">${monto.toLocaleString('es-AR')}</span>
+                    </span>
+                  ));
+                })()}
+                <span className="font-bold text-amber-400 border-l border-slate-500 pl-4">
+                  Total: ${pedidosFiltrados.reduce((sum, p) => sum + p.total, 0).toLocaleString('es-AR')}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -380,6 +431,10 @@ export default function HistorialPedidosPage() {
                   <span className="font-medium">{formatFecha(seleccionado.fechaEntrega)}</span>
                 </div>
               )}
+              <div className="flex justify-between">
+                <span className="text-gray-500">Medio de Pago</span>
+                <span className="font-medium">{getFormaPagoLabel(seleccionado)}</span>
+              </div>
               {seleccionado.notaInterna && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">Nota</span>

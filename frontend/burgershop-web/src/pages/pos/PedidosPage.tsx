@@ -479,7 +479,7 @@ export default function PedidosPage() {
     await crearVenta({
       tipo: TipoVenta.Domicilio,
       clienteId: clienteSeleccionado?.id,
-      nombreCliente: clienteSeleccionado?.nombre,
+      nombreCliente: clienteSeleccionado?.nombre || 'Consumidor Final',
       direccionEntrega: direccion || undefined,
       telefonoCliente: telefono || undefined,
       zonaId: zonaSeleccionada,
@@ -513,7 +513,7 @@ export default function PedidosPage() {
     if (!editandoPedido || !formularioValido) return;
     try {
       await actualizarVenta(editandoPedido.id, {
-        nombreCliente: editandoPedido.nombreCliente || undefined,
+        nombreCliente: editandoPedido.nombreCliente || 'Consumidor Final',
         telefonoCliente: telefono || undefined,
         direccionEntrega: direccion || undefined,
         zonaId: zonaSeleccionada || undefined,

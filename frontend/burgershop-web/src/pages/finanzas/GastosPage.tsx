@@ -259,17 +259,8 @@ export default function GastosPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
         <h2 className="text-lg font-bold text-white">Gastos</h2>
-        <button
-          onClick={() => { if (mostrarForm && !editandoId) { setMostrarForm(false); } else { abrirForm(); } }}
-          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
-        >
-          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Agregar Gasto
-        </button>
       </div>
 
       {/* Stats Cards */}
@@ -292,7 +283,7 @@ export default function GastosPage() {
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wide">Gastos Pagos</div>
-              <div className="text-xl font-bold text-green-600">{formatMonto(stats.gastosPagos)}</div>
+              <div className="text-xl font-bold text-green-600">{formatMonto(stats.gastosPagados)}</div>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 flex items-center gap-3">
@@ -502,6 +493,16 @@ export default function GastosPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             Buscar
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => { if (mostrarForm && !editandoId) { setMostrarForm(false); } else { abrirForm(); } }}
+            className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
+          >
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar Gasto
           </button>
           {gastosFiltrados.length > 0 && (
             <div className="flex gap-2 ml-3 pl-3 border-l border-gray-300">

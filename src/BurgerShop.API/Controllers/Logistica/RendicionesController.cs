@@ -29,9 +29,13 @@ public class RendicionesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RendicionDto>>> GetAll([FromQuery] DateTime? fechaDesde, [FromQuery] DateTime? fechaHasta)
+    public async Task<ActionResult<IEnumerable<RendicionDto>>> GetAll([FromQuery] DateTime? fechaDesde, [FromQuery] DateTime? fechaHasta, [FromQuery] int? localId)
     {
+        // Si no viene localId explícito, usar el del JWT
+        var lid = localId ?? (int.TryParse(User.FindFirst("localId")?.Value, out var parsed) ? parsed : (int?)null);
         var rendiciones = await _service.GetAllAsync(fechaDesde, fechaHasta);
+        if (lid.HasValue)
+            rendiciones = rendiciones.Where(r => r.RepartidorLocalId == lid.Value);
         return Ok(rendiciones);
     }
 
@@ -66,7 +70,10 @@ public class RendicionesController : ControllerBase
     [HttpGet("repartidores-pendientes")]
     public async Task<ActionResult<IEnumerable<RepartidorPendienteRendicionDto>>> GetRepartidoresPendientes()
     {
+        var lid = int.TryParse(User.FindFirst("localId")?.Value, out var parsed) ? parsed : (int?)null;
         var result = await _service.GetRepartidoresPendientesAsync();
+        if (lid.HasValue)
+            result = result.Where(r => r.RepartidorLocalId == lid.Value);
         return Ok(result);
     }
 }

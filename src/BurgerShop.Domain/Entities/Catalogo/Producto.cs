@@ -14,6 +14,7 @@ public class Producto
     public int UnidadesPorBulto { get; set; } = 1;
     public string? Marca { get; set; }
     public int UnidadesPorMedia { get; set; } = 0;
+    public int UnidadMinima { get; set; } = 1;
     public bool EsOfertaSemanal { get; set; }
     public decimal PrecioCosto { get; set; }
     public decimal PrecioVenta { get; set; }

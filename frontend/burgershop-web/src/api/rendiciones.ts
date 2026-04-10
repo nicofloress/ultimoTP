@@ -2,7 +2,7 @@ import api from './client';
 
 export interface RendicionDetalleDto {
   id: number;
-  pedidoId: number;
+  ventaId: number;
   numeroTicket: string;
   estado: string;
   formaPago?: string;
