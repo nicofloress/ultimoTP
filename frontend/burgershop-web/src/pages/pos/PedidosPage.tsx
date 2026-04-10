@@ -915,6 +915,7 @@ export default function PedidosPage() {
                 <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Cod</th>
                 <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Producto</th>
                 <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Cant</th>
+                <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Unidades</th>
                 <th className="text-right px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Precio</th>
                 <th className="text-right px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">SubTotal</th>
                 <th className="w-7 px-1"></th>
@@ -926,7 +927,7 @@ export default function PedidosPage() {
               <tbody>
                 {carrito.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-6 text-gray-400">
+                    <td colSpan={7} className="text-center py-6 text-gray-400">
                       <svg className="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
                       </svg>
@@ -954,6 +955,9 @@ export default function PedidosPage() {
                             className={`w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                             min={1}
                           />
+                        </td>
+                        <td className="px-1 py-1 w-14 text-center text-xs text-amber-600 font-semibold">
+                          {prod && prod.unidadMinima > 1 ? item.cantidad * prod.unidadMinima : '-'}
                         </td>
                         <td className="px-1 py-1 w-20">
                           <input
