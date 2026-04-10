@@ -156,6 +156,19 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BurgerShopDbContext>();
     db.Database.Migrate();
 
+    // Fix: desvincular ventas que están en cajas de otro local
+    // o que son de una fecha anterior a la apertura de la caja
+    db.Database.ExecuteSqlRaw(@"
+        UPDATE ""Ventas"" v
+        SET ""CierreCajaId"" = NULL
+        FROM ""CierresCaja"" c
+        WHERE v.""CierreCajaId"" = c.""Id""
+          AND (
+            (c.""LocalId"" IS NOT NULL AND v.""LocalId"" IS NOT NULL AND v.""LocalId"" != c.""LocalId"")
+            OR (v.""FechaCreacion"" < c.""FechaApertura"")
+          );
+    ");
+
     // Backfill: setear UnidadMinima según categoría
     // Hamburguesas (mega=1 o hijas de mega=1) = 2
     // Salchichas (mega=2 o hijas de mega=2) = 6
@@ -182,6 +195,13 @@ using (var scope = app.Services.CreateScope())
         );
 
         UPDATE ""Productos"" SET ""UnidadMinima"" = 1 WHERE ""UnidadMinima"" = 0;
+    ");
+
+    // Seed: asegurar que existe la forma de pago "Cuenta Corriente"
+    db.Database.ExecuteSqlRaw(@"
+        INSERT INTO ""FormasPago"" (""Nombre"", ""PorcentajeRecargo"", ""Activa"")
+        SELECT 'Cuenta Corriente', 0, true
+        WHERE NOT EXISTS (SELECT 1 FROM ""FormasPago"" WHERE ""Nombre"" = 'Cuenta Corriente');
     ");
 
     // Backfill: vincular ventas existentes que tienen repartidor/zona con su RepartoZona

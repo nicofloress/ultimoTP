@@ -93,9 +93,10 @@ public class CierreCajaService : ICierreCajaService
         }
 
         // Guardar desgloses al momento del cierre para no recalcular en el historial
-        var ventasMostradorCierre = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && v.EstaPago).ToList();
-        var ventasDomicilioCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && v.EstaPago).ToList();
-        var ventasCtaCteCierre = ventas.Where(v => !v.EstaPago).ToList();
+        var ventasCtaCteCierre = ventas.Where(v => v.FormaPago?.Nombre == "Cuenta Corriente").ToList();
+        var ctaCteIdsCierre = new HashSet<int>(ventasCtaCteCierre.Select(v => v.Id));
+        var ventasMostradorCierre = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && !ctaCteIdsCierre.Contains(v.Id)).ToList();
+        var ventasDomicilioCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && !ctaCteIdsCierre.Contains(v.Id)).ToList();
 
         caja.CantidadMostrador = ventasMostradorCierre.Count;
         caja.TotalMostrador = ventasMostradorCierre.Sum(v => v.Total);
@@ -151,20 +152,14 @@ public class CierreCajaService : ICierreCajaService
             // Caja abierta: calcular detalles en vivo desde las ventas
             var totalesPorFormaPago = new Dictionary<int, (string nombre, decimal monto, int cantidad)>();
 
-            // ID ficticio para Cuenta Corriente (no es una forma de pago real)
-            const int ctaCteId = -1;
-
             foreach (var venta in ventas)
             {
-                if (!venta.EstaPago)
-                {
-                    // Venta a cuenta corriente
-                    if (totalesPorFormaPago.TryGetValue(ctaCteId, out var existenteCta))
-                        totalesPorFormaPago[ctaCteId] = (existenteCta.nombre, existenteCta.monto + venta.Total, existenteCta.cantidad + 1);
-                    else
-                        totalesPorFormaPago[ctaCteId] = ("Cuenta Corriente", venta.Total, 1);
-                }
-                else if (venta.Pagos.Any())
+                // Pedidos domicilio sin pagar (que no son Cta Cte): se cobran al entregar, no se cuentan aún
+                var esCtaCte = venta.FormaPago?.Nombre == "Cuenta Corriente";
+                if (!venta.EstaPago && !esCtaCte)
+                    continue;
+
+                if (venta.Pagos.Any())
                 {
                     foreach (var pago in venta.Pagos)
                     {
@@ -204,9 +199,11 @@ public class CierreCajaService : ICierreCajaService
 
         if (caja.Estado == EstadoCaja.Abierta)
         {
-            var mostrador = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && v.EstaPago).ToList();
-            var domicilio = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && v.EstaPago).ToList();
-            var ctaCte = ventas.Where(v => !v.EstaPago).ToList();
+            // Cta Cte: ventas cuya forma de pago es "Cuenta Corriente"
+            var ctaCte = ventas.Where(v => v.FormaPago?.Nombre == "Cuenta Corriente").ToList();
+            var ctaCteIds = new HashSet<int>(ctaCte.Select(v => v.Id));
+            var mostrador = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && !ctaCteIds.Contains(v.Id)).ToList();
+            var domicilio = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && !ctaCteIds.Contains(v.Id)).ToList();
 
             cantidadMostrador = mostrador.Count;
             totalMostrador = mostrador.Sum(v => v.Total);

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   Venta, EstadoVenta, estadoLabels, estadoColores,
   Producto, Combo, Categoria, CarritoItem, TipoVenta,
-  FormaPago, Zona, TipoFactura, ListaPrecio,
+  FormaPago, Zona, TipoFactura, ListaPrecio, TipoCliente,
 } from '../../types';
 import { getVentas, crearVenta, cambiarEstado, cancelarVenta, actualizarVenta } from '../../api/pedidos';
 import { parsearAtajo, filtrarCombosPorAtajo } from '../../utils/atajoCombo';
@@ -10,6 +10,7 @@ import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
 import { getFormasPagoActivas } from '../../api/formasPago';
+import { getTiposCliente } from '../../api/tiposCliente';
 import { getZonas } from '../../api/zonas';
 import { buscarClientes } from '../../api/clientes';
 import { ClienteDto } from '../../types/ventas';
@@ -49,6 +50,7 @@ export default function PedidosPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+  const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
@@ -80,6 +82,7 @@ export default function PedidosPage() {
   const [fechaProgramada, setFechaProgramada] = useState('');
   const [popoverCalendarioAbierto, setPopoverCalendarioAbierto] = useState(false);
   const [yaPago, setYaPago] = useState(false);
+  const [esCtaCte, setEsCtaCte] = useState(false);
   const [mostrarExtras, setMostrarExtras] = useState(false);
   const [creandoPedido, setCreandoPedido] = useState(false);
   const [busquedaCliente, setBusquedaCliente] = useState('');
@@ -105,6 +108,7 @@ export default function PedidosPage() {
     getCombos().then(setCombos);
     getCategorias().then(setCategorias);
     getFormasPagoActivas().then(setFormasPago);
+    getTiposCliente().then(setTiposCliente);
     getZonas().then(zs => setZonas(zs.filter(z => !localActivo || !z.localId || z.localId === localActivo)));
     getRepartidores().then(setRepartidores);
     getListasPrecios().then(setListasPrecios);
@@ -251,6 +255,7 @@ export default function PedidosPage() {
     setClienteSeleccionado(null);
     setBusquedaCliente('');
     setSugerenciasCliente([]);
+    setEsCtaCte(false);
   };
 
   const actualizarItem = (index: number, field: keyof CarritoItem, value: number | string) => {
@@ -258,6 +263,11 @@ export default function PedidosPage() {
   };
 
   const eliminarItem = (index: number) => setCarrito(carrito.filter((_, i) => i !== index));
+
+  // ===== CUENTA CORRIENTE =====
+  const tipoClienteActual = tiposCliente.find(tc => tc.id === clienteSeleccionado?.tipoClienteId);
+  const permiteCuentaCorriente = !!tipoClienteActual?.permiteCuentaCorriente;
+  const ctaCteFormaPago = formasPago.find(fp => fp.nombre === 'Cuenta Corriente');
 
   // ===== CALCULOS =====
   const subtotal = carrito.reduce((sum, item) => sum + item.precioUnitario * item.cantidad, 0);
@@ -459,6 +469,7 @@ export default function PedidosPage() {
     setPopoverCalendarioAbierto(false);
     setBusqueda('');
     setYaPago(false);
+    setEsCtaCte(false);
     setMostrarExtras(false);
     limpiarCoordenadas();
     busquedaRef.current?.focus();
@@ -484,11 +495,11 @@ export default function PedidosPage() {
       telefonoCliente: telefono || undefined,
       zonaId: zonaSeleccionada,
       descuento,
-      formaPagoId: formaPagoSeleccionada,
+      formaPagoId: esCtaCte ? ctaCteFormaPago?.id : (yaPago ? formaPagoSeleccionada : undefined),
       notaInterna: notaInterna || undefined,
       tipoFactura: TipoFactura.FacturaB,
       fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : undefined,
-      estaPago: yaPago,
+      estaPago: esCtaCte ? false : yaPago,
       localId: localActivo || undefined,
       lineas: carrito.map(item => ({
         productoId: item.productoId,
@@ -1007,26 +1018,45 @@ export default function PedidosPage() {
             <label className="flex items-center gap-1.5 cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={yaPago}
+                checked={yaPago && !esCtaCte}
                 onChange={e => {
                   setYaPago(e.target.checked);
+                  if (e.target.checked) setEsCtaCte(false);
                   if (!e.target.checked) setFormaPagoSeleccionada(undefined);
                 }}
-                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-400"
+                disabled={esCtaCte}
+                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-400 disabled:opacity-50"
               />
               <span className="text-sm text-gray-700 font-medium whitespace-nowrap">Ya esta pago</span>
             </label>
-            {yaPago && (
+            {yaPago && !esCtaCte && (
               <select
                 value={formaPagoSeleccionada || ''}
                 onChange={e => setFormaPagoSeleccionada(Number(e.target.value) || undefined)}
                 className={`${selectClass} w-40`}
               >
                 <option value="">Forma de pago...</option>
-                {formasPago.map(fp => (
+                {formasPago.filter(fp => fp.nombre !== 'Cuenta Corriente').map(fp => (
                   <option key={fp.id} value={fp.id}>{fp.nombre}</option>
                 ))}
               </select>
+            )}
+            {!esEdicionLimitada && permiteCuentaCorriente && (
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={esCtaCte}
+                  onChange={e => {
+                    setEsCtaCte(e.target.checked);
+                    if (e.target.checked) {
+                      setYaPago(false);
+                      setFormaPagoSeleccionada(undefined);
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-400"
+                />
+                <span className="text-sm text-purple-700 font-medium whitespace-nowrap">Cta Cte</span>
+              </label>
             )}
             {/* Icono expandir extras (nota + descuento) */}
             <button

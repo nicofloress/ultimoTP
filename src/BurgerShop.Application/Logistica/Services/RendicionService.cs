@@ -69,8 +69,8 @@ public class RendicionService : IRendicionService
 
         foreach (var venta in entregadas)
         {
-            // Ventas de cuenta corriente: estaPago=true pero sin forma de pago (nota con [CTA CTE])
-            if (venta.EstaPago && venta.NotaInterna?.Contains("[CTA CTE]") == true)
+            // Ventas de cuenta corriente: identificadas por la forma de pago
+            if (venta.FormaPago?.Nombre == "Cuenta Corriente")
             {
                 totalCuentaCorriente += venta.Total;
             }

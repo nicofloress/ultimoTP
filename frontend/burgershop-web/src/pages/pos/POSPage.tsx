@@ -493,9 +493,7 @@ export default function POSPage() {
         notas: item.notas,
       }));
       const esCtaCte = modoPago === 'cuentaCorriente';
-      const obs = esCtaCte
-        ? `[CTA CTE] ${notaInterna || `Venta a crédito - ${clienteSeleccionado?.nombre || ''}`}`
-        : (notaInterna || undefined);
+      const ctaCteFormaPago = formasPago.find(fp => fp.nombre === 'Cuenta Corriente');
 
       // Crear Venta unificada (Mostrador o Domicilio)
       const venta = await crearVenta({
@@ -506,9 +504,9 @@ export default function POSPage() {
         zonaId: envioADomicilio ? (zonaSeleccionada || undefined) : undefined,
         fechaProgramada: envioADomicilio && fechaProgramada ? fechaProgramada : undefined,
         localId: localActivo || undefined,
-        formaPagoId: modoPago === 'total' ? formaPagoSeleccionada : undefined,
+        formaPagoId: esCtaCte ? ctaCteFormaPago?.id : (modoPago === 'total' ? formaPagoSeleccionada : undefined),
         descuento: descuentoCalculado,
-        notaInterna: obs,
+        notaInterna: notaInterna || undefined,
         tipoFactura,
         estaPago: !esCtaCte,
         clienteId: clienteSeleccionado?.id,
@@ -967,7 +965,7 @@ export default function POSPage() {
                   className={selectClass}
                 >
                   <option value="">Seleccionar...</option>
-                  {formasPago.map(fp => (
+                  {formasPago.filter(fp => fp.nombre !== 'Cuenta Corriente').map(fp => (
                     <option key={fp.id} value={fp.id}>
                       {fp.nombre}{fp.porcentajeRecargo > 0 ? ` (+${fp.porcentajeRecargo}%)` : ''}
                     </option>
@@ -996,7 +994,7 @@ export default function POSPage() {
             </>
           ) : modoPago === 'dividido' ? (
             <PagoDivididoPanel
-              formasPago={formasPago}
+              formasPago={formasPago.filter(fp => fp.nombre !== 'Cuenta Corriente')}
               totalVenta={subtotal - descuentoCalculado}
               pagos={pagosDivididos}
               onChange={setPagosDivididos}
