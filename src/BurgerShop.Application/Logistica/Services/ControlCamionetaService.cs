@@ -265,22 +265,16 @@ public class ControlCamionetaService : IControlCamionetaService
                         if (detalle.Producto != null
                             && (detalle.Producto.Categoria?.SeccionCamioneta ?? SeccionCamioneta.Otro) != SeccionCamioneta.Aderezo)
                         {
-                            // ComboDetalle.Cantidad está en paquetes, multiplicar por UnidadMinima
-                            // para obtener unidades reales (medallones, salchichas, panes individuales)
-                            var um = detalle.Producto.UnidadMinima > 1 ? detalle.Producto.UnidadMinima : 1;
-                            ProcesarProducto(data, detalle.Producto, linea.Cantidad * detalle.Cantidad * um);
+                            // Todo está en paquetes. ProcesarProducto decide internamente
+                            // si necesita convertir a unidades reales (salchichas/panes) o no (hamburguesas).
+                            ProcesarProducto(data, detalle.Producto, linea.Cantidad * detalle.Cantidad);
                         }
                     }
                 }
                 else if (linea.ProductoId != null && linea.Producto != null)
                 {
-                    // Productos sueltos: cada "unidad" vendida es 1 paquete.
-                    // Salchichas: 1 paquete = 6 unidades. Hamburguesas: 1 paquete = 2 medallones.
-                    // Para el tally necesitamos la cantidad REAL de unidades (salchichas/medallones individuales).
-                    // Cada "unidad" vendida es 1 paquete. UnidadMinima indica cuántas
-                    // unidades reales tiene cada paquete (ej: salchichas=6, hamburguesas=2, panes=4/6)
-                    var unidadesPorPaquete = linea.Producto.UnidadMinima > 1 ? linea.Producto.UnidadMinima : 1;
-                    ProcesarProducto(data, linea.Producto, linea.Cantidad * unidadesPorPaquete);
+                    // Producto suelto: la cantidad del pedido ya es en paquetes.
+                    ProcesarProducto(data, linea.Producto, linea.Cantidad);
                 }
             }
         }
@@ -288,61 +282,61 @@ public class ControlCamionetaService : IControlCamionetaService
         return data;
     }
 
-    private void ProcesarProducto(TallyData data, Producto producto, int cantidad)
+    private void ProcesarProducto(TallyData data, Producto producto, int cantidadPaquetes)
     {
-        if (cantidad <= 0) return;
+        if (cantidadPaquetes <= 0) return;
 
         var seccion = InferirSeccion(producto);
         var peso = producto.PesoGramos ?? 0;
-        var bulto = producto.UnidadesPorBulto;
-        var media = producto.UnidadesPorMedia;
+        var bulto = producto.UnidadesPorBulto;   // en paquetes
+        var media = producto.UnidadesPorMedia;    // en paquetes
+        var um = producto.UnidadMinima > 1 ? producto.UnidadMinima : 1;
+
+        // Hamburguesas: trabajan en paquetes (bulto/media también en paquetes)
+        // Salchichas/Panes: se convierten a unidades reales (×UnidadMinima) para distribuir en palotes
 
         switch (seccion)
         {
             case SeccionCamioneta.MedallonEconomico:
-                // Contar cuántas completas y medias entran en la cantidad recibida
-                ContarCompletaMedia(data.Medallones, peso, cantidad, bulto, media);
-                // NO auto-agregar panes: los combos ya los traen explícitamente
+                ContarCompletaMedia(data.Medallones, peso, cantidadPaquetes, bulto, media);
                 break;
 
             case SeccionCamioneta.HamburguesaPremium:
-                ContarCompletaMedia(data.Premium, peso, cantidad, bulto, media);
-                // NO auto-agregar panes: los combos ya los traen explícitamente
+                ContarCompletaMedia(data.Premium, peso, cantidadPaquetes, bulto, media);
                 break;
 
             case SeccionCamioneta.SalchichaCorta:
-                data.SalchichaCortaTotal += cantidad;
+                data.SalchichaCortaTotal += cantidadPaquetes * um;
                 break;
 
             case SeccionCamioneta.SalchichaLarga:
-                data.SalchichaLargaTotal += cantidad;
+                data.SalchichaLargaTotal += cantidadPaquetes * um;
                 break;
 
             case SeccionCamioneta.PanTradicional:
-                data.PanTradicionalTotal += cantidad;
+                data.PanTradicionalTotal += cantidadPaquetes * um;
                 break;
 
             case SeccionCamioneta.PanMaxi:
-                data.PanMaxiTotal += cantidad;
+                data.PanMaxiTotal += cantidadPaquetes * um;
                 break;
 
             case SeccionCamioneta.PanPancho:
-                data.PanPanchoTotal += cantidad;
+                data.PanPanchoTotal += cantidadPaquetes * um;
                 break;
 
             case SeccionCamioneta.PanSuperPancho:
-                data.PanSuperPanchoTotal += cantidad;
+                data.PanSuperPanchoTotal += cantidadPaquetes * um;
                 break;
 
             case SeccionCamioneta.Aderezo:
-                // Usar el nombre del producto directamente; acumular cantidad total
                 var nombreAderezo = producto.Nombre.ToUpperInvariant();
-                data.Aderezos[nombreAderezo] = data.Aderezos.GetValueOrDefault(nombreAderezo) + cantidad;
+                data.Aderezos[nombreAderezo] = data.Aderezos.GetValueOrDefault(nombreAderezo) + cantidadPaquetes;
                 break;
 
             default:
                 var nombreOtro = producto.Nombre;
-                data.Otros[nombreOtro] = data.Otros.GetValueOrDefault(nombreOtro) + cantidad;
+                data.Otros[nombreOtro] = data.Otros.GetValueOrDefault(nombreOtro) + cantidadPaquetes;
                 break;
         }
     }
