@@ -5,7 +5,7 @@ import { parsearAtajo, filtrarCombosPorAtajo } from '../../utils/atajoCombo';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
-import { crearVenta } from '../../api/pedidos';
+import { crearVenta, enviarADeposito } from '../../api/pedidos';
 import { TicketPrintProps } from '../../components/TicketPrint';
 import ComprobanteXPrint from '../../components/ComprobanteXPrint';
 import { getFormasPagoActivas } from '../../api/formasPago';
@@ -89,6 +89,7 @@ export default function POSPage() {
 
   // Estado post-creacion
   const [ticketCreado, setTicketCreado] = useState<string | null>(null);
+  const [ventaCreadaId, setVentaCreadaId] = useState<number | null>(null);
   const [ticketParaImprimir, setTicketParaImprimir] = useState<TicketPrintProps['ticket'] | null>(null);
 
   // Modales post-venta
@@ -578,6 +579,7 @@ export default function POSPage() {
       }
 
       setTicketCreado(venta.numeroTicket);
+      setVentaCreadaId(venta.id);
 
       // Pre-armar ticket listo para imprimir
       const fpNombre = venta.formaPagoNombre
@@ -1472,7 +1474,7 @@ export default function POSPage() {
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-5 rounded-t-xl text-center border-b">
               <h3 className="text-xl font-bold text-gray-800 tracking-wide">ELIJA UNA ACCION</h3>
             </div>
-            <div className="grid grid-cols-4 gap-4 p-8">
+            <div className="grid grid-cols-5 gap-4 p-8">
               {/* Imprimir A4 */}
               <button
                 onClick={() => {
@@ -1546,6 +1548,31 @@ export default function POSPage() {
                 <span className="font-bold text-sm text-gray-700 -mt-2">&nbsp;</span>
                 <span className="text-red-500 font-bold text-xs">(4)</span>
               </button>
+
+              {/* Enviar a Depósito */}
+              {ventaCreadaId && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await enviarADeposito(ventaCreadaId);
+                      showToast('Enviado a depósito', 'success');
+                    } catch (err: any) {
+                      const msg = err?.response?.data?.message || 'Error al enviar a depósito';
+                      showToast(msg, 'error');
+                    }
+                  }}
+                  className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-orange-50 transition-colors border-2 border-transparent hover:border-orange-300"
+                >
+                  <div className="w-16 h-16 flex items-center justify-center">
+                    <svg className="w-12 h-12 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H18.75M2.25 14.25h1.5m0 0v-3.375c0-.621.504-1.125 1.125-1.125h4.5V14.25m-5.625 0h5.625m0 0v-6.375m0 6.375h6.75M12 7.875V3.375m0 0h4.5l2.25 3.375M12 3.375H7.5" />
+                    </svg>
+                  </div>
+                  <span className="font-bold text-sm text-orange-600">ENVIAR A</span>
+                  <span className="font-bold text-sm text-orange-600 -mt-2">DEPOSITO</span>
+                  <span className="text-red-500 font-bold text-xs">(5)</span>
+                </button>
+              )}
             </div>
             {/* Cerrar */}
             <div className="border-t px-8 py-4 text-center">

@@ -29,6 +29,8 @@ export interface CierreCaja {
   totalDomicilio: number;
   cantidadCtaCte: number;
   totalCtaCte: number;
+  totalNeto?: number;
+  totalIVA?: number;
 }
 
 export interface AbrirCajaDto {

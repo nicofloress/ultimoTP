@@ -579,6 +579,23 @@ export default function CajaPage() {
 
                   {/* Footer */}
                   <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+                    {(cajaDetalle.totalNeto != null && cajaDetalle.totalNeto > 0) && (
+                      <div className="mb-3 border rounded-lg overflow-hidden">
+                        <div className="bg-slate-50 px-4 py-2 border-b">
+                          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Desglose Fiscal</span>
+                        </div>
+                        <div className="divide-y">
+                          <div className="flex justify-between px-4 py-2">
+                            <span className="text-sm text-gray-600">Total Neto (sin IVA)</span>
+                            <span className="text-sm font-medium text-gray-800">${formatMonto(cajaDetalle.totalNeto)}</span>
+                          </div>
+                          <div className="flex justify-between px-4 py-2">
+                            <span className="text-sm text-gray-600">IVA Debito Fiscal</span>
+                            <span className="text-sm font-medium text-gray-800">${formatMonto(cajaDetalle.totalIVA ?? 0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="text-lg font-bold text-gray-800">
                         TOTAL VENTAS: <span className="text-green-700">${formatMonto(totalGeneralGeneral)}</span>

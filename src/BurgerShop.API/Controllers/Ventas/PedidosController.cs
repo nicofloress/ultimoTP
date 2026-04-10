@@ -127,6 +127,21 @@ public class VentasController : ControllerBase
         return Ok(await _service.GetVentasDepositoAsync(localId));
     }
 
+    [HttpPost("{id}/enviar-deposito")]
+    [Authorize(Roles = "SuperAdmin,Administrador,Local")]
+    public async Task<ActionResult> EnviarADeposito(int id)
+    {
+        try
+        {
+            await _service.EnviarADepositoAsync(id);
+            return Ok(new { message = "Venta enviada a depósito correctamente" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("stats")]
     public async Task<ActionResult<VentaStatsDto>> GetStats([FromQuery] DateTime? fecha)
     {

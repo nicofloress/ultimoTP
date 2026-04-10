@@ -39,7 +39,9 @@ public record VentaDto(
     List<PagoVentaDto>? Pagos = null,
     string? ComprobanteEntrega = null,
     string? MotivoCancelacion = null,
-    int? RepartoZonaId = null);
+    int? RepartoZonaId = null,
+    decimal MontoNeto = 0,
+    decimal MontoIVA = 0);
 
 public record LineaVentaDto(
     int Id,

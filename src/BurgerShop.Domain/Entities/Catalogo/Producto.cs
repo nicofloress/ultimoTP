@@ -20,6 +20,7 @@ public class Producto
     public decimal PrecioVenta { get; set; }
     public DateTime? FechaUltimaModificacionPrecio { get; set; }
     public decimal DiferenciaPrecioCosto { get; set; }
+    public decimal AlicuotaIVA { get; set; } = 21; // 21%, 10.5%, 0%
 
     public Categoria Categoria { get; set; } = null!;
     public ICollection<ComboDetalle> ComboDetalles { get; set; } = new List<ComboDetalle>();

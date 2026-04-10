@@ -1,3 +1,5 @@
+using BurgerShop.Domain.Enums;
+
 namespace BurgerShop.Application.Ventas.DTOs;
 
 public record ClienteDto(
@@ -14,7 +16,8 @@ public record ClienteDto(
     int? ListaPrecioId,
     string? ListaPrecioNombre,
     int? LocalId,
-    string? LocalNombre);
+    string? LocalNombre,
+    CondicionFiscal CondicionFiscal = CondicionFiscal.ConsumidorFinal);
 
 public record CrearClienteDto(
     string Nombre,
@@ -25,7 +28,8 @@ public record CrearClienteDto(
     int? ZonaId,
     int? TipoClienteId,
     int? ListaPrecioId,
-    int? LocalId);
+    int? LocalId,
+    CondicionFiscal CondicionFiscal = CondicionFiscal.ConsumidorFinal);
 
 public record ActualizarClienteDto(
     string Nombre,
@@ -36,4 +40,5 @@ public record ActualizarClienteDto(
     int? ZonaId,
     int? TipoClienteId,
     int? ListaPrecioId,
-    int? LocalId);
+    int? LocalId,
+    CondicionFiscal CondicionFiscal = CondicionFiscal.ConsumidorFinal);

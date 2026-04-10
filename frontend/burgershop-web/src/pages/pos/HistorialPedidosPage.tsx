@@ -518,6 +518,18 @@ export default function HistorialPedidosPage() {
               <span>Total</span>
               <span className="text-amber-600">${seleccionado.total.toLocaleString('es-AR')}</span>
             </div>
+            {(seleccionado.montoNeto != null && seleccionado.montoNeto > 0) && (
+              <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span>Neto</span>
+                  <span>${seleccionado.montoNeto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span>IVA</span>
+                  <span>${(seleccionado.montoIVA ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            )}
             <div className="flex justify-center pt-1">
               {seleccionado.estaPago ? (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Pagado</span>

@@ -26,6 +26,8 @@ public class Venta
     public decimal Descuento { get; set; }
     public decimal Recargo { get; set; }
     public decimal Total { get; set; }
+    public decimal MontoNeto { get; set; }
+    public decimal MontoIVA { get; set; }
 
     public int? FormaPagoId { get; set; }
     public int? RepartidorId { get; set; }
@@ -44,6 +46,7 @@ public class Venta
     // Campos incorporados de la Venta simple (mostrador)
     public int? UsuarioId { get; set; }
     public string? Observaciones { get; set; }
+    public DateTime? FechaEnvioDeposito { get; set; }
 
     // Navigations
     public Cliente? Cliente { get; set; }

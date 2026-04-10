@@ -171,6 +171,22 @@ public class VentaService : IVentaService
             venta.Total = subtotal - dto.Descuento + recargo;
         }
 
+        // Calcular IVA desglosado (precios incluyen IVA)
+        decimal totalNeto = 0;
+        foreach (var linea in venta.Lineas)
+        {
+            decimal alicuota = 21m; // alícuota por defecto
+            if (linea.ProductoId.HasValue)
+            {
+                var prod = await _productoRepo.GetByIdAsync(linea.ProductoId.Value);
+                alicuota = prod?.AlicuotaIVA ?? 21m;
+            }
+            var neto = linea.Subtotal / (1m + alicuota / 100m);
+            totalNeto += neto;
+        }
+        venta.MontoNeto = Math.Round(totalNeto, 2);
+        venta.MontoIVA = Math.Round(venta.Total - totalNeto, 2);
+
         // Si es Domicilio con zona, verificar si ya hay reparto activo en esa zona
         if (dto.Tipo == TipoVenta.Domicilio && dto.ZonaId.HasValue)
         {
@@ -706,9 +722,20 @@ public class VentaService : IVentaService
 
     public async Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId)
     {
-        var desde = DateTime.Now.AddMinutes(-10);
+        var desde = DateTime.Now.AddMinutes(-30);
         var ventas = await _ventaRepo.GetVentasDepositoAsync(desde, localId);
         return ventas.Select(ToDto);
+    }
+
+    public async Task EnviarADepositoAsync(int ventaId)
+    {
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+        if (venta is null)
+            throw new InvalidOperationException("Venta no encontrada.");
+
+        venta.FechaEnvioDeposito = DateTime.Now;
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
     }
 
     private static PagoVentaDto MapPagoVentaDto(PagoVenta p) => new(
@@ -758,6 +785,8 @@ public class VentaService : IVentaService
             pagos,
             v.ComprobanteEntrega,
             v.MotivoCancelacion,
-            v.RepartoZonaId);
+            v.RepartoZonaId,
+            v.MontoNeto,
+            v.MontoIVA);
     }
 }

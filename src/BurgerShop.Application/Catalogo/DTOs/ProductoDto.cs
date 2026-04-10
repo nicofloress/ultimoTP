@@ -7,7 +7,7 @@ public record ProductoDto(
     string? Marca = null, int UnidadesPorMedia = 0, bool EsOfertaSemanal = false,
     decimal PrecioCosto = 0, decimal PrecioVenta = 0,
     DateTime? FechaUltimaModificacionPrecio = null, decimal DiferenciaPrecioCosto = 0,
-    int UnidadMinima = 1);
+    int UnidadMinima = 1, decimal AlicuotaIVA = 21);
 
-public record CrearProductoDto(string Nombre, string? Descripcion, decimal Precio, int CategoriaId, string? ImagenUrl, string? NumeroInterno, int? PesoGramos = null, int UnidadesPorBulto = 1, string? Marca = null, int UnidadesPorMedia = 0, bool EsOfertaSemanal = false, decimal PrecioCosto = 0, decimal PrecioVenta = 0, int UnidadMinima = 1);
-public record ActualizarProductoDto(string Nombre, string? Descripcion, decimal Precio, int CategoriaId, bool Activo, string? ImagenUrl, string? NumeroInterno, int? PesoGramos = null, int UnidadesPorBulto = 1, string? Marca = null, int UnidadesPorMedia = 0, bool EsOfertaSemanal = false, decimal PrecioCosto = 0, decimal PrecioVenta = 0, int UnidadMinima = 1);
+public record CrearProductoDto(string Nombre, string? Descripcion, decimal Precio, int CategoriaId, string? ImagenUrl, string? NumeroInterno, int? PesoGramos = null, int UnidadesPorBulto = 1, string? Marca = null, int UnidadesPorMedia = 0, bool EsOfertaSemanal = false, decimal PrecioCosto = 0, decimal PrecioVenta = 0, int UnidadMinima = 1, decimal AlicuotaIVA = 21);
+public record ActualizarProductoDto(string Nombre, string? Descripcion, decimal Precio, int CategoriaId, bool Activo, string? ImagenUrl, string? NumeroInterno, int? PesoGramos = null, int UnidadesPorBulto = 1, string? Marca = null, int UnidadesPorMedia = 0, bool EsOfertaSemanal = false, decimal PrecioCosto = 0, decimal PrecioVenta = 0, int UnidadMinima = 1, decimal AlicuotaIVA = 21);

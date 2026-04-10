@@ -14,6 +14,13 @@ import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
+const CONDICION_FISCAL_OPCIONES = [
+  { value: 1, label: 'Consumidor Final' },
+  { value: 2, label: 'Responsable Inscripto' },
+  { value: 3, label: 'Monotributista' },
+  { value: 4, label: 'Exento' },
+];
+
 const emptyForm = {
   nombre: '',
   cuit: '',
@@ -23,6 +30,7 @@ const emptyForm = {
   tipoClienteId: '' as string,
   listaPrecioId: '' as string,
   localId: '' as string,
+  condicionFiscal: 1,
 };
 
 export default function ClientesPage() {
@@ -81,6 +89,7 @@ export default function ClientesPage() {
         tipoClienteId: form.tipoClienteId ? Number(form.tipoClienteId) : undefined,
         listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
         localId: localIdFinal,
+        condicionFiscal: form.condicionFiscal,
       };
       if (editando) {
         await actualizarCliente(editando.id, data);
@@ -111,6 +120,7 @@ export default function ClientesPage() {
       tipoClienteId: c.tipoClienteId ? String(c.tipoClienteId) : '',
       listaPrecioId: c.listaPrecioId ? String(c.listaPrecioId) : '',
       localId: c.localId ? String(c.localId) : '',
+      condicionFiscal: c.condicionFiscal ?? 1,
     });
     setShowForm(true);
   };
@@ -293,6 +303,18 @@ export default function ClientesPage() {
             </select>
           </div>
           <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Condicion Fiscal</label>
+            <select
+              value={form.condicionFiscal}
+              onChange={e => setForm({ ...form, condicionFiscal: Number(e.target.value) })}
+              className="border rounded px-3 py-2 w-full"
+            >
+              {CONDICION_FISCAL_OPCIONES.map(op => (
+                <option key={op.value} value={op.value}>{op.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
             {esSuperAdmin ? (
               <select
@@ -335,6 +357,7 @@ export default function ClientesPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo Cliente</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Condicion Fiscal</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista Precios</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
@@ -350,6 +373,9 @@ export default function ClientesPage() {
                 <td className="px-4 py-3 text-sm text-gray-600">{c.direccion || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.tipoClienteNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">
+                  {CONDICION_FISCAL_OPCIONES.find(op => op.value === c.condicionFiscal)?.label || 'Consumidor Final'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
                   {c.listaPrecioId ? listasPrecios.find(l => l.id === c.listaPrecioId)?.nombre || '-' : 'Precio Base'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.localNombre || '-'}</td>
@@ -361,7 +387,7 @@ export default function ClientesPage() {
             ))}
             {clientesFiltrados.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-gray-400">No hay clientes registrados</td>
+                <td colSpan={11} className="px-4 py-8 text-center text-gray-400">No hay clientes registrados</td>
               </tr>
             )}
           </tbody>

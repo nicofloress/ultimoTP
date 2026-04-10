@@ -21,7 +21,9 @@ public record CierreCajaDto(
     int CantidadDomicilio = 0,
     decimal TotalDomicilio = 0,
     int CantidadCtaCte = 0,
-    decimal TotalCtaCte = 0);
+    decimal TotalCtaCte = 0,
+    decimal TotalNeto = 0,
+    decimal TotalIVA = 0);
 
 public record CierreCajaDetalleDto(
     int Id,

@@ -224,6 +224,10 @@ public class CierreCajaService : ICierreCajaService
             cantidadTotal = cantidadMostrador + cantidadDomicilio + cantidadCtaCte;
         }
 
+        // Calcular totales IVA desde las ventas de la caja
+        var totalNetoVentas = Math.Round(ventas.Sum(v => v.MontoNeto), 2);
+        var totalIVAVentas = Math.Round(ventas.Sum(v => v.MontoIVA), 2);
+
         return new CierreCajaDto(
             caja.Id,
             caja.FechaApertura,
@@ -243,6 +247,8 @@ public class CierreCajaService : ICierreCajaService
             cantidadDomicilio,
             totalDomicilio,
             cantidadCtaCte,
-            totalCtaCte);
+            totalCtaCte,
+            totalNetoVentas,
+            totalIVAVentas);
     }
 }

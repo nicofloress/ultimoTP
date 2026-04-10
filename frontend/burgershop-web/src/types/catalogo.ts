@@ -37,6 +37,7 @@ export interface Producto {
   precioVenta?: number;
   fechaUltimaModificacionPrecio?: string;
   diferenciaPrecioCosto?: number;
+  alicuotaIVA: number;
 }
 
 export interface ComboDetalle {

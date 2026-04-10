@@ -430,11 +430,13 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
     {
         var query = _dbSet
             .Include(v => v.Lineas)
-            .Where(v => v.Tipo == TipoVenta.Mostrador
-                && v.FechaCreacion >= desde);
+            .Include(v => v.Pagos).ThenInclude(p => p.FormaPago)
+            .Include(v => v.FormaPago)
+            .Where(v => v.FechaCreacion >= desde
+                || (v.FechaEnvioDeposito != null && v.FechaEnvioDeposito >= desde));
 
         if (localId.HasValue)
-            query = query.Where(v => v.LocalId == localId.Value);
+            query = query.Where(v => v.LocalId == localId.Value || v.LocalId == null);
 
         return await query
             .OrderBy(v => v.FechaCreacion)

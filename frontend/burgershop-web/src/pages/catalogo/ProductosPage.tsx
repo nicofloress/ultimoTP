@@ -13,7 +13,7 @@ import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
 import { getMarcasActivas, MarcaDto } from '../../api/marcas';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0 };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0, alicuotaIVA: 21 };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -94,7 +94,7 @@ export default function ProductosPage() {
 
   const handleEditar = (p: Producto) => {
     setEditando(p);
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0 });
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0, alicuotaIVA: p.alicuotaIVA ?? 21 });
     setShowForm(true);
   };
 
@@ -471,6 +471,14 @@ export default function ProductosPage() {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Unidad Minima (paquete)</label>
             <input type="number" value={form.unidadMinima} onChange={e => setForm({ ...form, unidadMinima: Number(e.target.value) })} placeholder="Ej: 2 hamburguesas, 6 salchichas" className="border rounded px-3 py-2 w-full" min={1} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Alicuota IVA</label>
+            <select value={form.alicuotaIVA} onChange={e => setForm({ ...form, alicuotaIVA: Number(e.target.value) })} className="border rounded px-3 py-2 w-full">
+              <option value={21}>21%</option>
+              <option value={10.5}>10.5%</option>
+              <option value={0}>0% (exento)</option>
+            </select>
           </div>
           <div className="col-span-2">
             <label className="flex items-center gap-2 text-sm">

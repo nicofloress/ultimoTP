@@ -47,6 +47,8 @@ export interface Venta {
   observaciones?: string;
   lineas: LineaVenta[];
   pagos?: PagoPedidoDto[];
+  montoNeto?: number;
+  montoIVA?: number;
 }
 
 export enum TipoVenta {
@@ -133,6 +135,7 @@ export interface ClienteDto {
   listaPrecioId?: number;
   localId?: number;
   localNombre?: string;
+  condicionFiscal?: number;
 }
 
 export interface PagoPedidoDto {
@@ -160,4 +163,5 @@ export interface CrearClienteDto {
   tipoClienteId?: number;
   listaPrecioId?: number;
   localId?: number;
+  condicionFiscal?: number;
 }

@@ -36,6 +36,8 @@ export const getTicket = (id: number) => api.get(`/ventas/${id}/ticket`).then(r 
 
 export const prepararTodos = () => api.put('/ventas/preparar-todos').then(r => r.data);
 
+export const enviarADeposito = (id: number) => api.post(`/ventas/${id}/enviar-deposito`).then(r => r.data);
+
 export interface VentaStats {
   ventasHoy: number;
   ventasAyer: number;

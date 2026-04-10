@@ -1,6 +1,7 @@
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Entities.Logistica;
+using BurgerShop.Domain.Enums;
 
 namespace BurgerShop.Domain.Entities.Ventas;
 
@@ -16,6 +17,7 @@ public class Cliente
     public int? TipoClienteId { get; set; }
     public int? ListaPrecioId { get; set; }
     public int? LocalId { get; set; }
+    public CondicionFiscal CondicionFiscal { get; set; } = CondicionFiscal.ConsumidorFinal;
 
     public Zona? Zona { get; set; }
     public TipoCliente? TipoCliente { get; set; }
