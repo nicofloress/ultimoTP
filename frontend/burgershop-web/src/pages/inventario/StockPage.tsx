@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ArtiStockDto, getStockPorLocal, getStockBajo } from '../../api/stock';
 import { getLocales, LocalDto } from '../../api/locales';
 import { getCategorias } from '../../api/categorias';
@@ -38,6 +38,7 @@ export default function StockPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
   // --- Filtros ---
   const [localId, setLocalId] = useState<number>(esSuperAdmin ? 0 : (localDelUsuario || 1));
@@ -58,29 +59,35 @@ export default function StockPage() {
   }, []);
 
   // --- Cargar stock ---
-  useEffect(() => {
-    const cargar = async () => {
-      setCargando(true);
-      try {
-        let data: ArtiStockDto[];
-        if (localId === 0) {
-          const fn = soloBajo ? getStockBajo : getStockPorLocal;
-          const promises = locales.map(l => fn(l.id));
-          const results = await Promise.all(promises);
-          data = results.flat();
-        } else {
-          data = soloBajo ? await getStockBajo(localId) : await getStockPorLocal(localId);
-        }
-        setStock(data);
-      } catch (err) {
-        console.error('Error cargando stock:', err);
-        showToast('Error al cargar stock', 'error');
-      } finally {
-        setCargando(false);
+  const cargarStock = useCallback(async () => {
+    setCargando(true);
+    try {
+      let data: ArtiStockDto[];
+      if (localId === 0) {
+        const fn = soloBajo ? getStockBajo : getStockPorLocal;
+        const promises = locales.map(l => fn(l.id));
+        const results = await Promise.all(promises);
+        data = results.flat();
+      } else {
+        data = soloBajo ? await getStockBajo(localId) : await getStockPorLocal(localId);
       }
-    };
-    cargar();
-  }, [localId, soloBajo, showToast]);
+      setStock(data);
+      setUltimaActualizacion(new Date());
+    } catch (err) {
+      console.error('Error cargando stock:', err);
+      showToast('Error al cargar stock', 'error');
+    } finally {
+      setCargando(false);
+    }
+  }, [localId, soloBajo, locales, showToast]);
+
+  useEffect(() => { cargarStock(); }, [cargarStock]);
+
+  // Auto-refresh cada 5 minutos
+  useEffect(() => {
+    const interval = setInterval(cargarStock, 300000);
+    return () => clearInterval(interval);
+  }, [cargarStock]);
 
   // --- Mega-categorias ---
   const megaCategorias = useMemo(() => {
@@ -239,12 +246,22 @@ export default function StockPage() {
           <span className="text-sm text-gray-500">
             {stockFiltrado.length} articulo{stockFiltrado.length !== 1 ? 's' : ''}
           </span>
-          {cargando && (
-            <svg className="animate-spin w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+          <div className="flex-1" />
+          {ultimaActualizacion && (
+            <span className="text-xs text-gray-400 italic">
+              Actualizado: {ultimaActualizacion.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </span>
           )}
+          <button
+            onClick={cargarStock}
+            disabled={cargando}
+            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <svg className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {cargando ? 'Cargando...' : 'Actualizar'}
+          </button>
         </div>
 
         {/* Mega-categorias bubbles */}

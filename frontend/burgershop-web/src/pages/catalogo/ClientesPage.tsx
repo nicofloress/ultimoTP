@@ -58,10 +58,35 @@ export default function ClientesPage() {
     getLocales().then(setLocales);
   }, []);
 
+  // Zonas filtradas por el local del formulario (o el local del usuario si no es SuperAdmin)
+  const localIdFormulario = form.localId
+    ? Number(form.localId)
+    : (!esSuperAdmin ? (usuario?.localId ?? 0) : 0);
+
+  const zonasFiltradas = zonas.filter(z => {
+    if (!z.activa) return false;
+    if (localIdFormulario && z.localId && z.localId !== localIdFormulario) return false;
+    return true;
+  });
+
+  const abrirNuevo = () => {
+    setEditando(null);
+    setForm({
+      ...emptyForm,
+      localId: !esSuperAdmin ? String(usuario?.localId ?? '') : '',
+    });
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuardando(true);
     try {
+      // Si no es SuperAdmin, forzar el local del usuario
+      const localIdFinal = !esSuperAdmin
+        ? (usuario?.localId ?? undefined)
+        : (form.localId ? Number(form.localId) : undefined);
+
       const data: CrearClienteDto = {
         nombre: form.nombre,
         cuit: form.cuit || undefined,
@@ -71,7 +96,7 @@ export default function ClientesPage() {
         zonaId: form.zonaId ? Number(form.zonaId) : undefined,
         tipoClienteId: form.tipoClienteId ? Number(form.tipoClienteId) : undefined,
         listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
-        localId: form.localId ? Number(form.localId) : undefined,
+        localId: localIdFinal,
       };
       if (editando) {
         await actualizarCliente(editando.id, data);
@@ -126,7 +151,6 @@ export default function ClientesPage() {
   };
 
   const clientesFiltrados = clientes.filter(c => {
-    // Filtro por local: si el cliente tiene localId, debe coincidir; si no tiene, mostrar siempre (retrocompatibilidad)
     if (localSeleccionado && c.localId && c.localId !== localSeleccionado) return false;
     const term = busqueda.toLowerCase();
     return (
@@ -137,13 +161,49 @@ export default function ClientesPage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      {/* Header simple sin botón */}
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
         <h2 className="text-lg font-bold text-white">Clientes</h2>
+      </div>
+
+      {/* Barra de filtros uniforme */}
+      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
+        {esSuperAdmin ? (
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
+            <select
+              className={selectClass + ' flex-1'}
+              value={localSeleccionado}
+              onChange={e => setLocalSeleccionado(Number(e.target.value))}
+            >
+              <option value={0}>Todos los locales</option>
+              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
+            <span className="text-sm text-gray-700 border border-gray-200 rounded-md px-2.5 py-1.5 bg-gray-50">
+              {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+            </span>
+          </div>
+        )}
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o telefono..."
+          className={selectClass + ' flex-1 min-w-[180px]'}
+        />
+        <div className="flex-1" />
         <button
-          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
+          onClick={abrirNuevo}
+          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5 whitespace-nowrap"
         >
-          {showForm ? 'Cerrar' : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Cliente</>)}
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Nuevo Cliente
         </button>
       </div>
 
@@ -231,7 +291,7 @@ export default function ClientesPage() {
               className="border rounded px-3 py-2 w-full"
             >
               <option value="">Sin zona</option>
-              {zonas.filter(z => z.activa).map(z => (
+              {zonasFiltradas.map(z => (
                 <option key={z.id} value={z.id}>{z.nombre}</option>
               ))}
             </select>
@@ -264,16 +324,25 @@ export default function ClientesPage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Local</label>
-            <select
-              value={form.localId}
-              onChange={e => setForm({ ...form, localId: e.target.value })}
-              className="border rounded px-3 py-2 w-full"
-            >
-              <option value="">Sin local asignado</option>
-              {locales.filter(l => l.activo).map(l => (
-                <option key={l.id} value={l.id}>{l.nombre}</option>
-              ))}
-            </select>
+            {esSuperAdmin ? (
+              <select
+                value={form.localId}
+                onChange={e => {
+                  // Al cambiar el local, limpiar la zona seleccionada para evitar zonas de otro local
+                  setForm({ ...form, localId: e.target.value, zonaId: '' });
+                }}
+                className="border rounded px-3 py-2 w-full"
+              >
+                <option value="">Sin local asignado</option>
+                {locales.filter(l => l.activo).map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="border border-gray-200 rounded px-3 py-2 bg-gray-50 text-sm text-gray-700">
+                {locales.find(l => l.id === (usuario?.localId ?? 0))?.nombre || 'Mi Local'}
+              </div>
+            )}
           </div>
           <div className="col-span-2 flex gap-2">
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -285,29 +354,6 @@ export default function ClientesPage() {
           </div>
         </form>
       )}
-
-      <div className="mb-4 flex items-end gap-3">
-        <div className="min-w-[200px]">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
-          {esSuperAdmin ? (
-            <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
-              <option value={0}>Todos los locales</option>
-              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-            </select>
-          ) : (
-            <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
-              {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
-            </div>
-          )}
-        </div>
-        <input
-          type="text"
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre o telefono..."
-          className="border rounded px-3 py-2 flex-1 max-w-md"
-        />
-      </div>
 
       <div className="bg-white rounded-lg shadow">
         <table className="w-full">
@@ -347,7 +393,7 @@ export default function ClientesPage() {
             ))}
             {clientesFiltrados.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">No hay clientes registrados</td>
+                <td colSpan={10} className="px-4 py-8 text-center text-gray-400">No hay clientes registrados</td>
               </tr>
             )}
           </tbody>

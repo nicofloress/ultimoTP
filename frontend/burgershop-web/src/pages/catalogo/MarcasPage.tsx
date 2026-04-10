@@ -5,6 +5,8 @@ import { Proveedor } from '../../types/catalogo';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 
+const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
+
 const emptyForm = { nombre: '', descripcion: '', proveedorId: undefined as number | undefined };
 
 export default function MarcasPage() {
@@ -92,20 +94,29 @@ export default function MarcasPage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      {/* Header simple sin botón */}
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
         <h2 className="text-lg font-bold text-white">Marcas</h2>
+      </div>
+
+      {/* Barra de filtros uniforme */}
+      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre, descripcion o proveedor..."
+          className={selectClass + ' flex-1 min-w-[200px]'}
+        />
+        <div className="flex-1" />
         <button
-          onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
+          onClick={() => { setShowForm(true); setEditando(null); setForm(emptyForm); }}
+          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5 whitespace-nowrap"
         >
-          {showForm ? 'Cerrar' : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Nueva Marca
-            </>
-          )}
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Marca
         </button>
       </div>
 
@@ -149,7 +160,7 @@ export default function MarcasPage() {
             <button
               type="submit"
               disabled={guardando}
-              className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-emerald-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
@@ -163,16 +174,6 @@ export default function MarcasPage() {
           </div>
         </form>
       )}
-
-      <div className="bg-white rounded-lg shadow mb-4 px-4 py-3 flex items-center gap-3">
-        <input
-          type="text"
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre, descripcion o proveedor..."
-          className="border rounded px-3 py-2 flex-1"
-        />
-      </div>
 
       <div className="bg-white rounded-lg shadow">
         <table className="w-full">

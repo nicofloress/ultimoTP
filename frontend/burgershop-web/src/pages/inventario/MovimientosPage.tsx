@@ -52,6 +52,7 @@ export default function MovimientosPage() {
   const [codigosAccion, setCodigosAccion] = useState<CodigoAccion[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null);
 
   // --- Locales ---
   const [locales, setLocales] = useState<LocalDto[]>([]);
@@ -100,6 +101,7 @@ export default function MovimientosPage() {
       }
       // Ocultar movimientos internos de combos (desglose de stock)
       setMovimientos(data.filter(m => !m.observaciones?.startsWith('[COMBO]')));
+      setUltimaActualizacion(new Date());
     } catch (err) {
       console.error('Error cargando movimientos:', err);
       showToast('Error al cargar movimientos', 'error');
@@ -108,8 +110,12 @@ export default function MovimientosPage() {
     }
   }, [fechaDesde, fechaHasta, localSeleccionado, showToast]);
 
+  useEffect(() => { cargarMovimientos(); }, [cargarMovimientos]);
+
+  // Auto-refresh cada 5 minutos
   useEffect(() => {
-    cargarMovimientos();
+    const interval = setInterval(cargarMovimientos, 300000);
+    return () => clearInterval(interval);
   }, [cargarMovimientos]);
 
   // --- Filtrado local ---
@@ -313,6 +319,22 @@ export default function MovimientosPage() {
               Nuevo Movimiento
             </button>
           )}
+          <div className="flex-1" />
+          {ultimaActualizacion && (
+            <span className="text-xs text-gray-400 italic">
+              Actualizado: {ultimaActualizacion.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </span>
+          )}
+          <button
+            onClick={cargarMovimientos}
+            disabled={cargando}
+            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <svg className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Actualizar
+          </button>
           {movimientosFiltrados.length > 0 && (
             <div className="flex gap-2 ml-3 pl-3 border-l border-gray-300">
               <button
