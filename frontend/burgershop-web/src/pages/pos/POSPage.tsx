@@ -98,6 +98,20 @@ export default function POSPage() {
 
   const busquedaRef = useRef<HTMLInputElement>(null);
   const [indiceBusqueda, setIndiceBusqueda] = useState(-1);
+
+  // Ctrl+Space: focus en cantidad del último item del carrito
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.code === 'Space' && carrito.length > 0) {
+        e.preventDefault();
+        const inputs = document.querySelectorAll<HTMLInputElement>('.carrito-cant-input');
+        const last = inputs[inputs.length - 1];
+        if (last) { last.focus(); last.select(); }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [carrito.length]);
   const clienteInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -422,14 +436,23 @@ export default function POSPage() {
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setIndiceBusqueda(prev => Math.min(prev + 1, resultadosBusqueda.length - 1));
+      setIndiceBusqueda(prev => {
+        const next = Math.min(prev + 1, resultadosBusqueda.length - 1);
+        document.querySelector(`[data-busqueda-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+        return next;
+      });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setIndiceBusqueda(prev => Math.max(prev - 1, -1));
+      setIndiceBusqueda(prev => {
+        const next = Math.max(prev - 1, -1);
+        if (next >= 0) document.querySelector(`[data-busqueda-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+        return next;
+      });
     } else if (e.key === 'Escape') {
       setBusqueda('');
       setIndiceBusqueda(-1);
     } else if (e.key === 'Enter' && busqueda.trim()) {
+      // Si hay item seleccionado con flechas, usar ese
       if (indiceBusqueda >= 0 && indiceBusqueda < resultadosBusqueda.length) {
         const sel = resultadosBusqueda[indiceBusqueda];
         if (sel.tipo === 'prod') agregarProducto(sel.item as Producto);
@@ -438,9 +461,17 @@ export default function POSPage() {
         setIndiceBusqueda(-1);
         return;
       }
+      // Código exacto de barras
       const exacto = productos.find(p => p.activo && p.numeroInterno?.toLowerCase() === busqueda.trim().toLowerCase());
       if (exacto) { agregarProducto(exacto); return; }
-      if (productosFiltrados.length === 1) agregarProducto(productosFiltrados[0]);
+      // Si hay un solo resultado (producto o combo), agregarlo
+      if (resultadosBusqueda.length === 1) {
+        const sel = resultadosBusqueda[0];
+        if (sel.tipo === 'prod') agregarProducto(sel.item as Producto);
+        else agregarCombo(sel.item as Combo);
+        setBusqueda('');
+        setIndiceBusqueda(-1);
+      }
     }
   };
 
@@ -765,6 +796,7 @@ export default function POSPage() {
               {productosFiltrados.slice(0, 6).map((p, idx) => (
                 <button
                   key={`p-${p.id}`}
+                  data-busqueda-idx={idx}
                   onClick={() => agregarProducto(p)}
                   className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 active:bg-amber-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idx ? 'bg-amber-100' : ''}`}
                 >
@@ -789,6 +821,7 @@ export default function POSPage() {
                 return (
                 <button
                   key={`c-${c.id}`}
+                  data-busqueda-idx={idxGlobal}
                   onClick={() => { agregarCombo(c); setBusqueda(''); busquedaRef.current?.focus(); }}
                   className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idxGlobal ? 'bg-purple-100' : ''}`}
                 >
@@ -871,7 +904,7 @@ export default function POSPage() {
                           <NumericInput
                             value={item.cantidad}
                             onChange={v => actualizarItem(i, 'cantidad', Math.max(1, v))}
-                            className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                            className="carrito-cant-input w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
                             min={1}
                           />
                         </td>

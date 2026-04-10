@@ -74,6 +74,21 @@ export default function PedidosPage() {
   const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
   const [marcaFiltro, setMarcaFiltro] = useState<string | null>(null);
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
+
+  // Ctrl+Space: focus en cantidad del último item del carrito
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.code === 'Space' && carrito.length > 0) {
+        e.preventDefault();
+        const inputs = document.querySelectorAll<HTMLInputElement>('.carrito-cant-input');
+        const last = inputs[inputs.length - 1];
+        if (last) { last.focus(); last.select(); }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [carrito.length]);
+
   const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState<number | undefined>();
   const [notaInterna, setNotaInterna] = useState('');
   const [zonaSeleccionada, setZonaSeleccionada] = useState<number | undefined>();
@@ -406,10 +421,18 @@ export default function PedidosPage() {
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setIndiceBusqueda(prev => Math.min(prev + 1, resultadosBusqueda.length - 1));
+      setIndiceBusqueda(prev => {
+        const next = Math.min(prev + 1, resultadosBusqueda.length - 1);
+        document.querySelector(`[data-busqueda-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+        return next;
+      });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setIndiceBusqueda(prev => Math.max(prev - 1, -1));
+      setIndiceBusqueda(prev => {
+        const next = Math.max(prev - 1, -1);
+        if (next >= 0) document.querySelector(`[data-busqueda-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+        return next;
+      });
     } else if (e.key === 'Escape') {
       setBusqueda('');
       setIndiceBusqueda(-1);
@@ -424,7 +447,13 @@ export default function PedidosPage() {
       }
       const exacto = productos.find(p => p.activo && p.numeroInterno?.toLowerCase() === busqueda.trim().toLowerCase());
       if (exacto) { agregarProducto(exacto); return; }
-      if (productosFiltrados.length === 1) agregarProducto(productosFiltrados[0]);
+      if (resultadosBusqueda.length === 1) {
+        const sel = resultadosBusqueda[0];
+        if (sel.tipo === 'prod') agregarProducto(sel.item as Producto);
+        else agregarCombo(sel.item as Combo);
+        setBusqueda('');
+        setIndiceBusqueda(-1);
+      }
     }
   };
 
@@ -881,6 +910,7 @@ export default function PedidosPage() {
               {productosFiltrados.slice(0, 8).map((p, idx) => (
                 <button
                   key={p.id}
+                  data-busqueda-idx={idx}
                   onClick={() => agregarProducto(p)}
                   className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 active:bg-amber-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idx ? 'bg-amber-100' : ''}`}
                 >
@@ -905,6 +935,7 @@ export default function PedidosPage() {
                 return (
                 <button
                   key={`c-${c.id}`}
+                  data-busqueda-idx={idxGlobal}
                   onClick={() => { agregarCombo(c); setBusqueda(''); busquedaRef.current?.focus(); }}
                   className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idxGlobal ? 'bg-purple-100' : ''}`}
                 >
@@ -989,7 +1020,7 @@ export default function PedidosPage() {
                             value={item.cantidad}
                             onChange={e => actualizarItem(i, 'cantidad', Math.max(1, Number(e.target.value)))}
                             disabled={esEdicionLimitada}
-                            className={`w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                            className={`carrito-cant-input w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                             min={1}
                           />
                         </td>

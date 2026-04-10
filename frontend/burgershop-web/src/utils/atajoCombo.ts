@@ -79,19 +79,23 @@ export function filtrarCombosPorAtajo<
 >(
   combos: C[],
   atajo: AtajoCombo,
-  productos: { id: number; nombre: string; pesoGramos?: number; categoriaId: number }[],
+  productos: { id: number; nombre: string; pesoGramos?: number; categoriaId: number; unidadMinima: number }[],
   categorias: { id: number; nombre: string }[]
 ): C[] {
   return combos.filter(c => {
     if (!c.activo) return false;
 
     // Buscar si el combo contiene la hamburguesa correcta (cantidad, gramaje, línea)
+    // La cantidad del atajo es en unidades reales (ej: 60 hamburguesas),
+    // pero ComboDetalle.Cantidad está en paquetes (ej: 30 paquetes de 2).
+    // Multiplicar detalle.cantidad × unidadMinima para comparar.
     const lineaTexto = atajo.linea === 'eco' ? 'conomica' : 'remium';
     const hambDetalle = c.detalles.find(d => {
       const prod = productos.find(p => p.id === d.productoId);
       if (!prod) return false;
       if (prod.pesoGramos !== atajo.gramaje) return false;
-      if (d.cantidad !== atajo.cantidad) return false;
+      const cantidadReal = d.cantidad * (prod.unidadMinima || 1);
+      if (cantidadReal !== atajo.cantidad) return false;
       // Verificar línea por nombre de categoría
       const cat = categorias.find(ct => ct.id === prod.categoriaId);
       if (!cat || !cat.nombre.toLowerCase().includes(lineaTexto)) return false;
