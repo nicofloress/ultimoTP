@@ -70,6 +70,7 @@ export default function PedidosPage() {
   const [telefono, setTelefono] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [mostrarCatalogo, setMostrarCatalogo] = useState(false);
+  const [mostrarMapaGrande, setMostrarMapaGrande] = useState(false);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
   const [marcaFiltro, setMarcaFiltro] = useState<string | null>(null);
@@ -859,6 +860,16 @@ export default function PedidosPage() {
                   setDireccion(dir);
                 }}
               />
+              {/* Botón expandir mapa */}
+              <button
+                onClick={() => setMostrarMapaGrande(true)}
+                className="absolute top-2 left-2 bg-white/90 hover:bg-white text-gray-600 hover:text-gray-800 rounded-md p-1.5 shadow-sm transition-colors"
+                title="Ampliar mapa"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                </svg>
+              </button>
               {coordenadas && (
                 <button
                   onClick={() => { limpiarCoordenadas(); setDireccion(''); }}
@@ -1341,6 +1352,59 @@ export default function PedidosPage() {
             </svg>
             <span className="text-lg font-semibold text-gray-700">Procesando pedido...</span>
             <span className="text-sm text-gray-400">Por favor espere</span>
+          </div>
+        </div>
+      )}
+
+      {/* ============ MODAL MAPA GRANDE ============ */}
+      {mostrarMapaGrande && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setMostrarMapaGrande(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-800">Seleccionar ubicacion</h3>
+              {coordenadas && (
+                <span className="text-sm text-gray-500 truncate max-w-md">{direccion || 'Ubicacion seleccionada'}</span>
+              )}
+              <button onClick={() => setMostrarMapaGrande(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 relative">
+              <GoogleMap
+                coordenadas={coordenadas || { lat: -34.6037, lng: -58.3816 }}
+                className="h-full"
+                onClick={(coords, dir) => {
+                  setCoordenadas(coords);
+                  setDireccion(dir);
+                }}
+              />
+              {!coordenadas && (
+                <div className="absolute inset-0 flex items-end justify-center pb-6 pointer-events-none">
+                  <span className="bg-black/60 text-white text-sm px-4 py-2 rounded-full">Hace click en el mapa para seleccionar ubicacion</span>
+                </div>
+              )}
+            </div>
+            {coordenadas && (
+              <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">Direccion:</span> {direccion || '-'}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { limpiarCoordenadas(); setDireccion(''); }}
+                    className="px-3 py-1.5 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 transition-colors"
+                  >
+                    Limpiar
+                  </button>
+                  <button
+                    onClick={() => setMostrarMapaGrande(false)}
+                    className="px-3 py-1.5 text-sm text-white bg-amber-500 rounded-md hover:bg-amber-600 transition-colors font-medium"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
