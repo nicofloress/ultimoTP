@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ClienteDto, CrearClienteDto } from '../../types/ventas';
-import { Zona } from '../../types/logistica';
 import { ListaPrecio } from '../../types/catalogo';
 import { TipoCliente } from '../../types/ventas';
 import { getClientes, crearCliente, actualizarCliente, eliminarCliente } from '../../api/clientes';
-import { getZonas } from '../../api/zonas';
 import { getTiposCliente } from '../../api/tiposCliente';
 import { getListasPrecios } from '../../api/listasPrecios';
 import { getLocales, LocalDto } from '../../api/locales';
@@ -22,7 +20,6 @@ const emptyForm = {
   email: '',
   telefono: '',
   direccion: '',
-  zonaId: '' as string,
   tipoClienteId: '' as string,
   listaPrecioId: '' as string,
   localId: '' as string,
@@ -37,7 +34,6 @@ export default function ClientesPage() {
   const [editando, setEditando] = useState<ClienteDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
-  const [zonas, setZonas] = useState<Zona[]>([]);
   const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
   const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
   const [locales, setLocales] = useState<LocalDto[]>([]);
@@ -52,22 +48,11 @@ export default function ClientesPage() {
 
   useEffect(() => {
     cargar();
-    getZonas().then(setZonas);
+
     getTiposCliente().then(setTiposCliente);
     getListasPrecios().then(setListasPrecios);
     getLocales().then(setLocales);
   }, []);
-
-  // Zonas filtradas por el local del formulario (o el local del usuario si no es SuperAdmin)
-  const localIdFormulario = form.localId
-    ? Number(form.localId)
-    : (!esSuperAdmin ? (usuario?.localId ?? 0) : 0);
-
-  const zonasFiltradas = zonas.filter(z => {
-    if (!z.activa) return false;
-    if (localIdFormulario && z.localId && z.localId !== localIdFormulario) return false;
-    return true;
-  });
 
   const abrirNuevo = () => {
     setEditando(null);
@@ -93,7 +78,6 @@ export default function ClientesPage() {
         email: form.email || undefined,
         telefono: form.telefono || undefined,
         direccion: form.direccion || undefined,
-        zonaId: form.zonaId ? Number(form.zonaId) : undefined,
         tipoClienteId: form.tipoClienteId ? Number(form.tipoClienteId) : undefined,
         listaPrecioId: form.listaPrecioId ? Number(form.listaPrecioId) : undefined,
         localId: localIdFinal,
@@ -124,7 +108,6 @@ export default function ClientesPage() {
       email: c.email || '',
       telefono: c.telefono || '',
       direccion: c.direccion || '',
-      zonaId: c.zonaId ? String(c.zonaId) : '',
       tipoClienteId: c.tipoClienteId ? String(c.tipoClienteId) : '',
       listaPrecioId: c.listaPrecioId ? String(c.listaPrecioId) : '',
       localId: c.localId ? String(c.localId) : '',
@@ -284,19 +267,6 @@ export default function ClientesPage() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Zona</label>
-            <select
-              value={form.zonaId}
-              onChange={e => setForm({ ...form, zonaId: e.target.value })}
-              className="border rounded px-3 py-2 w-full"
-            >
-              <option value="">Sin zona</option>
-              {zonasFiltradas.map(z => (
-                <option key={z.id} value={z.id}>{z.nombre}</option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de Cliente</label>
             <select
               value={form.tipoClienteId}
@@ -329,7 +299,7 @@ export default function ClientesPage() {
                 value={form.localId}
                 onChange={e => {
                   // Al cambiar el local, limpiar la zona seleccionada para evitar zonas de otro local
-                  setForm({ ...form, localId: e.target.value, zonaId: '' });
+                  setForm({ ...form, localId: e.target.value });
                 }}
                 className="border rounded px-3 py-2 w-full"
               >
@@ -364,7 +334,6 @@ export default function ClientesPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Email</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Zona</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo Cliente</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista Precios</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
@@ -379,7 +348,6 @@ export default function ClientesPage() {
                 <td className="px-4 py-3 text-sm text-gray-600">{c.email || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.telefono || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.direccion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.zonaNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.tipoClienteNombre || '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {c.listaPrecioId ? listasPrecios.find(l => l.id === c.listaPrecioId)?.nombre || '-' : 'Precio Base'}
