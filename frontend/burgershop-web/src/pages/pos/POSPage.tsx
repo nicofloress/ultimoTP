@@ -97,6 +97,7 @@ export default function POSPage() {
   const [mostrarComprobante, setMostrarComprobante] = useState(false);
 
   const busquedaRef = useRef<HTMLInputElement>(null);
+  const [indiceBusqueda, setIndiceBusqueda] = useState(-1);
   const clienteInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -413,17 +414,33 @@ export default function POSPage() {
     return activos.filter(c => c.detalles.some(d => prodIdsEnCat.has(d.productoId)));
   }, [combos, productos, categoriaFiltro, gramajesFiltro, marcaFiltro, lineaFiltro, megaCategorias, preciosPromoCombos]);
 
-  // Auto-agregar producto si busca por codigo exacto y Enter
+  // Navegación con teclado en resultados de búsqueda
+  const resultadosBusqueda = busqueda.trim()
+    ? [...productosFiltrados.slice(0, 6).map(p => ({ tipo: 'prod' as const, item: p })), ...combosFiltrados.slice(0, 6).map(c => ({ tipo: 'combo' as const, item: c }))]
+    : [];
+
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && busqueda.trim()) {
-      const exacto = productos.find(p => p.activo && p.numeroInterno?.toLowerCase() === busqueda.trim().toLowerCase());
-      if (exacto) {
-        agregarProducto(exacto);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIndiceBusqueda(prev => Math.min(prev + 1, resultadosBusqueda.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIndiceBusqueda(prev => Math.max(prev - 1, -1));
+    } else if (e.key === 'Escape') {
+      setBusqueda('');
+      setIndiceBusqueda(-1);
+    } else if (e.key === 'Enter' && busqueda.trim()) {
+      if (indiceBusqueda >= 0 && indiceBusqueda < resultadosBusqueda.length) {
+        const sel = resultadosBusqueda[indiceBusqueda];
+        if (sel.tipo === 'prod') agregarProducto(sel.item as Producto);
+        else agregarCombo(sel.item as Combo);
+        setBusqueda('');
+        setIndiceBusqueda(-1);
         return;
       }
-      if (productosFiltrados.length === 1) {
-        agregarProducto(productosFiltrados[0]);
-      }
+      const exacto = productos.find(p => p.activo && p.numeroInterno?.toLowerCase() === busqueda.trim().toLowerCase());
+      if (exacto) { agregarProducto(exacto); return; }
+      if (productosFiltrados.length === 1) agregarProducto(productosFiltrados[0]);
     }
   };
 
@@ -508,7 +525,7 @@ export default function POSPage() {
         descuento: descuentoCalculado,
         notaInterna: notaInterna || undefined,
         tipoFactura,
-        estaPago: !esCtaCte,
+        estaPago: true,
         clienteId: clienteSeleccionado?.id,
         pagos: modoPago === 'dividido' ? pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0).map(p => ({ formaPagoId: p.formaPagoId, monto: p.monto })) : undefined,
         lineas: detallesCarrito,
@@ -727,7 +744,7 @@ export default function POSPage() {
                 ref={busquedaRef}
                 type="text"
                 value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
+                onChange={e => { setBusqueda(e.target.value); setIndiceBusqueda(-1); }}
                 onKeyDown={handleBusquedaKeyDown}
                 placeholder="Codigo de barras / Buscar producto..."
                 className={`${inputClass} pl-8 text-base`}
@@ -745,11 +762,11 @@ export default function POSPage() {
           {/* Resultados de busqueda rapida */}
           {busqueda && (productosFiltrados.length > 0 || combosFiltrados.length > 0) && (
             <div className="mt-1.5 border border-gray-200 rounded-md max-h-72 overflow-y-auto shadow-sm">
-              {productosFiltrados.slice(0, 6).map(p => (
+              {productosFiltrados.slice(0, 6).map((p, idx) => (
                 <button
                   key={`p-${p.id}`}
                   onClick={() => agregarProducto(p)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 active:bg-amber-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
+                  className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 active:bg-amber-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idx ? 'bg-amber-100' : ''}`}
                 >
                   <div className="flex items-center gap-2">
                     {p.numeroInterno && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{p.numeroInterno}</span>}
@@ -767,11 +784,13 @@ export default function POSPage() {
                   </span>
                 </button>
               ))}
-              {combosFiltrados.slice(0, 6).map(c => (
+              {combosFiltrados.slice(0, 6).map((c, idx) => {
+                const idxGlobal = productosFiltrados.slice(0, 6).length + idx;
+                return (
                 <button
                   key={`c-${c.id}`}
                   onClick={() => { agregarCombo(c); setBusqueda(''); busquedaRef.current?.focus(); }}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors"
+                  className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-purple-50 active:bg-purple-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idxGlobal ? 'bg-purple-100' : ''}`}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
@@ -788,7 +807,8 @@ export default function POSPage() {
                     )}
                   </span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
 

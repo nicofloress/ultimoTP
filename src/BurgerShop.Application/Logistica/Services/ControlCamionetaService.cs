@@ -101,12 +101,12 @@ public class ControlCamionetaService : IControlCamionetaService
                 Premium = tallies.Premium
                     .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
                     .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
-                SalchichaCorta = DistribuirSalchichas(tallies.SalchichaCortaTotal, new[] { 60, 30 }),
-                SalchichaLarga = DistribuirSalchichas(tallies.SalchichaLargaTotal, new[] { 60, 36, 18 }),
+                SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanTradicional = DistribuirSalchichas(tallies.PanTradicionalTotal, new[] { 60, 30, 20 }),
                 PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
-                PanPancho = DistribuirSalchichas(tallies.PanPanchoTotal, new[] { 60, 30 }),
-                PanSuperPancho = DistribuirSalchichas(tallies.PanSuperPanchoTotal, new[] { 60, 36, 18 }),
+                PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
                 Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
                 Finalizado = todosTerminales
@@ -148,12 +148,12 @@ public class ControlCamionetaService : IControlCamionetaService
             Premium = tallies.Premium
                 .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
                 .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
-            SalchichaCorta = DistribuirSalchichas(tallies.SalchichaCortaTotal, new[] { 60, 30 }),
-            SalchichaLarga = DistribuirSalchichas(tallies.SalchichaLargaTotal, new[] { 60, 36, 18 }),
+            SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             PanTradicional = DistribuirSalchichas(tallies.PanTradicionalTotal, new[] { 60, 30, 20 }),
             PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
-            PanPancho = DistribuirSalchichas(tallies.PanPanchoTotal, new[] { 60, 30 }),
-            PanSuperPancho = DistribuirSalchichas(tallies.PanSuperPanchoTotal, new[] { 60, 36, 18 }),
+            PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
             Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
             Finalizado = true
@@ -231,15 +231,16 @@ public class ControlCamionetaService : IControlCamionetaService
             [198] = default
         };
 
-        // Salchichas: acumulador de unidades totales, se distribuyen después en paquetes fijos
-        public int SalchichaCortaTotal { get; set; }
-        public int SalchichaLargaTotal { get; set; }
+        // Salchichas: cantidad real de unidades por línea → palotes
+        public Dictionary<int, int> SalchichaCorta { get; } = new();
+        public Dictionary<int, int> SalchichaLarga { get; } = new();
 
-        // Panes: acumulador de unidades totales, se distribuyen después en paquetes fijos
+        // Panes hamburguesa: acumulador de unidades totales, se distribuyen después
         public int PanTradicionalTotal { get; set; }
         public int PanMaxiTotal { get; set; }
-        public int PanPanchoTotal { get; set; }
-        public int PanSuperPanchoTotal { get; set; }
+        // Panes salchicha: cantidad real de unidades por línea → palotes
+        public Dictionary<int, int> PanPancho { get; } = new();
+        public Dictionary<int, int> PanSuperPancho { get; } = new();
 
         // Aderezos: nombre del producto → cantidad total
         public Dictionary<string, int> Aderezos { get; } = new();
@@ -257,18 +258,46 @@ public class ControlCamionetaService : IControlCamionetaService
             {
                 if (linea.ComboId != null && linea.Combo != null)
                 {
-                    // Los combos ya incluyen panes y aderezos como ComboDetalle explícito
-                    // No auto-agregar nada: contar exactamente lo que viene
-                    // EXCEPCIÓN: los aderezos del combo NO se contabilizan — solo los sueltos
+                    // Los combos incluyen componentes como ComboDetalle explícito.
+                    // Productos con sección específica (hamburguesas, salchichas, panes) se procesan individualmente.
+                    // Productos "Otro" (snacks, etc.) se agrupan bajo el nombre del combo.
+                    bool tieneOtros = false;
                     foreach (var detalle in linea.Combo.Detalles)
                     {
-                        if (detalle.Producto != null
-                            && (detalle.Producto.Categoria?.SeccionCamioneta ?? SeccionCamioneta.Otro) != SeccionCamioneta.Aderezo)
+                        if (detalle.Producto == null) continue;
+                        var seccion = InferirSeccion(detalle.Producto);
+                        if (seccion == SeccionCamioneta.Aderezo) continue;
+
+                        if (seccion == SeccionCamioneta.Otro)
                         {
-                            // Todo está en paquetes. ProcesarProducto decide internamente
-                            // si necesita convertir a unidades reales (salchichas/panes) o no (hamburguesas).
+                            tieneOtros = true;
+                        }
+                        else if (seccion == SeccionCamioneta.SalchichaCorta || seccion == SeccionCamioneta.SalchichaLarga
+                              || seccion == SeccionCamioneta.PanPancho || seccion == SeccionCamioneta.PanSuperPancho)
+                        {
+                            // Salchichas y panes de combo: key = unidades reales del combo, valor = cantidad de combos
+                            var um = detalle.Producto.UnidadMinima > 1 ? detalle.Producto.UnidadMinima : 1;
+                            var unidadesRealesPorCombo = detalle.Cantidad * um;
+                            var dict = seccion switch
+                            {
+                                SeccionCamioneta.SalchichaCorta => data.SalchichaCorta,
+                                SeccionCamioneta.SalchichaLarga => data.SalchichaLarga,
+                                SeccionCamioneta.PanPancho => data.PanPancho,
+                                SeccionCamioneta.PanSuperPancho => data.PanSuperPancho,
+                                _ => data.PanPancho
+                            };
+                            dict[unidadesRealesPorCombo] = dict.GetValueOrDefault(unidadesRealesPorCombo) + linea.Cantidad;
+                        }
+                        else
+                        {
                             ProcesarProducto(data, detalle.Producto, linea.Cantidad * detalle.Cantidad);
                         }
+                    }
+                    // Si el combo tiene componentes "Otro", agregar el combo como una sola línea
+                    if (tieneOtros)
+                    {
+                        var nombreCombo = linea.Combo.Nombre ?? $"Combo #{linea.ComboId}";
+                        data.Otros[nombreCombo] = data.Otros.GetValueOrDefault(nombreCombo) + linea.Cantidad;
                     }
                 }
                 else if (linea.ProductoId != null && linea.Producto != null)
@@ -306,12 +335,19 @@ public class ControlCamionetaService : IControlCamionetaService
                 break;
 
             case SeccionCamioneta.SalchichaCorta:
-                data.SalchichaCortaTotal += cantidadPaquetes * um;
+            {
+                // Suelto: total real = paquetes × unidadMinima, 1 palote
+                var totalReal = cantidadPaquetes * um;
+                data.SalchichaCorta[totalReal] = data.SalchichaCorta.GetValueOrDefault(totalReal) + 1;
                 break;
+            }
 
             case SeccionCamioneta.SalchichaLarga:
-                data.SalchichaLargaTotal += cantidadPaquetes * um;
+            {
+                var totalReal = cantidadPaquetes * um;
+                data.SalchichaLarga[totalReal] = data.SalchichaLarga.GetValueOrDefault(totalReal) + 1;
                 break;
+            }
 
             case SeccionCamioneta.PanTradicional:
                 data.PanTradicionalTotal += cantidadPaquetes * um;
@@ -322,12 +358,18 @@ public class ControlCamionetaService : IControlCamionetaService
                 break;
 
             case SeccionCamioneta.PanPancho:
-                data.PanPanchoTotal += cantidadPaquetes * um;
+            {
+                var totalReal = cantidadPaquetes * um;
+                data.PanPancho[totalReal] = data.PanPancho.GetValueOrDefault(totalReal) + 1;
                 break;
+            }
 
             case SeccionCamioneta.PanSuperPancho:
-                data.PanSuperPanchoTotal += cantidadPaquetes * um;
+            {
+                var totalReal = cantidadPaquetes * um;
+                data.PanSuperPancho[totalReal] = data.PanSuperPancho.GetValueOrDefault(totalReal) + 1;
                 break;
+            }
 
             case SeccionCamioneta.Aderezo:
                 var nombreAderezo = producto.Nombre.ToUpperInvariant();
@@ -493,12 +535,12 @@ public class ControlCamionetaService : IControlCamionetaService
         const int fs = 11; // font size uniforme
 
         // Pre-calcular distribuciones para todo el Excel
-        var scDist = DistribuirSalchichas(t.SalchichaCortaTotal, new[] { 60, 30 });
-        var slDist = DistribuirSalchichas(t.SalchichaLargaTotal, new[] { 60, 36, 18 });
+        var scDist = t.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
+        var slDist = t.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var ptDist = DistribuirSalchichas(t.PanTradicionalTotal, new[] { 60, 30, 20 });
         var pmDist = DistribuirSalchichas(t.PanMaxiTotal, new[] { 40, 20 });
-        var ppDist = DistribuirSalchichas(t.PanPanchoTotal, new[] { 60, 30 });
-        var pspDist = DistribuirSalchichas(t.PanSuperPanchoTotal, new[] { 60, 36, 18 });
+        var ppDist = t.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
+        var pspDist = t.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
 
         // ════════════════════════════════════════════════════════════════════
         // LAYOUT FIJO - 29 filas
