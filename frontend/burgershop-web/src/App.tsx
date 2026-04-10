@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { LocalProvider } from './context/LocalContext';
 import { ToastProvider } from './components/Toast';
 import { SignalRProvider } from './components/SignalRProvider';
@@ -45,6 +46,7 @@ import { RolUsuario } from './types/auth';
 
 export default function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
@@ -142,6 +144,7 @@ export default function App() {
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
