@@ -49,6 +49,7 @@ export interface Venta {
   pagos?: PagoPedidoDto[];
   montoNeto?: number;
   montoIVA?: number;
+  fechaEnvioDeposito?: string;
 }
 
 export enum TipoVenta {

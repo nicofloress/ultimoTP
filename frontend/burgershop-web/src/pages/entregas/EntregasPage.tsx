@@ -26,6 +26,7 @@ export default function EntregasPage() {
   const [pedidos, setPedidos] = useState<Venta[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [asignaciones, setAsignaciones] = useState<Map<number, number>>(new Map());
+  const [montosIniciales, setMontosIniciales] = useState<Map<number, number>>(new Map());
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
@@ -190,6 +191,14 @@ export default function EntregasPage() {
     });
   };
 
+  const handleMontoInicial = (zonaId: number, monto: number) => {
+    setMontosIniciales(prev => {
+      const next = new Map(prev);
+      next.set(zonaId, monto);
+      return next;
+    });
+  };
+
   const handleEmpezarReparto = () => {
     if (!puedeEmpezar) return;
     setMostrarConfirmacion(true);
@@ -204,11 +213,13 @@ export default function EntregasPage() {
         .map(([zonaId, repartidorId]) => ({
           zonaId,
           repartidorId,
+          montoInicialCambio: montosIniciales.get(zonaId) ?? 0,
         }));
       await empezarReparto(asignacionesArray);
       setMostrarConfirmacion(false);
       showToast('Reparto iniciado con exito', 'success');
       setAsignaciones(new Map());
+      setMontosIniciales(new Map());
       await cargar();
     } catch (err) {
       console.error('Error al empezar reparto:', err);
@@ -336,6 +347,21 @@ export default function EntregasPage() {
                           <span>Repartidor: {repartidorDeZona}</span>
                         </div>
                       )}
+                      <div className="mb-1.5">
+                        <label className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">Cambio ($)</label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">$</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step={100}
+                            placeholder="0"
+                            value={montosIniciales.get(zonaId) || ''}
+                            onChange={e => handleMontoInicial(zonaId, parseFloat(e.target.value) || 0)}
+                            className="w-full pl-6 pr-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white"
+                          />
+                        </div>
+                      </div>
                       <select
                         value={repartidorAsignado || ''}
                         onChange={e => {
@@ -546,6 +572,11 @@ export default function EntregasPage() {
                       <div className="text-sm text-gray-500">
                         {pendientes.length} pedido{pendientes.length !== 1 ? 's' : ''} · ${totalZona.toLocaleString('es-AR')}
                       </div>
+                      {(montosIniciales.get(zonaId) ?? 0) > 0 && (
+                        <div className="text-xs text-emerald-600 font-medium mt-0.5">
+                          Cambio: ${(montosIniciales.get(zonaId) ?? 0).toLocaleString('es-AR')}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-sm font-medium text-indigo-600">{rep?.nombre}</div>
@@ -557,13 +588,22 @@ export default function EntregasPage() {
             </div>
 
             {/* Resumen total */}
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Total a despachar</span>
                 <span className="font-bold text-gray-800">
                   ${pedidosPendientes.reduce((sum, p) => sum + p.total, 0).toLocaleString('es-AR')}
                 </span>
               </div>
+              {(() => {
+                const totalCambio = Array.from(zonasPendientesDespacho).reduce((sum, zId) => sum + (montosIniciales.get(zId) ?? 0), 0);
+                return totalCambio > 0 ? (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Total cambio a entregar</span>
+                    <span className="font-bold text-emerald-700">${totalCambio.toLocaleString('es-AR')}</span>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             {/* Botones */}

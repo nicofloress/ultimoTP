@@ -19,6 +19,11 @@ public class RepartoZona
     public int TotalCancelados { get; set; }
 
     /// <summary>
+    /// Monto en efectivo entregado al repartidor para dar cambio o cubrir gastos (combustible, etc.)
+    /// </summary>
+    public decimal MontoInicialCambio { get; set; } = 0;
+
+    /// <summary>
     /// Snapshot del tally serializado en JSON al momento de finalizar el reparto.
     /// </summary>
     public string? TallyJson { get; set; }

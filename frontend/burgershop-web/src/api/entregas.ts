@@ -15,7 +15,7 @@ export const marcarNoEntregado = (ventaId: number, motivo: string) =>
 
 export const getPedidosPorZona = () => api.get<Venta[]>('/entregas/por-zona').then(r => r.data);
 export const finalizarRepartoZona = (zonaId: number, repartidorId: number) => api.post('/entregas/finalizar-reparto', { zonaId, repartidorId }).then(r => r.data);
-export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number }[]) =>
+export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number; montoInicialCambio: number }[]) =>
   api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);
 
 export interface CompletaMedia {

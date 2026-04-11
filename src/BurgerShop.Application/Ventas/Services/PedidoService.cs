@@ -200,11 +200,15 @@ public class VentaService : IVentaService
             }
         }
 
-        // Asignar caja abierta si existe (filtrar por local)
-        var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
-        if (cajaAbierta is not null)
+        // Asignar caja abierta solo para ventas Mostrador
+        // Las ventas Domicilio se vinculan a caja al aprobar la rendición
+        if (dto.Tipo == TipoVenta.Mostrador)
         {
-            venta.CierreCajaId = cajaAbierta.Id;
+            var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
+            if (cajaAbierta is not null)
+            {
+                venta.CierreCajaId = cajaAbierta.Id;
+            }
         }
 
         await _ventaRepo.AddAsync(venta);
@@ -612,7 +616,8 @@ public class VentaService : IVentaService
                 repartoZona = await _ventaRepo.CrearRepartoZonaAsync(
                     asignacion.ZonaId,
                     asignacion.RepartidorId,
-                    ventasDeZona.Count);
+                    ventasDeZona.Count,
+                    asignacion.MontoInicialCambio);
             }
 
             foreach (var venta in ventasDeZona)
@@ -722,7 +727,7 @@ public class VentaService : IVentaService
 
     public async Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId)
     {
-        var desde = DateTime.Now.AddMinutes(-30);
+        var desde = DateTime.Today; // Mostrar ventas de todo el día
         var ventas = await _ventaRepo.GetVentasDepositoAsync(desde, localId);
         return ventas.Select(ToDto);
     }
@@ -787,6 +792,7 @@ public class VentaService : IVentaService
             v.MotivoCancelacion,
             v.RepartoZonaId,
             v.MontoNeto,
-            v.MontoIVA);
+            v.MontoIVA,
+            v.FechaEnvioDeposito);
     }
 }

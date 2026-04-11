@@ -40,6 +40,7 @@ export interface RendicionDto {
   detalles: RendicionDetalleDto[];
   zonas: RendicionZonaDto[];
   repartoZonaId?: number;
+  montoInicialCambio: number;
 }
 
 export const crearRendicion = (data: { repartidorId: number; repartoZonaId: number; efectivoDeclarado: number; observaciones?: string }) =>
@@ -82,6 +83,7 @@ export interface RepartidorPendienteRendicionDto {
   totalTransferencia: number;
   totalNoEntregado: number;
   pedidos: PedidoPendienteRendicionDto[];
+  montoInicialCambio: number;
 }
 
 export const getRepartidoresPendientes = () =>

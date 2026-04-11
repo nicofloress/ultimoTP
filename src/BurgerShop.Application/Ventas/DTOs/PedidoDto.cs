@@ -41,7 +41,8 @@ public record VentaDto(
     string? MotivoCancelacion = null,
     int? RepartoZonaId = null,
     decimal MontoNeto = 0,
-    decimal MontoIVA = 0);
+    decimal MontoIVA = 0,
+    DateTime? FechaEnvioDeposito = null);
 
 public record LineaVentaDto(
     int Id,
@@ -114,7 +115,7 @@ public record MarcarEntregadoDto(
     string? ComprobanteBase64 = null);
 
 public record EmpezarRepartoDto(List<AsignacionZonaDto> Asignaciones);
-public record AsignacionZonaDto(int ZonaId, int RepartidorId);
+public record AsignacionZonaDto(int ZonaId, int RepartidorId, decimal MontoInicialCambio = 0);
 public record FinalizarRepartoDto(int ZonaId, int RepartidorId);
 
 public record TicketDto(

@@ -183,7 +183,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
 
     // --- RepartoZona ---
 
-    public async Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas)
+    public async Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas, decimal montoInicialCambio = 0)
     {
         var hoy = DateTime.Today;
 
@@ -198,6 +198,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             existente.TotalEntregados = 0;
             existente.TotalNoEntregados = 0;
             existente.TotalCancelados = 0;
+            existente.MontoInicialCambio = montoInicialCambio;
             await _context.SaveChangesAsync();
             return existente;
         }
@@ -209,7 +210,8 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             Fecha = hoy,
             FechaInicio = DateTime.Now,
             Estado = EstadoReparto.EnCurso,
-            TotalVentas = totalVentas
+            TotalVentas = totalVentas,
+            MontoInicialCambio = montoInicialCambio
         };
 
         _context.RepartosZona.Add(reparto);

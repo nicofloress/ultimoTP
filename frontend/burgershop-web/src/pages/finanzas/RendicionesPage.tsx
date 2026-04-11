@@ -487,6 +487,19 @@ export default function RendicionesPage() {
                   </div>
                 </div>
 
+                {/* Monto inicial de cambio */}
+                {detalle.montoInicialCambio > 0 && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-xs text-emerald-700 uppercase tracking-wider font-medium">Monto Inicial / Cambio</div>
+                        <div className="text-xs text-emerald-600 mt-0.5">Efectivo entregado al repartidor al iniciar el reparto</div>
+                      </div>
+                      <div className="text-lg font-bold text-emerald-700">${detalle.montoInicialCambio.toLocaleString('es-AR')}</div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 rounded-lg p-3">
                     <div className="text-xs text-gray-500 uppercase tracking-wider">Entregados</div>
@@ -827,6 +840,17 @@ export default function RendicionesPage() {
                         <div className="text-base font-bold mt-0.5 text-gray-800">${repartidorSeleccionado.totalTransferencia.toLocaleString('es-AR')}</div>
                       </div>
                     </div>
+
+                    {/* Monto inicial de cambio */}
+                    {repartidorSeleccionado.montoInicialCambio > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-emerald-800">Monto Inicial / Cambio entregado</span>
+                          <span className="text-lg font-bold text-emerald-700">${repartidorSeleccionado.montoInicialCambio.toLocaleString('es-AR')}</span>
+                        </div>
+                        <p className="text-xs text-emerald-600 mt-0.5">Efectivo entregado al repartidor al iniciar el reparto</p>
+                      </div>
+                    )}
 
                     {/* Total No Entregado */}
                     {repartidorSeleccionado.totalNoEntregado > 0 && (

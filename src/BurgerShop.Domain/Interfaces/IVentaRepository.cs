@@ -22,7 +22,7 @@ public interface IVentaRepository : IRepository<Venta>
     Task<int?> GetRepartidorActivoEnZonaHoyAsync(int zonaId);
 
     // RepartoZona
-    Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas);
+    Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas, decimal montoInicialCambio = 0);
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
     Task GuardarTallyRepartoAsync(int zonaId, int repartidorId, string tallyJson);
     Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);

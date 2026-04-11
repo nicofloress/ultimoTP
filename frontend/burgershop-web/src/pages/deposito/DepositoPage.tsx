@@ -42,6 +42,9 @@ const formatMoney = (n: number) =>
 /** Tiempo visible en segundos según cantidad de líneas: <=2 → 5min, >=3 → 10min */
 const getTiempoVenta = (lineas: number) => lineas >= 3 ? 600 : 300;
 
+/** Fecha de referencia para el timer: usa fechaEnvioDeposito si existe, sino fechaCreacion */
+const getFechaReferencia = (v: Venta) => v.fechaEnvioDeposito || v.fechaCreacion;
+
 export default function DepositoPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [now, setNow] = useState<Date>(new Date());
@@ -65,9 +68,21 @@ export default function DepositoPage() {
         }
         idsAnterioresRef.current = idsActuales;
         primeraCargaRef.current = false;
-        // Ordenar por fecha ascendente (más vieja arriba)
+        // Re-activar ventas que fueron enviadas manualmente a depósito (quitar de descartadas)
+        setDescartadas(prev => {
+          const nueva = new Set(prev);
+          let cambio = false;
+          for (const v of data) {
+            if (v.fechaEnvioDeposito && nueva.has(v.id)) {
+              nueva.delete(v.id);
+              cambio = true;
+            }
+          }
+          return cambio ? nueva : prev;
+        });
+        // Ordenar por fecha de referencia ascendente (más vieja arriba)
         const ordenadas = [...data].sort(
-          (a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime()
+          (a, b) => new Date(getFechaReferencia(a)).getTime() - new Date(getFechaReferencia(b)).getTime()
         );
         setVentas(ordenadas);
       } catch (e) {
@@ -94,7 +109,7 @@ export default function DepositoPage() {
     if (ventasVisibles.length === 0) return;
     for (const v of ventasVisibles) {
       const tiempo = getTiempoVenta(v.lineas.length);
-      const transcurridos = (now.getTime() - new Date(v.fechaCreacion).getTime()) / 1000;
+      const transcurridos = (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000;
       const restante = tiempo - transcurridos;
       if (restante <= 0 && fadingOutId !== v.id) {
         setFadingOutId(v.id);
@@ -142,7 +157,7 @@ export default function DepositoPage() {
               const fading = fadingOutId === v.id;
               const tiempo = getTiempoVenta(v.lineas.length);
               const segundosTranscurridos =
-                (now.getTime() - new Date(v.fechaCreacion).getTime()) / 1000;
+                (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000;
               const restante = tiempo - segundosTranscurridos;
 
               return (

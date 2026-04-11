@@ -138,12 +138,6 @@ export default function RepartidorApp() {
       return;
     }
 
-    // Si eligio transferencia y no subio comprobante, no permitir
-    if (metodoPago === 'transferencia' && !comprobanteBase64) {
-      showToast('Subi la imagen del comprobante', 'error');
-      return;
-    }
-
     setActionLoading(modalPedido.id);
     try {
       const data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string } = {

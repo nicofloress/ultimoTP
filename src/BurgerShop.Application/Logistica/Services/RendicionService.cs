@@ -352,7 +352,8 @@ public class RendicionService : IRendicionService
                 totalTransferencia,
                 totalNoEntregado,
                 ventasDto,
-                reparto.Repartidor?.LocalId));
+                reparto.Repartidor?.LocalId,
+                reparto.MontoInicialCambio));
         }
 
         return resultado;
@@ -401,6 +402,8 @@ public class RendicionService : IRendicionService
             z.TotalNoEntregados,
             z.TotalCancelados)).ToList();
 
+        var montoInicialCambio = repartosZona.Sum(z => z.MontoInicialCambio);
+
         return new RendicionDto(
             r.Id,
             r.RepartidorId,
@@ -420,6 +423,7 @@ public class RendicionService : IRendicionService
             detalles,
             zonas,
             r.RepartoZonaId,
-            r.Repartidor?.LocalId);
+            r.Repartidor?.LocalId,
+            montoInicialCambio);
     }
 }
