@@ -27,27 +27,87 @@ export default function RepartidorApp() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
-  const abrirGoogleMapsRuta = () => {
+  const [optimizando, setOptimizando] = useState(false);
+  const [rutaOptimizada, setRutaOptimizada] = useState<{ orden: Venta[]; duracion: string; distancia: string } | null>(null);
+
+  const optimizarRuta = async () => {
     const conDireccion = pendientes.filter(p => p.direccionEntrega);
-    if (conDireccion.length === 0) return;
+    if (conDireccion.length < 2 || !window.google?.maps) return;
 
-    const direcciones = conDireccion.map(p => encodeURIComponent(p.direccionEntrega!));
+    setOptimizando(true);
+    try {
+      const directionsService = new google.maps.DirectionsService();
 
-    if (lastPosition) {
-      // Con GPS: origin = ubicacion actual, destination = ultima, waypoints = las demas
-      const origin = `${lastPosition.lat},${lastPosition.lng}`;
-      const destination = direcciones[direcciones.length - 1];
-      const waypoints = direcciones.slice(0, -1).join('|');
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
-      window.open(url, '_blank');
-    } else {
-      // Sin GPS: origin = primera direccion, destination = ultima, waypoints = intermedias
-      const origin = direcciones[0];
-      const destination = direcciones[direcciones.length - 1];
-      const waypoints = direcciones.slice(1, -1).join('|');
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
-      window.open(url, '_blank');
+      const origin = lastPosition
+        ? new google.maps.LatLng(lastPosition.lat, lastPosition.lng)
+        : conDireccion[0].direccionEntrega!;
+
+      const pedidosParaRuta = lastPosition ? conDireccion : conDireccion.slice(1);
+      const destination = conDireccion[conDireccion.length - 1].direccionEntrega!;
+
+      const waypoints = pedidosParaRuta.slice(0, -1).map(p => ({
+        location: p.direccionEntrega!,
+        stopover: true,
+      }));
+
+      const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
+        directionsService.route(
+          {
+            origin,
+            destination,
+            waypoints,
+            optimizeWaypoints: true,
+            travelMode: google.maps.TravelMode.DRIVING,
+          },
+          (res, status) => {
+            if (status === 'OK' && res) resolve(res);
+            else reject(new Error(`Directions failed: ${status}`));
+          }
+        );
+      });
+
+      // Reordenar pedidos según waypoint_order
+      const waypointOrder = result.routes[0].waypoint_order;
+      const reordenados: Venta[] = [];
+      if (!lastPosition) reordenados.push(conDireccion[0]); // origin es el primer pedido
+      for (const idx of waypointOrder) {
+        reordenados.push(pedidosParaRuta[idx]);
+      }
+      reordenados.push(pedidosParaRuta[pedidosParaRuta.length - 1]); // destination
+
+      // Calcular totales
+      const legs = result.routes[0].legs;
+      const totalDuracion = legs.reduce((sum, l) => sum + (l.duration?.value || 0), 0);
+      const totalDistancia = legs.reduce((sum, l) => sum + (l.distance?.value || 0), 0);
+      const minutos = Math.round(totalDuracion / 60);
+      const km = (totalDistancia / 1000).toFixed(1);
+
+      setRutaOptimizada({
+        orden: reordenados,
+        duracion: minutos < 60 ? `${minutos} min` : `${Math.floor(minutos/60)}h ${minutos%60}min`,
+        distancia: `${km} km`,
+      });
+    } catch (err) {
+      console.error('Error optimizando ruta:', err);
+      showToast('Error al optimizar ruta', 'error');
+    } finally {
+      setOptimizando(false);
     }
+  };
+
+  const abrirGoogleMapsConRuta = () => {
+    const pedidos = rutaOptimizada?.orden || pendientes.filter(p => p.direccionEntrega);
+    if (pedidos.length === 0) return;
+
+    const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
+    const origin = lastPosition
+      ? `${lastPosition.lat},${lastPosition.lng}`
+      : direcciones[0];
+    const startIdx = lastPosition ? 0 : 1;
+    const destination = direcciones[direcciones.length - 1];
+    const waypoints = direcciones.slice(startIdx, -1).join('|');
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
+    window.open(url, '_blank');
   };
 
   // Polling mensajes no leidos
@@ -292,17 +352,73 @@ export default function RepartidorApp() {
       <main className="max-w-2xl mx-auto px-4 py-4">
         {activeTab === 'pendientes' && (
           <>
-            {/* Boton optimizar ruta */}
+            {/* Botones de ruta */}
             {pendientes.filter(p => p.direccionEntrega).length >= 2 && (
-              <button
-                onClick={abrirGoogleMapsRuta}
-                className="w-full mb-3 bg-slate-700 hover:bg-slate-800 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                Abrir ruta en Google Maps
-              </button>
+              <div className="mb-3 space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={optimizarRuta}
+                    disabled={optimizando}
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {optimizando ? (
+                      <>
+                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Optimizando...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        Optimizar Ruta
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={abrirGoogleMapsConRuta}
+                    className="bg-slate-700 hover:bg-slate-800 text-white py-2.5 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    Maps
+                  </button>
+                </div>
+
+                {/* Resultado de optimización */}
+                {rutaOptimizada && (
+                  <div className="bg-slate-800 rounded-lg p-3 border border-slate-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-amber-400 uppercase font-bold tracking-wider">Ruta Optimizada</span>
+                      <div className="flex gap-3 text-xs text-slate-300">
+                        <span>{rutaOptimizada.distancia}</span>
+                        <span>{rutaOptimizada.duracion}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {rutaOptimizada.orden.map((p, idx) => (
+                        <div key={p.id} className="flex items-center gap-2 text-sm">
+                          <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="text-white truncate">{p.nombreCliente || 'Cliente'}</span>
+                          <span className="text-slate-400 text-xs truncate flex-1">{p.direccionEntrega}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setRutaOptimizada(null)}
+                      className="mt-2 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             <PendientesTab
               pedidos={pendientes}
