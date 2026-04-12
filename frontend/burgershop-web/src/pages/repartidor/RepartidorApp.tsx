@@ -87,9 +87,13 @@ export default function RepartidorApp() {
         duracion: minutos < 60 ? `${minutos} min` : `${Math.floor(minutos/60)}h ${minutos%60}min`,
         distancia: `${km} km`,
       });
-    } catch (err) {
-      console.error('Error optimizando ruta:', err);
-      showToast('Error al optimizar ruta', 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('Error optimizando ruta:', msg, err);
+
+      // Fallback: abrir directamente en Google Maps con el orden actual
+      showToast(`No se pudo optimizar (${msg}). Abriendo en Google Maps...`, 'error');
+      abrirGoogleMapsConRuta();
     } finally {
       setOptimizando(false);
     }
