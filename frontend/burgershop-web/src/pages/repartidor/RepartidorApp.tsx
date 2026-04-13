@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+
+declare const __APP_VERSION__: string;
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 import { Venta, Mensaje, EstadoVenta } from '../../types';
 import { marcarEnCamino, marcarEntregado, marcarNoEntregado } from '../../api/entregas';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
@@ -17,6 +20,20 @@ export default function RepartidorApp() {
   const repartidorId = usuario?.repartidorId ?? null;
   const { entregas, pendingCount, refresh, lastRefresh, isRefreshing } = useNotifications(repartidorId);
   const { showToast } = useGlobalToast();
+  const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const res = await fetch('/version.json?t=' + Date.now());
+        const data = await res.json();
+        if (data.version && data.version !== APP_VERSION) setHayNuevaVersion(true);
+      } catch { /* ignore */ }
+    };
+    checkVersion();
+    const interval = setInterval(checkVersion, 60000);
+    return () => clearInterval(interval);
+  }, []);
   const { gpsStatus, lastPosition } = useGeoTracking(!!repartidorId);
 
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
@@ -269,8 +286,18 @@ export default function RepartidorApp() {
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0">
-                <h1 className="font-bold text-lg text-white tracking-tight truncate">Gestion HLP</h1>
-                <p className="text-slate-400 text-sm truncate">{usuario?.nombreCompleto}</p>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-bold text-lg text-white tracking-tight truncate">Gestion HLP</h1>
+                  <span className="text-[10px] text-slate-500">v{APP_VERSION}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-slate-400 text-sm truncate">{usuario?.nombreCompleto}</p>
+                  {hayNuevaVersion && (
+                    <button onClick={() => window.location.reload()} className="text-[10px] text-amber-400 font-medium animate-pulse">
+                      Actualizar
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* GPS indicator */}
