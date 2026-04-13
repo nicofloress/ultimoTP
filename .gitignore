@@ -36,3 +36,4 @@ appsettings.Development.json
 # SSL certs
 cert.pem
 *.pem
+frontend/burgershop-web/public/version.json

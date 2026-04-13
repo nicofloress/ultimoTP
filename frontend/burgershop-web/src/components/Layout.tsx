@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useLocalActivo } from '../context/LocalContext';
 import { useTheme } from '../context/ThemeContext';
 
-const APP_VERSION = '1.0.0';
+declare const __APP_VERSION__: string;
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 import { RolUsuario } from '../types/auth';
 
 interface MenuItem {
