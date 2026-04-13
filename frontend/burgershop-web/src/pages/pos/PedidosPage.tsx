@@ -444,16 +444,18 @@ export default function PedidosPage() {
         else agregarCombo(sel.item as Combo);
         setBusqueda('');
         setIndiceBusqueda(-1);
+        setTimeout(() => busquedaRef.current?.focus(), 0);
         return;
       }
       const exacto = productos.find(p => p.activo && p.numeroInterno?.toLowerCase() === busqueda.trim().toLowerCase());
-      if (exacto) { agregarProducto(exacto); return; }
+      if (exacto) { agregarProducto(exacto); setBusqueda(''); setTimeout(() => busquedaRef.current?.focus(), 0); return; }
       if (resultadosBusqueda.length === 1) {
         const sel = resultadosBusqueda[0];
         if (sel.tipo === 'prod') agregarProducto(sel.item as Producto);
         else agregarCombo(sel.item as Combo);
         setBusqueda('');
         setIndiceBusqueda(-1);
+        setTimeout(() => busquedaRef.current?.focus(), 0);
       }
     }
   };

@@ -102,13 +102,23 @@ public class PromocionService : IPromocionService
         return ToDto(updated!);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DesactivarAsync(int id)
     {
         var promo = await _repo.GetByIdAsync(id);
         if (promo is null) return false;
 
         promo.Activa = false;
         _repo.Update(promo);
+        await _repo.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var promo = await _repo.GetByIdAsync(id);
+        if (promo is null) return false;
+
+        _repo.Remove(promo);
         await _repo.SaveChangesAsync();
         return true;
     }

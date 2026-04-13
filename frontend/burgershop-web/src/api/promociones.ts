@@ -49,7 +49,9 @@ export interface ActualizarPromocionDto extends CrearPromocionDto {
 }
 
 export const getPromociones = () => api.get<PromocionDto[]>('/promociones').then(r => r.data);
+export const getPromocionesVigentes = (localId: number) => api.get<PromocionDto[]>('/promociones/vigentes', { params: { localId } }).then(r => r.data);
 export const getPromocion = (id: number) => api.get<PromocionDto>(`/promociones/${id}`).then(r => r.data);
 export const crearPromocion = (data: CrearPromocionDto) => api.post<PromocionDto>('/promociones', data).then(r => r.data);
 export const actualizarPromocion = (id: number, data: ActualizarPromocionDto) => api.put<PromocionDto>(`/promociones/${id}`, data).then(r => r.data);
+export const desactivarPromocion = (id: number) => api.put(`/promociones/${id}/desactivar`);
 export const eliminarPromocion = (id: number) => api.delete(`/promociones/${id}`);

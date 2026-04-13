@@ -7,7 +7,7 @@ namespace BurgerShop.API.Controllers.Catalogo;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SuperAdmin")]
+[Authorize]
 public class PromocionesController : ControllerBase
 {
     private readonly IPromocionService _service;
@@ -15,7 +15,6 @@ public class PromocionesController : ControllerBase
     public PromocionesController(IPromocionService service) => _service = service;
 
     [HttpGet]
-    [Authorize] // Todos los roles autenticados pueden consultar promos
     public async Task<ActionResult<IEnumerable<PromocionDto>>> GetAll()
         => Ok(await _service.GetAllAsync());
 
@@ -26,12 +25,7 @@ public class PromocionesController : ControllerBase
         return promo is null ? NotFound() : Ok(promo);
     }
 
-    /// <summary>
-    /// Retorna las promociones activas y vigentes para el local indicado.
-    /// Accessible para todos los roles autenticados (se usa desde el POS).
-    /// </summary>
     [HttpGet("vigentes")]
-    [Authorize]
     public async Task<ActionResult<IEnumerable<PromocionDto>>> GetVigentes([FromQuery] int localId)
     {
         if (localId <= 0)
@@ -41,6 +35,7 @@ public class PromocionesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<PromocionDto>> Create(CrearPromocionDto dto)
     {
         var promo = await _service.CreateAsync(dto);
@@ -48,13 +43,23 @@ public class PromocionesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<PromocionDto>> Update(int id, ActualizarPromocionDto dto)
     {
         var promo = await _service.UpdateAsync(id, dto);
         return promo is null ? NotFound() : Ok(promo);
     }
 
+    [HttpPut("{id}/desactivar")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<IActionResult> Desactivar(int id)
+    {
+        var result = await _service.DesactivarAsync(id);
+        return result ? NoContent() : NotFound();
+    }
+
     [HttpDelete("{id}")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _service.DeleteAsync(id);

@@ -7,6 +7,7 @@ import {
   getPromociones,
   crearPromocion,
   actualizarPromocion,
+  desactivarPromocion,
   eliminarPromocion,
   PromocionDto,
   CrearPromocionItemDto,
@@ -65,7 +66,7 @@ export default function PromocionesPage() {
   const [items, setItems] = useState<ItemFila[]>([]);
 
   // Confirm modal
-  const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
+  const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number; tipo: 'desactivar' | 'eliminar' }>({ visible: false, id: 0, tipo: 'desactivar' });
   const [guardando, setGuardando] = useState(false);
 
   const cargar = () => {
@@ -163,17 +164,22 @@ export default function PromocionesPage() {
     }
   };
 
-  const confirmarDesactivar = async () => {
+  const confirmarAccion = async () => {
     setGuardando(true);
     try {
-      await eliminarPromocion(confirmacion.id);
-      showToast('Promocion desactivada correctamente', 'success');
+      if (confirmacion.tipo === 'eliminar') {
+        await eliminarPromocion(confirmacion.id);
+        showToast('Promocion eliminada correctamente', 'success');
+      } else {
+        await desactivarPromocion(confirmacion.id);
+        showToast('Promocion desactivada correctamente', 'success');
+      }
     } catch {
-      showToast('Error al desactivar la promocion', 'error');
+      showToast(`Error al ${confirmacion.tipo} la promocion`, 'error');
     } finally {
       setGuardando(false);
     }
-    setConfirmacion({ visible: false, id: 0 });
+    setConfirmacion({ visible: false, id: 0, tipo: 'desactivar' });
     cargar();
   };
 
@@ -467,15 +473,45 @@ export default function PromocionesPage() {
                   </ul>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button onClick={() => handleEditar(p)} className="text-sm text-blue-600 hover:underline">
                     Editar
                   </button>
+                  {p.activa ? (
+                    <button
+                      onClick={() => setConfirmacion({ visible: true, id: p.id, tipo: 'desactivar' })}
+                      className="text-sm text-amber-600 hover:underline flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      Desactivar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await actualizarPromocion(p.id, { ...p, activa: true, localIds: p.locales?.map(l => l.localId) || [], items: p.items?.map(i => ({ productoId: i.productoId, comboId: i.comboId, precioPromo: i.precioPromo })) || [] });
+                          showToast('Promocion activada', 'success');
+                          cargar();
+                        } catch { showToast('Error al activar', 'error'); }
+                      }}
+                      className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Activar
+                    </button>
+                  )}
                   <button
-                    onClick={() => setConfirmacion({ visible: true, id: p.id })}
-                    className="text-sm text-red-600 hover:underline"
+                    onClick={() => setConfirmacion({ visible: true, id: p.id, tipo: 'eliminar' })}
+                    className="text-sm text-red-600 hover:underline flex items-center gap-1"
                   >
-                    Desactivar
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Eliminar
                   </button>
                 </div>
               </div>
@@ -486,12 +522,12 @@ export default function PromocionesPage() {
 
       <ConfirmModal
         visible={confirmacion.visible}
-        titulo="Desactivar promocion"
-        mensaje="¿Desactivar esta promocion?"
-        tipo="danger"
-        textoConfirmar="Desactivar"
-        onConfirmar={confirmarDesactivar}
-        onCancelar={() => setConfirmacion({ visible: false, id: 0 })}
+        titulo={confirmacion.tipo === 'eliminar' ? 'Eliminar promocion' : 'Desactivar promocion'}
+        mensaje={confirmacion.tipo === 'eliminar' ? 'Esta accion no se puede deshacer. ¿Eliminar esta promocion?' : '¿Desactivar esta promocion?'}
+        tipo={confirmacion.tipo === 'eliminar' ? 'danger' : 'warning'}
+        textoConfirmar={confirmacion.tipo === 'eliminar' ? 'Eliminar' : 'Desactivar'}
+        onConfirmar={confirmarAccion}
+        onCancelar={() => setConfirmacion({ visible: false, id: 0, tipo: 'desactivar' })}
       />
     </div>
   );

@@ -9,5 +9,6 @@ public interface IPromocionService
     Task<IEnumerable<PromocionDto>> GetVigentesParaLocalAsync(int localId);
     Task<PromocionDto> CreateAsync(CrearPromocionDto dto);
     Task<PromocionDto?> UpdateAsync(int id, ActualizarPromocionDto dto);
+    Task<bool> DesactivarAsync(int id);
     Task<bool> DeleteAsync(int id);
 }
