@@ -103,7 +103,7 @@ public class ControlCamionetaService : IControlCamionetaService
                     .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
                 SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-                PanTradicional = DistribuirSalchichas(tallies.PanTradicionalTotal, new[] { 60, 30, 20 }),
+                PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
                 PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
@@ -150,7 +150,7 @@ public class ControlCamionetaService : IControlCamionetaService
                 .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
             SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            PanTradicional = DistribuirSalchichas(tallies.PanTradicionalTotal, new[] { 60, 30, 20 }),
+            PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
             PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
@@ -235,8 +235,9 @@ public class ControlCamionetaService : IControlCamionetaService
         public Dictionary<int, int> SalchichaCorta { get; } = new();
         public Dictionary<int, int> SalchichaLarga { get; } = new();
 
-        // Panes hamburguesa: acumulador de unidades totales, se distribuyen después
-        public int PanTradicionalTotal { get; set; }
+        // Pan Tradicional: per-line (como salchichas)
+        public Dictionary<int, int> PanTradicional { get; } = new();
+        // Pan Maxi: acumulador
         public int PanMaxiTotal { get; set; }
         // Panes salchicha: cantidad real de unidades por línea → palotes
         public Dictionary<int, int> PanPancho { get; } = new();
@@ -273,6 +274,7 @@ public class ControlCamionetaService : IControlCamionetaService
                             tieneOtros = true;
                         }
                         else if (seccion == SeccionCamioneta.SalchichaCorta || seccion == SeccionCamioneta.SalchichaLarga
+                              || seccion == SeccionCamioneta.PanTradicional
                               || seccion == SeccionCamioneta.PanPancho || seccion == SeccionCamioneta.PanSuperPancho)
                         {
                             // Salchichas y panes de combo: key = unidades reales del combo, valor = cantidad de combos
@@ -282,6 +284,7 @@ public class ControlCamionetaService : IControlCamionetaService
                             {
                                 SeccionCamioneta.SalchichaCorta => data.SalchichaCorta,
                                 SeccionCamioneta.SalchichaLarga => data.SalchichaLarga,
+                                SeccionCamioneta.PanTradicional => data.PanTradicional,
                                 SeccionCamioneta.PanPancho => data.PanPancho,
                                 SeccionCamioneta.PanSuperPancho => data.PanSuperPancho,
                                 _ => data.PanPancho
@@ -350,8 +353,11 @@ public class ControlCamionetaService : IControlCamionetaService
             }
 
             case SeccionCamioneta.PanTradicional:
-                data.PanTradicionalTotal += cantidadPaquetes * um;
+            {
+                var totalReal = cantidadPaquetes * um;
+                data.PanTradicional[totalReal] = data.PanTradicional.GetValueOrDefault(totalReal) + 1;
                 break;
+            }
 
             case SeccionCamioneta.PanMaxi:
                 data.PanMaxiTotal += cantidadPaquetes * um;
@@ -537,7 +543,7 @@ public class ControlCamionetaService : IControlCamionetaService
         // Pre-calcular distribuciones para todo el Excel
         var scDist = t.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var slDist = t.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
-        var ptDist = DistribuirSalchichas(t.PanTradicionalTotal, new[] { 60, 30, 20 });
+        var ptDist = t.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var pmDist = DistribuirSalchichas(t.PanMaxiTotal, new[] { 40, 20 });
         var ppDist = t.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var pspDist = t.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
