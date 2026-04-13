@@ -87,6 +87,14 @@ export default function RepartidorApp() {
         duracion: minutos < 60 ? `${minutos} min` : `${Math.floor(minutos/60)}h ${minutos%60}min`,
         distancia: `${km} km`,
       });
+
+      // Abrir Google Maps con la ruta optimizada
+      const dirs = reordenados.map(p => encodeURIComponent(p.direccionEntrega!));
+      const org = lastPosition ? `${lastPosition.lat},${lastPosition.lng}` : dirs[0];
+      const startIdx = lastPosition ? 0 : 1;
+      const dest = dirs[dirs.length - 1];
+      const wps = dirs.slice(startIdx, -1).join('|');
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${org}&destination=${dest}${wps ? `&waypoints=${wps}` : ''}&travelmode=driving`, '_blank');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       console.error('Error optimizando ruta:', msg, err);
