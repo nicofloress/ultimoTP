@@ -46,6 +46,16 @@ export default function RepartidorApp() {
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
   const [optimizando, setOptimizando] = useState(false);
   const [rutaOptimizada, setRutaOptimizada] = useState<{ orden: Venta[]; duracion: string; distancia: string } | null>(null);
+  const [ordenManual, setOrdenManual] = useState<Venta[] | null>(null);
+  const optimizacionIniciada = useRef(false);
+
+  const moverPedido = (fromIdx: number, toIdx: number) => {
+    const lista = ordenManual || rutaOptimizada?.orden || pendientes;
+    const copia = [...lista];
+    const [item] = copia.splice(fromIdx, 1);
+    copia.splice(toIdx, 0, item);
+    setOrdenManual(copia);
+  };
 
   const optimizarRuta = async () => {
     const conDireccion = pendientes.filter(p => p.direccionEntrega);
@@ -104,28 +114,16 @@ export default function RepartidorApp() {
         duracion: minutos < 60 ? `${minutos} min` : `${Math.floor(minutos/60)}h ${minutos%60}min`,
         distancia: `${km} km`,
       });
-
-      // Abrir Google Maps con la ruta optimizada
-      const dirs = reordenados.map(p => encodeURIComponent(p.direccionEntrega!));
-      const org = lastPosition ? `${lastPosition.lat},${lastPosition.lng}` : dirs[0];
-      const startIdx = lastPosition ? 0 : 1;
-      const dest = dirs[dirs.length - 1];
-      const wps = dirs.slice(startIdx, -1).join('|');
-      window.open(`https://www.google.com/maps/dir/?api=1&origin=${org}&destination=${dest}${wps ? `&waypoints=${wps}` : ''}&travelmode=driving`, '_blank');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       console.error('Error optimizando ruta:', msg, err);
-
-      // Fallback: abrir directamente en Google Maps con el orden actual
-      showToast(`No se pudo optimizar (${msg}). Abriendo en Google Maps...`, 'error');
-      abrirGoogleMapsConRuta();
     } finally {
       setOptimizando(false);
     }
   };
 
   const abrirGoogleMapsConRuta = () => {
-    const pedidos = rutaOptimizada?.orden || pendientes.filter(p => p.direccionEntrega);
+    const pedidos = (ordenManual || rutaOptimizada?.orden || pendientes).filter(p => p.direccionEntrega);
     if (pedidos.length === 0) return;
 
     const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
@@ -165,6 +163,19 @@ export default function RepartidorApp() {
         return new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime();
       });
   }, [entregas]);
+
+  // Auto-optimizar ruta cuando hay pedidos pendientes con dirección
+  useEffect(() => {
+    const conDireccion = pendientes.filter(p => p.direccionEntrega);
+    if (conDireccion.length >= 2 && !optimizando && !optimizacionIniciada.current && window.google?.maps) {
+      optimizacionIniciada.current = true;
+      optimizarRuta();
+    }
+    if (conDireccion.length < 2) {
+      optimizacionIniciada.current = false;
+      setRutaOptimizada(null);
+    }
+  }, [pendientes]);
 
   const completados = useMemo(() => {
     const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
@@ -391,76 +402,33 @@ export default function RepartidorApp() {
       <main className="max-w-2xl mx-auto px-4 py-4">
         {activeTab === 'pendientes' && (
           <>
-            {/* Botones de ruta */}
-            {pendientes.filter(p => p.direccionEntrega).length >= 2 && (
-              <div className="mb-3 space-y-2">
-                <div className="flex gap-2">
-                  <button
-                    onClick={optimizarRuta}
-                    disabled={optimizando}
-                    className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                  >
-                    {optimizando ? (
-                      <>
-                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        Optimizando...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                        Optimizar Ruta
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={abrirGoogleMapsConRuta}
-                    className="bg-slate-700 hover:bg-slate-800 text-white py-2.5 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    Maps
-                  </button>
-                </div>
-
-                {/* Resultado de optimización */}
-                {rutaOptimizada && (
-                  <div className="bg-slate-800 rounded-lg p-3 border border-slate-600">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-amber-400 uppercase font-bold tracking-wider">Ruta Optimizada</span>
-                      <div className="flex gap-3 text-xs text-slate-300">
-                        <span>{rutaOptimizada.distancia}</span>
-                        <span>{rutaOptimizada.duracion}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      {rutaOptimizada.orden.map((p, idx) => (
-                        <div key={p.id} className="flex items-center gap-2 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                            {idx + 1}
-                          </span>
-                          <span className="text-white truncate">{p.nombreCliente || 'Cliente'}</span>
-                          <span className="text-slate-400 text-xs truncate flex-1">{p.direccionEntrega}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setRutaOptimizada(null)}
-                      className="mt-2 text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                    >
-                      Cerrar
-                    </button>
-                  </div>
-                )}
+            {/* Ruta optimizada (se calcula automáticamente) */}
+            {optimizando && (
+              <div className="mb-3 bg-slate-800 rounded-lg p-3 flex items-center justify-center gap-2 text-amber-400">
+                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-sm font-medium">Optimizando ruta...</span>
+              </div>
+            )}
+            {rutaOptimizada && (
+              <div className="mb-3">
+                <button
+                  onClick={abrirGoogleMapsConRuta}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  Abrir ruta en Google Maps
+                  <span className="text-emerald-200 text-xs">({rutaOptimizada.distancia} · {rutaOptimizada.duracion})</span>
+                </button>
               </div>
             )}
             <PendientesTab
-              pedidos={pendientes}
+              pedidos={ordenManual || (rutaOptimizada ? rutaOptimizada.orden : pendientes)}
+              onMover={moverPedido}
               actionLoading={actionLoading}
               onEnCamino={handleEnCamino}
               onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
@@ -606,6 +574,7 @@ function PendientesTab({
   onEnCamino,
   onEntregado,
   onCancelar,
+  onMover,
   formatTime,
 }: {
   pedidos: Venta[];
@@ -613,8 +582,49 @@ function PendientesTab({
   onEnCamino: (p: Venta) => void;
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
+  onMover?: (fromIdx: number, toIdx: number) => void;
   formatTime: (s: string) => string;
 }) {
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const touchStartY = useRef(0);
+  const touchItemIdx = useRef<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleDragStart = (idx: number) => setDragIdx(idx);
+  const handleDragOver = (e: React.DragEvent, idx: number) => { e.preventDefault(); setOverIdx(idx); };
+  const handleDrop = (idx: number) => {
+    if (dragIdx !== null && dragIdx !== idx && onMover) onMover(dragIdx, idx);
+    setDragIdx(null);
+    setOverIdx(null);
+  };
+  const handleDragEnd = () => { setDragIdx(null); setOverIdx(null); };
+
+  // Touch drag support
+  const handleTouchStart = (e: React.TouchEvent, idx: number) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchItemIdx.current = idx;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchItemIdx.current === null || !listRef.current) return;
+    const y = e.touches[0].clientY;
+    const cards = listRef.current.querySelectorAll<HTMLElement>('[data-drag-idx]');
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) {
+        setOverIdx(i);
+        break;
+      }
+    }
+  };
+  const handleTouchEnd = () => {
+    if (touchItemIdx.current !== null && overIdx !== null && touchItemIdx.current !== overIdx && onMover) {
+      onMover(touchItemIdx.current, overIdx);
+    }
+    touchItemIdx.current = null;
+    setOverIdx(null);
+  };
+
   if (pedidos.length === 0) {
     return (
       <div className="text-center py-16">
@@ -626,17 +636,42 @@ function PendientesTab({
   }
 
   return (
-    <div className="space-y-3">
-      {pedidos.map(p => (
-        <PedidoCard
+    <div className="space-y-3" ref={listRef}>
+      {pedidos.map((p, idx) => (
+        <div
           key={p.id}
-          pedido={p}
-          actionLoading={actionLoading}
-          onEnCamino={onEnCamino}
-          onEntregado={onEntregado}
-          onCancelar={onCancelar}
-          formatTime={formatTime}
-        />
+          data-drag-idx={idx}
+          draggable={!!onMover && pedidos.length > 1}
+          onDragStart={() => handleDragStart(idx)}
+          onDragOver={(e) => handleDragOver(e, idx)}
+          onDrop={() => handleDrop(idx)}
+          onDragEnd={handleDragEnd}
+          onTouchStart={(e) => handleTouchStart(e, idx)}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className={`flex gap-2 items-stretch transition-all ${dragIdx === idx ? 'opacity-50' : ''} ${overIdx === idx && dragIdx !== idx ? 'border-t-2 border-amber-500' : ''}`}
+        >
+          {onMover && pedidos.length > 1 && (
+            <div className="flex flex-col justify-center items-center flex-shrink-0 cursor-grab active:cursor-grabbing touch-none select-none px-1">
+              <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
+              </svg>
+              <span className="text-[10px] text-gray-400 font-bold">{idx + 1}</span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <PedidoCard
+              pedido={p}
+              actionLoading={actionLoading}
+              onEnCamino={onEnCamino}
+              onEntregado={onEntregado}
+              onCancelar={onCancelar}
+              formatTime={formatTime}
+            />
+          </div>
+        </div>
       ))}
     </div>
   );
