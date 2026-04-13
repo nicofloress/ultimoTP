@@ -5,7 +5,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Limpiar caches viejos
   event.waitUntil(
     caches.keys().then((names) =>
       Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
@@ -16,8 +15,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (new URL(event.request.url).origin !== self.location.origin) return;
 
-  // Network-first para todo: siempre pide al servidor, cachea la respuesta,
-  // y solo usa cache si esta offline
+  // version.json siempre directo a la red, sin cache
+  if (event.request.url.includes('version.json')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Network-first para todo lo demas
   event.respondWith(
     fetch(event.request)
       .then((response) => {

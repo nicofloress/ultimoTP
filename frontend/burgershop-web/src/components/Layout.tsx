@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLocalActivo } from '../context/LocalContext';
 import { useTheme } from '../context/ThemeContext';
+
+const APP_VERSION = '1.0.0';
 import { RolUsuario } from '../types/auth';
 
 interface MenuItem {
@@ -98,6 +100,22 @@ export default function Layout() {
     }))
     .filter((section) => section.items.length > 0);
 
+  const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const res = await fetch('/version.json?t=' + Date.now());
+        const data = await res.json();
+        if (data.version && data.version !== APP_VERSION) {
+          setHayNuevaVersion(true);
+        }
+      } catch { /* ignore */ }
+    };
+    checkVersion();
+    const interval = setInterval(checkVersion, 60000); // chequear cada minuto
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-900 dark:text-gray-100 transition-colors">
@@ -234,6 +252,20 @@ export default function Layout() {
               </div>
             ))}
           </nav>
+          {/* Version label */}
+          <div className="px-4 py-2 border-t border-slate-700">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-500">v{APP_VERSION}</span>
+              {hayNuevaVersion && (
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-[10px] text-amber-400 hover:text-amber-300 font-medium animate-pulse"
+                >
+                  Nueva version disponible
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </aside>
 
