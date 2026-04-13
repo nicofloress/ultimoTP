@@ -120,8 +120,6 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
     });
   };
 
-  const totalChecks = Object.keys(checks).length;
-  const checkedCount = Object.values(checks).filter(Boolean).length;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -286,20 +284,6 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
         </table>
       </div>
 
-      {/* Progress bar */}
-      {totalChecks > 0 && (
-        <div className="lg:col-span-2 mt-2">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 bg-gray-200 rounded-full h-3">
-              <div
-                className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${(checkedCount / totalChecks) * 100}%` }}
-              />
-            </div>
-            <span className="text-sm font-medium text-gray-600">{checkedCount}/{totalChecks} verificados</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

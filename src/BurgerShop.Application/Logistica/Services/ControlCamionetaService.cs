@@ -280,6 +280,9 @@ public class ControlCamionetaService : IControlCamionetaService
                             // Salchichas y panes de combo: key = unidades reales del combo, valor = cantidad de combos
                             var um = detalle.Producto.UnidadMinima > 1 ? detalle.Producto.UnidadMinima : 1;
                             var unidadesRealesPorCombo = detalle.Cantidad * um;
+                            // Pan Tradicional: redondear al tamaño comercial más cercano (12,20,30,40,60)
+                            if (seccion == SeccionCamioneta.PanTradicional)
+                                unidadesRealesPorCombo = RedondearTamanioComercialPan(unidadesRealesPorCombo);
                             var dict = seccion switch
                             {
                                 SeccionCamioneta.SalchichaCorta => data.SalchichaCorta,
@@ -354,7 +357,7 @@ public class ControlCamionetaService : IControlCamionetaService
 
             case SeccionCamioneta.PanTradicional:
             {
-                var totalReal = cantidadPaquetes * um;
+                var totalReal = RedondearTamanioComercialPan(cantidadPaquetes * um);
                 data.PanTradicional[totalReal] = data.PanTradicional.GetValueOrDefault(totalReal) + 1;
                 break;
             }
@@ -479,6 +482,15 @@ public class ControlCamionetaService : IControlCamionetaService
     /// Pero el negocio redondea sueltas al paquete de 60: 10 paquetes de 6 = 60 unidades → 1 palote de 60.
     /// Lógica: todo se divide por el bulto mayor (60). Si hay resto, se muestra como cantidad suelta.
     /// </summary>
+    /// <summary>
+    /// Pan Tradicional: 32 se muestra como 30 (el combo es de 30 pero el pan viene de a 4, sobran 2).
+    /// </summary>
+    private static int RedondearTamanioComercialPan(int cantidad)
+    {
+        if (cantidad == 32) return 30;
+        return cantidad;
+    }
+
     private static Dictionary<string, int> DistribuirSalchichas(int totalUnidades, int[] tamanios)
     {
         if (totalUnidades <= 0) return new Dictionary<string, int>();
