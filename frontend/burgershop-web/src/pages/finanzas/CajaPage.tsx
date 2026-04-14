@@ -132,7 +132,8 @@ export default function CajaPage() {
   const formatMonto = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleString('es-AR', {
+    const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
+    return new Date(f).toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

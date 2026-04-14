@@ -24,7 +24,8 @@ function getHoy(): string {
 }
 
 function formatFecha(fecha: string) {
-  return new Date(fecha).toLocaleString('es-AR', {
+  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
+  return new Date(f).toLocaleString('es-AR', {
     day: '2-digit',
     month: '2-digit',
     year: '2-digit',
@@ -448,7 +449,7 @@ export default function DevolucionesPage() {
                 >
                   <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
                   <td className="px-3 py-2">{m.localNombre}</td>
-                  <td className="px-3 py-2">{m.productoNombre || '-'}</td>
+                  <td className="px-3 py-2">{m.productoNombre || (m.observaciones?.split(' - ')[0]) || '-'}</td>
                   <td className="px-3 py-2 text-sm">{m.clienteNombre || 'Consumidor Final'}</td>
                   <td className="px-3 py-2 font-semibold whitespace-nowrap text-red-600">-{m.cantidad}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>
