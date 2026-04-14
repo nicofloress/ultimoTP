@@ -670,6 +670,7 @@ function PendientesTab({
             <div
               className="flex flex-col justify-center items-center flex-shrink-0 cursor-grab active:cursor-grabbing select-none px-1"
               onTouchStart={(e) => handleGripTouchStart(e, idx)}
+              title="Arrastra para ordenar"
             >
               <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />

@@ -16,29 +16,39 @@ public class MovimientosController : ControllerBase
     public MovimientosController(IMovimientoService service) => _service = service;
 
     /// <summary>
-    /// Lista todos los códigos de acción disponibles para movimientos manuales.
-    /// </summary>
-    [HttpGet("codigos-accion")]
-    public async Task<ActionResult<IEnumerable<CodigoAccionDto>>> GetCodigosAccion()
-        => Ok(await _service.GetCodigosAccionAsync());
-
-    /// <summary>
     /// Registra un movimiento manual. El UsuarioId se extrae del token JWT.
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<MovimientoDto>> Create(CrearMovimientoDto dto)
     {
-        // Extraer el id del usuario autenticado desde el claim "sub" o "nameidentifier"
-        var usuarioIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                          ?? User.FindFirstValue("sub");
-
-        int? usuarioId = null;
-        if (int.TryParse(usuarioIdClaim, out var uid))
-            usuarioId = uid;
-
-        var movimiento = await _service.RegistrarMovimientoAsync(dto, usuarioId);
+        var movimiento = await _service.RegistrarMovimientoAsync(dto, ObtenerUsuarioId());
         return CreatedAtAction(nameof(GetByLocal), new { localId = movimiento.LocalId }, movimiento);
     }
+
+    /// <summary>
+    /// Registra una devolución de cliente. Genera movimiento DEV_CLI (stock),
+    /// NTC_CTA (caja) y, si el cliente tiene cuenta corriente con saldo, un ajuste a favor.
+    /// </summary>
+    [HttpPost("devolucion")]
+    public async Task<ActionResult<MovimientoDto>> RegistrarDevolucion(CrearDevolucionDto dto)
+    {
+        try
+        {
+            var resultado = await _service.RegistrarDevolucionAsync(dto, ObtenerUsuarioId());
+            return CreatedAtAction(nameof(GetByLocal), new { localId = resultado.LocalId }, resultado);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Lista todos los códigos de acción disponibles para movimientos manuales.
+    /// </summary>
+    [HttpGet("codigos-accion")]
+    public async Task<ActionResult<IEnumerable<CodigoAccionDto>>> GetCodigosAccion()
+        => Ok(await _service.GetCodigosAccionAsync());
 
     /// <summary>
     /// Lista movimientos de un local, con filtro opcional por rango de fechas.
@@ -75,5 +85,13 @@ public class MovimientosController : ControllerBase
     {
         var movimientos = await _service.GetByVentaAsync(ventaId);
         return Ok(movimientos);
+    }
+
+    // ----------------------------------------------------------------
+    private int? ObtenerUsuarioId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                 ?? User.FindFirstValue("sub");
+        return int.TryParse(claim, out var uid) ? uid : null;
     }
 }

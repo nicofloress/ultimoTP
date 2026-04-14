@@ -56,3 +56,17 @@ export const getMovimientosPorPedido = (pedidoId: number) =>
 
 export const crearMovimiento = (data: CrearMovimientoDto) =>
   api.post<MovimientoDto>('/movimientos', data).then(r => r.data);
+
+export interface CrearDevolucionDto {
+  productoId?: number;
+  comboId?: number;
+  localId: number;
+  cantidad: number;
+  precioUnitario: number;
+  fechaMovimiento: string;
+  motivo: string;
+  clienteId?: number;
+}
+
+export const crearDevolucion = (data: CrearDevolucionDto) =>
+  api.post<MovimientoDto>('/movimientos/devolucion', data).then(r => r.data);

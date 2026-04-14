@@ -1,12 +1,14 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   MovimientoDto,
   getMovimientosPorLocal,
-  crearMovimiento,
+  crearDevolucion,
 } from '../../api/movimientos';
 import { getProductos } from '../../api/productos';
+import { getCombos } from '../../api/combos';
+import { buscarClientes } from '../../api/clientes';
 import { getLocales, LocalDto } from '../../api/locales';
-import { Producto } from '../../types';
+import { Producto, Combo, ClienteDto } from '../../types';
 import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
@@ -38,6 +40,14 @@ function formatMonto(n: number) {
 
 type SortDir = 'asc' | 'desc';
 
+// Tipo unificado para el selector de producto/combo
+interface ItemSeleccionable {
+  id: number;
+  nombre: string;
+  precio: number;
+  tipo: 'producto' | 'combo';
+}
+
 export default function DevolucionesPage() {
   const { showToast } = useGlobalToast();
   const { usuario } = useAuth();
@@ -47,6 +57,7 @@ export default function DevolucionesPage() {
   // --- Data ---
   const [movimientos, setMovimientos] = useState<MovimientoDto[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
   const [cargando, setCargando] = useState(false);
 
   // --- Locales ---
@@ -65,16 +76,90 @@ export default function DevolucionesPage() {
   // --- Modal ---
   const [modalOpen, setModalOpen] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [formProductoId, setFormProductoId] = useState<number | ''>('');
+
+  // Selector producto/combo
+  const [buscadorItem, setBuscadorItem] = useState('');
+  const [itemSeleccionado, setItemSeleccionado] = useState<ItemSeleccionable | null>(null);
+  const [mostrarListaItems, setMostrarListaItems] = useState(false);
+  const refBuscadorItem = useRef<HTMLInputElement>(null);
+  const refListaItems = useRef<HTMLDivElement>(null);
+
+  // Selector cliente
+  const [buscadorCliente, setBuscadorCliente] = useState('');
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteDto | null>(null);
+  const [sugerenciasClientes, setSugerenciasClientes] = useState<ClienteDto[]>([]);
+  const [mostrarSugerenciasClientes, setMostrarSugerenciasClientes] = useState(false);
+  const [buscandoClientes, setBuscandoClientes] = useState(false);
+  const refBuscadorCliente = useRef<HTMLInputElement>(null);
+
+  // Otros campos del form
   const [formCantidad, setFormCantidad] = useState<string>('');
   const [formPrecioUnitario, setFormPrecioUnitario] = useState<string>('');
   const [formFecha, setFormFecha] = useState(getHoy());
-  const [formObservaciones, setFormObservaciones] = useState('');
+  const [formMotivo, setFormMotivo] = useState('');
+
+  // --- Items unificados (productos + combos) ---
+  const itemsDisponibles = useMemo<ItemSeleccionable[]>(() => {
+    const prods: ItemSeleccionable[] = productos.map(p => ({
+      id: p.id,
+      nombre: p.nombre,
+      precio: p.precio ?? 0,
+      tipo: 'producto',
+    }));
+    const combs: ItemSeleccionable[] = combos.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      precio: c.precio,
+      tipo: 'combo',
+    }));
+    return [...prods, ...combs];
+  }, [productos, combos]);
+
+  const itemsFiltrados = useMemo<ItemSeleccionable[]>(() => {
+    if (!buscadorItem.trim()) return itemsDisponibles;
+    const term = buscadorItem.toLowerCase();
+    return itemsDisponibles.filter(i => i.nombre.toLowerCase().includes(term));
+  }, [itemsDisponibles, buscadorItem]);
 
   // --- Load catalogos ---
   useEffect(() => {
     getProductos().then(setProductos).catch(() => {});
+    getCombos().then(setCombos).catch(() => {});
     getLocales().then(setLocales).catch(() => {});
+  }, []);
+
+  // --- Busqueda de clientes con debounce ---
+  useEffect(() => {
+    if (!buscadorCliente.trim() || buscadorCliente.length < 2) {
+      setSugerenciasClientes([]);
+      setMostrarSugerenciasClientes(false);
+      return;
+    }
+    setBuscandoClientes(true);
+    const timer = setTimeout(() => {
+      buscarClientes(buscadorCliente)
+        .then(data => {
+          setSugerenciasClientes(data.slice(0, 8));
+          setMostrarSugerenciasClientes(true);
+        })
+        .catch(() => {})
+        .finally(() => setBuscandoClientes(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [buscadorCliente]);
+
+  // Cerrar lista items al hacer click afuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        refBuscadorItem.current && !refBuscadorItem.current.contains(e.target as Node) &&
+        refListaItems.current && !refListaItems.current.contains(e.target as Node)
+      ) {
+        setMostrarListaItems(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   // --- Cargar movimientos ---
@@ -143,33 +228,78 @@ export default function DevolucionesPage() {
 
   // --- Modal handlers ---
   const abrirModal = () => {
-    setFormProductoId('');
+    setItemSeleccionado(null);
+    setBuscadorItem('');
+    setMostrarListaItems(false);
+    setClienteSeleccionado(null);
+    setBuscadorCliente('');
+    setSugerenciasClientes([]);
+    setMostrarSugerenciasClientes(false);
     setFormCantidad('');
     setFormPrecioUnitario('');
     setFormFecha(getHoy());
-    setFormObservaciones('');
+    setFormMotivo('');
     setModalOpen(true);
   };
 
-  const guardarMovimiento = async () => {
-    if (formProductoId === '' || !formCantidad || !formPrecioUnitario) {
-      showToast('Completa los campos obligatorios', 'error');
+  const seleccionarItem = (item: ItemSeleccionable) => {
+    setItemSeleccionado(item);
+    setBuscadorItem(item.nombre);
+    setMostrarListaItems(false);
+    if (item.precio > 0) {
+      setFormPrecioUnitario(String(item.precio));
+    }
+  };
+
+  const seleccionarCliente = (cliente: ClienteDto) => {
+    setClienteSeleccionado(cliente);
+    setBuscadorCliente(cliente.nombre);
+    setMostrarSugerenciasClientes(false);
+    setSugerenciasClientes([]);
+  };
+
+  const limpiarCliente = () => {
+    setClienteSeleccionado(null);
+    setBuscadorCliente('');
+    setSugerenciasClientes([]);
+    setMostrarSugerenciasClientes(false);
+  };
+
+  const guardarDevolucion = async () => {
+    if (!itemSeleccionado) {
+      showToast('Selecciona un producto o combo', 'error');
+      return;
+    }
+    if (!formCantidad || parseFloat(formCantidad) <= 0) {
+      showToast('Ingresa una cantidad valida', 'error');
+      return;
+    }
+    if (!formPrecioUnitario || parseFloat(formPrecioUnitario) < 0) {
+      showToast('Ingresa un precio unitario valido', 'error');
+      return;
+    }
+    if (!formMotivo.trim()) {
+      showToast('El motivo es obligatorio', 'error');
       return;
     }
     if (formFecha > getHoy()) {
       showToast('La fecha no puede ser futura', 'error');
       return;
     }
+
+    const localId = localSeleccionado || (localDelUsuario || 1);
+
     setGuardando(true);
     try {
-      await crearMovimiento({
-        codigoAccionId: 8, // DEV_CLI
-        productoId: formProductoId as number,
-        localId: localSeleccionado || (localDelUsuario || 1),
+      await crearDevolucion({
+        productoId: itemSeleccionado.tipo === 'producto' ? itemSeleccionado.id : undefined,
+        comboId: itemSeleccionado.tipo === 'combo' ? itemSeleccionado.id : undefined,
+        localId,
         cantidad: parseFloat(formCantidad),
         precioUnitario: parseFloat(formPrecioUnitario),
         fechaMovimiento: formFecha,
-        observaciones: formObservaciones || undefined,
+        motivo: formMotivo.trim(),
+        clienteId: clienteSeleccionado?.id,
       });
       showToast('Devolucion registrada correctamente', 'success');
       setModalOpen(false);
@@ -186,12 +316,13 @@ export default function DevolucionesPage() {
   const columnas: { key: string; label: string }[] = [
     { key: 'fechaMovimiento', label: 'Fecha' },
     { key: 'localNombre', label: 'Local' },
-    { key: 'productoNombre', label: 'Producto' },
+    { key: 'productoNombre', label: 'Producto / Combo' },
+    { key: 'clienteNombre', label: 'Cliente' },
     { key: 'cantidad', label: 'Cantidad' },
     { key: 'precioUnitario', label: 'Precio Unit.' },
     { key: 'montoTotal', label: 'Monto Total' },
     { key: 'usuarioNombre', label: 'Usuario' },
-    { key: 'observaciones', label: 'Observaciones' },
+    { key: 'observaciones', label: 'Motivo' },
   ];
 
   return (
@@ -318,6 +449,7 @@ export default function DevolucionesPage() {
                   <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
                   <td className="px-3 py-2">{m.localNombre}</td>
                   <td className="px-3 py-2">{m.productoNombre || '-'}</td>
+                  <td className="px-3 py-2 text-sm">{m.clienteNombre || 'Consumidor Final'}</td>
                   <td className="px-3 py-2 font-semibold whitespace-nowrap text-red-600">-{m.cantidad}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>
                   <td className="px-3 py-2 whitespace-nowrap font-semibold">{formatMonto(Math.abs(m.montoTotal))}</td>
@@ -351,32 +483,152 @@ export default function DevolucionesPage() {
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4"
+            className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-gray-200 bg-slate-700 rounded-t-lg">
               <h3 className="text-lg font-semibold text-white">Nueva Devolucion</h3>
             </div>
             <div className="p-5 space-y-4">
+
+              {/* Selector Producto / Combo con buscador */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Producto <span className="text-red-500">*</span>
+                  Producto / Combo <span className="text-red-500">*</span>
                 </label>
-                <select
-                  className={`${selectClass} w-full`}
-                  value={formProductoId}
-                  onChange={(e) =>
-                    setFormProductoId(e.target.value === '' ? '' : Number(e.target.value))
-                  }
-                >
-                  <option value="">Seleccionar...</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    ref={refBuscadorItem}
+                    type="text"
+                    className={`${inputClass} w-full pr-8`}
+                    placeholder="Buscar producto o combo..."
+                    value={buscadorItem}
+                    onChange={(e) => {
+                      setBuscadorItem(e.target.value);
+                      setItemSeleccionado(null);
+                      setMostrarListaItems(true);
+                    }}
+                    onFocus={() => setMostrarListaItems(true)}
+                  />
+                  {buscadorItem && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => {
+                        setBuscadorItem('');
+                        setItemSeleccionado(null);
+                        setFormPrecioUnitario('');
+                        setMostrarListaItems(false);
+                      }}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  {mostrarListaItems && itemsFiltrados.length > 0 && (
+                    <div
+                      ref={refListaItems}
+                      className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-0.5 max-h-52 overflow-y-auto"
+                    >
+                      {itemsFiltrados.map((item) => (
+                        <button
+                          key={`${item.tipo}-${item.id}`}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-amber-50 flex items-center justify-between gap-2 border-b border-gray-50 last:border-0"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            seleccionarItem(item);
+                          }}
+                        >
+                          <span className="truncate">{item.nombre}</span>
+                          <span
+                            className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-semibold ${
+                              item.tipo === 'combo'
+                                ? 'bg-violet-100 text-violet-700'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {item.tipo === 'combo' ? 'COMBO' : 'PROD'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {mostrarListaItems && buscadorItem.trim() && itemsFiltrados.length === 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-0.5 px-3 py-2 text-sm text-gray-400">
+                      Sin resultados
+                    </div>
+                  )}
+                </div>
+                {itemSeleccionado && (
+                  <p className="mt-1 text-xs text-emerald-600 font-medium">
+                    {itemSeleccionado.tipo === 'combo' ? 'Combo' : 'Producto'} seleccionado
+                  </p>
+                )}
               </div>
+
+              {/* Cliente (opcional) */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Cliente <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    ref={refBuscadorCliente}
+                    type="text"
+                    className={`${inputClass} w-full pr-8`}
+                    placeholder="Buscar cliente por nombre..."
+                    value={buscadorCliente}
+                    onChange={(e) => {
+                      setBuscadorCliente(e.target.value);
+                      if (clienteSeleccionado) setClienteSeleccionado(null);
+                    }}
+                  />
+                  {buscandoClientes && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">...</span>
+                  )}
+                  {!buscandoClientes && buscadorCliente && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={limpiarCliente}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  {mostrarSugerenciasClientes && sugerenciasClientes.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-0.5 max-h-40 overflow-y-auto">
+                      {sugerenciasClientes.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-amber-50 border-b border-gray-50 last:border-0"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            seleccionarCliente(c);
+                          }}
+                        >
+                          <span className="font-medium">{c.nombre}</span>
+                          {c.telefono && (
+                            <span className="ml-2 text-xs text-gray-400">{c.telefono}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  {clienteSeleccionado ? (
+                    <span className="text-emerald-600 font-medium">Cliente: {clienteSeleccionado.nombre}</span>
+                  ) : (
+                    'Sin cliente = Consumidor Final'
+                  )}
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -405,6 +657,7 @@ export default function DevolucionesPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
                   Fecha Movimiento
@@ -417,18 +670,21 @@ export default function DevolucionesPage() {
                   max={getHoy()}
                 />
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Observaciones
+                  Motivo <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   className={`${inputClass} w-full`}
-                  rows={3}
-                  value={formObservaciones}
-                  onChange={(e) => setFormObservaciones(e.target.value)}
+                  rows={2}
+                  placeholder="Describe el motivo de la devolucion..."
+                  value={formMotivo}
+                  onChange={(e) => setFormMotivo(e.target.value)}
                 />
               </div>
             </div>
+
             <div className="px-5 py-3 border-t border-gray-200 bg-amber-50 rounded-b-lg flex justify-end gap-3">
               <button
                 onClick={() => setModalOpen(false)}
@@ -437,11 +693,11 @@ export default function DevolucionesPage() {
                 Cancelar
               </button>
               <button
-                onClick={guardarMovimiento}
+                onClick={guardarDevolucion}
                 disabled={guardando}
-                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md transition-colors"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-md transition-colors"
               >
-                {guardando ? 'Guardando...' : 'Guardar'}
+                {guardando ? 'Guardando...' : 'Guardar Devolucion'}
               </button>
             </div>
           </div>

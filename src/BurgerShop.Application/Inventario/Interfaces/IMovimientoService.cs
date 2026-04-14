@@ -5,6 +5,7 @@ namespace BurgerShop.Application.Inventario.Interfaces;
 public interface IMovimientoService
 {
     Task<MovimientoDto> RegistrarMovimientoAsync(CrearMovimientoDto dto, int? usuarioId);
+    Task<MovimientoDto> RegistrarDevolucionAsync(CrearDevolucionDto dto, int? usuarioId);
     Task<IEnumerable<MovimientoDto>> RegistrarMovimientosVentaAsync(int ventaId, int localId, int? usuarioId);
     Task RegistrarMovimientosVentaStockAsync(int ventaId, int localId, int? usuarioId);
     Task RegistrarMovimientosVentaCajaAsync(int ventaId, int localId, int? usuarioId);

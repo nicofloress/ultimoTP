@@ -1,33 +1,38 @@
 using BurgerShop.Application.Inventario.DTOs;
 using BurgerShop.Application.Inventario.Interfaces;
 using BurgerShop.Domain.Entities.Inventario;
+using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Domain.Interfaces.Catalogo;
 using BurgerShop.Domain.Interfaces.Inventario;
+using BurgerShop.Domain.Interfaces.Ventas;
 
 namespace BurgerShop.Application.Inventario.Services;
 
 public class MovimientoService : IMovimientoService
 {
-    private readonly IMovimientoRepository      _movRepo;
-    private readonly IArtiStockRepository       _stockRepo;
-    private readonly IRepository<CodigoAccion>  _codigoRepo;
-    private readonly IVentaRepository           _ventaRepo;
-    private readonly IComboRepository           _comboRepo;
+    private readonly IMovimientoRepository          _movRepo;
+    private readonly IArtiStockRepository           _stockRepo;
+    private readonly IRepository<CodigoAccion>      _codigoRepo;
+    private readonly IVentaRepository               _ventaRepo;
+    private readonly IComboRepository               _comboRepo;
+    private readonly ICuentaCorrienteRepository     _cuentaCorrienteRepo;
 
     public MovimientoService(
-        IMovimientoRepository     movRepo,
-        IArtiStockRepository      stockRepo,
-        IRepository<CodigoAccion> codigoRepo,
-        IVentaRepository          ventaRepo,
-        IComboRepository          comboRepo)
+        IMovimientoRepository         movRepo,
+        IArtiStockRepository          stockRepo,
+        IRepository<CodigoAccion>     codigoRepo,
+        IVentaRepository              ventaRepo,
+        IComboRepository              comboRepo,
+        ICuentaCorrienteRepository    cuentaCorrienteRepo)
     {
-        _movRepo    = movRepo;
-        _stockRepo  = stockRepo;
-        _codigoRepo = codigoRepo;
-        _ventaRepo  = ventaRepo;
-        _comboRepo  = comboRepo;
+        _movRepo             = movRepo;
+        _stockRepo           = stockRepo;
+        _codigoRepo          = codigoRepo;
+        _ventaRepo           = ventaRepo;
+        _comboRepo           = comboRepo;
+        _cuentaCorrienteRepo = cuentaCorrienteRepo;
     }
 
     // ----------------------------------------------------------------
@@ -296,6 +301,162 @@ public class MovimientoService : IMovimientoService
 
         await _movRepo.SaveChangesAsync();
         await _stockRepo.SaveChangesAsync();
+    }
+
+    // ----------------------------------------------------------------
+    // Registrar devolución de cliente
+    // ----------------------------------------------------------------
+    public async Task<MovimientoDto> RegistrarDevolucionAsync(CrearDevolucionDto dto, int? usuarioId)
+    {
+        if (dto.ProductoId is null && dto.ComboId is null)
+            throw new InvalidOperationException("Se debe indicar un producto o un combo para la devolución.");
+
+        if (dto.ProductoId is not null && dto.ComboId is not null)
+            throw new InvalidOperationException("No se puede indicar producto y combo al mismo tiempo.");
+
+        if (string.IsNullOrWhiteSpace(dto.Motivo))
+            throw new InvalidOperationException("El motivo de la devolución es obligatorio.");
+
+        if (dto.Cantidad <= 0)
+            throw new InvalidOperationException("La cantidad debe ser mayor a cero.");
+
+        if (dto.PrecioUnitario < 0)
+            throw new InvalidOperationException("El precio unitario no puede ser negativo.");
+
+        var codigoDevCli = await _codigoRepo.GetByIdAsync(8)  // DEV_CLI
+            ?? throw new InvalidOperationException("Código de acción DEV_CLI (Id=8) no encontrado.");
+
+        var codigoNtcCta = await _codigoRepo.GetByIdAsync(14) // NTC_CTA
+            ?? throw new InvalidOperationException("Código de acción NTC_CTA (Id=14) no encontrado.");
+
+        var ahora         = DateTime.Now;
+        var montoTotal    = dto.Cantidad * dto.PrecioUnitario;
+        Movimiento movStock;
+
+        if (dto.ProductoId.HasValue)
+        {
+            // Devolución de producto simple
+            movStock = new Movimiento
+            {
+                FechaMovimiento = dto.FechaMovimiento,
+                FechaProceso    = ahora,
+                CodigoAccionId  = codigoDevCli.Id,
+                ProductoId      = dto.ProductoId,
+                LocalId         = dto.LocalId,
+                Cantidad        = dto.Cantidad,
+                PrecioUnitario  = dto.PrecioUnitario,
+                MontoTotal      = montoTotal,
+                UsuarioId       = usuarioId,
+                Observaciones   = dto.Motivo
+            };
+
+            await _movRepo.AddAsync(movStock);
+            await _movRepo.SaveChangesAsync();
+
+            // Actualizar stock: ingresa mercadería devuelta (IngresoLocal)
+            var stock = await ObtenerOCrearArtiStockAsync(dto.ProductoId.Value, dto.LocalId);
+            stock.IngresoLocal       += dto.Cantidad;
+            stock.StockFinal          = stock.IngresoLocal - stock.EgresoLocal - stock.VentaLocal;
+            stock.UltimaModificacion  = ahora;
+            await _stockRepo.AddOrUpdateAsync(stock);
+            await _stockRepo.SaveChangesAsync();
+        }
+        else
+        {
+            // Devolución de combo: 1 movimiento visible con nombre del combo
+            // + actualizar ArtiStock de cada componente
+            var combo = await _comboRepo.GetByIdWithDetallesAsync(dto.ComboId!.Value)
+                ?? throw new InvalidOperationException($"Combo {dto.ComboId} no encontrado.");
+
+            movStock = new Movimiento
+            {
+                FechaMovimiento = dto.FechaMovimiento,
+                FechaProceso    = ahora,
+                CodigoAccionId  = codigoDevCli.Id,
+                ProductoId      = null,
+                LocalId         = dto.LocalId,
+                Cantidad        = dto.Cantidad,
+                PrecioUnitario  = dto.PrecioUnitario,
+                MontoTotal      = montoTotal,
+                UsuarioId       = usuarioId,
+                Observaciones   = $"{combo.Nombre} - {dto.Motivo}"
+            };
+
+            await _movRepo.AddAsync(movStock);
+            await _stockRepo.SaveChangesAsync();
+
+            // Actualizar stock de cada componente del combo
+            if (combo.Detalles != null)
+            {
+                foreach (var detalle in combo.Detalles)
+                {
+                    var cantidadComponente = dto.Cantidad * detalle.Cantidad;
+                    var stock = await ObtenerOCrearArtiStockAsync(detalle.ProductoId, dto.LocalId);
+                    stock.IngresoLocal       += cantidadComponente;
+                    stock.StockFinal          = stock.IngresoLocal - stock.EgresoLocal - stock.VentaLocal;
+                    stock.UltimaModificacion  = ahora;
+                    await _stockRepo.AddOrUpdateAsync(stock);
+                }
+            }
+
+            await _movRepo.SaveChangesAsync();
+            await _stockRepo.SaveChangesAsync();
+        }
+
+        // Movimiento de caja: NTC_CTA (egreso de dinero por devolución)
+        if (montoTotal > 0)
+        {
+            var movCaja = new Movimiento
+            {
+                FechaMovimiento = dto.FechaMovimiento,
+                FechaProceso    = ahora,
+                CodigoAccionId  = codigoNtcCta.Id,
+                ProductoId      = null,
+                LocalId         = dto.LocalId,
+                Cantidad        = 1,
+                PrecioUnitario  = montoTotal,
+                MontoTotal      = montoTotal,
+                UsuarioId       = usuarioId,
+                Observaciones   = $"Devolución - {dto.Motivo}"
+            };
+
+            await _movRepo.AddAsync(movCaja);
+            await _movRepo.SaveChangesAsync();
+        }
+
+        // Ajuste a favor en cuenta corriente si el cliente tiene saldo deudor
+        if (dto.ClienteId.HasValue && montoTotal > 0)
+        {
+            var cuenta = await _cuentaCorrienteRepo.GetByClienteIdAsync(dto.ClienteId.Value);
+            if (cuenta is not null && cuenta.SaldoActual > 0)
+            {
+                // Acreditar el monto de la devolución (reduce la deuda del cliente)
+                var montoAjuste  = Math.Min(montoTotal, cuenta.SaldoActual);
+                var nuevoSaldo   = cuenta.SaldoActual - montoAjuste;
+
+                var movCtaCte = new MovimientoCuentaCorriente
+                {
+                    CuentaCorrienteId = cuenta.Id,
+                    FechaMovimiento   = ahora,
+                    FechaProceso      = ahora,
+                    Tipo              = TipoMovimientoCuentaCorriente.AjusteManual,
+                    Monto             = montoAjuste,
+                    SaldoResultante   = nuevoSaldo,
+                    MovimientoId      = movStock.Id,
+                    UsuarioId         = usuarioId,
+                    Observaciones     = $"Ajuste por devolución - {dto.Motivo}"
+                };
+
+                cuenta.SaldoActual           = nuevoSaldo;
+                cuenta.FechaUltimoMovimiento = ahora;
+
+                await _cuentaCorrienteRepo.AddMovimientoAsync(movCtaCte);
+                _cuentaCorrienteRepo.Update(cuenta);
+                await _cuentaCorrienteRepo.SaveChangesAsync();
+            }
+        }
+
+        return ToDto(movStock, codigoDevCli);
     }
 
     // ----------------------------------------------------------------

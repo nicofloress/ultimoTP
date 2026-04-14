@@ -100,7 +100,9 @@ export default function HistorialPedidosPage() {
 
   const getFormaPagoLabel = (p: Venta) => {
     if (p.pagos && p.pagos.length > 0) return p.pagos.map(pg => pg.formaPagoNombre).join(' / ');
-    return p.formaPagoNombre || (p.estaPago ? '-' : 'Cta Cte');
+    if (p.formaPagoNombre) return p.formaPagoNombre;
+    if (!p.estaPago) return 'Pendiente de cobro';
+    return '-';
   };
 
   const pedidosFiltrados = useMemo(() => {

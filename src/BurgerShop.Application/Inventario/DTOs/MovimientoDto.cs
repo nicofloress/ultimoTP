@@ -15,3 +15,13 @@ public record CrearMovimientoDto(
     int CodigoAccionId, int? ProductoId, int LocalId,
     decimal Cantidad, decimal PrecioUnitario,
     DateTime FechaMovimiento, string? Observaciones);
+
+public record CrearDevolucionDto(
+    int?     ProductoId,
+    int?     ComboId,
+    int      LocalId,
+    decimal  Cantidad,
+    decimal  PrecioUnitario,
+    DateTime FechaMovimiento,
+    string   Motivo,
+    int?     ClienteId = null);
