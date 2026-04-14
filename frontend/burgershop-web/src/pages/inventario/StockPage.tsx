@@ -89,44 +89,27 @@ export default function StockPage() {
     return () => clearInterval(interval);
   }, [cargarStock]);
 
-  // --- Mega-categorias (dinámicas desde categorías raíz) ---
+  // --- Mega-categorias: cada categoría raíz es un botón de filtro ---
   const megaCategorias = useMemo(() => {
-    const rootCats = categorias.filter(c => c.activa && !c.categoriaPadreId);
-    const tipoLabels: Record<number, string> = { 1: 'Hamburguesas', 2: 'Salchichas', 3: 'Pan', 4: 'Aderezos', 5: 'Snacks' };
-    const grouped = new Map<string, { key: string; label: string; catIds: number[]; tipoMega: number }>();
-    for (const rc of rootCats) {
+    return categorias.filter(c => c.activa && !c.categoriaPadreId).map(rc => {
       const childIds = categorias.filter(c => c.categoriaPadreId === rc.id).map(c => c.id);
-      const allIds = [rc.id, ...childIds];
-      if (rc.tipoMegaCategoria > 0) {
-        const gk = `tipo-${rc.tipoMegaCategoria}`;
-        if (grouped.has(gk)) grouped.get(gk)!.catIds.push(...allIds);
-        else grouped.set(gk, { key: gk, label: tipoLabels[rc.tipoMegaCategoria] || rc.nombre, catIds: [...allIds], tipoMega: rc.tipoMegaCategoria });
-      } else {
-        grouped.set(`cat-${rc.id}`, { key: `cat-${rc.id}`, label: rc.nombre, catIds: [...allIds], tipoMega: 0 });
-      }
-    }
-    return Array.from(grouped.values());
+      return { key: `cat-${rc.id}`, label: rc.nombre, catIds: [rc.id, ...childIds] };
+    });
   }, [categorias]);
 
   const megaActiva = megaCategorias.find(m => m.key === megaFiltro);
 
-  // Sub-categorías disponibles para la mega seleccionada
+  // Sub-categorías de la mega seleccionada
   const lineasDisponibles = useMemo(() => {
     if (!megaActiva) return [];
-    if (megaActiva.tipoMega > 0) {
-      return categorias.filter(c => c.activa && !c.categoriaPadreId && c.tipoMegaCategoria === megaActiva.tipoMega).map(c => ({ id: c.id, nombre: c.nombre }));
-    }
     const rootId = parseInt(megaActiva.key.replace('cat-', ''));
-    const hijas = categorias.filter(c => c.activa && c.categoriaPadreId === rootId);
-    return hijas.map(c => ({ id: c.id, nombre: c.nombre }));
+    return categorias.filter(c => c.activa && c.categoriaPadreId === rootId).map(c => ({ id: c.id, nombre: c.nombre }));
   }, [megaActiva, categorias]);
-
-  const tieneSubfiltro = megaActiva?.tipoMega === 1 || megaActiva?.tipoMega === 5 || lineasDisponibles.length > 1;
 
   const [lineaFiltro, setLineaFiltro] = useState<number | null>(null);
 
   const gramajesDisponibles = useMemo(() => {
-    if (!megaActiva || (megaActiva.tipoMega !== 1 && megaActiva.tipoMega !== 5)) return [];
+    if (!megaActiva) return [];
     return productos
       .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : megaActiva.catIds.includes(p.categoriaId)) && p.pesoGramos)
       .map(p => p.pesoGramos!)
@@ -293,7 +276,7 @@ export default function StockPage() {
         </div>
 
         {/* Sub-filtro sub-categorías */}
-        {lineasDisponibles.length > 1 && (
+        {lineasDisponibles.length > 0 && (
           <div className="flex gap-1.5 flex-wrap">
             <span className="text-xs text-gray-500 font-medium mr-1 self-center">Sub:</span>
             <button onClick={() => setLineaFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!lineaFiltro ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Todas</button>
@@ -304,7 +287,7 @@ export default function StockPage() {
         )}
 
         {/* Sub-filtro gramaje */}
-        {tieneSubfiltro && gramajesDisponibles.length > 0 && (
+        {gramajesDisponibles.length > 0 && (
           <div className="flex gap-1.5 flex-wrap">
             <button
               onClick={() => setGramajesFiltro(null)}

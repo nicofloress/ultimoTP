@@ -36,37 +36,30 @@ export default function CombosPage() {
   useEffect(() => { cargar(); }, []);
 
   const megaCategorias = useMemo(() => {
-    const byTipo = (tipo: number) => categorias.filter(c => c.activa && c.tipoMegaCategoria === tipo).map(c => c.id);
-    return [
-      { key: 'hamburguesa', label: 'Hamburguesas', catIds: byTipo(1) },
-      { key: 'salchicha', label: 'Salchichas', catIds: byTipo(2) },
-      { key: 'pan', label: 'Pan', catIds: byTipo(3) },
-      { key: 'aderezos', label: 'Aderezos', catIds: byTipo(4) },
-      { key: 'snacks', label: 'Snacks', catIds: byTipo(5) },
-    ];
+    return categorias.filter(c => c.activa && !c.categoriaPadreId).map(rc => {
+      const childIds = categorias.filter(c => c.categoriaPadreId === rc.id).map(c => c.id);
+      return { key: `cat-${rc.id}`, label: rc.nombre, catIds: [rc.id, ...childIds] };
+    });
   }, [categorias]);
 
-  const tieneSubfiltro = filtro === 'hamburguesa' || filtro === 'snacks';
+  const megaActiva = megaCategorias.find(m => m.key === filtro);
 
   const lineasDisponibles = useMemo(() => {
-    if (filtro !== 'hamburguesa') return [];
-    const mc = megaCategorias.find(m => m.key === 'hamburguesa');
-    if (!mc) return [];
-    return categorias.filter(c => c.activa && mc.catIds.includes(c.id)).map(c => ({ id: c.id, nombre: c.nombre }));
-  }, [filtro, megaCategorias, categorias]);
+    if (!megaActiva) return [];
+    const rootId = parseInt(megaActiva.key.replace('cat-', ''));
+    return categorias.filter(c => c.activa && c.categoriaPadreId === rootId).map(c => ({ id: c.id, nombre: c.nombre }));
+  }, [megaActiva, categorias]);
 
   const [lineaFiltro, setLineaFiltro] = useState<number | null>(null);
 
   const gramajesDisponibles = useMemo(() => {
-    if (!tieneSubfiltro) return [];
-    const mc = megaCategorias.find(m => m.key === filtro);
-    if (!mc) return [];
+    if (!megaActiva) return [];
     return productos
-      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : mc.catIds.includes(p.categoriaId)) && p.pesoGramos)
+      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : megaActiva.catIds.includes(p.categoriaId)) && p.pesoGramos)
       .map(p => p.pesoGramos!)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => a - b);
-  }, [productos, filtro, megaCategorias]);
+  }, [productos, megaActiva, lineaFiltro]);
 
   const combosFiltrados = useMemo(() => {
     let lista = combos.filter(c => c.activo);
@@ -74,22 +67,19 @@ export default function CombosPage() {
       const q = busqueda.toLowerCase();
       lista = lista.filter(c => c.nombre.toLowerCase().includes(q) || c.descripcion?.toLowerCase().includes(q));
     }
-    if (filtro) {
-      const mc = megaCategorias.find(m => m.key === filtro);
-      if (mc) {
-        let prodsEnCat = productos.filter(p => mc.catIds.includes(p.categoriaId));
-        if (filtro === 'hamburguesa' && lineaFiltro) {
-          prodsEnCat = prodsEnCat.filter(p => p.categoriaId === lineaFiltro);
-        }
-        if (tieneSubfiltro && gramajesFiltro) {
-          prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
-        }
-        const prodIds = new Set(prodsEnCat.map(p => p.id));
-        lista = lista.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
+    if (megaActiva) {
+      let prodsEnCat = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));
+      if (lineaFiltro) {
+        prodsEnCat = prodsEnCat.filter(p => p.categoriaId === lineaFiltro);
       }
+      if (gramajesFiltro) {
+        prodsEnCat = prodsEnCat.filter(p => p.pesoGramos === gramajesFiltro);
+      }
+      const prodIds = new Set(prodsEnCat.map(p => p.id));
+      lista = lista.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
     }
     return lista;
-  }, [combos, productos, busqueda, filtro, gramajesFiltro, lineaFiltro, megaCategorias]);
+  }, [combos, productos, busqueda, megaActiva, gramajesFiltro, lineaFiltro]);
 
   const resetForm = () => {
     setNombre(''); setDescripcion(''); setPrecio(0); setDetalles([]); setEditando(null); setShowForm(false);
@@ -156,16 +146,16 @@ export default function CombosPage() {
             <button key={mc.key} onClick={() => { setFiltro(mc.key); setGramajesFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${filtro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
           ))}
         </div>
-        {filtro === 'hamburguesa' && lineasDisponibles.length > 1 && (
+        {lineasDisponibles.length > 0 && (
           <div className="flex gap-1.5 items-center">
-            <span className="text-xs text-gray-500 font-medium mr-1">Linea:</span>
+            <span className="text-xs text-gray-500 font-medium mr-1">Sub:</span>
             <button onClick={() => setLineaFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!lineaFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todas</button>
             {lineasDisponibles.map(l => (
-              <button key={l.id} onClick={() => setLineaFiltro(l.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${lineaFiltro === l.id ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{l.nombre.replace('Hamburguesa ', '')}</button>
+              <button key={l.id} onClick={() => setLineaFiltro(l.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${lineaFiltro === l.id ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{l.nombre}</button>
             ))}
           </div>
         )}
-        {tieneSubfiltro && gramajesDisponibles.length > 0 && (
+        {gramajesDisponibles.length > 0 && (
           <div className="flex gap-1.5 items-center">
             <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
             <button

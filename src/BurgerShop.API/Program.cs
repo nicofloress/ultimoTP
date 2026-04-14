@@ -169,21 +169,21 @@ using (var scope = app.Services.CreateScope())
           );
     ");
 
-    // Backfill: setear UnidadMinima según categoría
-    // Hamburguesas (mega=1 o hijas de mega=1) = 2
-    // Salchichas (mega=2 o hijas de mega=2) = 6
-    // Panes tradicional/maxi (mega=3, nombres con tradicional/maxi) = 4
-    // Panes pancho/superpancho (mega=3, nombres con pancho) = 6
+    // Backfill: setear UnidadMinima según categoría (usa jerarquía padre/hijo)
     db.Database.ExecuteSqlRaw(@"
         UPDATE ""Productos"" SET ""UnidadMinima"" = 2
         WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
-            SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 1
-            UNION SELECT ""Id"" FROM ""Categorias"" WHERE ""CategoriaPadreId"" IN (SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 1)
+            SELECT c.""Id"" FROM ""Categorias"" c
+            LEFT JOIN ""Categorias"" p ON c.""CategoriaPadreId"" = p.""Id""
+            LEFT JOIN ""Categorias"" gp ON p.""CategoriaPadreId"" = gp.""Id""
+            WHERE c.""Nombre"" ILIKE '%hamburguesa%' OR p.""Nombre"" ILIKE '%hamburguesa%' OR gp.""Nombre"" ILIKE '%hamburguesa%'
+               OR c.""Nombre"" IN ('Económica','Premium') OR p.""Nombre"" IN ('Económica','Premium')
         );
         UPDATE ""Productos"" SET ""UnidadMinima"" = 6
         WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
-            SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 2
-            UNION SELECT ""Id"" FROM ""Categorias"" WHERE ""CategoriaPadreId"" IN (SELECT ""Id"" FROM ""Categorias"" WHERE ""TipoMegaCategoria"" = 2)
+            SELECT c.""Id"" FROM ""Categorias"" c
+            LEFT JOIN ""Categorias"" p ON c.""CategoriaPadreId"" = p.""Id""
+            WHERE c.""Nombre"" ILIKE '%salchicha%' OR p.""Nombre"" ILIKE '%salchicha%'
         );
         UPDATE ""Productos"" SET ""UnidadMinima"" = 4
         WHERE ""UnidadMinima"" <= 1 AND ""CategoriaId"" IN (
@@ -195,6 +195,52 @@ using (var scope = app.Services.CreateScope())
         );
 
         UPDATE ""Productos"" SET ""UnidadMinima"" = 1 WHERE ""UnidadMinima"" = 0;
+    ");
+
+    // Migración: crear mega-categorías y reorganizar jerarquía
+    // Solo crea si no existen (idempotente)
+    db.Database.ExecuteSqlRaw(@"
+        -- Crear mega Hamburguesas
+        INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"")
+        SELECT 'Hamburguesas', true, 0, 0
+        WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Hamburguesas' AND ""CategoriaPadreId"" IS NULL);
+
+        -- Crear mega Salchichas
+        INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"")
+        SELECT 'Salchichas', true, 0, 0
+        WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Salchichas' AND ""CategoriaPadreId"" IS NULL);
+
+        -- Crear mega Pan
+        INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"")
+        SELECT 'Pan', true, 0, 0
+        WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Pan' AND ""CategoriaPadreId"" IS NULL);
+
+        -- Crear sub-categorías de Aderezos
+        INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"", ""CategoriaPadreId"")
+        SELECT 'Salsas clásicas', true, 0, 5, (SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Aderezos' AND ""CategoriaPadreId"" IS NULL LIMIT 1)
+        WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Salsas clásicas');
+
+        INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"", ""CategoriaPadreId"")
+        SELECT 'Salsas especiales', true, 0, 5, (SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Aderezos' AND ""CategoriaPadreId"" IS NULL LIMIT 1)
+        WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Salsas especiales');
+
+        -- Reasignar Económica y Premium como hijas de Hamburguesas
+        UPDATE ""Categorias"" SET ""CategoriaPadreId"" = (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Hamburguesas' AND ""CategoriaPadreId"" IS NULL LIMIT 1
+        ) WHERE ""Id"" IN (17, 18) AND ""CategoriaPadreId"" IS NULL;
+
+        -- Reasignar Salchicha Corta y Larga como hijas de Salchichas
+        UPDATE ""Categorias"" SET ""CategoriaPadreId"" = (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Salchichas' AND ""CategoriaPadreId"" IS NULL LIMIT 1
+        ) WHERE ""Id"" IN (10, 11) AND ""CategoriaPadreId"" IS NULL;
+
+        -- Reasignar Panes como hijas de Pan
+        UPDATE ""Categorias"" SET ""CategoriaPadreId"" = (
+            SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Pan' AND ""CategoriaPadreId"" IS NULL LIMIT 1
+        ) WHERE ""Id"" IN (12, 13, 14, 15) AND ""CategoriaPadreId"" IS NULL;
+
+        -- Limpiar TipoMegaCategoria (ya no se usa, la jerarquía la define el padre)
+        UPDATE ""Categorias"" SET ""TipoMegaCategoria"" = 0 WHERE ""TipoMegaCategoria"" != 0;
     ");
 
     // Seed: asegurar que existe la forma de pago "Cuenta Corriente"

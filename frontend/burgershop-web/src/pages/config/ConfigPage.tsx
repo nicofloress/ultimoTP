@@ -132,7 +132,6 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [nombre, setNombre] = useState('');
   const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);
-  const [tipoMega, setTipoMega] = useState<number>(0);
   const [editando, setEditando] = useState<Categoria | null>(null);
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
@@ -167,15 +166,14 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
     setGuardando(true);
     try {
       if (editando) {
-        await updateCategoria(editando.id, { nombre, activa: editando.activa, categoriaPadreId, tipoMegaCategoria: categoriaPadreId ? undefined : tipoMega });
+        await updateCategoria(editando.id, { nombre, activa: editando.activa, categoriaPadreId });
         showToast('Categoria actualizada correctamente', 'success');
       } else {
-        await createCategoria({ nombre, categoriaPadreId, tipoMegaCategoria: categoriaPadreId ? undefined : tipoMega });
+        await createCategoria({ nombre, categoriaPadreId });
         showToast('Categoria creada correctamente', 'success');
       }
       setNombre('');
       setCategoriaPadreId(null);
-      setTipoMega(0);
       setEditando(null);
       cargar();
     } catch {
@@ -189,7 +187,6 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
     setEditando(cat);
     setNombre(cat.nombre);
     setCategoriaPadreId(cat.categoriaPadreId ?? null);
-    setTipoMega(cat.tipoMegaCategoria ?? 0);
   };
 
   return (
@@ -199,28 +196,16 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
           <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la categoria" className="border rounded px-3 py-2 w-full" required />
         </div>
         <div className="w-56">
-          <select value={categoriaPadreId ?? ''} onChange={e => { setCategoriaPadreId(e.target.value ? Number(e.target.value) : null); if (e.target.value) setTipoMega(0); }} className="border rounded px-3 py-2 w-full">
+          <select value={categoriaPadreId ?? ''} onChange={e => setCategoriaPadreId(e.target.value ? Number(e.target.value) : null)} className="border rounded px-3 py-2 w-full">
             <option value="">Sin categoria padre (raiz)</option>
             {opcionesPadre().map(c => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
           </select>
         </div>
-        {!categoriaPadreId && (
-          <div className="w-48">
-            <select value={tipoMega} onChange={e => setTipoMega(Number(e.target.value))} className="border rounded px-3 py-2 w-full">
-              <option value={0}>Sin tipo especial</option>
-              <option value={1}>Hamburguesa</option>
-              <option value={2}>Salchicha</option>
-              <option value={3}>Pan</option>
-              <option value={4}>Aderezo</option>
-              <option value={5}>Snack</option>
-            </select>
-          </div>
-        )}
         <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
         {editando && (
-          <button type="button" onClick={() => { setEditando(null); setNombre(''); setCategoriaPadreId(null); setTipoMega(0); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
+          <button type="button" onClick={() => { setEditando(null); setNombre(''); setCategoriaPadreId(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
         )}
       </form>
 
@@ -231,7 +216,6 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Categoria Padre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
@@ -247,9 +231,6 @@ function CategoriasTab({ onConfirm }: { onConfirm: (tipo: string, id: number, no
                     {cat.nombre}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">{cat.categoriaPadreNombre ?? '-'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
-                    {!cat.categoriaPadreId && cat.tipoMegaCategoria ? ['', 'Hamburguesa', 'Salchicha', 'Pan', 'Aderezo', 'Snack'][cat.tipoMegaCategoria] || '-' : '-'}
-                  </td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`px-2 py-1 rounded text-xs ${cat.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {cat.activa ? 'Activa' : 'Inactiva'}
