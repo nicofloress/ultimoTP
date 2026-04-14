@@ -21,3 +21,6 @@ export const upsertDetalle = (listaPrecioId: number, data: UpsertDetalleDto) =>
 
 export const eliminarDetalle = (listaPrecioId: number, productoId: number) =>
   api.delete(`/listasprecios/${listaPrecioId}/detalles/${productoId}`).then(r => r.data);
+
+export const eliminarDetalleCombo = (listaPrecioId: number, comboId: number) =>
+  api.delete(`/listasprecios/${listaPrecioId}/detalles/combo/${comboId}`).then(r => r.data);

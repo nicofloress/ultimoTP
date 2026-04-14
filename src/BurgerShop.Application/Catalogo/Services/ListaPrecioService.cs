@@ -26,10 +26,7 @@ public class ListaPrecioService : IListaPrecioService
     public async Task<ListaPrecioDto> CreateAsync(CrearListaPrecioDto dto)
     {
         if (dto.EsDefault)
-        {
-            // Se desactivará en SaveChanges; guardamos primero con Id=0, luego actualizamos
             await _repo.DesactivarOtrasDefaultAsync(0);
-        }
 
         var lista = new ListaPrecio
         {
@@ -50,9 +47,7 @@ public class ListaPrecioService : IListaPrecioService
         if (lista is null) return null;
 
         if (dto.EsDefault && !lista.EsDefault)
-        {
             await _repo.DesactivarOtrasDefaultAsync(id);
-        }
 
         lista.Nombre = dto.Nombre;
         lista.EsDefault = dto.EsDefault;
@@ -79,31 +74,62 @@ public class ListaPrecioService : IListaPrecioService
         var lista = await _repo.GetByIdAsync(listaPrecioId);
         if (lista is null) return null;
 
-        var detalle = await _repo.GetDetalleAsync(listaPrecioId, dto.ProductoId);
-
-        if (detalle is not null)
+        if (dto.ComboId.HasValue)
         {
-            detalle.Precio = dto.Precio;
+            var detalle = await _repo.GetDetalleComboAsync(listaPrecioId, dto.ComboId.Value);
+            if (detalle is not null)
+            {
+                detalle.Precio = dto.Precio;
+                await _repo.SaveChangesAsync();
+                return new ListaPrecioDetalleDto(detalle.Id, null, null, detalle.ComboId, detalle.Combo?.Nombre ?? "", detalle.Precio);
+            }
+            detalle = new ListaPrecioDetalle
+            {
+                ListaPrecioId = listaPrecioId,
+                ComboId = dto.ComboId.Value,
+                Precio = dto.Precio
+            };
+            await _repo.AddDetalleAsync(detalle);
             await _repo.SaveChangesAsync();
-            return new ListaPrecioDetalleDto(detalle.Id, detalle.ProductoId, detalle.Producto?.Nombre ?? "", detalle.Precio);
+            return new ListaPrecioDetalleDto(detalle.Id, null, null, detalle.ComboId, "", detalle.Precio);
         }
 
-        detalle = new ListaPrecioDetalle
+        if (dto.ProductoId.HasValue)
         {
-            ListaPrecioId = listaPrecioId,
-            ProductoId = dto.ProductoId,
-            Precio = dto.Precio
-        };
+            var detalle = await _repo.GetDetalleAsync(listaPrecioId, dto.ProductoId.Value);
+            if (detalle is not null)
+            {
+                detalle.Precio = dto.Precio;
+                await _repo.SaveChangesAsync();
+                return new ListaPrecioDetalleDto(detalle.Id, detalle.ProductoId, detalle.Producto?.Nombre ?? "", null, null, detalle.Precio);
+            }
+            detalle = new ListaPrecioDetalle
+            {
+                ListaPrecioId = listaPrecioId,
+                ProductoId = dto.ProductoId.Value,
+                Precio = dto.Precio
+            };
+            await _repo.AddDetalleAsync(detalle);
+            await _repo.SaveChangesAsync();
+            return new ListaPrecioDetalleDto(detalle.Id, detalle.ProductoId, "", null, null, detalle.Precio);
+        }
 
-        await _repo.AddDetalleAsync(detalle);
-        await _repo.SaveChangesAsync();
-
-        return new ListaPrecioDetalleDto(detalle.Id, detalle.ProductoId, "", detalle.Precio);
+        return null;
     }
 
     public async Task<bool> DeleteDetalleAsync(int listaPrecioId, int productoId)
     {
         var detalle = await _repo.GetDetalleAsync(listaPrecioId, productoId);
+        if (detalle is null) return false;
+
+        _repo.RemoveDetalle(detalle);
+        await _repo.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteDetalleComboAsync(int listaPrecioId, int comboId)
+    {
+        var detalle = await _repo.GetDetalleComboAsync(listaPrecioId, comboId);
         if (detalle is null) return false;
 
         _repo.RemoveDetalle(detalle);
@@ -118,5 +144,7 @@ public class ListaPrecioService : IListaPrecioService
 
     private static ListaPrecioDto ToDto(ListaPrecio l) => new(
         l.Id, l.Nombre, l.EsDefault, l.Activa,
-        l.Detalles.Select(d => new ListaPrecioDetalleDto(d.Id, d.ProductoId, d.Producto?.Nombre ?? "", d.Precio)).ToList());
+        l.Detalles.Select(d => new ListaPrecioDetalleDto(
+            d.Id, d.ProductoId, d.Producto?.Nombre, d.ComboId, d.Combo?.Nombre, d.Precio
+        )).ToList());
 }

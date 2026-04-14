@@ -396,31 +396,38 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetCountByFechaAsync(DateTime fecha)
+    public async Task<int> GetCountByFechaAsync(DateTime fecha, int? localId = null, int? tipo = null)
     {
-        return await _dbSet
+        var q = _dbSet
             .Where(v => v.FechaCreacion.Date == fecha.Date
                 && v.Estado != EstadoVenta.Cancelado
-                && v.Estado != EstadoVenta.NoEntregado)
-            .CountAsync();
+                && v.Estado != EstadoVenta.NoEntregado);
+        if (localId.HasValue) q = q.Where(v => v.LocalId == localId.Value);
+        if (tipo.HasValue) q = q.Where(v => (int)v.Tipo == tipo.Value);
+        return await q.CountAsync();
     }
 
-    public async Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta)
+    public async Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta, int? localId = null, int? tipo = null)
     {
-        return await _dbSet
+        var q = _dbSet
             .Where(v => v.FechaCreacion.Date >= desde.Date
                 && v.FechaCreacion.Date <= hasta.Date
                 && v.Estado != EstadoVenta.Cancelado
-                && v.Estado != EstadoVenta.NoEntregado)
-            .CountAsync();
+                && v.Estado != EstadoVenta.NoEntregado);
+        if (localId.HasValue) q = q.Where(v => v.LocalId == localId.Value);
+        if (tipo.HasValue) q = q.Where(v => (int)v.Tipo == tipo.Value);
+        return await q.CountAsync();
     }
 
-    public async Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha)
+    public async Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha, int? localId = null, int? tipo = null)
     {
-        var resultado = await _dbSet
+        var q = _dbSet
             .Where(v => v.FechaCreacion.Date == fecha.Date
                 && v.Estado != EstadoVenta.Cancelado
-                && v.Estado != EstadoVenta.NoEntregado)
+                && v.Estado != EstadoVenta.NoEntregado);
+        if (localId.HasValue) q = q.Where(v => v.LocalId == localId.Value);
+        if (tipo.HasValue) q = q.Where(v => (int)v.Tipo == tipo.Value);
+        var resultado = await q
             .GroupBy(_ => 1)
             .Select(g => new { Total = g.Sum(v => v.Total), Count = g.Count() })
             .FirstOrDefaultAsync();

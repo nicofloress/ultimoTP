@@ -12,7 +12,8 @@ const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focu
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 function formatFecha(fecha: string) {
-  return new Date(fecha).toLocaleString('es-AR', {
+  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
+  return new Date(f).toLocaleString('es-AR', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
@@ -85,8 +86,8 @@ export default function VentasPage() {
   }, []);
 
   useEffect(() => {
-    getVentaStats(fechaDesde).then(setStats).catch(() => {});
-  }, [fechaDesde]);
+    getVentaStats(fechaDesde, localSeleccionado || undefined, TipoVenta.Mostrador).then(setStats).catch(() => {});
+  }, [fechaDesde, localSeleccionado]);
 
   useEffect(() => {
     const cargar = async () => {
@@ -224,7 +225,7 @@ export default function VentasPage() {
                 <tr className="text-left text-gray-500 text-xs uppercase tracking-wider">
                   {([
                     ['numeroTicket', 'Ticket', ''],
-                    ['fechaCreacion', 'Hora', ''],
+                    ['fechaCreacion', 'Fecha/Hora', ''],
                     ['localNombre', 'Local', ''],
                     ['nombreCliente', 'Cliente', ''],
                     ['formaPagoNombre', 'Forma Pago', ''],

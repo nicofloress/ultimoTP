@@ -51,8 +51,8 @@ export interface VentaStats {
   totalBruto: number;
 }
 
-export const getVentaStats = (fecha?: string) =>
-  api.get<VentaStats>('/ventas/stats', { params: { fecha } }).then(r => r.data);
+export const getVentaStats = (fecha?: string, localId?: number, tipo?: number) =>
+  api.get<VentaStats>('/ventas/stats', { params: { fecha, localId, tipo } }).then(r => r.data);
 
 // Aliases para compatibilidad con código que aún usa nombres anteriores
 export const getPedidos = getVentas;

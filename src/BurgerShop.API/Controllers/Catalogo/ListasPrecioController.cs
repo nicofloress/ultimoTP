@@ -66,4 +66,12 @@ public class ListasPrecioController : ControllerBase
         var result = await _service.DeleteDetalleAsync(id, productoId);
         return result ? NoContent() : NotFound();
     }
+
+    [HttpDelete("{id}/detalles/combo/{comboId}")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<IActionResult> DeleteDetalleCombo(int id, int comboId)
+    {
+        var result = await _service.DeleteDetalleComboAsync(id, comboId);
+        return result ? NoContent() : NotFound();
+    }
 }

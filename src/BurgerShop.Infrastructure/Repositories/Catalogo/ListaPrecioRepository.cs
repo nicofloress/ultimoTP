@@ -14,6 +14,8 @@ public class ListaPrecioRepository : Repository<ListaPrecio>, IListaPrecioReposi
         return await _dbSet
             .Include(l => l.Detalles)
                 .ThenInclude(d => d.Producto)
+            .Include(l => l.Detalles)
+                .ThenInclude(d => d.Combo)
             .FirstOrDefaultAsync(l => l.Id == id);
     }
 
@@ -22,6 +24,8 @@ public class ListaPrecioRepository : Repository<ListaPrecio>, IListaPrecioReposi
         return await _dbSet
             .Include(l => l.Detalles)
                 .ThenInclude(d => d.Producto)
+            .Include(l => l.Detalles)
+                .ThenInclude(d => d.Combo)
             .OrderBy(l => l.Nombre)
             .ToListAsync();
     }
@@ -30,6 +34,12 @@ public class ListaPrecioRepository : Repository<ListaPrecio>, IListaPrecioReposi
     {
         return await _context.Set<ListaPrecioDetalle>()
             .FirstOrDefaultAsync(d => d.ListaPrecioId == listaPrecioId && d.ProductoId == productoId);
+    }
+
+    public async Task<ListaPrecioDetalle?> GetDetalleComboAsync(int listaPrecioId, int comboId)
+    {
+        return await _context.Set<ListaPrecioDetalle>()
+            .FirstOrDefaultAsync(d => d.ListaPrecioId == listaPrecioId && d.ComboId == comboId);
     }
 
     public async Task<decimal?> GetPrecioProductoAsync(int listaPrecioId, int productoId)

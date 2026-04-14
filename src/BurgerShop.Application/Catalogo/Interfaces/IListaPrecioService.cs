@@ -11,5 +11,6 @@ public interface IListaPrecioService
     Task<bool> DeleteAsync(int id);
     Task<ListaPrecioDetalleDto?> UpsertDetalleAsync(int listaPrecioId, UpsertDetalleDto dto);
     Task<bool> DeleteDetalleAsync(int listaPrecioId, int productoId);
+    Task<bool> DeleteDetalleComboAsync(int listaPrecioId, int comboId);
     Task<decimal?> GetPrecioProductoAsync(int listaPrecioId, int productoId);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ListaPrecio, Producto } from '../../types';
+import { ListaPrecio, Producto, Combo } from '../../types';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 import {
@@ -9,21 +9,25 @@ import {
   eliminarListaPrecio,
   upsertDetalle,
   eliminarDetalle,
+  eliminarDetalleCombo,
   getListaPrecio,
 } from '../../api/listasPrecios';
 import { getProductos } from '../../api/productos';
+import { getCombos } from '../../api/combos';
 
 export default function ListasPrecioPage() {
   const [listas, setListas] = useState<ListaPrecio[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
   const [nombre, setNombre] = useState('');
   const [editando, setEditando] = useState<ListaPrecio | null>(null);
   const [seleccionada, setSeleccionada] = useState<ListaPrecio | null>(null);
 
   // Detalle form
-  const [nuevoProductoId, setNuevoProductoId] = useState<number | ''>('');
+  const [tipoDetalle, setTipoDetalle] = useState<'producto' | 'combo'>('producto');
+  const [nuevoItemId, setNuevoItemId] = useState<number | ''>('');
   const [nuevoPrecio, setNuevoPrecio] = useState<number>(0);
-  const [editandoDetalleProductoId, setEditandoDetalleProductoId] = useState<number | null>(null);
+  const [editandoDetalleKey, setEditandoDetalleKey] = useState<string | null>(null);
   const [editandoDetallePrecio, setEditandoDetallePrecio] = useState<number>(0);
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
@@ -46,6 +50,7 @@ export default function ListasPrecioPage() {
   useEffect(() => {
     cargar();
     getProductos().then(setProductos);
+    getCombos().then(setCombos);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,33 +107,52 @@ export default function ListasPrecioPage() {
   };
 
   const handleAgregarDetalle = async () => {
-    if (!seleccionada || !nuevoProductoId || nuevoPrecio <= 0) return;
-    await upsertDetalle(seleccionada.id, { productoId: Number(nuevoProductoId), precio: nuevoPrecio });
-    setNuevoProductoId('');
+    if (!seleccionada || !nuevoItemId || nuevoPrecio <= 0) return;
+    const dto = tipoDetalle === 'combo'
+      ? { comboId: Number(nuevoItemId), precio: nuevoPrecio }
+      : { productoId: Number(nuevoItemId), precio: nuevoPrecio };
+    await upsertDetalle(seleccionada.id, dto);
+    setNuevoItemId('');
     setNuevoPrecio(0);
     cargarSeleccionada(seleccionada.id);
   };
 
-  const handleGuardarDetalle = async (productoId: number) => {
+  const handleGuardarDetalle = async (det: { productoId?: number; comboId?: number }) => {
     if (!seleccionada || editandoDetallePrecio <= 0) return;
-    await upsertDetalle(seleccionada.id, { productoId, precio: editandoDetallePrecio });
-    setEditandoDetalleProductoId(null);
+    const dto = det.comboId
+      ? { comboId: det.comboId, precio: editandoDetallePrecio }
+      : { productoId: det.productoId, precio: editandoDetallePrecio };
+    await upsertDetalle(seleccionada.id, dto);
+    setEditandoDetalleKey(null);
     cargarSeleccionada(seleccionada.id);
   };
 
-  const handleEliminarDetalle = async (productoId: number) => {
+  const handleEliminarDetalle = async (det: { productoId?: number; comboId?: number }) => {
     if (!seleccionada) return;
-    await eliminarDetalle(seleccionada.id, productoId);
+    if (det.comboId) {
+      await eliminarDetalleCombo(seleccionada.id, det.comboId);
+    } else if (det.productoId) {
+      await eliminarDetalle(seleccionada.id, det.productoId);
+    }
     cargarSeleccionada(seleccionada.id);
   };
 
-  const productosEnLista = seleccionada?.detalles.map(d => d.productoId) || [];
+  const productosEnLista = seleccionada?.detalles.filter(d => d.productoId).map(d => d.productoId!) || [];
+  const combosEnLista = seleccionada?.detalles.filter(d => d.comboId).map(d => d.comboId!) || [];
   const productosDisponibles = productos.filter(p => p.activo && !productosEnLista.includes(p.id));
+  const combosDisponibles = combos.filter(c => c.activo && !combosEnLista.includes(c.id));
 
-  const getProductoPrecioBase = (productoId: number) => {
-    const prod = productos.find(p => p.id === productoId);
+  const getPrecioBase = (det: { productoId?: number; comboId?: number }) => {
+    if (det.comboId) {
+      const combo = combos.find(c => c.id === det.comboId);
+      return combo?.precio ?? 0;
+    }
+    const prod = productos.find(p => p.id === det.productoId);
     return prod?.precio ?? 0;
   };
+
+  const detalleKey = (det: { productoId?: number; comboId?: number }) =>
+    det.comboId ? `combo-${det.comboId}` : `prod-${det.productoId}`;
 
   return (
     <div>
@@ -206,26 +230,47 @@ export default function ListasPrecioPage() {
             Detalles: {seleccionada.nombre}
           </h2>
 
-          {/* Agregar producto */}
+          {/* Agregar producto o combo */}
           <div className="flex gap-2 mb-4 items-end">
-            <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 block mb-1">Producto</label>
+            <div className="w-32">
+              <label className="text-sm font-medium text-gray-700 block mb-1">Tipo</label>
               <select
-                value={nuevoProductoId}
+                value={tipoDetalle}
+                onChange={e => { setTipoDetalle(e.target.value as 'producto' | 'combo'); setNuevoItemId(''); setNuevoPrecio(0); }}
+                className="w-full border rounded px-3 py-2 text-sm"
+              >
+                <option value="producto">Producto</option>
+                <option value="combo">Combo</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium text-gray-700 block mb-1">{tipoDetalle === 'combo' ? 'Combo' : 'Producto'}</label>
+              <select
+                value={nuevoItemId}
                 onChange={e => {
-                  const pid = Number(e.target.value);
-                  setNuevoProductoId(pid || '');
-                  if (pid) {
-                    const prod = productos.find(p => p.id === pid);
-                    if (prod) setNuevoPrecio(prod.precio);
+                  const id = Number(e.target.value);
+                  setNuevoItemId(id || '');
+                  if (id) {
+                    if (tipoDetalle === 'combo') {
+                      const c = combos.find(x => x.id === id);
+                      if (c) setNuevoPrecio(c.precio);
+                    } else {
+                      const p = productos.find(x => x.id === id);
+                      if (p) setNuevoPrecio(p.precio);
+                    }
                   }
                 }}
                 className="w-full border rounded px-3 py-2 text-sm"
               >
-                <option value="">Seleccionar producto...</option>
-                {productosDisponibles.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre} (${p.precio.toLocaleString()})</option>
-                ))}
+                <option value="">Seleccionar {tipoDetalle}...</option>
+                {tipoDetalle === 'combo'
+                  ? combosDisponibles.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre} (${c.precio.toLocaleString()})</option>
+                    ))
+                  : productosDisponibles.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre} (${p.precio.toLocaleString()})</option>
+                    ))
+                }
               </select>
             </div>
             <div>
@@ -241,7 +286,7 @@ export default function ListasPrecioPage() {
             </div>
             <button
               onClick={handleAgregarDetalle}
-              disabled={!nuevoProductoId || nuevoPrecio <= 0}
+              disabled={!nuevoItemId || nuevoPrecio <= 0}
               className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               Agregar
@@ -252,66 +297,78 @@ export default function ListasPrecioPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Producto</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
                 <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Precio Base</th>
                 <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Precio Lista</th>
                 <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {seleccionada.detalles.map(det => (
-                <tr key={det.productoId}>
-                  <td className="px-4 py-3 text-sm font-medium">{det.productoNombre}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-500">
-                    ${getProductoPrecioBase(det.productoId).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right">
-                    {editandoDetalleProductoId === det.productoId ? (
-                      <input
-                        type="number"
-                        value={editandoDetallePrecio}
-                        onChange={e => setEditandoDetallePrecio(Number(e.target.value))}
-                        className="border rounded px-2 py-1 w-28 text-sm text-right"
-                        min={0}
-                        step={100}
-                        autoFocus
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') handleGuardarDetalle(det.productoId);
-                          if (e.key === 'Escape') setEditandoDetalleProductoId(null);
-                        }}
-                      />
-                    ) : (
-                      <span className={det.precio !== getProductoPrecioBase(det.productoId) ? 'text-amber-600 font-bold' : ''}>
-                        ${det.precio.toLocaleString()}
+              {seleccionada.detalles.map(det => {
+                const key = detalleKey(det);
+                const esCombo = !!det.comboId;
+                const nombreItem = esCombo ? (det.comboNombre || '') : (det.productoNombre || '');
+                const precioBase = getPrecioBase(det);
+                return (
+                  <tr key={key}>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${esCombo ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {esCombo ? 'Combo' : 'Producto'}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right">
-                    {editandoDetalleProductoId === det.productoId ? (
-                      <>
-                        <button onClick={() => handleGuardarDetalle(det.productoId)} className="text-green-600 hover:underline mr-3">Guardar</button>
-                        <button onClick={() => setEditandoDetalleProductoId(null)} className="text-gray-500 hover:underline">Cancelar</button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditandoDetalleProductoId(det.productoId);
-                            setEditandoDetallePrecio(det.precio);
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">{nombreItem}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-500">
+                      ${precioBase.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      {editandoDetalleKey === key ? (
+                        <input
+                          type="number"
+                          value={editandoDetallePrecio}
+                          onChange={e => setEditandoDetallePrecio(Number(e.target.value))}
+                          className="border rounded px-2 py-1 w-28 text-sm text-right"
+                          min={0}
+                          step={100}
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleGuardarDetalle(det);
+                            if (e.key === 'Escape') setEditandoDetalleKey(null);
                           }}
-                          className="text-blue-600 hover:underline mr-3"
-                        >
-                          Editar
-                        </button>
-                        <button onClick={() => handleEliminarDetalle(det.productoId)} className="text-red-600 hover:underline">Eliminar</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        />
+                      ) : (
+                        <span className={det.precio !== precioBase ? 'text-amber-600 font-bold' : ''}>
+                          ${det.precio.toLocaleString()}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      {editandoDetalleKey === key ? (
+                        <>
+                          <button onClick={() => handleGuardarDetalle(det)} className="text-green-600 hover:underline mr-3">Guardar</button>
+                          <button onClick={() => setEditandoDetalleKey(null)} className="text-gray-500 hover:underline">Cancelar</button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditandoDetalleKey(key);
+                              setEditandoDetallePrecio(det.precio);
+                            }}
+                            className="text-blue-600 hover:underline mr-3"
+                          >
+                            Editar
+                          </button>
+                          <button onClick={() => handleEliminarDetalle(det)} className="text-red-600 hover:underline">Eliminar</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {seleccionada.detalles.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">No hay productos en esta lista</td>
+                  <td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">No hay productos ni combos en esta lista</td>
                 </tr>
               )}
             </tbody>

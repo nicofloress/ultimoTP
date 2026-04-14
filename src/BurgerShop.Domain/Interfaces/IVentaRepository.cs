@@ -34,9 +34,9 @@ public interface IVentaRepository : IRepository<Venta>
     Task<List<RepartoZona>> GetRepartosZonaFinalizadosByFechaAsync(DateTime fecha);
 
     // Stats
-    Task<int> GetCountByFechaAsync(DateTime fecha);
-    Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta);
-    Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha);
+    Task<int> GetCountByFechaAsync(DateTime fecha, int? localId = null, int? tipo = null);
+    Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta, int? localId = null, int? tipo = null);
+    Task<(decimal Total, int Count)> GetTotalesByFechaAsync(DateTime fecha, int? localId = null, int? tipo = null);
 
     // Métodos incorporados de la Venta simple
     Task<int> GetSiguienteNumeroVentaAsync(DateTime fecha);

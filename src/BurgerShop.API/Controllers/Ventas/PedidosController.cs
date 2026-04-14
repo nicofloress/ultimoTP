@@ -151,9 +151,9 @@ public class VentasController : ControllerBase
     }
 
     [HttpGet("stats")]
-    public async Task<ActionResult<VentaStatsDto>> GetStats([FromQuery] DateTime? fecha)
+    public async Task<ActionResult<VentaStatsDto>> GetStats([FromQuery] DateTime? fecha, [FromQuery] int? localId = null, [FromQuery] int? tipo = null)
     {
-        var stats = await _service.GetStatsAsync(fecha ?? DateTime.Today);
+        var stats = await _service.GetStatsAsync(fecha ?? DateTime.Today, localId, tipo);
         return Ok(stats);
     }
 }

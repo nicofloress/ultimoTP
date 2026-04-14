@@ -17,7 +17,9 @@ const tipoLabels: Record<TipoVenta, string> = {
 };
 
 function formatFecha(fecha: string) {
-  return new Date(fecha).toLocaleString('es-AR', {
+  // Tratar fechas del backend como UTC si no tienen zona horaria
+  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
+  return new Date(f).toLocaleString('es-AR', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
@@ -73,8 +75,8 @@ export default function HistorialPedidosPage() {
   }, []);
 
   useEffect(() => {
-    getVentaStats(fechaDesde).then(setStats).catch(() => {});
-  }, [fechaDesde]);
+    getVentaStats(fechaDesde, localSeleccionado || undefined, TipoVenta.Domicilio).then(setStats).catch(() => {});
+  }, [fechaDesde, localSeleccionado]);
 
   useEffect(() => {
     const cargar = async () => {
@@ -268,7 +270,7 @@ export default function HistorialPedidosPage() {
                 <tr className="text-left text-gray-500 text-xs uppercase tracking-wider">
                   {([
                     ['numeroTicket', 'Ticket', ''],
-                    ['fechaCreacion', 'Hora', ''],
+                    ['fechaCreacion', 'Fecha/Hora', ''],
                     ['localNombre', 'Local', ''],
                     ['tipo', 'Tipo', ''],
                     ['nombreCliente', 'Cliente', ''],

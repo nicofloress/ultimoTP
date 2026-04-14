@@ -147,8 +147,8 @@ public class ProductoService : IProductoService
 
         var ids = new HashSet<int>(productoIds);
         return lista.Detalles
-            .Where(d => ids.Contains(d.ProductoId))
-            .ToDictionary(d => d.ProductoId, d => d.Precio);
+            .Where(d => d.ProductoId.HasValue && ids.Contains(d.ProductoId.Value))
+            .ToDictionary(d => d.ProductoId!.Value, d => d.Precio);
     }
 
     private static ProductoDto ToDto(Producto p)

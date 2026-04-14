@@ -90,8 +90,10 @@ export interface ListaPrecio {
 
 export interface ListaPrecioDetalle {
   id: number;
-  productoId: number;
-  productoNombre: string;
+  productoId?: number;
+  productoNombre?: string;
+  comboId?: number;
+  comboNombre?: string;
   precio: number;
 }
 
@@ -107,6 +109,7 @@ export interface ActualizarListaPrecioDto {
 }
 
 export interface UpsertDetalleDto {
-  productoId: number;
+  productoId?: number;
+  comboId?: number;
   precio: number;
 }

@@ -131,17 +131,25 @@ export default function PedidosPage() {
     getPromociones().then(setPromociones);
   }, []);
 
+  const [preciosListaCombos, setPreciosListaCombos] = useState<Map<number, number>>(new Map());
+
   // Precios segun lista seleccionada
   useEffect(() => {
     if (listaPrecioSeleccionada) {
       const lista = listasPrecios.find(l => l.id === listaPrecioSeleccionada);
       if (lista) {
-        const map = new Map<number, number>();
-        lista.detalles.forEach(d => map.set(d.productoId, d.precio));
-        setPreciosLista(map);
+        const mapProd = new Map<number, number>();
+        const mapCombo = new Map<number, number>();
+        lista.detalles.forEach(d => {
+          if (d.productoId) mapProd.set(d.productoId, d.precio);
+          if (d.comboId) mapCombo.set(d.comboId, d.precio);
+        });
+        setPreciosLista(mapProd);
+        setPreciosListaCombos(mapCombo);
       }
     } else {
       setPreciosLista(new Map());
+      setPreciosListaCombos(new Map());
     }
   }, [listaPrecioSeleccionada, listasPrecios]);
 
@@ -235,7 +243,7 @@ export default function PedidosPage() {
 
   const agregarCombo = (c: Combo) => {
     const promoCombo = preciosPromoCombos.get(c.id);
-    const precioFinal = promoCombo ? promoCombo.precioPromo : c.precio;
+    const precioFinal = promoCombo ? promoCombo.precioPromo : (preciosListaCombos.get(c.id) ?? c.precio);
     const existente = carrito.find(i => i.comboId === c.id);
     if (existente) {
       setCarrito(carrito.map(i => i.comboId === c.id ? { ...i, cantidad: i.cantidad + 1 } : i));
@@ -390,7 +398,7 @@ export default function PedidosPage() {
     }
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
-    if (categoriaFiltro === 'descuento') return [];
+    if (categoriaFiltro === 'descuento') return activos.filter(c => preciosListaCombos.has(c.id) && preciosListaCombos.get(c.id) !== c.precio);
     if (!megaActiva) return [];
     let prodsEnCat = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));
     if (lineaFiltro) {
@@ -954,6 +962,11 @@ export default function PedidosPage() {
                       <>
                         <span className="text-xs text-gray-400 line-through mr-1">${formatearNumero(c.precio)}</span>
                         <span className="text-red-600">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                      </>
+                    ) : preciosListaCombos.has(c.id) && preciosListaCombos.get(c.id) !== c.precio ? (
+                      <>
+                        <span className="text-xs text-gray-400 line-through mr-1">${formatearNumero(c.precio)}</span>
+                        <span className="text-green-600">${formatearNumero(preciosListaCombos.get(c.id)!)}</span>
                       </>
                     ) : (
                       <>${formatearNumero(c.precio)}</>
@@ -1558,6 +1571,11 @@ export default function PedidosPage() {
                     <div className="font-bold mt-0.5">
                       <span className="text-xs text-gray-400 line-through">${formatearNumero(c.precio)}</span>
                       <span className="text-red-600 ml-1">${formatearNumero(preciosPromoCombos.get(c.id)!.precioPromo)}</span>
+                    </div>
+                  ) : preciosListaCombos.has(c.id) && preciosListaCombos.get(c.id) !== c.precio ? (
+                    <div className="font-bold mt-0.5">
+                      <span className="text-xs text-gray-400 line-through">${formatearNumero(c.precio)}</span>
+                      <span className="text-green-600 ml-1">${formatearNumero(preciosListaCombos.get(c.id)!)}</span>
                     </div>
                   ) : (
                     <div className="text-purple-600 font-bold mt-0.5">${c.precio.toLocaleString()}</div>

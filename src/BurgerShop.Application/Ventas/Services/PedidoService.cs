@@ -691,7 +691,7 @@ public class VentaService : IVentaService
         return await _ventaRepo.GetRepartoZonaActivoHoyAsync(zonaId);
     }
 
-    public async Task<VentaStatsDto> GetStatsAsync(DateTime fecha)
+    public async Task<VentaStatsDto> GetStatsAsync(DateTime fecha, int? localId = null, int? tipo = null)
     {
         var hoy = DateTime.Today;
         var ayer = hoy.AddDays(-1);
@@ -700,13 +700,13 @@ public class VentaService : IVentaService
         var hace8Dias = hoy.AddDays(-7);
         var mismoHaceUnAnio = hoy.AddYears(-1);
 
-        var ventasHoy = await _ventaRepo.GetCountByFechaAsync(hoy);
-        var ventasAyer = await _ventaRepo.GetCountByFechaAsync(ayer);
-        var ventasUltimos7Dias = await _ventaRepo.GetCountByRangoAsync(hace7Dias, hoy);
-        var ventas7DiasAnteriores = await _ventaRepo.GetCountByRangoAsync(hace14Dias, hace8Dias);
-        var ventasAnioAnterior = await _ventaRepo.GetCountByFechaAsync(mismoHaceUnAnio);
+        var ventasHoy = await _ventaRepo.GetCountByFechaAsync(hoy, localId, tipo);
+        var ventasAyer = await _ventaRepo.GetCountByFechaAsync(ayer, localId, tipo);
+        var ventasUltimos7Dias = await _ventaRepo.GetCountByRangoAsync(hace7Dias, hoy, localId, tipo);
+        var ventas7DiasAnteriores = await _ventaRepo.GetCountByRangoAsync(hace14Dias, hace8Dias, localId, tipo);
+        var ventasAnioAnterior = await _ventaRepo.GetCountByFechaAsync(mismoHaceUnAnio, localId, tipo);
 
-        var (totalBruto, totalVentasFecha) = await _ventaRepo.GetTotalesByFechaAsync(fecha);
+        var (totalBruto, totalVentasFecha) = await _ventaRepo.GetTotalesByFechaAsync(fecha, localId, tipo);
         var ticketPromedio = totalVentasFecha > 0 ? totalBruto / totalVentasFecha : 0m;
 
         static decimal Porcentaje(int actual, int anterior) =>

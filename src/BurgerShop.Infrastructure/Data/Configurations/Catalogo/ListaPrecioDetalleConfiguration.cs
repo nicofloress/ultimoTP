@@ -19,8 +19,21 @@ public class ListaPrecioDetalleConfiguration : IEntityTypeConfiguration<ListaPre
         builder.HasOne(d => d.Producto)
             .WithMany()
             .HasForeignKey(d => d.ProductoId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(d => new { d.ListaPrecioId, d.ProductoId }).IsUnique();
+        builder.HasOne(d => d.Combo)
+            .WithMany()
+            .HasForeignKey(d => d.ComboId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(d => new { d.ListaPrecioId, d.ProductoId })
+            .IsUnique()
+            .HasFilter("\"ProductoId\" IS NOT NULL");
+
+        builder.HasIndex(d => new { d.ListaPrecioId, d.ComboId })
+            .IsUnique()
+            .HasFilter("\"ComboId\" IS NOT NULL");
     }
 }
