@@ -53,17 +53,17 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
   `).join('');
 
   const descuentoHTML = ticket.descuento > 0 ? `
-    <div style="display:flex;justify-content:space-between;font-size:10px;margin:2px 0">
+    <div style="display:flex;justify-content:space-between;font-size:14px;margin:2px 0">
       <span>DESCUENTO:</span><span>-$${formatMoney(ticket.descuento)}</span>
     </div>` : '';
 
   const recargoHTML = ticket.recargo > 0 ? `
-    <div style="display:flex;justify-content:space-between;font-size:10px;margin:2px 0">
+    <div style="display:flex;justify-content:space-between;font-size:14px;margin:2px 0">
       <span>RECARGO:</span><span>+$${formatMoney(ticket.recargo)}</span>
     </div>` : '';
 
   const pagosHTML = ticket.pagos && ticket.pagos.length > 1 ? `
-    <div style="font-size:9px;margin:4px 0">
+    <div style="font-size:13px;margin:4px 0">
       <div style="font-weight:bold;margin-bottom:2px">Detalle de pagos:</div>
       ${ticket.pagos.map(p => `
         <div style="display:flex;justify-content:space-between">
@@ -74,7 +74,7 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
     </div>` : '';
 
   const notaHTML = ticket.notaInterna ? `
-    <div style="font-size:9px;font-style:italic;margin:4px 0">Nota: ${ticket.notaInterna}</div>` : '';
+    <div style="font-size:13px;font-style:italic;margin:4px 0">Nota: ${ticket.notaInterna}</div>` : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -83,7 +83,7 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
   <title>Comprobante ${nroVenta}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4; width: 80mm; padding: 3mm; }
+    body { font-family: 'Lucida Console', 'Consolas', 'Courier New', monospace; font-size: 12px; font-weight: 600; line-height: 1.4; width: 80mm; padding: 3mm; color: #000; }
     .sep { border-top: 1px dashed #000; margin: 4px 0; }
     .row { display: flex; justify-content: space-between; }
     @media print { @page { size: 80mm auto; margin: 0; } }
@@ -91,20 +91,20 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
 </head>
 <body>
   <div style="text-align:center;margin-bottom:6px">
-    <div style="font-size:12px;font-weight:bold">${sucursal}</div>
-    <div style="font-size:9px">Mail: ${mail}</div>
+    <div style="font-size:14px;font-weight:bold">${sucursal}</div>
+    <div style="font-size:13px">Mail: ${mail}</div>
   </div>
 
   <div style="text-align:center;margin:8px 0">
     <div style="font-size:16px;font-weight:bold">comprobante X</div>
-    <div style="font-size:11px;font-weight:bold">ORIGINAL</div>
+    <div style="font-size:13px;font-weight:bold">ORIGINAL</div>
   </div>
 
   <div class="sep"></div>
-  <div style="text-align:center;font-size:10px;margin:4px 0">No valido como factura</div>
+  <div style="text-align:center;font-size:14px;margin:4px 0">No valido como factura</div>
   <div class="sep"></div>
 
-  <div style="font-size:10px;margin:6px 0">
+  <div style="font-size:14px;margin:6px 0">
     <div>Venta: ${nroVenta}</div>
     <div>Fecha: ${fechaStr} ${horaStr}</div>
     <div>Condicion: ${formaPago}</div>
@@ -112,21 +112,21 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
   </div>
 
   <div class="sep"></div>
-  <div style="font-size:10px;margin:4px 0">Cliente: ${ticket.nombreCliente || 'Consumidor Final'}</div>
+  <div style="font-size:14px;margin:4px 0">Cliente: ${ticket.nombreCliente || 'Consumidor Final'}</div>
   <div class="sep"></div>
 
-  <div style="font-weight:bold;font-size:11px;margin:6px 0 4px 0">DETALLE DE COMPRA</div>
+  <div style="font-weight:bold;font-size:13px;margin:6px 0 4px 0">DETALLE DE COMPRA</div>
   ${lineasHTML}
 
   <div class="sep"></div>
-  <div class="row" style="font-size:11px;margin:2px 0"><span>SUBTOTAL:</span><span>$${formatMoney(ticket.subtotal)}</span></div>
+  <div class="row" style="font-size:13px;margin:2px 0"><span>SUBTOTAL:</span><span>$${formatMoney(ticket.subtotal)}</span></div>
   ${descuentoHTML}
   ${recargoHTML}
   <div class="sep"></div>
   <div class="row" style="font-size:14px;font-weight:bold;margin:4px 0"><span>TOTAL</span><span>$${formatMoney(ticket.total)}</span></div>
   <div class="sep"></div>
 
-  <div style="font-size:10px;margin:4px 0">
+  <div style="font-size:14px;margin:4px 0">
     <div class="row"><span>ITEMS:</span><span>${totalItems}</span></div>
     <div class="row"><span>UNID:</span><span>${totalUnidades}</span></div>
   </div>
@@ -134,7 +134,7 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
   <div class="sep"></div>
   ${pagosHTML}
   ${notaHTML}
-  <div style="text-align:center;font-size:11px;margin-top:8px">Gracias por su compra</div>
+  <div style="text-align:center;font-size:13px;margin-top:8px">Gracias por su compra</div>
 </body>
 </html>`;
 }
@@ -202,7 +202,7 @@ export default function ComprobanteXPrint({ ticket, config, onClose }: Comproban
         </div>
 
         {/* Vista previa del ticket */}
-        <div style={{ width: '80mm', padding: '3mm', fontSize: '11px', fontFamily: "'Courier New', monospace", lineHeight: '1.4' }}>
+        <div style={{ width: '80mm', padding: '3mm', fontSize: '11px', fontFamily: "'Lucida Console', 'Consolas', 'Courier New', monospace", lineHeight: '1.4' }}>
 
           <div style={{ textAlign: 'center', marginBottom: '6px' }}>
             <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{sucursal}</div>
