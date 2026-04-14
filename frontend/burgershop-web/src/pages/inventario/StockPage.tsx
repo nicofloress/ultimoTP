@@ -89,47 +89,56 @@ export default function StockPage() {
     return () => clearInterval(interval);
   }, [cargarStock]);
 
-  // --- Mega-categorias ---
+  // --- Mega-categorias (dinámicas desde categorías raíz) ---
   const megaCategorias = useMemo(() => {
-    const byTipo = (tipo: number) => categorias.filter(c => c.activa && c.tipoMegaCategoria === tipo).map(c => c.id);
-    return [
-      { key: 'hamburguesa', label: 'Hamburguesas', catIds: byTipo(1) },
-      { key: 'salchicha', label: 'Salchichas', catIds: byTipo(2) },
-      { key: 'pan', label: 'Pan', catIds: byTipo(3) },
-      { key: 'aderezos', label: 'Aderezos', catIds: byTipo(4) },
-      { key: 'snacks', label: 'Snacks', catIds: byTipo(5) },
-    ];
+    const rootCats = categorias.filter(c => c.activa && !c.categoriaPadreId);
+    const tipoLabels: Record<number, string> = { 1: 'Hamburguesas', 2: 'Salchichas', 3: 'Pan', 4: 'Aderezos', 5: 'Snacks' };
+    const grouped = new Map<string, { key: string; label: string; catIds: number[]; tipoMega: number }>();
+    for (const rc of rootCats) {
+      const childIds = categorias.filter(c => c.categoriaPadreId === rc.id).map(c => c.id);
+      const allIds = [rc.id, ...childIds];
+      if (rc.tipoMegaCategoria > 0) {
+        const gk = `tipo-${rc.tipoMegaCategoria}`;
+        if (grouped.has(gk)) grouped.get(gk)!.catIds.push(...allIds);
+        else grouped.set(gk, { key: gk, label: tipoLabels[rc.tipoMegaCategoria] || rc.nombre, catIds: [...allIds], tipoMega: rc.tipoMegaCategoria });
+      } else {
+        grouped.set(`cat-${rc.id}`, { key: `cat-${rc.id}`, label: rc.nombre, catIds: [...allIds], tipoMega: 0 });
+      }
+    }
+    return Array.from(grouped.values());
   }, [categorias]);
 
-  const tieneSubfiltro = megaFiltro === 'hamburguesa' || megaFiltro === 'snacks';
+  const megaActiva = megaCategorias.find(m => m.key === megaFiltro);
 
+  // Sub-categorías disponibles para la mega seleccionada
   const lineasDisponibles = useMemo(() => {
-    if (megaFiltro !== 'hamburguesa') return [];
-    const mc = megaCategorias.find(m => m.key === 'hamburguesa');
-    if (!mc) return [];
-    return categorias.filter(c => c.activa && mc.catIds.includes(c.id)).map(c => ({ id: c.id, nombre: c.nombre }));
-  }, [megaFiltro, megaCategorias, categorias]);
+    if (!megaActiva) return [];
+    if (megaActiva.tipoMega > 0) {
+      return categorias.filter(c => c.activa && !c.categoriaPadreId && c.tipoMegaCategoria === megaActiva.tipoMega).map(c => ({ id: c.id, nombre: c.nombre }));
+    }
+    const rootId = parseInt(megaActiva.key.replace('cat-', ''));
+    const hijas = categorias.filter(c => c.activa && c.categoriaPadreId === rootId);
+    return hijas.map(c => ({ id: c.id, nombre: c.nombre }));
+  }, [megaActiva, categorias]);
+
+  const tieneSubfiltro = megaActiva?.tipoMega === 1 || megaActiva?.tipoMega === 5 || lineasDisponibles.length > 1;
 
   const [lineaFiltro, setLineaFiltro] = useState<number | null>(null);
 
   const gramajesDisponibles = useMemo(() => {
-    if (!tieneSubfiltro) return [];
-    const mc = megaCategorias.find(m => m.key === megaFiltro);
-    if (!mc) return [];
+    if (!megaActiva || (megaActiva.tipoMega !== 1 && megaActiva.tipoMega !== 5)) return [];
     return productos
-      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : mc.catIds.includes(p.categoriaId)) && p.pesoGramos)
+      .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : megaActiva.catIds.includes(p.categoriaId)) && p.pesoGramos)
       .map(p => p.pesoGramos!)
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort((a, b) => a - b);
-  }, [productos, megaFiltro, megaCategorias, tieneSubfiltro]);
+  }, [productos, megaActiva, lineaFiltro]);
 
   // --- Producto IDs por mega-categoria ---
   const productoIdsPorMega = useMemo(() => {
-    if (!megaFiltro) return null;
-    const mc = megaCategorias.find(m => m.key === megaFiltro);
-    if (!mc) return null;
-    let lista = productos.filter(p => mc.catIds.includes(p.categoriaId));
-    if (megaFiltro === 'hamburguesa' && lineaFiltro) {
+    if (!megaFiltro || !megaActiva) return null;
+    let lista = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));
+    if (lineaFiltro) {
       lista = lista.filter(p => p.categoriaId === lineaFiltro);
     }
     if (gramajesFiltro) {
@@ -283,13 +292,13 @@ export default function StockPage() {
           ))}
         </div>
 
-        {/* Sub-filtro linea hamburguesa */}
-        {megaFiltro === 'hamburguesa' && lineasDisponibles.length > 1 && (
+        {/* Sub-filtro sub-categorías */}
+        {lineasDisponibles.length > 1 && (
           <div className="flex gap-1.5 flex-wrap">
-            <span className="text-xs text-gray-500 font-medium mr-1 self-center">Linea:</span>
+            <span className="text-xs text-gray-500 font-medium mr-1 self-center">Sub:</span>
             <button onClick={() => setLineaFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!lineaFiltro ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Todas</button>
             {lineasDisponibles.map(l => (
-              <button key={l.id} onClick={() => setLineaFiltro(l.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${lineaFiltro === l.id ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{l.nombre.replace('Hamburguesa ', '')}</button>
+              <button key={l.id} onClick={() => setLineaFiltro(l.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${lineaFiltro === l.id ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{l.nombre}</button>
             ))}
           </div>
         )}

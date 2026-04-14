@@ -414,7 +414,23 @@ export default function ProductosPage() {
             <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
             <select value={form.categoriaId} onChange={e => setForm({ ...form, categoriaId: Number(e.target.value) })} className="border rounded px-3 py-2 w-full" required>
               <option value={0}>Seleccionar categoria</option>
-              {categorias.filter(c => c.activa).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              {(() => {
+                const activas = categorias.filter(c => c.activa);
+                const padres = activas.filter(c => !c.categoriaPadreId);
+                const result: { id: number; label: string; disabled: boolean }[] = [];
+                for (const p of padres) {
+                  const hijas = activas.filter(c => c.categoriaPadreId === p.id);
+                  if (hijas.length > 0) {
+                    // Mega-categoría con hijas: mostrar como header deshabilitado + hijas seleccionables
+                    result.push({ id: p.id, label: `${p.nombre}`, disabled: true });
+                    for (const h of hijas) result.push({ id: h.id, label: `  ${h.nombre}`, disabled: false });
+                  } else {
+                    // Categoría raíz sin hijas: seleccionable directamente
+                    result.push({ id: p.id, label: p.nombre, disabled: false });
+                  }
+                }
+                return result.map(r => <option key={r.id} value={r.id} disabled={r.disabled} className={r.disabled ? 'font-bold text-gray-400' : ''}>{r.label}</option>);
+              })()}
             </select>
           </div>
           <div>
