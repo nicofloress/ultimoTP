@@ -402,27 +402,31 @@ export default function RepartidorApp() {
       <main className="max-w-2xl mx-auto px-4 py-4">
         {activeTab === 'pendientes' && (
           <>
-            {/* Ruta optimizada (se calcula automáticamente) */}
-            {optimizando && (
-              <div className="mb-3 bg-slate-800 rounded-lg p-3 flex items-center justify-center gap-2 text-amber-400">
-                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <span className="text-sm font-medium">Optimizando ruta...</span>
-              </div>
-            )}
-            {rutaOptimizada && (
+            {/* Botón de ruta */}
+            {(optimizando || rutaOptimizada) && (
               <div className="mb-3">
                 <button
                   onClick={abrirGoogleMapsConRuta}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                  disabled={optimizando}
+                  className={`w-full py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${optimizando ? 'bg-slate-600 text-amber-400' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                  </svg>
-                  Abrir ruta en Google Maps
-                  <span className="text-emerald-200 text-xs">({rutaOptimizada.distancia} · {rutaOptimizada.duracion})</span>
+                  {optimizando ? (
+                    <>
+                      <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Optimizando reparto...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      Abrir ruta en Google Maps
+                      <span className="text-emerald-200 text-xs">({rutaOptimizada?.distancia} · {rutaOptimizada?.duracion})</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -600,13 +604,16 @@ function PendientesTab({
   };
   const handleDragEnd = () => { setDragIdx(null); setOverIdx(null); };
 
-  // Touch drag support
-  const handleTouchStart = (e: React.TouchEvent, idx: number) => {
+  // Touch drag support - solo desde el grip handle
+  const handleGripTouchStart = (e: React.TouchEvent, idx: number) => {
+    e.stopPropagation();
     touchStartY.current = e.touches[0].clientY;
     touchItemIdx.current = idx;
+    setDragIdx(idx);
   };
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleGripTouchMove = useCallback((e: TouchEvent) => {
     if (touchItemIdx.current === null || !listRef.current) return;
+    e.preventDefault(); // Evitar scroll mientras arrastra
     const y = e.touches[0].clientY;
     const cards = listRef.current.querySelectorAll<HTMLElement>('[data-drag-idx]');
     for (let i = 0; i < cards.length; i++) {
@@ -616,14 +623,25 @@ function PendientesTab({
         break;
       }
     }
-  };
-  const handleTouchEnd = () => {
+  }, []);
+  const handleGripTouchEnd = useCallback(() => {
     if (touchItemIdx.current !== null && overIdx !== null && touchItemIdx.current !== overIdx && onMover) {
       onMover(touchItemIdx.current, overIdx);
     }
     touchItemIdx.current = null;
+    setDragIdx(null);
     setOverIdx(null);
-  };
+  }, [overIdx, onMover]);
+
+  // Registrar listeners globales de touch (necesario para preventDefault)
+  useEffect(() => {
+    document.addEventListener('touchmove', handleGripTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGripTouchEnd);
+    return () => {
+      document.removeEventListener('touchmove', handleGripTouchMove);
+      document.removeEventListener('touchend', handleGripTouchEnd);
+    };
+  }, [handleGripTouchMove, handleGripTouchEnd]);
 
   if (pedidos.length === 0) {
     return (
@@ -646,13 +664,13 @@ function PendientesTab({
           onDragOver={(e) => handleDragOver(e, idx)}
           onDrop={() => handleDrop(idx)}
           onDragEnd={handleDragEnd}
-          onTouchStart={(e) => handleTouchStart(e, idx)}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className={`flex gap-2 items-stretch transition-all ${dragIdx === idx ? 'opacity-50' : ''} ${overIdx === idx && dragIdx !== idx ? 'border-t-2 border-amber-500' : ''}`}
+          className={`flex gap-2 items-stretch transition-all ${dragIdx === idx ? 'opacity-50 scale-95' : ''} ${overIdx === idx && dragIdx !== idx ? 'border-t-2 border-amber-500' : ''}`}
         >
           {onMover && pedidos.length > 1 && (
-            <div className="flex flex-col justify-center items-center flex-shrink-0 cursor-grab active:cursor-grabbing touch-none select-none px-1">
+            <div
+              className="flex flex-col justify-center items-center flex-shrink-0 cursor-grab active:cursor-grabbing select-none px-1"
+              onTouchStart={(e) => handleGripTouchStart(e, idx)}
+            >
               <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
                 <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
