@@ -2,10 +2,10 @@ import api from './client';
 import { FormaPago, CreateFormaPago, UpdateFormaPago } from '../types';
 
 export const getFormasPago = () =>
-  api.get<FormaPago[]>('/formaspago').then(r => r.data);
+  api.get<FormaPago[]>('/formaspago').then(r => r.data.sort((a, b) => a.nombre.localeCompare(b.nombre)));
 
 export const getFormasPagoActivas = () =>
-  api.get<FormaPago[]>('/formaspago/activas').then(r => r.data);
+  api.get<FormaPago[]>('/formaspago/activas').then(r => r.data.sort((a, b) => a.nombre.localeCompare(b.nombre)));
 
 export const createFormaPago = (data: CreateFormaPago) =>
   api.post<FormaPago>('/formaspago', data).then(r => r.data);
