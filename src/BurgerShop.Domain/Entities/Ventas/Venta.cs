@@ -47,6 +47,7 @@ public class Venta
     public int? UsuarioId { get; set; }
     public string? Observaciones { get; set; }
     public DateTime? FechaEnvioDeposito { get; set; }
+    public bool VencidoDeposito { get; set; }
 
     // Navigations
     public Cliente? Cliente { get; set; }

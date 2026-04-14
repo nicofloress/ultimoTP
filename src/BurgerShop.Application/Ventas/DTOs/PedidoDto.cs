@@ -42,7 +42,8 @@ public record VentaDto(
     int? RepartoZonaId = null,
     decimal MontoNeto = 0,
     decimal MontoIVA = 0,
-    DateTime? FechaEnvioDeposito = null);
+    DateTime? FechaEnvioDeposito = null,
+    bool VencidoDeposito = false);
 
 public record LineaVentaDto(
     int Id,

@@ -127,6 +127,14 @@ public class VentasController : ControllerBase
         return Ok(await _service.GetVentasDepositoAsync(localId));
     }
 
+    [HttpPut("{id}/vencer-deposito")]
+    [Authorize(Roles = "Deposito,SuperAdmin")]
+    public async Task<ActionResult> VencerDeposito(int id)
+    {
+        await _service.MarcarVencidoDepositoAsync(id);
+        return Ok();
+    }
+
     [HttpPost("{id}/enviar-deposito")]
     [Authorize(Roles = "SuperAdmin,Administrador,Local")]
     public async Task<ActionResult> EnviarADeposito(int id)

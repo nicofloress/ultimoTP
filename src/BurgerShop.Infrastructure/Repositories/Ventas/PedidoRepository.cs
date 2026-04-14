@@ -434,6 +434,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Lineas)
             .Include(v => v.Pagos).ThenInclude(p => p.FormaPago)
             .Include(v => v.FormaPago)
+            .Where(v => !v.VencidoDeposito)
             .Where(v => v.FechaCreacion >= desde
                 || (v.FechaEnvioDeposito != null && v.FechaEnvioDeposito >= desde));
 

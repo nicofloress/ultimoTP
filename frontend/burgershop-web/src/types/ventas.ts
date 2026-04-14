@@ -50,6 +50,7 @@ export interface Venta {
   montoNeto?: number;
   montoIVA?: number;
   fechaEnvioDeposito?: string;
+  vencidoDeposito?: boolean;
 }
 
 export enum TipoVenta {

@@ -28,5 +28,6 @@ public interface IVentaService
     Task<BurgerShop.Domain.Entities.Logistica.RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task<VentaStatsDto> GetStatsAsync(DateTime fecha);
     Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId);
+    Task MarcarVencidoDepositoAsync(int ventaId);
     Task EnviarADepositoAsync(int ventaId);
 }

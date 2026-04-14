@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getVentasDeposito } from '../../api/deposito';
+import { getVentasDeposito, marcarVencidoDeposito } from '../../api/deposito';
 import type { Venta } from '../../types';
 
 const playBeep = () => {
@@ -29,29 +29,40 @@ const formatHora = (iso: string) => {
   return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 };
 
-const formatMMSS = (segundos: number) => {
-  const s = Math.max(0, Math.floor(segundos));
-  const mm = Math.floor(s / 60).toString().padStart(2, '0');
-  const ss = (s % 60).toString().padStart(2, '0');
-  return `${mm}:${ss}`;
-};
-
 const formatMoney = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
 
-/** Tiempo visible en segundos según cantidad de líneas: <=2 → 5min, >=3 → 10min */
-const getTiempoVenta = (lineas: number) => lineas >= 3 ? 600 : 300;
+const TIEMPO_DEPOSITO = 300; // 5 minutos en segundos
 
 /** Fecha de referencia para el timer: usa fechaEnvioDeposito si existe, sino fechaCreacion */
 const getFechaReferencia = (v: Venta) => v.fechaEnvioDeposito || v.fechaCreacion;
+
+/** Minutos restantes (redondeado hacia arriba) */
+const getMinutosRestantes = (restanteSegs: number) => Math.ceil(Math.max(0, restanteSegs) / 60);
 
 export default function DepositoPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [now, setNow] = useState<Date>(new Date());
   const [fadingOutId, setFadingOutId] = useState<number | null>(null);
-  const [descartadas, setDescartadas] = useState<Set<number>>(new Set());
+  const venciendoRef = useRef<Set<number>>(new Set());
   const idsAnterioresRef = useRef<Set<number>>(new Set());
   const primeraCargaRef = useRef(true);
+
+  const marcarVencido = async (id: number) => {
+    if (venciendoRef.current.has(id)) return;
+    venciendoRef.current.add(id);
+    setFadingOutId(id);
+    try {
+      await marcarVencidoDeposito(id);
+    } catch {
+      // ignore
+    }
+    setTimeout(() => {
+      setVentas(prev => prev.filter(v => v.id !== id));
+      setFadingOutId(null);
+      venciendoRef.current.delete(id);
+    }, 800);
+  };
 
   // Fetch + polling
   useEffect(() => {
@@ -68,24 +79,12 @@ export default function DepositoPage() {
         }
         idsAnterioresRef.current = idsActuales;
         primeraCargaRef.current = false;
-        // Re-activar ventas que fueron enviadas manualmente a depósito (quitar de descartadas)
-        setDescartadas(prev => {
-          const nueva = new Set(prev);
-          let cambio = false;
-          for (const v of data) {
-            if (v.fechaEnvioDeposito && nueva.has(v.id)) {
-              nueva.delete(v.id);
-              cambio = true;
-            }
-          }
-          return cambio ? nueva : prev;
-        });
         // Ordenar por fecha de referencia ascendente (más vieja arriba)
         const ordenadas = [...data].sort(
           (a, b) => new Date(getFechaReferencia(a)).getTime() - new Date(getFechaReferencia(b)).getTime()
         );
         setVentas(ordenadas);
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -98,41 +97,26 @@ export default function DepositoPage() {
     };
   }, []);
 
-  // Reloj y timer del primero (cada segundo)
+  // Reloj cada segundo
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Detectar ventas cuyo timer llegó a 0 -> fade-out + remover
+  // Detectar ventas cuyo timer llegó a 0 -> marcar vencido en BD
   useEffect(() => {
-    if (ventasVisibles.length === 0) return;
-    for (const v of ventasVisibles) {
-      const tiempo = getTiempoVenta(v.lineas.length);
+    if (ventas.length === 0) return;
+    for (const v of ventas) {
       const transcurridos = (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000;
-      const restante = tiempo - transcurridos;
-      if (restante <= 0 && fadingOutId !== v.id) {
-        setFadingOutId(v.id);
-        setTimeout(() => {
-          setDescartadas(prev => new Set(prev).add(v.id));
-          setFadingOutId(null);
-        }, 1000);
+      const restante = TIEMPO_DEPOSITO - transcurridos;
+      if (restante <= 0 && !venciendoRef.current.has(v.id)) {
+        marcarVencido(v.id);
         break; // una a la vez
       }
     }
-  }, [now, ventas, fadingOutId, descartadas]);
+  }, [now, ventas]);
 
-  const ventasVisibles = ventas.filter(v => !descartadas.has(v.id));
-
-  const descartarManual = (id: number) => {
-    setFadingOutId(id);
-    setTimeout(() => {
-      setDescartadas(prev => new Set(prev).add(id));
-      setFadingOutId(null);
-    }, 500);
-  };
-
-  const primeroId = ventasVisibles[0]?.id;
+  const primeroId = ventas[0]?.id;
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-white">
@@ -141,30 +125,30 @@ export default function DepositoPage() {
         <div className="text-6xl font-mono font-bold text-orange-400">{formatTime(now)}</div>
         <div className="text-3xl font-bold">
           <span className="text-slate-400">Pedidos: </span>
-          <span className="text-white">{ventasVisibles.length}</span>
+          <span className="text-white">{ventas.length}</span>
         </div>
       </header>
 
       <main className="px-8 py-6">
-        {ventasVisibles.length === 0 ? (
+        {ventas.length === 0 ? (
           <div className="flex items-center justify-center h-[70vh]">
             <div className="text-5xl text-slate-500 font-semibold">Sin pedidos pendientes</div>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {ventasVisibles.map(v => {
+            {ventas.map(v => {
               const esPrimero = v.id === primeroId;
               const fading = fadingOutId === v.id;
-              const tiempo = getTiempoVenta(v.lineas.length);
               const segundosTranscurridos =
                 (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000;
-              const restante = tiempo - segundosTranscurridos;
+              const restante = TIEMPO_DEPOSITO - segundosTranscurridos;
+              const minutosRestantes = getMinutosRestantes(restante);
 
               return (
                 <div
                   key={v.id}
                   className={[
-                    'relative rounded-2xl p-8 shadow-2xl transition-opacity duration-1000',
+                    'relative rounded-2xl p-8 shadow-2xl transition-opacity duration-700',
                     fading ? 'opacity-0' : 'opacity-100',
                     esPrimero
                       ? 'bg-slate-800 border-8 border-orange-500 ring-4 ring-yellow-400/40'
@@ -173,7 +157,7 @@ export default function DepositoPage() {
                 >
                   {/* Boton X para descartar */}
                   <button
-                    onClick={() => descartarManual(v.id)}
+                    onClick={() => marcarVencido(v.id)}
                     className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-slate-700 hover:bg-red-600 text-slate-400 hover:text-white transition-colors text-3xl font-bold leading-none"
                   >
                     &times;
@@ -185,8 +169,7 @@ export default function DepositoPage() {
                         #{v.numeroTicket}
                       </div>
                       <div className="text-2xl text-slate-300 mt-2">
-                        Hora: <span className="font-bold text-white">{formatHora(v.fechaCreacion)}</span>
-                        <span className="ml-4 text-lg text-slate-500">({v.lineas.length >= 3 ? '10' : '5'} min)</span>
+                        Hora: <span className="font-bold text-white">{formatHora(getFechaReferencia(v))}</span>
                       </div>
                     </div>
                     {esPrimero && (
@@ -195,11 +178,12 @@ export default function DepositoPage() {
                         <div
                           className={[
                             'font-mono font-extrabold text-7xl',
-                            restante <= 60 ? 'text-red-500 animate-pulse' : 'text-yellow-300',
+                            minutosRestantes <= 1 ? 'text-red-500 animate-pulse' : 'text-yellow-300',
                           ].join(' ')}
                         >
-                          {formatMMSS(restante)}
+                          {minutosRestantes}
                         </div>
+                        <div className="text-2xl text-yellow-300/70">min</div>
                       </div>
                     )}
                   </div>

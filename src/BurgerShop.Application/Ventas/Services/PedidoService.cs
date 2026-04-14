@@ -732,6 +732,16 @@ public class VentaService : IVentaService
         return ventas.Select(ToDto);
     }
 
+    public async Task MarcarVencidoDepositoAsync(int ventaId)
+    {
+        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+        if (venta is null) return;
+
+        venta.VencidoDeposito = true;
+        _ventaRepo.Update(venta);
+        await _ventaRepo.SaveChangesAsync();
+    }
+
     public async Task EnviarADepositoAsync(int ventaId)
     {
         var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
@@ -793,6 +803,7 @@ public class VentaService : IVentaService
             v.RepartoZonaId,
             v.MontoNeto,
             v.MontoIVA,
-            v.FechaEnvioDeposito);
+            v.FechaEnvioDeposito,
+            v.VencidoDeposito);
     }
 }
