@@ -378,16 +378,15 @@ public class ControlCamionetaService : IControlCamionetaService
 
             case SeccionCamioneta.SalchichaCorta:
             {
-                // Suelto: total real = paquetes × unidadMinima, 1 palote
-                var totalReal = cantidadPaquetes * um;
-                data.SalchichaCorta[totalReal] = data.SalchichaCorta.GetValueOrDefault(totalReal) + 1;
+                // Per-line: clave = unidades por paquete (um), valor = cantidad de paquetes
+                // Ej: 8 paquetes de 6un → {6: 8} → "6un. x 8"
+                data.SalchichaCorta[um] = data.SalchichaCorta.GetValueOrDefault(um) + cantidadPaquetes;
                 break;
             }
 
             case SeccionCamioneta.SalchichaLarga:
             {
-                var totalReal = cantidadPaquetes * um;
-                data.SalchichaLarga[totalReal] = data.SalchichaLarga.GetValueOrDefault(totalReal) + 1;
+                data.SalchichaLarga[um] = data.SalchichaLarga.GetValueOrDefault(um) + cantidadPaquetes;
                 break;
             }
 
