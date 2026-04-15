@@ -117,7 +117,7 @@ public class ControlCamionetaService : IControlCamionetaService
                     SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                     SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                     PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-                    PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
+                    PanMaxi = tallies.PanMaxi.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                     PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                     PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                     Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
@@ -172,7 +172,7 @@ public class ControlCamionetaService : IControlCamionetaService
                 SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-                PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
+                PanMaxi = tallies.PanMaxi.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
@@ -273,8 +273,8 @@ public class ControlCamionetaService : IControlCamionetaService
 
         // Pan Tradicional: per-line (como salchichas)
         public Dictionary<int, int> PanTradicional { get; } = new();
-        // Pan Maxi: acumulador
-        public int PanMaxiTotal { get; set; }
+        // Pan Maxi: per-line (como salchichas)
+        public Dictionary<int, int> PanMaxi { get; } = new();
         // Panes salchicha: cantidad real de unidades por línea → palotes
         public Dictionary<int, int> PanPancho { get; } = new();
         public Dictionary<int, int> PanSuperPancho { get; } = new();
@@ -310,7 +310,7 @@ public class ControlCamionetaService : IControlCamionetaService
                             tieneOtros = true;
                         }
                         else if (seccion == SeccionCamioneta.SalchichaCorta || seccion == SeccionCamioneta.SalchichaLarga
-                              || seccion == SeccionCamioneta.PanTradicional
+                              || seccion == SeccionCamioneta.PanTradicional || seccion == SeccionCamioneta.PanMaxi
                               || seccion == SeccionCamioneta.PanPancho || seccion == SeccionCamioneta.PanSuperPancho)
                         {
                             // Salchichas y panes de combo: key = unidades reales del combo, valor = cantidad de combos
@@ -324,6 +324,7 @@ public class ControlCamionetaService : IControlCamionetaService
                                 SeccionCamioneta.SalchichaCorta => data.SalchichaCorta,
                                 SeccionCamioneta.SalchichaLarga => data.SalchichaLarga,
                                 SeccionCamioneta.PanTradicional => data.PanTradicional,
+                                SeccionCamioneta.PanMaxi => data.PanMaxi,
                                 SeccionCamioneta.PanPancho => data.PanPancho,
                                 SeccionCamioneta.PanSuperPancho => data.PanSuperPancho,
                                 _ => data.PanPancho
@@ -398,8 +399,12 @@ public class ControlCamionetaService : IControlCamionetaService
             }
 
             case SeccionCamioneta.PanMaxi:
-                data.PanMaxiTotal += cantidadPaquetes * um;
+            {
+                // Per-line: clave = unidades reales, valor = cantidad de líneas
+                var totalReal = cantidadPaquetes * um;
+                data.PanMaxi[totalReal] = data.PanMaxi.GetValueOrDefault(totalReal) + 1;
                 break;
+            }
 
             case SeccionCamioneta.PanPancho:
             {
@@ -591,7 +596,7 @@ public class ControlCamionetaService : IControlCamionetaService
         var scDist = t.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var slDist = t.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var ptDist = t.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
-        var pmDist = DistribuirSalchichas(t.PanMaxiTotal, new[] { 40, 20 });
+        var pmDist = t.PanMaxi.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var ppDist = t.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
         var pspDist = t.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value);
 

@@ -216,14 +216,18 @@ using (var scope = app.Services.CreateScope())
         SELECT 'Pan', true, 0, 0
         WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Pan' AND ""CategoriaPadreId"" IS NULL);
 
-        -- Crear sub-categorías de Aderezos
+        -- Crear sub-categorías de Aderezos (SeccionCamioneta 8 = Aderezo)
         INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"", ""CategoriaPadreId"")
-        SELECT 'Salsas clásicas', true, 0, 5, (SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Aderezos' AND ""CategoriaPadreId"" IS NULL LIMIT 1)
+        SELECT 'Salsas clásicas', true, 0, 8, (SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Aderezos' AND ""CategoriaPadreId"" IS NULL LIMIT 1)
         WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Salsas clásicas');
 
         INSERT INTO ""Categorias"" (""Nombre"", ""Activa"", ""TipoMegaCategoria"", ""SeccionCamioneta"", ""CategoriaPadreId"")
-        SELECT 'Salsas especiales', true, 0, 5, (SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Aderezos' AND ""CategoriaPadreId"" IS NULL LIMIT 1)
+        SELECT 'Salsas especiales', true, 0, 8, (SELECT ""Id"" FROM ""Categorias"" WHERE ""Nombre"" = 'Aderezos' AND ""CategoriaPadreId"" IS NULL LIMIT 1)
         WHERE NOT EXISTS (SELECT 1 FROM ""Categorias"" WHERE ""Nombre"" = 'Salsas especiales');
+
+        -- Fix: corregir SeccionCamioneta de salsas (se crearon con 5=PanMaxi, debe ser 8=Aderezo)
+        UPDATE ""Categorias"" SET ""SeccionCamioneta"" = 8
+        WHERE ""Nombre"" IN ('Salsas clásicas', 'Salsas especiales') AND ""SeccionCamioneta"" = 5;
 
         -- Reasignar Económica y Premium como hijas de Hamburguesas
         UPDATE ""Categorias"" SET ""CategoriaPadreId"" = (
