@@ -383,7 +383,9 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Repartidor)
             .Where(v => v.RepartidorId != null
                 && v.RepartoZonaId != null
-                && repartosEnCursoIds.Contains(v.RepartoZonaId.Value))
+                && repartosEnCursoIds.Contains(v.RepartoZonaId.Value)
+                && v.Estado != EstadoVenta.Cancelado
+                && v.Estado != EstadoVenta.NoEntregado)
             .ToListAsync();
     }
 

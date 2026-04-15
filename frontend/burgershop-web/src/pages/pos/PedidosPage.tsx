@@ -34,9 +34,11 @@ import { formatearNumero } from '../../components/NumericInput';
 const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
-// Estados activos para filtrar en el panel derecho (entregas se ven en pantalla Entregas)
+// Estados para filtrar pedidos (EnPreparacion y Listo no se usan en el flujo actual)
 const estadosFiltro = [
   EstadoVenta.Pendiente,
+  EstadoVenta.Asignado,
+  EstadoVenta.EnCamino,
   EstadoVenta.Entregado,
   EstadoVenta.Cancelado,
   EstadoVenta.NoEntregado,
