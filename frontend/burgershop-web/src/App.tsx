@@ -32,11 +32,13 @@ import GastosPage from './pages/finanzas/GastosPage';
 import RepartidorApp from './pages/repartidor/RepartidorApp';
 import DepositoPage from './pages/deposito/DepositoPage';
 import DepositoLogin from './pages/deposito/DepositoLogin';
+import DashboardPage from './pages/dashboard/DashboardPage';
 import { useAuth } from './context/AuthContext';
 import MovimientosPage from './pages/inventario/MovimientosPage';
 import ComprasPage from './pages/inventario/ComprasPage';
 import DevolucionesPage from './pages/inventario/DevolucionesPage';
 import StockPage from './pages/inventario/StockPage';
+import TransferenciasPage from './pages/inventario/TransferenciasPage';
 
 import PromocionesPage from './pages/catalogo/PromocionesPage';
 import ZonasPage from './pages/catalogo/ZonasPage';
@@ -69,7 +71,9 @@ export default function App() {
             </ProtectedRoute>
           }>
             {/* Todas las rutas — SuperAdmin siempre accede via ProtectedRoute */}
-            <Route path="/" element={<POSPage />} />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/pos" element={<POSPage />} />
             <Route path="/ventas" element={<VentasPage />} />
             <Route path="/pedidos" element={<PedidosPage />} />
             <Route path="/historial" element={<HistorialPedidosPage />} />
@@ -123,7 +127,10 @@ export default function App() {
               <ProtectedRoute roles={[RolUsuario.Administrador]}><MovimientosPage /></ProtectedRoute>
             } />
             <Route path="/inventario/compras" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}><ComprasPage /></ProtectedRoute>
+              <ProtectedRoute roles={[RolUsuario.SuperAdmin]}><ComprasPage /></ProtectedRoute>
+            } />
+            <Route path="/inventario/transferencias" element={
+              <ProtectedRoute roles={[RolUsuario.Administrador]}><TransferenciasPage /></ProtectedRoute>
             } />
             <Route path="/inventario/devoluciones" element={<DevolucionesPage />} />
             <Route path="/inventario/stock" element={

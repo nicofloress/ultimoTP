@@ -2,6 +2,7 @@ using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Interfaces;
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Interfaces.Catalogo;
+using Microsoft.Extensions.Logging;
 
 namespace BurgerShop.Application.Catalogo.Services;
 
@@ -9,135 +10,201 @@ public class ProductoService : IProductoService
 {
     private readonly IProductoRepository _repo;
     private readonly IListaPrecioRepository _listaPrecioRepo;
+    private readonly ILogger<ProductoService> _logger;
 
-    public ProductoService(IProductoRepository repo, IListaPrecioRepository listaPrecioRepo)
+    public ProductoService(IProductoRepository repo, IListaPrecioRepository listaPrecioRepo, ILogger<ProductoService> logger)
     {
         _repo = repo;
         _listaPrecioRepo = listaPrecioRepo;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<ProductoDto>> GetAllAsync()
     {
-        var productos = await _repo.GetActivosAsync();
-        return productos.Select(ToDto);
+        try
+        {
+            var productos = await _repo.GetActivosAsync();
+            return productos.Select(ToDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetAllAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ProductoDto>> GetActivosAsync(int? listaPrecioId = null)
     {
-        var productos = await _repo.GetActivosAsync();
+        try
+        {
+            var productos = await _repo.GetActivosAsync();
 
-        if (!listaPrecioId.HasValue)
-            return productos.Select(ToDto);
+            if (!listaPrecioId.HasValue)
+                return productos.Select(ToDto);
 
-        var precios = await ObtenerPreciosPorListaAsync(listaPrecioId.Value, productos.Select(p => p.Id));
-        return productos.Select(p => ToDtoConPrecioLista(p, precios));
+            var precios = await ObtenerPreciosPorListaAsync(listaPrecioId.Value, productos.Select(p => p.Id));
+            return productos.Select(p => ToDtoConPrecioLista(p, precios));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetActivosAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ProductoDto>> GetByCategoriaAsync(int categoriaId, int? listaPrecioId = null)
     {
-        var productos = await _repo.GetByCategoriaAsync(categoriaId);
+        try
+        {
+            var productos = await _repo.GetByCategoriaAsync(categoriaId);
 
-        if (!listaPrecioId.HasValue)
-            return productos.Select(ToDto);
+            if (!listaPrecioId.HasValue)
+                return productos.Select(ToDto);
 
-        var precios = await ObtenerPreciosPorListaAsync(listaPrecioId.Value, productos.Select(p => p.Id));
-        return productos.Select(p => ToDtoConPrecioLista(p, precios));
+            var precios = await ObtenerPreciosPorListaAsync(listaPrecioId.Value, productos.Select(p => p.Id));
+            return productos.Select(p => ToDtoConPrecioLista(p, precios));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetByCategoriaAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<ProductoDto?> GetByIdAsync(int id)
     {
-        var p = await _repo.GetByIdAsync(id);
-        if (p is null) return null;
-        var cat = p.Categoria;
-        return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA);
+        try
+        {
+            var p = await _repo.GetByIdAsync(id);
+            if (p is null) return null;
+            var cat = p.Categoria;
+            return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetByIdAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<ProductoDto> CreateAsync(CrearProductoDto dto)
     {
-        var producto = new Producto
+        try
         {
-            Nombre = dto.Nombre,
-            Descripcion = dto.Descripcion,
-            Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio,
-            CategoriaId = dto.CategoriaId,
-            ImagenUrl = dto.ImagenUrl,
-            NumeroInterno = string.IsNullOrWhiteSpace(dto.NumeroInterno) ? null : dto.NumeroInterno,
-            PesoGramos = dto.PesoGramos,
-            UnidadesPorBulto = dto.UnidadesPorBulto,
-            Marca = dto.Marca,
-            UnidadesPorMedia = dto.UnidadesPorMedia,
-            UnidadMinima = dto.UnidadMinima,
-            EsOfertaSemanal = dto.EsOfertaSemanal,
-            PrecioCosto = dto.PrecioCosto,
-            PrecioVenta = dto.PrecioVenta,
-            DiferenciaPrecioCosto = dto.PrecioVenta - dto.PrecioCosto,
-            FechaUltimaModificacionPrecio = DateTime.Now,
-            AlicuotaIVA = dto.AlicuotaIVA
-        };
-        await _repo.AddAsync(producto);
-        await _repo.SaveChangesAsync();
-        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA);
+            var producto = new Producto
+            {
+                Nombre = dto.Nombre,
+                Descripcion = dto.Descripcion,
+                Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio,
+                CategoriaId = dto.CategoriaId,
+                ImagenUrl = dto.ImagenUrl,
+                NumeroInterno = string.IsNullOrWhiteSpace(dto.NumeroInterno) ? null : dto.NumeroInterno,
+                PesoGramos = dto.PesoGramos,
+                UnidadesPorBulto = dto.UnidadesPorBulto,
+                Marca = dto.Marca,
+                UnidadesPorMedia = dto.UnidadesPorMedia,
+                UnidadMinima = dto.UnidadMinima,
+                EsOfertaSemanal = dto.EsOfertaSemanal,
+                PrecioCosto = dto.PrecioCosto,
+                PrecioVenta = dto.PrecioVenta,
+                DiferenciaPrecioCosto = dto.PrecioVenta - dto.PrecioCosto,
+                FechaUltimaModificacionPrecio = DateTime.Now,
+                AlicuotaIVA = dto.AlicuotaIVA
+            };
+            await _repo.AddAsync(producto);
+            await _repo.SaveChangesAsync();
+            return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(CreateAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<ProductoDto?> UpdateAsync(int id, ActualizarProductoDto dto)
     {
-        var producto = await _repo.GetByIdAsync(id);
-        if (producto is null) return null;
+        try
+        {
+            var producto = await _repo.GetByIdAsync(id);
+            if (producto is null) return null;
 
-        producto.Nombre = dto.Nombre;
-        producto.Descripcion = dto.Descripcion;
-        producto.Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio;
-        producto.CategoriaId = dto.CategoriaId;
-        producto.Activo = dto.Activo;
-        producto.ImagenUrl = dto.ImagenUrl;
-        producto.NumeroInterno = dto.NumeroInterno;
-        producto.PesoGramos = dto.PesoGramos;
-        producto.UnidadesPorBulto = dto.UnidadesPorBulto;
-        producto.Marca = dto.Marca;
-        producto.UnidadesPorMedia = dto.UnidadesPorMedia;
-        producto.UnidadMinima = dto.UnidadMinima;
-        producto.EsOfertaSemanal = dto.EsOfertaSemanal;
-        producto.AlicuotaIVA = dto.AlicuotaIVA;
+            producto.Nombre = dto.Nombre;
+            producto.Descripcion = dto.Descripcion;
+            producto.Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio;
+            producto.CategoriaId = dto.CategoriaId;
+            producto.Activo = dto.Activo;
+            producto.ImagenUrl = dto.ImagenUrl;
+            producto.NumeroInterno = dto.NumeroInterno;
+            producto.PesoGramos = dto.PesoGramos;
+            producto.UnidadesPorBulto = dto.UnidadesPorBulto;
+            producto.Marca = dto.Marca;
+            producto.UnidadesPorMedia = dto.UnidadesPorMedia;
+            producto.UnidadMinima = dto.UnidadMinima;
+            producto.EsOfertaSemanal = dto.EsOfertaSemanal;
+            producto.AlicuotaIVA = dto.AlicuotaIVA;
 
-        var preciosCambiaron = producto.PrecioCosto != dto.PrecioCosto || producto.PrecioVenta != dto.PrecioVenta;
-        producto.PrecioCosto = dto.PrecioCosto;
-        producto.PrecioVenta = dto.PrecioVenta;
-        producto.DiferenciaPrecioCosto = dto.PrecioVenta - dto.PrecioCosto;
-        if (preciosCambiaron)
-            producto.FechaUltimaModificacionPrecio = DateTime.Now;
+            var preciosCambiaron = producto.PrecioCosto != dto.PrecioCosto || producto.PrecioVenta != dto.PrecioVenta;
+            producto.PrecioCosto = dto.PrecioCosto;
+            producto.PrecioVenta = dto.PrecioVenta;
+            producto.DiferenciaPrecioCosto = dto.PrecioVenta - dto.PrecioCosto;
+            if (preciosCambiaron)
+                producto.FechaUltimaModificacionPrecio = DateTime.Now;
 
-        _repo.Update(producto);
-        await _repo.SaveChangesAsync();
-        return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA);
+            _repo.Update(producto);
+            await _repo.SaveChangesAsync();
+            return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(UpdateAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var producto = await _repo.GetByIdAsync(id);
-        if (producto is null) return false;
+        try
+        {
+            var producto = await _repo.GetByIdAsync(id);
+            if (producto is null) return false;
 
-        producto.Activo = false;
-        _repo.Update(producto);
-        await _repo.SaveChangesAsync();
-        return true;
+            producto.Activo = false;
+            _repo.Update(producto);
+            await _repo.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(DeleteAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ProductoDto>> BuscarAsync(string termino, int? listaPrecioId = null)
     {
-        var productos = await _repo.GetActivosAsync();
-        var terminoLower = termino.ToLowerInvariant();
-        var filtrados = productos
-            .Where(p => (p.NumeroInterno != null && p.NumeroInterno.ToLowerInvariant().Contains(terminoLower))
-                     || p.Nombre.ToLowerInvariant().Contains(terminoLower)
-                     || (p.Descripcion != null && p.Descripcion.ToLowerInvariant().Contains(terminoLower))
-                     || (p.Marca != null && p.Marca.ToLowerInvariant().Contains(terminoLower)))
-            .ToList();
+        try
+        {
+            var productos = await _repo.GetActivosAsync();
+            var terminoLower = termino.ToLowerInvariant();
+            var filtrados = productos
+                .Where(p => (p.NumeroInterno != null && p.NumeroInterno.ToLowerInvariant().Contains(terminoLower))
+                         || p.Nombre.ToLowerInvariant().Contains(terminoLower)
+                         || (p.Descripcion != null && p.Descripcion.ToLowerInvariant().Contains(terminoLower))
+                         || (p.Marca != null && p.Marca.ToLowerInvariant().Contains(terminoLower)))
+                .ToList();
 
-        if (!listaPrecioId.HasValue)
-            return filtrados.Select(ToDto);
+            if (!listaPrecioId.HasValue)
+                return filtrados.Select(ToDto);
 
-        var precios = await ObtenerPreciosPorListaAsync(listaPrecioId.Value, filtrados.Select(p => p.Id));
-        return filtrados.Select(p => ToDtoConPrecioLista(p, precios));
+            var precios = await ObtenerPreciosPorListaAsync(listaPrecioId.Value, filtrados.Select(p => p.Id));
+            return filtrados.Select(p => ToDtoConPrecioLista(p, precios));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(BuscarAsync), ex.Message);
+            throw;
+        }
     }
 
     private async Task<Dictionary<int, decimal>> ObtenerPreciosPorListaAsync(int listaPrecioId, IEnumerable<int> productoIds)

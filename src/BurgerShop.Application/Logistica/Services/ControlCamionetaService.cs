@@ -7,6 +7,7 @@ using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Domain.Interfaces.Logistica;
 using ClosedXML.Excel;
+using Microsoft.Extensions.Logging;
 
 namespace BurgerShop.Application.Logistica.Services;
 
@@ -14,87 +15,154 @@ public class ControlCamionetaService : IControlCamionetaService
 {
     private readonly IVentaRepository _ventaRepo;
     private readonly IRepartidorRepository _repartidorRepo;
+    private readonly ILogger<ControlCamionetaService> _logger;
 
-    public ControlCamionetaService(IVentaRepository ventaRepo, IRepartidorRepository repartidorRepo)
+    public ControlCamionetaService(IVentaRepository ventaRepo, IRepartidorRepository repartidorRepo, ILogger<ControlCamionetaService> logger)
     {
         _ventaRepo = ventaRepo;
         _repartidorRepo = repartidorRepo;
+        _logger = logger;
     }
 
     public async Task<byte[]> GenerarExcelAsync(IEnumerable<(int ZonaId, int RepartidorId)> asignaciones)
     {
-        var pedidos = (await _ventaRepo.GetListosParaRepartoConProductosAsync()).ToList();
-        var asignacionesList = asignaciones.ToList();
-        var zonaRepartidor = asignacionesList.ToDictionary(a => a.ZonaId, a => a.RepartidorId);
-
-        // Cargar repartidores
-        var repartidores = new Dictionary<int, (string Nombre, string? Vehiculo)>();
-        foreach (var repId in asignacionesList.Select(a => a.RepartidorId).Distinct())
+        try
         {
-            var rep = await _repartidorRepo.GetByIdAsync(repId);
-            if (rep != null)
-                repartidores[repId] = (rep.Nombre, rep.Vehiculo);
-        }
+            var pedidos = (await _ventaRepo.GetListosParaRepartoConProductosAsync()).ToList();
+            var asignacionesList = asignaciones.ToList();
+            var zonaRepartidor = asignacionesList.ToDictionary(a => a.ZonaId, a => a.RepartidorId);
 
-        // Agrupar ventas por repartidor
-        var pedidosPorRepartidor = new Dictionary<int, List<Venta>>();
-        foreach (var pedido in pedidos)
+            // Cargar repartidores
+            var repartidores = new Dictionary<int, (string Nombre, string? Vehiculo)>();
+            foreach (var repId in asignacionesList.Select(a => a.RepartidorId).Distinct())
+            {
+                var rep = await _repartidorRepo.GetByIdAsync(repId);
+                if (rep != null)
+                    repartidores[repId] = (rep.Nombre, rep.Vehiculo);
+            }
+
+            // Agrupar ventas por repartidor
+            var pedidosPorRepartidor = new Dictionary<int, List<Venta>>();
+            foreach (var pedido in pedidos)
+            {
+                if (pedido.ZonaId == null || !zonaRepartidor.TryGetValue(pedido.ZonaId.Value, out var repId))
+                    continue;
+                if (pedido.Estado != EstadoVenta.Pendiente)
+                    continue;
+
+                if (!pedidosPorRepartidor.ContainsKey(repId))
+                    pedidosPorRepartidor[repId] = new List<Venta>();
+                pedidosPorRepartidor[repId].Add(pedido);
+            }
+
+            using var workbook = new XLWorkbook();
+
+            foreach (var (repartidorId, pedidosRep) in pedidosPorRepartidor)
+            {
+                var (nombre, vehiculo) = repartidores.GetValueOrDefault(repartidorId, ("Desconocido", null));
+                var tallies = CalcularTallies(pedidosRep);
+                GenerarHoja(workbook, nombre, vehiculo, tallies);
+            }
+
+            if (workbook.Worksheets.Count == 0)
+            {
+                var ws = workbook.Worksheets.Add("Sin datos");
+                ws.Cell("A1").Value = "No hay pedidos para este reparto";
+            }
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
+        }
+        catch (Exception ex)
         {
-            if (pedido.ZonaId == null || !zonaRepartidor.TryGetValue(pedido.ZonaId.Value, out var repId))
-                continue;
-            if (pedido.Estado != EstadoVenta.Pendiente)
-                continue;
-
-            if (!pedidosPorRepartidor.ContainsKey(repId))
-                pedidosPorRepartidor[repId] = new List<Venta>();
-            pedidosPorRepartidor[repId].Add(pedido);
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GenerarExcelAsync), ex.Message);
+            throw;
         }
-
-        using var workbook = new XLWorkbook();
-
-        foreach (var (repartidorId, pedidosRep) in pedidosPorRepartidor)
-        {
-            var (nombre, vehiculo) = repartidores.GetValueOrDefault(repartidorId, ("Desconocido", null));
-            var tallies = CalcularTallies(pedidosRep);
-            GenerarHoja(workbook, nombre, vehiculo, tallies);
-        }
-
-        if (workbook.Worksheets.Count == 0)
-        {
-            var ws = workbook.Worksheets.Add("Sin datos");
-            ws.Cell("A1").Value = "No hay pedidos para este reparto";
-        }
-
-        using var ms = new MemoryStream();
-        workbook.SaveAs(ms);
-        return ms.ToArray();
     }
 
     public async Task<ControlCamionetaDto> GetTalliesActivosHoyAsync()
     {
-        var pedidos = (await _ventaRepo.GetTodosConProductosPorRepartidorHoyAsync()).ToList();
-
-        var result = new ControlCamionetaDto();
-
-        var porRepartidor = pedidos.GroupBy(p => p.RepartidorId!.Value);
-
-        foreach (var grupo in porRepartidor)
+        try
         {
-            var repartidor = grupo.First().Repartidor;
-            var tallies = CalcularTallies(grupo.ToList());
-            var todosTerminales = grupo.All(p =>
-                p.Estado == EstadoVenta.Entregado ||
-                p.Estado == EstadoVenta.Cancelado ||
-                p.Estado == EstadoVenta.NoEntregado);
+            var pedidos = (await _ventaRepo.GetTodosConProductosPorRepartidorHoyAsync()).ToList();
+
+            var result = new ControlCamionetaDto();
+
+            var porRepartidor = pedidos.GroupBy(p => p.RepartidorId!.Value);
+
+            foreach (var grupo in porRepartidor)
+            {
+                var repartidor = grupo.First().Repartidor;
+                var tallies = CalcularTallies(grupo.ToList());
+                var todosTerminales = grupo.All(p =>
+                    p.Estado == EstadoVenta.Entregado ||
+                    p.Estado == EstadoVenta.Cancelado ||
+                    p.Estado == EstadoVenta.NoEntregado);
+
+                var dto = new RepartidorTallyDto
+                {
+                    RepartidorId = grupo.Key,
+                    RepartidorLocalId = repartidor?.LocalId,
+                    Nombre = repartidor?.Nombre ?? "Desconocido",
+                    Vehiculo = repartidor?.Vehiculo,
+                    Fecha = DateTime.Today.ToString("d/M/yyyy"),
+                    TotalPedidos = grupo.Count(),
+                    Medallones = tallies.Medallones
+                        .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
+                        .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
+                    Premium = tallies.Premium
+                        .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
+                        .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
+                    SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
+                    PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
+                    Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
+                    Finalizado = todosTerminales
+                };
+
+                result.Repartidores.Add(dto);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetTalliesActivosHoyAsync), ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Calcula y serializa el tally de un reparto completo usando los pedidos con productos.
+    /// Se debe llamar ANTES de finalizar el reparto (cuando el estado aún es EnCurso),
+    /// o con el RepartoZonaId exacto para recuperar todos sus pedidos.
+    /// </summary>
+    public async Task<string> CalcularYSerializarTallyAsync(int repartidorId, int repartoZonaId)
+    {
+        try
+        {
+            // Obtener todos los pedidos del reparto con productos cargados
+            var pedidosReparto = (await _ventaRepo.GetConProductosPorRepartoZonaAsync(repartoZonaId)).ToList();
+
+            if (!pedidosReparto.Any())
+                return "{}";
+
+            var repartidor = pedidosReparto.First().Repartidor;
+            var tallies = CalcularTallies(pedidosReparto);
 
             var dto = new RepartidorTallyDto
             {
-                RepartidorId = grupo.Key,
+                RepartidorId = repartidorId,
                 RepartidorLocalId = repartidor?.LocalId,
                 Nombre = repartidor?.Nombre ?? "Desconocido",
                 Vehiculo = repartidor?.Vehiculo,
                 Fecha = DateTime.Today.ToString("d/M/yyyy"),
-                TotalPedidos = grupo.Count(),
+                TotalPedidos = pedidosReparto.Count,
                 Medallones = tallies.Medallones
                     .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
                     .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
@@ -109,100 +177,68 @@ public class ControlCamionetaService : IControlCamionetaService
                 PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
                 Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
-                Finalizado = todosTerminales
+                Finalizado = true
             };
 
-            result.Repartidores.Add(dto);
+            return JsonSerializer.Serialize(dto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Calcula y serializa el tally de un reparto completo usando los pedidos con productos.
-    /// Se debe llamar ANTES de finalizar el reparto (cuando el estado aún es EnCurso),
-    /// o con el RepartoZonaId exacto para recuperar todos sus pedidos.
-    /// </summary>
-    public async Task<string> CalcularYSerializarTallyAsync(int repartidorId, int repartoZonaId)
-    {
-        // Obtener todos los pedidos del reparto con productos cargados
-        var pedidosReparto = (await _ventaRepo.GetConProductosPorRepartoZonaAsync(repartoZonaId)).ToList();
-
-        if (!pedidosReparto.Any())
-            return "{}";
-
-        var repartidor = pedidosReparto.First().Repartidor;
-        var tallies = CalcularTallies(pedidosReparto);
-
-        var dto = new RepartidorTallyDto
+        catch (Exception ex)
         {
-            RepartidorId = repartidorId,
-            RepartidorLocalId = repartidor?.LocalId,
-            Nombre = repartidor?.Nombre ?? "Desconocido",
-            Vehiculo = repartidor?.Vehiculo,
-            Fecha = DateTime.Today.ToString("d/M/yyyy"),
-            TotalPedidos = pedidosReparto.Count,
-            Medallones = tallies.Medallones
-                .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
-                .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
-            Premium = tallies.Premium
-                .Where(kv => kv.Value.Completa > 0 || kv.Value.Media > 0 || kv.Value.Sueltos > 0)
-                .ToDictionary(kv => kv.Key.ToString(), kv => new CompletaMediaDto { Completa = kv.Value.Completa, Media = kv.Value.Media, Sueltos = kv.Value.Sueltos }),
-            SalchichaCorta = tallies.SalchichaCorta.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            SalchichaLarga = tallies.SalchichaLarga.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            PanTradicional = tallies.PanTradicional.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            PanMaxi = DistribuirSalchichas(tallies.PanMaxiTotal, new[] { 40, 20 }),
-            PanPancho = tallies.PanPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            PanSuperPancho = tallies.PanSuperPancho.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            Aderezos = tallies.Aderezos.ToDictionary(kv => kv.Key, kv => kv.Value),
-            Otros = tallies.Otros.ToDictionary(kv => kv.Key, kv => kv.Value),
-            Finalizado = true
-        };
-
-        return JsonSerializer.Serialize(dto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(CalcularYSerializarTallyAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<ControlCamionetaHistorialDto> GetHistorialAsync(DateTime fecha)
     {
-        var repartos = await _ventaRepo.GetRepartosZonaFinalizadosByFechaAsync(fecha);
-
-        var resultado = new ControlCamionetaHistorialDto();
-
-        foreach (var reparto in repartos)
+        try
         {
-            RepartidorTallyDto? tally = null;
-            if (!string.IsNullOrEmpty(reparto.TallyJson) && reparto.TallyJson != "{}")
+            var repartos = await _ventaRepo.GetRepartosZonaFinalizadosByFechaAsync(fecha);
+
+            var resultado = new ControlCamionetaHistorialDto();
+
+            foreach (var reparto in repartos)
             {
-                try
+                RepartidorTallyDto? tally = null;
+                if (!string.IsNullOrEmpty(reparto.TallyJson) && reparto.TallyJson != "{}")
                 {
-                    tally = JsonSerializer.Deserialize<RepartidorTallyDto>(
-                        reparto.TallyJson,
-                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                    try
+                    {
+                        tally = JsonSerializer.Deserialize<RepartidorTallyDto>(
+                            reparto.TallyJson,
+                            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                    }
+                    catch (Exception ex)
+                    {
+                        // Si falla la deserialización, tally queda null
+                        _logger.LogWarning(ex, "GetHistorialAsync: fallo al deserializar TallyJson para RepartoZonaId={RepartoZonaId}: {Message}", reparto.Id, ex.Message);
+                    }
                 }
-                catch
+
+                resultado.Items.Add(new ControlCamionetaHistorialItemDto
                 {
-                    // Si falla la deserialización, tally queda null
-                }
+                    RepartoZonaId = reparto.Id,
+                    ZonaNombre = reparto.Zona?.Nombre ?? $"Zona {reparto.ZonaId}",
+                    RepartidorNombre = reparto.Repartidor?.Nombre ?? "Desconocido",
+                    RepartidorVehiculo = reparto.Repartidor?.Vehiculo,
+                    RepartidorLocalId = reparto.Repartidor?.LocalId,
+                    FechaInicio = reparto.FechaInicio,
+                    FechaFinalizacion = reparto.FechaFinalizacion,
+                    TotalVentas = reparto.TotalVentas,
+                    TotalEntregados = reparto.TotalEntregados,
+                    TotalNoEntregados = reparto.TotalNoEntregados,
+                    TotalCancelados = reparto.TotalCancelados,
+                    Tally = tally
+                });
             }
 
-            resultado.Items.Add(new ControlCamionetaHistorialItemDto
-            {
-                RepartoZonaId = reparto.Id,
-                ZonaNombre = reparto.Zona?.Nombre ?? $"Zona {reparto.ZonaId}",
-                RepartidorNombre = reparto.Repartidor?.Nombre ?? "Desconocido",
-                RepartidorVehiculo = reparto.Repartidor?.Vehiculo,
-                RepartidorLocalId = reparto.Repartidor?.LocalId,
-                FechaInicio = reparto.FechaInicio,
-                FechaFinalizacion = reparto.FechaFinalizacion,
-                TotalVentas = reparto.TotalVentas,
-                TotalEntregados = reparto.TotalEntregados,
-                TotalNoEntregados = reparto.TotalNoEntregados,
-                TotalCancelados = reparto.TotalCancelados,
-                Tally = tally
-            });
+            return resultado;
         }
-
-        return resultado;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetHistorialAsync), ex.Message);
+            throw;
+        }
     }
 
     #region Tally Calculation

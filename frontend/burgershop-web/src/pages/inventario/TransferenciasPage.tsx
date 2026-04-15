@@ -1,0 +1,331 @@
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { MovimientoDto, getMovimientosPorLocal, crearTransferencia } from '../../api/movimientos';
+import { getProductos } from '../../api/productos';
+import { getLocales, LocalDto } from '../../api/locales';
+import { Producto } from '../../types';
+import { useGlobalToast } from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
+
+const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
+const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
+
+function getHoy(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatFecha(fecha: string) {
+  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
+  return new Date(f).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+type SortDir = 'asc' | 'desc';
+
+export default function TransferenciasPage() {
+  const { showToast } = useGlobalToast();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+  const localDelUsuario = usuario?.localId;
+
+  const [movimientos, setMovimientos] = useState<MovimientoDto[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [cargando, setCargando] = useState(false);
+
+  // Filtros
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (localDelUsuario || 1));
+  const [fechaDesde, setFechaDesde] = useState(getHoy());
+  const [fechaHasta, setFechaHasta] = useState(getHoy());
+  const [ordenCol, setOrdenCol] = useState<string>('fechaMovimiento');
+  const [ordenDir, setOrdenDir] = useState<SortDir>('desc');
+
+  // Modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [formProductoId, setFormProductoId] = useState<number | ''>('');
+  const [formLocalOrigen, setFormLocalOrigen] = useState<number>(localDelUsuario || 1);
+  const [formLocalDestino, setFormLocalDestino] = useState<number | ''>('');
+  const [formBultos, setFormBultos] = useState<string>('');
+  const [formObservaciones, setFormObservaciones] = useState('');
+
+  useEffect(() => {
+    getProductos().then(setProductos).catch(() => {});
+    getLocales().then(setLocales).catch(() => {});
+  }, []);
+
+  const productoSel = useMemo(() => {
+    if (formProductoId === '') return null;
+    return productos.find(p => p.id === formProductoId) || null;
+  }, [formProductoId, productos]);
+
+  const upb = productoSel?.unidadesPorBulto || 1;
+  const um = productoSel?.unidadMinima || 1;
+  const cantBultos = parseInt(formBultos) || 0;
+  const totalPaq = cantBultos * upb;
+  const totalUn = totalPaq * um;
+
+  // Cargar
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    try {
+      const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
+      let data: MovimientoDto[];
+      if (localFiltro === 0) {
+        const results = await Promise.all(locales.map(l => getMovimientosPorLocal(l.id, fechaDesde, hasta)));
+        data = results.flat();
+      } else {
+        data = await getMovimientosPorLocal(localFiltro, fechaDesde, hasta);
+      }
+      setMovimientos(data.filter(m => m.codigoAccionCodigo === 'ING_TRF' || m.codigoAccionCodigo === 'EGR_TRF'));
+    } catch {
+      showToast('Error al cargar transferencias', 'error');
+    } finally {
+      setCargando(false);
+    }
+  }, [fechaDesde, fechaHasta, localFiltro, locales, showToast]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const movFiltrados = useMemo(() => {
+    const lista = [...movimientos];
+    lista.sort((a, b) => {
+      const va = (a as unknown as Record<string, unknown>)[ordenCol];
+      const vb = (b as unknown as Record<string, unknown>)[ordenCol];
+      let cmp = 0;
+      if (typeof va === 'string' && typeof vb === 'string') cmp = va.localeCompare(vb);
+      else if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+      else cmp = String(va ?? '').localeCompare(String(vb ?? ''));
+      return ordenDir === 'asc' ? cmp : -cmp;
+    });
+    return lista;
+  }, [movimientos, ordenCol, ordenDir]);
+
+  const toggleOrden = (col: string) => {
+    if (ordenCol === col) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setOrdenCol(col); setOrdenDir('asc'); }
+  };
+
+  const SortArrow = ({ col }: { col: string }) =>
+    ordenCol === col ? <span className="text-amber-400 ml-1">{ordenDir === 'asc' ? '\u25B2' : '\u25BC'}</span> : null;
+
+  const abrirModal = () => {
+    setFormProductoId('');
+    setFormLocalOrigen(esSuperAdmin ? (locales[0]?.id || 1) : (localDelUsuario || 1));
+    setFormLocalDestino('');
+    setFormBultos('');
+    setFormObservaciones('');
+    setModalOpen(true);
+  };
+
+  const guardar = async () => {
+    if (formProductoId === '' || formLocalDestino === '' || !formBultos) {
+      showToast('Completa los campos obligatorios', 'error');
+      return;
+    }
+    if (formLocalOrigen === formLocalDestino) {
+      showToast('El local origen y destino no pueden ser el mismo', 'error');
+      return;
+    }
+    if (cantBultos <= 0) {
+      showToast('La cantidad debe ser mayor a 0', 'error');
+      return;
+    }
+    setGuardando(true);
+    try {
+      await crearTransferencia({
+        productoId: formProductoId as number,
+        localOrigenId: formLocalOrigen,
+        localDestinoId: formLocalDestino as number,
+        cantidadBultos: cantBultos,
+        observaciones: formObservaciones || undefined,
+      });
+      showToast('Transferencia registrada correctamente', 'success');
+      setModalOpen(false);
+      cargar();
+    } catch {
+      showToast('Error al registrar transferencia', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+        <h2 className="text-lg font-bold text-white">Transferencias entre Locales</h2>
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+            {esSuperAdmin ? (
+              <select className={selectClass + ' w-full'} value={localFiltro} onChange={e => setLocalFiltro(Number(e.target.value))}>
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localFiltro)?.nombre || 'Mi Local'}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Desde</label>
+            <input type="date" className={inputClass} value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Hasta</label>
+            <input type="date" className={inputClass} value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
+          </div>
+          <button onClick={cargar} className="px-4 py-1.5 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 text-sm font-semibold">Buscar</button>
+          <button onClick={abrirModal} className="px-4 py-1.5 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-semibold flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            Nueva Transferencia
+          </button>
+        </div>
+      </div>
+
+      {/* Tabla */}
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-100 border-b border-slate-200">
+              {['fechaMovimiento', 'codigoAccionNombre', 'localNombre', 'productoNombre', 'cantidad', 'usuarioNombre', 'observaciones'].map(col => (
+                <th key={col} className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200" onClick={() => toggleOrden(col)}>
+                  {{ fechaMovimiento: 'Fecha/Hora', codigoAccionNombre: 'Tipo', localNombre: 'Local', productoNombre: 'Producto', cantidad: 'Cantidad', usuarioNombre: 'Usuario', observaciones: 'Observaciones' }[col]}
+                  <SortArrow col={col} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cargando ? (
+              <tr><td colSpan={7} className="text-center py-8 text-gray-400">Cargando...</td></tr>
+            ) : movFiltrados.length === 0 ? (
+              <tr><td colSpan={7} className="text-center py-8 text-gray-400">No se encontraron transferencias</td></tr>
+            ) : (
+              movFiltrados.map((m, idx) => {
+                const esEgreso = m.codigoAccionCodigo === 'EGR_TRF';
+                return (
+                  <tr key={m.id} className={`border-b border-gray-100 hover:bg-amber-50/40 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${esEgreso ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        {esEgreso ? 'Envio' : 'Recepcion'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">{m.localNombre}</td>
+                    <td className="px-3 py-2">{m.productoNombre || '-'}</td>
+                    <td className={`px-3 py-2 font-semibold ${esEgreso ? 'text-red-600' : 'text-green-600'}`}>
+                      {esEgreso ? '-' : '+'}{m.cantidad} paq.
+                    </td>
+                    <td className="px-3 py-2">{m.usuarioNombre || '-'}</td>
+                    <td className="px-3 py-2 text-xs text-gray-500 max-w-[250px] truncate">{m.observaciones || '-'}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Resumen */}
+      <div className="bg-gradient-to-r from-slate-500 to-slate-700 rounded-lg shadow p-4 flex flex-wrap items-center gap-6">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-xs text-slate-200">Total movimientos:</span>
+          <span className="text-sm font-bold text-white">{movFiltrados.length}</span>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModalOpen(false)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-200 bg-slate-700 rounded-t-lg">
+              <h3 className="text-lg font-semibold text-white">Nueva Transferencia</h3>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Producto */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Producto <span className="text-red-500">*</span></label>
+                <select className={`${selectClass} w-full`} value={formProductoId} onChange={e => setFormProductoId(e.target.value === '' ? '' : Number(e.target.value))}>
+                  <option value="">Seleccionar...</option>
+                  {productos.filter(p => p.activo).map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} ({p.unidadesPorBulto} paq/bulto)</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Locales origen y destino */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Local Origen <span className="text-red-500">*</span></label>
+                  {esSuperAdmin ? (
+                    <select className={`${selectClass} w-full`} value={formLocalOrigen} onChange={e => setFormLocalOrigen(Number(e.target.value))}>
+                      {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                    </select>
+                  ) : (
+                    <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                      {locales.find(l => l.id === formLocalOrigen)?.nombre || 'Mi Local'}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Local Destino <span className="text-red-500">*</span></label>
+                  <select className={`${selectClass} w-full`} value={formLocalDestino} onChange={e => setFormLocalDestino(e.target.value === '' ? '' : Number(e.target.value))}>
+                    <option value="">Seleccionar...</option>
+                    {locales.filter(l => l.id !== formLocalOrigen).map(l => (
+                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Info bulto */}
+              {productoSel && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-sm text-blue-700">
+                  1 bulto = <strong>{upb} paquetes</strong> de {um} un. c/u ({upb * um} unidades por bulto)
+                </div>
+              )}
+
+              {/* Cantidad */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Cantidad de Bultos <span className="text-red-500">*</span></label>
+                <input type="number" className={`${inputClass} w-full`} value={formBultos} onChange={e => setFormBultos(e.target.value)} min="1" step="1" />
+                {cantBultos > 0 && productoSel && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    = <strong className="text-blue-600">{totalPaq} paquetes</strong> / <strong className="text-blue-600">{totalUn} unidades</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Observaciones */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Observaciones</label>
+                <textarea className={`${inputClass} w-full`} rows={2} value={formObservaciones} onChange={e => setFormObservaciones(e.target.value)} />
+              </div>
+
+              {/* Resumen */}
+              {cantBultos > 0 && productoSel && formLocalDestino !== '' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm">
+                  <div className="font-semibold text-amber-800">
+                    Transferir {cantBultos} bulto{cantBultos !== 1 ? 's' : ''} ({totalPaq} paq.) de <strong>{locales.find(l => l.id === formLocalOrigen)?.nombre}</strong> a <strong>{locales.find(l => l.id === formLocalDestino)?.nombre}</strong>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-200 bg-amber-50 rounded-b-lg flex justify-end gap-3">
+              <button onClick={() => setModalOpen(false)} className="px-4 py-1.5 text-sm font-semibold text-gray-600 hover:text-gray-800">Cancelar</button>
+              <button onClick={guardar} disabled={guardando} className="px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-md">
+                {guardando ? 'Guardando...' : 'Transferir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -88,6 +88,89 @@ public class MovimientosController : ControllerBase
     }
 
     // ----------------------------------------------------------------
+    // Compras de mercadería
+    // ----------------------------------------------------------------
+
+    /// <summary>
+    /// Registra una compra de mercadería expresada en bultos.
+    /// Crea un movimiento ING_CMP en stock y, si ImpactarEnCaja=true,
+    /// un movimiento EGR_CMP vinculado a la caja abierta del local.
+    /// </summary>
+    [HttpPost("compra")]
+    public async Task<ActionResult<MovimientoDto>> RegistrarCompra(CrearCompraDto dto)
+    {
+        try
+        {
+            var resultado = await _service.RegistrarCompraAsync(dto, ObtenerUsuarioId());
+            return CreatedAtAction(nameof(GetByLocal), new { localId = resultado.LocalId }, resultado);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Edita una compra existente identificada por el Id del movimiento ING_CMP.
+    /// Revierte el stock anterior y recalcula con los nuevos valores.
+    /// </summary>
+    [HttpPut("compra/{id}")]
+    public async Task<ActionResult<MovimientoDto>> EditarCompra(int id, EditarCompraDto dto)
+    {
+        try
+        {
+            var resultado = await _service.EditarCompraAsync(id, dto, ObtenerUsuarioId());
+            return Ok(resultado);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Elimina una compra identificada por el Id del movimiento ING_CMP.
+    /// Revierte el stock y elimina el movimiento EGR_CMP vinculado si existe.
+    /// </summary>
+    [HttpDelete("compra/{id}")]
+    public async Task<IActionResult> EliminarCompra(int id)
+    {
+        try
+        {
+            await _service.EliminarCompraAsync(id, ObtenerUsuarioId());
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Transferencias de stock entre locales
+    // ----------------------------------------------------------------
+
+    /// <summary>
+    /// Registra una transferencia de stock entre dos locales expresada en bultos.
+    /// Crea un EGR_TRF en el local de origen y un ING_TRF en el local de destino.
+    /// Retorna el movimiento ING_TRF (destino).
+    /// </summary>
+    [HttpPost("transferencia")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<ActionResult<MovimientoDto>> RegistrarTransferencia(CrearTransferenciaDto dto)
+    {
+        try
+        {
+            var resultado = await _service.RegistrarTransferenciaAsync(dto, ObtenerUsuarioId());
+            return CreatedAtAction(nameof(GetByLocal), new { localId = resultado.LocalId }, resultado);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    // ----------------------------------------------------------------
     private int? ObtenerUsuarioId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)

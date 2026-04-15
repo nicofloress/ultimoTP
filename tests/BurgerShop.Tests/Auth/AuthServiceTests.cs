@@ -4,6 +4,7 @@ using BurgerShop.Application.Auth.Services;
 using BurgerShop.Domain.Entities.Auth;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace BurgerShop.Tests.Auth;
@@ -27,7 +28,10 @@ public class AuthServiceTests
         _usuarioRepoMock    = new Mock<IUsuarioRepository>();
         _tokenGeneratorMock = new Mock<IJwtTokenGenerator>();
 
-        _service = new AuthService(_usuarioRepoMock.Object, _tokenGeneratorMock.Object);
+        _service = new AuthService(
+            _usuarioRepoMock.Object,
+            _tokenGeneratorMock.Object,
+            new Mock<ILogger<AuthService>>().Object);
     }
 
     // -----------------------------------------------------------------------

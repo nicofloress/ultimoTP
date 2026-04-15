@@ -25,3 +25,37 @@ public record CrearDevolucionDto(
     DateTime FechaMovimiento,
     string   Motivo,
     int?     ClienteId = null);
+
+/// <summary>
+/// DTO para registrar una compra de mercadería expresada en bultos.
+/// El servicio convierte bultos → paquetes usando UnidadesPorBulto del producto.
+/// </summary>
+public record CrearCompraDto(
+    int      ProductoId,
+    int      LocalId,
+    int      CantidadBultos,      // Cantidad de cajas/bultos comprados
+    decimal  PrecioPorBulto,      // Precio de cada bulto
+    DateTime FechaMovimiento,
+    string?  Observaciones,
+    bool     ImpactarEnCaja);     // Si crear movimiento EGR_CMP en caja
+
+/// <summary>
+/// DTO para editar una compra existente identificada por el Id del movimiento ING_CMP.
+/// </summary>
+public record EditarCompraDto(
+    int      CantidadBultos,
+    decimal  PrecioPorBulto,
+    DateTime FechaMovimiento,
+    string?  Observaciones,
+    bool     ImpactarEnCaja);
+
+/// <summary>
+/// DTO para registrar una transferencia de stock entre locales expresada en bultos.
+/// El servicio convierte bultos → paquetes usando UnidadesPorBulto del producto.
+/// </summary>
+public record CrearTransferenciaDto(
+    int      ProductoId,
+    int      LocalOrigenId,
+    int      LocalDestinoId,
+    int      CantidadBultos,
+    string?  Observaciones);

@@ -1,5 +1,6 @@
 using BurgerShop.Domain.Entities.Auth;
 using BurgerShop.Domain.Entities.Catalogo;
+using BurgerShop.Domain.Entities.Finanzas;
 using BurgerShop.Domain.Entities.Ventas;
 
 namespace BurgerShop.Domain.Entities.Inventario;
@@ -17,6 +18,7 @@ public class Movimiento
     public decimal MontoTotal { get; set; }
     public int? VentaId { get; set; }
     public int? UsuarioId { get; set; }
+    public int? CierreCajaId { get; set; }         // Caja a la que pertenece el movimiento (compras/egresos)
     public string? Observaciones { get; set; }
 
     // Navigation
@@ -25,4 +27,5 @@ public class Movimiento
     public Local Local { get; set; } = null!;
     public Venta? Venta { get; set; }
     public Usuario? Usuario { get; set; }
+    public CierreCaja? CierreCaja { get; set; }
 }

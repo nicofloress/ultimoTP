@@ -2,85 +2,131 @@ using BurgerShop.Application.Inventario.DTOs;
 using BurgerShop.Application.Inventario.Interfaces;
 using BurgerShop.Domain.Entities.Inventario;
 using BurgerShop.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BurgerShop.Application.Inventario.Services;
 
 public class EmpresaService : IEmpresaService
 {
-    private readonly IRepository<Empresa> _repo;
+    private readonly IRepository<Empresa>      _repo;
+    private readonly ILogger<EmpresaService>   _logger;
 
-    public EmpresaService(IRepository<Empresa> repo) => _repo = repo;
+    public EmpresaService(IRepository<Empresa> repo, ILogger<EmpresaService> logger)
+    {
+        _repo   = repo;
+        _logger = logger;
+    }
 
     public async Task<IEnumerable<EmpresaDto>> GetAllAsync()
     {
-        var empresas = await _repo.GetAllAsync();
-        return empresas.Select(ToDto);
+        try
+        {
+            var empresas = await _repo.GetAllAsync();
+            return empresas.Select(ToDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetAllAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<EmpresaDto?> GetByIdAsync(int id)
     {
-        var empresa = await _repo.GetByIdAsync(id);
-        return empresa is null ? null : ToDto(empresa);
+        try
+        {
+            var empresa = await _repo.GetByIdAsync(id);
+            return empresa is null ? null : ToDto(empresa);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetByIdAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<EmpresaDto> CreateAsync(CrearEmpresaDto dto)
     {
-        var empresa = new Empresa
+        try
         {
-            RazonSocial = dto.RazonSocial,
-            NombreFantasia = dto.NombreFantasia,
-            Cuit = dto.Cuit,
-            CondicionIva = dto.CondicionIva,
-            DireccionFiscal = dto.DireccionFiscal,
-            Localidad = dto.Localidad,
-            Provincia = dto.Provincia,
-            CodigoPostal = dto.CodigoPostal,
-            Telefono = dto.Telefono,
-            Email = dto.Email,
-            LogoUrl = dto.LogoUrl,
-            IngresosBrutos = dto.IngresosBrutos,
-            InicioActividades = dto.InicioActividades,
-            PuntoVenta = dto.PuntoVenta
-        };
-        await _repo.AddAsync(empresa);
-        await _repo.SaveChangesAsync();
-        return ToDto(empresa);
+            var empresa = new Empresa
+            {
+                RazonSocial        = dto.RazonSocial,
+                NombreFantasia     = dto.NombreFantasia,
+                Cuit               = dto.Cuit,
+                CondicionIva       = dto.CondicionIva,
+                DireccionFiscal    = dto.DireccionFiscal,
+                Localidad          = dto.Localidad,
+                Provincia          = dto.Provincia,
+                CodigoPostal       = dto.CodigoPostal,
+                Telefono           = dto.Telefono,
+                Email              = dto.Email,
+                LogoUrl            = dto.LogoUrl,
+                IngresosBrutos     = dto.IngresosBrutos,
+                InicioActividades  = dto.InicioActividades,
+                PuntoVenta         = dto.PuntoVenta
+            };
+            await _repo.AddAsync(empresa);
+            await _repo.SaveChangesAsync();
+            return ToDto(empresa);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(CreateAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<EmpresaDto?> UpdateAsync(int id, ActualizarEmpresaDto dto)
     {
-        var empresa = await _repo.GetByIdAsync(id);
-        if (empresa is null) return null;
+        try
+        {
+            var empresa = await _repo.GetByIdAsync(id);
+            if (empresa is null) return null;
 
-        empresa.RazonSocial = dto.RazonSocial;
-        empresa.NombreFantasia = dto.NombreFantasia;
-        empresa.Cuit = dto.Cuit;
-        empresa.CondicionIva = dto.CondicionIva;
-        empresa.DireccionFiscal = dto.DireccionFiscal;
-        empresa.Localidad = dto.Localidad;
-        empresa.Provincia = dto.Provincia;
-        empresa.CodigoPostal = dto.CodigoPostal;
-        empresa.Telefono = dto.Telefono;
-        empresa.Email = dto.Email;
-        empresa.LogoUrl = dto.LogoUrl;
-        empresa.IngresosBrutos = dto.IngresosBrutos;
-        empresa.InicioActividades = dto.InicioActividades;
-        empresa.PuntoVenta = dto.PuntoVenta;
-        empresa.Activa = dto.Activa;
+            empresa.RazonSocial       = dto.RazonSocial;
+            empresa.NombreFantasia    = dto.NombreFantasia;
+            empresa.Cuit              = dto.Cuit;
+            empresa.CondicionIva      = dto.CondicionIva;
+            empresa.DireccionFiscal   = dto.DireccionFiscal;
+            empresa.Localidad         = dto.Localidad;
+            empresa.Provincia         = dto.Provincia;
+            empresa.CodigoPostal      = dto.CodigoPostal;
+            empresa.Telefono          = dto.Telefono;
+            empresa.Email             = dto.Email;
+            empresa.LogoUrl           = dto.LogoUrl;
+            empresa.IngresosBrutos    = dto.IngresosBrutos;
+            empresa.InicioActividades = dto.InicioActividades;
+            empresa.PuntoVenta        = dto.PuntoVenta;
+            empresa.Activa            = dto.Activa;
 
-        _repo.Update(empresa);
-        await _repo.SaveChangesAsync();
-        return ToDto(empresa);
+            _repo.Update(empresa);
+            await _repo.SaveChangesAsync();
+            return ToDto(empresa);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(UpdateAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var empresa = await _repo.GetByIdAsync(id);
-        if (empresa is null) return false;
-        empresa.Activa = false;
-        _repo.Update(empresa);
-        await _repo.SaveChangesAsync();
-        return true;
+        try
+        {
+            var empresa = await _repo.GetByIdAsync(id);
+            if (empresa is null) return false;
+            empresa.Activa = false;
+            _repo.Update(empresa);
+            await _repo.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(DeleteAsync), ex.Message);
+            throw;
+        }
     }
 
     private static EmpresaDto ToDto(Empresa e) => new(

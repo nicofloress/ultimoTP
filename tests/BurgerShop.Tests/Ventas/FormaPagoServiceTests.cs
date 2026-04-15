@@ -2,6 +2,7 @@ using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Services;
 using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Linq.Expressions;
 
@@ -15,7 +16,9 @@ public class FormaPagoServiceTests
     public FormaPagoServiceTests()
     {
         _repoMock = new Mock<IRepository<FormaPago>>();
-        _service = new FormaPagoService(_repoMock.Object);
+        _service = new FormaPagoService(
+            _repoMock.Object,
+            new Mock<ILogger<FormaPagoService>>().Object);
     }
 
     // -----------------------------------------------------------------------

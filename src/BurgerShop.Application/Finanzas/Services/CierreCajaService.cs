@@ -5,6 +5,7 @@ using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Domain.Interfaces.Finanzas;
+using Microsoft.Extensions.Logging;
 
 namespace BurgerShop.Application.Finanzas.Services;
 
@@ -12,125 +13,175 @@ public class CierreCajaService : ICierreCajaService
 {
     private readonly ICierreCajaRepository _cajaRepo;
     private readonly IVentaRepository _ventaRepo;
+    private readonly ILogger<CierreCajaService> _logger;
 
-    public CierreCajaService(ICierreCajaRepository cajaRepo, IVentaRepository ventaRepo)
+    public CierreCajaService(
+        ICierreCajaRepository cajaRepo,
+        IVentaRepository ventaRepo,
+        ILogger<CierreCajaService> logger)
     {
         _cajaRepo = cajaRepo;
         _ventaRepo = ventaRepo;
+        _logger = logger;
     }
 
     public async Task<CierreCajaDto?> GetCajaAbiertaAsync(int? localId = null)
     {
-        var caja = await _cajaRepo.GetCajaAbiertaAsync(localId);
-        if (caja is null) return null;
+        try
+        {
+            var caja = await _cajaRepo.GetCajaAbiertaAsync(localId);
+            if (caja is null) return null;
 
-        var ventas = await _ventaRepo.GetByCierreCajaAsync(caja.Id);
-        return ToDto(caja, ventas.ToList());
+            var ventas = await _ventaRepo.GetByCierreCajaAsync(caja.Id);
+            return ToDto(caja, ventas.ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetCajaAbiertaAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<CierreCajaDto> AbrirCajaAsync(AbrirCajaDto dto)
     {
-        var cajaExistente = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
-        if (cajaExistente is not null)
-            throw new InvalidOperationException("Ya existe una caja abierta para este local. Debe cerrarla antes de abrir una nueva.");
-
-        var nuevaCaja = new CierreCaja
+        try
         {
-            FechaApertura = DateTime.Now,
-            MontoInicial = dto.MontoInicial,
-            Observaciones = dto.Observaciones,
-            LocalId = dto.LocalId,
-            Estado = EstadoCaja.Abierta
-        };
+            var cajaExistente = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
+            if (cajaExistente is not null)
+                throw new InvalidOperationException("Ya existe una caja abierta para este local. Debe cerrarla antes de abrir una nueva.");
 
-        await _cajaRepo.AddAsync(nuevaCaja);
-        await _cajaRepo.SaveChangesAsync();
+            var nuevaCaja = new CierreCaja
+            {
+                FechaApertura = DateTime.Now,
+                MontoInicial = dto.MontoInicial,
+                Observaciones = dto.Observaciones,
+                LocalId = dto.LocalId,
+                Estado = EstadoCaja.Abierta
+            };
 
-        return ToDto(nuevaCaja, new List<Venta>());
+            await _cajaRepo.AddAsync(nuevaCaja);
+            await _cajaRepo.SaveChangesAsync();
+
+            return ToDto(nuevaCaja, new List<Venta>());
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(AbrirCajaAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(AbrirCajaAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<CierreCajaDto?> CerrarCajaAsync(int id, CerrarCajaDto dto)
     {
-        var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
-        if (caja is null) return null;
-
-        var ventas = (await _ventaRepo.GetByCierreCajaAsync(id)).ToList();
-
-        var totalesPorFormaPago = new Dictionary<int, (decimal monto, int cantidad)>();
-
-        foreach (var venta in ventas)
+        try
         {
-            if (venta.Pagos.Any())
+            var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
+            if (caja is null) return null;
+
+            var ventas = (await _ventaRepo.GetByCierreCajaAsync(id)).ToList();
+
+            var totalesPorFormaPago = new Dictionary<int, (decimal monto, int cantidad)>();
+
+            foreach (var venta in ventas)
             {
-                foreach (var pago in venta.Pagos)
+                if (venta.Pagos.Any())
                 {
-                    if (totalesPorFormaPago.TryGetValue(pago.FormaPagoId, out var existente))
-                        totalesPorFormaPago[pago.FormaPagoId] = (existente.monto + pago.TotalACobrar, existente.cantidad + 1);
+                    foreach (var pago in venta.Pagos)
+                    {
+                        if (totalesPorFormaPago.TryGetValue(pago.FormaPagoId, out var existente))
+                            totalesPorFormaPago[pago.FormaPagoId] = (existente.monto + pago.TotalACobrar, existente.cantidad + 1);
+                        else
+                            totalesPorFormaPago[pago.FormaPagoId] = (pago.TotalACobrar, 1);
+                    }
+                }
+                else if (venta.FormaPagoId.HasValue)
+                {
+                    var formaPagoId = venta.FormaPagoId.Value;
+                    if (totalesPorFormaPago.TryGetValue(formaPagoId, out var existente))
+                        totalesPorFormaPago[formaPagoId] = (existente.monto + venta.Total, existente.cantidad + 1);
                     else
-                        totalesPorFormaPago[pago.FormaPagoId] = (pago.TotalACobrar, 1);
+                        totalesPorFormaPago[formaPagoId] = (venta.Total, 1);
                 }
             }
-            else if (venta.FormaPagoId.HasValue)
+
+            caja.Detalles.Clear();
+
+            foreach (var kvp in totalesPorFormaPago)
             {
-                var formaPagoId = venta.FormaPagoId.Value;
-                if (totalesPorFormaPago.TryGetValue(formaPagoId, out var existente))
-                    totalesPorFormaPago[formaPagoId] = (existente.monto + venta.Total, existente.cantidad + 1);
-                else
-                    totalesPorFormaPago[formaPagoId] = (venta.Total, 1);
+                caja.Detalles.Add(new CierreCajaDetalle
+                {
+                    FormaPagoId = kvp.Key,
+                    MontoTotal = kvp.Value.monto,
+                    CantidadOperaciones = kvp.Value.cantidad
+                });
             }
+
+            // Guardar desgloses al momento del cierre para no recalcular en el historial
+            var ventasCtaCteCierre = ventas.Where(v => v.FormaPago?.Nombre == "Cuenta Corriente").ToList();
+            var ctaCteIdsCierre = new HashSet<int>(ventasCtaCteCierre.Select(v => v.Id));
+            var ventasMostradorCierre = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && !ctaCteIdsCierre.Contains(v.Id)).ToList();
+            var ventasDomicilioCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && !ctaCteIdsCierre.Contains(v.Id)).ToList();
+
+            caja.CantidadMostrador = ventasMostradorCierre.Count;
+            caja.TotalMostrador = ventasMostradorCierre.Sum(v => v.Total);
+            caja.CantidadDomicilio = ventasDomicilioCierre.Count;
+            caja.TotalDomicilio = ventasDomicilioCierre.Sum(v => v.Total);
+            caja.CantidadCtaCte = ventasCtaCteCierre.Count;
+            caja.TotalCtaCte = ventasCtaCteCierre.Sum(v => v.Total);
+
+            var sumaTotalVentas = totalesPorFormaPago.Values.Sum(v => v.monto);
+            caja.MontoFinal = caja.MontoInicial + sumaTotalVentas;
+            caja.Estado = EstadoCaja.Cerrada;
+            caja.FechaCierre = DateTime.Now;
+            caja.Observaciones = dto.Observaciones ?? caja.Observaciones;
+
+            _cajaRepo.Update(caja);
+            await _cajaRepo.SaveChangesAsync();
+
+            var cajaActualizada = await _cajaRepo.GetByIdConDetallesAsync(id);
+            return ToDto(cajaActualizada!, ventas);
         }
-
-        caja.Detalles.Clear();
-
-        foreach (var kvp in totalesPorFormaPago)
+        catch (Exception ex)
         {
-            caja.Detalles.Add(new CierreCajaDetalle
-            {
-                FormaPagoId = kvp.Key,
-                MontoTotal = kvp.Value.monto,
-                CantidadOperaciones = kvp.Value.cantidad
-            });
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(CerrarCajaAsync), ex.Message);
+            throw;
         }
-
-        // Guardar desgloses al momento del cierre para no recalcular en el historial
-        var ventasCtaCteCierre = ventas.Where(v => v.FormaPago?.Nombre == "Cuenta Corriente").ToList();
-        var ctaCteIdsCierre = new HashSet<int>(ventasCtaCteCierre.Select(v => v.Id));
-        var ventasMostradorCierre = ventas.Where(v => v.Tipo == TipoVenta.Mostrador && !ctaCteIdsCierre.Contains(v.Id)).ToList();
-        var ventasDomicilioCierre = ventas.Where(v => v.Tipo == TipoVenta.Domicilio && !ctaCteIdsCierre.Contains(v.Id)).ToList();
-
-        caja.CantidadMostrador = ventasMostradorCierre.Count;
-        caja.TotalMostrador = ventasMostradorCierre.Sum(v => v.Total);
-        caja.CantidadDomicilio = ventasDomicilioCierre.Count;
-        caja.TotalDomicilio = ventasDomicilioCierre.Sum(v => v.Total);
-        caja.CantidadCtaCte = ventasCtaCteCierre.Count;
-        caja.TotalCtaCte = ventasCtaCteCierre.Sum(v => v.Total);
-
-        var sumaTotalVentas = totalesPorFormaPago.Values.Sum(v => v.monto);
-        caja.MontoFinal = caja.MontoInicial + sumaTotalVentas;
-        caja.Estado = EstadoCaja.Cerrada;
-        caja.FechaCierre = DateTime.Now;
-        caja.Observaciones = dto.Observaciones ?? caja.Observaciones;
-
-        _cajaRepo.Update(caja);
-        await _cajaRepo.SaveChangesAsync();
-
-        var cajaActualizada = await _cajaRepo.GetByIdConDetallesAsync(id);
-        return ToDto(cajaActualizada!, ventas);
     }
 
     public async Task<IEnumerable<CierreCajaDto>> GetHistorialAsync(int? localId = null, DateTime? fechaDesde = null, DateTime? fechaHasta = null)
     {
-        var cajas = await _cajaRepo.GetHistorialAsync(50, localId, fechaDesde, fechaHasta);
-        return cajas.Select(c => ToDto(c, new List<Venta>()));
+        try
+        {
+            var cajas = await _cajaRepo.GetHistorialAsync(50, localId, fechaDesde, fechaHasta);
+            return cajas.Select(c => ToDto(c, new List<Venta>()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetHistorialAsync), ex.Message);
+            throw;
+        }
     }
 
     public async Task<CierreCajaDto?> GetByIdAsync(int id)
     {
-        var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
-        if (caja is null) return null;
+        try
+        {
+            var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
+            if (caja is null) return null;
 
-        var ventas = await _ventaRepo.GetByCierreCajaAsync(id);
-        return ToDto(caja, ventas.ToList());
+            var ventas = await _ventaRepo.GetByCierreCajaAsync(id);
+            return ToDto(caja, ventas.ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetByIdAsync), ex.Message);
+            throw;
+        }
     }
 
     private static CierreCajaDto ToDto(CierreCaja caja, List<Venta> ventas)

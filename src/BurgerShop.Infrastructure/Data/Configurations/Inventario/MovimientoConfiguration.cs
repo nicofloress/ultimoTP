@@ -55,6 +55,13 @@ public class MovimientoConfiguration : IEntityTypeConfiguration<Movimiento>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // CierreCaja — opcional, vincula compras/egresos a la caja abierta del local
+        builder.HasOne(m => m.CierreCaja)
+            .WithMany()
+            .HasForeignKey(m => m.CierreCajaId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(m => m.FechaMovimiento);
         builder.HasIndex(m => m.FechaProceso);
         builder.HasIndex(m => m.CodigoAccionId);

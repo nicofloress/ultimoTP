@@ -2,6 +2,7 @@ using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Services;
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace BurgerShop.Tests.Catalogo;
@@ -18,7 +19,9 @@ public class ProveedorServiceTests
     public ProveedorServiceTests()
     {
         _repoMock = new Mock<IRepository<Proveedor>>();
-        _service  = new ProveedorService(_repoMock.Object);
+        _service  = new ProveedorService(
+            _repoMock.Object,
+            new Mock<ILogger<ProveedorService>>().Object);
     }
 
     // -----------------------------------------------------------------------

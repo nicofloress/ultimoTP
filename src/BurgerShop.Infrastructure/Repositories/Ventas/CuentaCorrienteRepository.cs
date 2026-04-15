@@ -56,6 +56,16 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<CuentaCorriente>> GetConSaldoAsync(int? localId)
+    {
+        var query = _context.CuentasCorrientes
+            .Include(c => c.Cliente)
+            .Where(c => c.SaldoActual > 0 && c.Activa);
+        if (localId.HasValue)
+            query = query.Where(c => c.Cliente != null && c.Cliente.LocalId == localId.Value);
+        return await query.OrderByDescending(c => c.SaldoActual).ToListAsync();
+    }
+
     public async Task AddAsync(CuentaCorriente cuenta)
     {
         await _context.CuentasCorrientes.AddAsync(cuenta);

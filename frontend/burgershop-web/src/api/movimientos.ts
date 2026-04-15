@@ -70,3 +70,41 @@ export interface CrearDevolucionDto {
 
 export const crearDevolucion = (data: CrearDevolucionDto) =>
   api.post<MovimientoDto>('/movimientos/devolucion', data).then(r => r.data);
+
+export interface CrearCompraDto {
+  productoId: number;
+  localId: number;
+  cantidadBultos: number;
+  precioPorBulto: number;
+  fechaMovimiento: string;
+  observaciones?: string;
+  impactarEnCaja: boolean;
+}
+
+export interface EditarCompraDto {
+  cantidadBultos: number;
+  precioPorBulto: number;
+  fechaMovimiento: string;
+  observaciones?: string;
+  impactarEnCaja: boolean;
+}
+
+export const crearCompra = (data: CrearCompraDto) =>
+  api.post<MovimientoDto>('/movimientos/compra', data).then(r => r.data);
+
+export const editarCompra = (id: number, data: EditarCompraDto) =>
+  api.put<MovimientoDto>(`/movimientos/compra/${id}`, data).then(r => r.data);
+
+export const eliminarCompra = (id: number) =>
+  api.delete(`/movimientos/compra/${id}`);
+
+export interface CrearTransferenciaDto {
+  productoId: number;
+  localOrigenId: number;
+  localDestinoId: number;
+  cantidadBultos: number;
+  observaciones?: string;
+}
+
+export const crearTransferencia = (data: CrearTransferenciaDto) =>
+  api.post<MovimientoDto>('/movimientos/transferencia', data).then(r => r.data);

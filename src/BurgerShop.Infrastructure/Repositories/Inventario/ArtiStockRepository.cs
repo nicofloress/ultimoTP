@@ -38,8 +38,8 @@ public class ArtiStockRepository : IArtiStockRepository
             .Include(a => a.Producto)
             .Include(a => a.Local)
             .Where(a => a.LocalId == localId
-                     && a.StockMinimo != null
-                     && a.StockFinal <= a.StockMinimo)
+                     && (a.StockFinal <= 0
+                         || (a.StockMinimo != null && a.StockFinal <= a.StockMinimo)))
             .OrderBy(a => a.Producto.Nombre)
             .ToListAsync();
     }

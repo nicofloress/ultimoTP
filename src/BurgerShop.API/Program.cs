@@ -58,6 +58,7 @@ builder.Services.AddLogisticaServices();
 builder.Services.AddFinanzasServices();
 builder.Services.AddSistemaServices();
 builder.Services.AddInventarioServices();
+builder.Services.AddDashboardServices();
 
 // SignalR
 builder.Services.AddSignalR();

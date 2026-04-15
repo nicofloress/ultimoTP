@@ -461,6 +461,22 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
         return count + 1;
     }
 
+    public async Task<IEnumerable<Venta>> GetVentasHoyConLineasAsync(int? localId = null)
+    {
+        var hoy = DateTime.Today;
+        var query = _dbSet
+            .Include(v => v.Lineas).ThenInclude(l => l.Producto)
+            .Include(v => v.Lineas).ThenInclude(l => l.Combo)
+            .Where(v => v.FechaCreacion.Date == hoy
+                && v.Estado != EstadoVenta.Cancelado
+                && v.Estado != EstadoVenta.NoEntregado);
+
+        if (localId.HasValue)
+            query = query.Where(v => v.LocalId == localId.Value);
+
+        return await query.ToListAsync();
+    }
+
     public async Task<IEnumerable<Venta>> GetByLocalAsync(int localId, DateTime? desde = null, DateTime? hasta = null)
     {
         var query = _dbSet

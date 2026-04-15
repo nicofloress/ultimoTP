@@ -9,6 +9,7 @@ public interface ICuentaCorrienteRepository
     Task<CuentaCorriente?>              GetByIdConMovimientosAsync(int id);
     Task<IEnumerable<CuentaCorriente>>  GetAllActivasAsync();
     Task<IEnumerable<CuentaCorriente>>  GetConSaldoAsync();   // SaldoActual > 0
+    Task<IEnumerable<CuentaCorriente>>  GetConSaldoAsync(int? localId);   // Filtrado por local del cliente
 
     Task AddAsync(CuentaCorriente cuenta);
     void Update(CuentaCorriente cuenta);

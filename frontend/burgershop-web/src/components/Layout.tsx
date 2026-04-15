@@ -27,7 +27,8 @@ const LO = RolUsuario.Local;
 const menuSections: MenuSection[] = [
   {
     items: [
-      { to: '/', label: 'POS', end: true },
+      { to: '/', label: 'Dashboard', end: true },
+      { to: '/pos', label: 'POS' },
       { to: '/ventas', label: 'Ventas' },
     ],
   },
@@ -68,7 +69,8 @@ const menuSections: MenuSection[] = [
     title: 'Inventario',
     items: [
       { to: '/inventario/movimientos', label: 'Movimientos', roles: [SA, AD] },
-      { to: '/inventario/compras', label: 'Compras', roles: [SA, AD] },
+      { to: '/inventario/compras', label: 'Compras', roles: [SA] },
+      { to: '/inventario/transferencias', label: 'Transferencias', roles: [SA, AD] },
       { to: '/inventario/devoluciones', label: 'Devoluciones' },
       { to: '/inventario/stock', label: 'Stock', roles: [SA, AD] },
     ],
