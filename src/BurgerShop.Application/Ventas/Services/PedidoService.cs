@@ -975,7 +975,7 @@ public class VentaService : IVentaService
     {
         try
         {
-            var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+            var venta = await _ventaRepo.GetByIdAsync(ventaId);
             if (venta is null) return null;
 
             if (venta.CierreCajaId.HasValue)
@@ -992,7 +992,9 @@ public class VentaService : IVentaService
             _ventaRepo.Update(venta);
             await _ventaRepo.SaveChangesAsync();
 
-            return ToDto(venta);
+            // Recargar con lineas para el DTO
+            var ventaCompleta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+            return ventaCompleta is not null ? ToDto(ventaCompleta) : null;
         }
         catch (InvalidOperationException ex)
         {

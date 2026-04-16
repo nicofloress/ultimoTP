@@ -24,7 +24,7 @@ public class LogService : ILogService
         {
             var entry = new LogEntry
             {
-                Fecha = DateTime.Now,
+                Fecha = DateTime.UtcNow,
                 Nivel = dto.Nivel,
                 Origen = dto.Origen,
                 Mensaje = dto.Mensaje,
@@ -101,7 +101,11 @@ public class LogService : ILogService
     {
         try
         {
-            var nivel = statusCode >= 500 ? LogNivel.Error : LogNivel.Warning;
+            // Si hay stackTrace significa que hubo una excepción -> Error
+            // Si no, un 5xx también es Error. 4xx (error del cliente) es Warning
+            var nivel = !string.IsNullOrEmpty(stackTrace) || statusCode >= 500
+                ? LogNivel.Error
+                : LogNivel.Warning;
 
             await RegistrarAsync(new CrearLogEntryDto(
                 Nivel: nivel,

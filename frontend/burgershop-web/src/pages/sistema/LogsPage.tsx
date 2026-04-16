@@ -29,7 +29,8 @@ const PAGE_SIZE = 50;
 const AUTO_REFRESH_MS = 30_000;
 
 function formatFecha(iso: string): string {
-  const d = new Date(iso);
+  const f = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+  const d = new Date(f);
   return d.toLocaleString('es-AR', {
     day: '2-digit',
     month: '2-digit',
