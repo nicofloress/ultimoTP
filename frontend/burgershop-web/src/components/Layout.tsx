@@ -277,12 +277,9 @@ export default function Layout() {
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-500">v{APP_VERSION}</span>
               {hayNuevaVersion && (
-                <button
-                  onClick={actualizarApp}
-                  className="text-[10px] text-amber-400 hover:text-amber-300 font-medium animate-pulse bg-amber-500/10 border border-amber-400 rounded px-2 py-0.5"
-                >
-                  ↻ Nueva version - Actualizar
-                </button>
+                <span className="text-[10px] text-amber-400 font-medium animate-pulse">
+                  Actualizando...
+                </span>
               )}
             </div>
           </div>

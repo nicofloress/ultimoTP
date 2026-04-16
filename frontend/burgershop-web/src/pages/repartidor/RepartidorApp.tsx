@@ -362,9 +362,9 @@ export default function RepartidorApp() {
                 <div className="flex items-center gap-2">
                   <p className="text-slate-400 text-sm truncate">{usuario?.nombreCompleto}</p>
                   {hayNuevaVersion && (
-                    <button onClick={actualizarApp} className="text-[10px] text-amber-400 font-medium animate-pulse bg-amber-500/10 border border-amber-400 rounded px-2 py-0.5">
-                      ↻ Actualizar
-                    </button>
+                    <span className="text-[10px] text-amber-400 font-medium animate-pulse">
+                      Actualizando...
+                    </span>
                   )}
                 </div>
               </div>
