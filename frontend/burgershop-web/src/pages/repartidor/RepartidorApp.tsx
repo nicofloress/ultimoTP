@@ -54,6 +54,18 @@ export default function RepartidorApp() {
     const interval = setInterval(checkVersion, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Refresh al volver del background (cuando el repartidor vuelve de Maps/WhatsApp)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [refresh]);
+
   const { gpsStatus, lastPosition } = useGeoTracking(!!repartidorId);
 
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
