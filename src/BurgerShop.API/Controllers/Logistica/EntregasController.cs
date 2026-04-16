@@ -75,6 +75,20 @@ public class EntregasController : ControllerBase
         }
     }
 
+    [HttpPut("{ventaId}/reabrir")]
+    public async Task<ActionResult<VentaDto>> ReabrirEntrega(int ventaId)
+    {
+        try
+        {
+            var venta = await _ventaService.ReabrirEntregaAsync(ventaId);
+            return venta is null ? NotFound() : Ok(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("por-zona")]
     public async Task<ActionResult<IEnumerable<VentaDto>>> GetPorZona()
     {

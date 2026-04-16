@@ -51,7 +51,7 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
     {
         return await _context.CuentasCorrientes
             .Include(c => c.Cliente)
-            .Where(c => c.SaldoActual > 0 && c.Activa)
+            .Where(c => c.SaldoActual != 0 && c.Activa)
             .OrderByDescending(c => c.SaldoActual)
             .ToListAsync();
     }
@@ -60,7 +60,7 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
     {
         var query = _context.CuentasCorrientes
             .Include(c => c.Cliente)
-            .Where(c => c.SaldoActual > 0 && c.Activa);
+            .Where(c => c.SaldoActual != 0 && c.Activa);
         if (localId.HasValue)
             query = query.Where(c => c.Cliente != null && c.Cliente.LocalId == localId.Value);
         return await query.OrderByDescending(c => c.SaldoActual).ToListAsync();

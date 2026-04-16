@@ -14,6 +14,7 @@ public interface IVentaService
     Task<VentaDto?> CambiarEstadoAsync(int id, EstadoVenta nuevoEstado);
     Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion);
     Task<VentaDto?> MarcarNoEntregadoAsync(int id, string motivo);
+    Task<VentaDto?> ReabrirEntregaAsync(int id);
     Task<TicketDto?> GetTicketAsync(int id);
     Task<IEnumerable<VentaDto>> GetPendientesEntregaAsync();
     Task<VentaDto?> AsignarRepartidorAsync(int ventaId, int repartidorId);

@@ -114,7 +114,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Top Productos */}
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Top 10 Productos del Dia</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Top 10 Combos del Dia</div>
           {data.topProductos.length === 0 ? (
             <div className="text-sm text-gray-400 py-4 text-center">Sin ventas hoy</div>
           ) : (

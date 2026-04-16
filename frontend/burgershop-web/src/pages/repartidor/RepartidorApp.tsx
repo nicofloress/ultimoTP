@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 declare const __APP_VERSION__: string;
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 import { Venta, Mensaje, EstadoVenta } from '../../types';
-import { marcarEnCamino, marcarEntregado, marcarNoEntregado } from '../../api/entregas';
+import { marcarEnCamino, marcarEntregado, marcarNoEntregado, reabrirEntrega } from '../../api/entregas';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useAuth } from '../../context/AuthContext';
 import { useGlobalToast } from '../../components/Toast';
@@ -23,15 +23,35 @@ export default function RepartidorApp() {
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
 
   useEffect(() => {
+    let actualizando = false;
+    const autoActualizar = async () => {
+      if (actualizando) return;
+      actualizando = true;
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch { /* ignore */ }
+      window.location.href = window.location.pathname + '?_v=' + Date.now();
+    };
     const checkVersion = async () => {
       try {
-        const res = await fetch('/version.json?t=' + Date.now());
+        const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
-        if (data.version && data.version !== APP_VERSION) setHayNuevaVersion(true);
+        if (data.version && data.version !== APP_VERSION) {
+          setHayNuevaVersion(true);
+          // Auto-actualizar en background sin intervención del usuario
+          autoActualizar();
+        }
       } catch { /* ignore */ }
     };
     checkVersion();
-    const interval = setInterval(checkVersion, 60000);
+    const interval = setInterval(checkVersion, 30000);
     return () => clearInterval(interval);
   }, []);
   const { gpsStatus, lastPosition } = useGeoTracking(!!repartidorId);
@@ -177,6 +197,19 @@ export default function RepartidorApp() {
     }
   }, [pendientes]);
 
+  // Detectar cambios en los IDs de pendientes y resetear ruta/orden manual
+  const pendientesIdsRef = useRef<string>('');
+  useEffect(() => {
+    const idsActuales = pendientes.map(p => p.id).sort().join(',');
+    if (pendientesIdsRef.current && pendientesIdsRef.current !== idsActuales) {
+      // Cambió la lista de pendientes (se reabrió o marcó como no entregado)
+      setRutaOptimizada(null);
+      setOrdenManual(null);
+      optimizacionIniciada.current = false;
+    }
+    pendientesIdsRef.current = idsActuales;
+  }, [pendientes]);
+
   const completados = useMemo(() => {
     const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
     return entregas
@@ -198,6 +231,19 @@ export default function RepartidorApp() {
   // Estado para lightbox comprobante
   const [comprobanteSrc, setComprobanteSrc] = useState<string | null>(null);
 
+
+  const handleReabrir = async (ventaId: number) => {
+    setActionLoading(ventaId);
+    try {
+      await reabrirEntrega(ventaId);
+      showToast('Pedido reabierto, pasa a En Camino', 'success');
+      await refresh();
+    } catch {
+      showToast('Error al reabrir pedido', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleCancelar = async () => {
     if (!cancelarPedido || !motivoCancelacion.trim()) return;
@@ -304,8 +350,8 @@ export default function RepartidorApp() {
                 <div className="flex items-center gap-2">
                   <p className="text-slate-400 text-sm truncate">{usuario?.nombreCompleto}</p>
                   {hayNuevaVersion && (
-                    <button onClick={() => window.location.reload()} className="text-[10px] text-amber-400 font-medium animate-pulse">
-                      Actualizar
+                    <button onClick={actualizarApp} className="text-[10px] text-amber-400 font-medium animate-pulse bg-amber-500/10 border border-amber-400 rounded px-2 py-0.5">
+                      ↻ Actualizar
                     </button>
                   )}
                 </div>
@@ -453,6 +499,8 @@ export default function RepartidorApp() {
         {activeTab === 'noEntregados' && (
           <NoEntregadosTab
             pedidos={noEntregados}
+            onReabrir={handleReabrir}
+            actionLoading={actionLoading}
           />
         )}
 
@@ -917,8 +965,12 @@ function CompletadosTab({
 // ============================
 function NoEntregadosTab({
   pedidos,
+  onReabrir,
+  actionLoading,
 }: {
   pedidos: Venta[];
+  onReabrir: (id: number) => void;
+  actionLoading: number | null;
 }) {
   if (pedidos.length === 0) {
     return (
@@ -963,6 +1015,13 @@ function NoEntregadosTab({
                 Motivo: {p.motivoCancelacion}
               </p>
             )}
+            <button
+              onClick={() => onReabrir(p.id)}
+              disabled={actionLoading === p.id}
+              className="mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 px-3 text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {'\u21A9'} {actionLoading === p.id ? 'Reabriendo...' : 'Reabrir para reintentar'}
+            </button>
           </div>
         ))}
       </div>

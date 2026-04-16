@@ -3,7 +3,8 @@ import { Venta } from '../types';
 
 export const getEntregasPendientes = () => api.get<Venta[]>('/entregas/pendientes').then(r => r.data);
 export const asignarEntrega = (ventaId: number, repartidorId: number) => api.post<Venta>('/entregas/asignar', { pedidoId: ventaId, repartidorId }).then(r => r.data);
-export const getEntregasRepartidor = (id: number) => api.get<Venta[]>(`/entregas/repartidor/${id}`).then(r => r.data);
+export const getEntregasRepartidor = (id: number) =>
+  api.get<Venta[]>(`/entregas/repartidor/${id}`, { params: { _t: Date.now() } }).then(r => r.data);
 export const marcarEnCamino = (ventaId: number) => api.put<Venta>(`/entregas/${ventaId}/en-camino`).then(r => r.data);
 export const marcarEntregado = (ventaId: number, data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string }) =>
   api.put<Venta>(`/entregas/${ventaId}/entregar`, data).then(r => r.data);
@@ -12,6 +13,9 @@ export const loginRepartidor = (codigoAcceso: string) => api.post<{ id: number; 
 
 export const marcarNoEntregado = (ventaId: number, motivo: string) =>
   api.put<Venta>(`/entregas/${ventaId}/no-entregado`, { motivo }).then(r => r.data);
+
+export const reabrirEntrega = (ventaId: number) =>
+  api.put<Venta>(`/entregas/${ventaId}/reabrir`).then(r => r.data);
 
 export const getPedidosPorZona = () => api.get<Venta[]>('/entregas/por-zona').then(r => r.data);
 export const finalizarRepartoZona = (zonaId: number, repartidorId: number) => api.post('/entregas/finalizar-reparto', { zonaId, repartidorId }).then(r => r.data);

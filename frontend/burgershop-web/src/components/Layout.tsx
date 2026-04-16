@@ -106,17 +106,34 @@ export default function Layout() {
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
 
   useEffect(() => {
+    let actualizando = false;
+    const autoActualizar = async () => {
+      if (actualizando) return;
+      actualizando = true;
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch { /* ignore */ }
+      window.location.href = window.location.pathname + '?_v=' + Date.now();
+    };
     const checkVersion = async () => {
       try {
-        const res = await fetch('/version.json?t=' + Date.now());
+        const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
         if (data.version && data.version !== APP_VERSION) {
           setHayNuevaVersion(true);
+          autoActualizar();
         }
       } catch { /* ignore */ }
     };
     checkVersion();
-    const interval = setInterval(checkVersion, 60000); // chequear cada minuto
+    const interval = setInterval(checkVersion, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -261,10 +278,10 @@ export default function Layout() {
               <span className="text-[10px] text-slate-500">v{APP_VERSION}</span>
               {hayNuevaVersion && (
                 <button
-                  onClick={() => window.location.reload()}
-                  className="text-[10px] text-amber-400 hover:text-amber-300 font-medium animate-pulse"
+                  onClick={actualizarApp}
+                  className="text-[10px] text-amber-400 hover:text-amber-300 font-medium animate-pulse bg-amber-500/10 border border-amber-400 rounded px-2 py-0.5"
                 >
-                  Nueva version disponible
+                  ↻ Nueva version - Actualizar
                 </button>
               )}
             </div>

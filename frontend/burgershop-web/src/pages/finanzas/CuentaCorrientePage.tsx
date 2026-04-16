@@ -42,7 +42,7 @@ export default function CuentaCorrientePage() {
   const [busquedaNombre, setBusquedaNombre] = useState('');
 
   const [cuentas, setCuentas] = useState<CuentaCorrienteDto[]>([]);
-  const [soloConSaldo, setSoloConSaldo] = useState(true);
+  const [soloConSaldo, setSoloConSaldo] = useState(false);
   const [seleccionada, setSeleccionada] = useState<CuentaCorrienteDto | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCuentaCorrienteDto[]>([]);
   const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
@@ -233,7 +233,10 @@ export default function CuentaCorrientePage() {
             placeholder="Buscar cliente..."
             className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <label
+            className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer"
+            title="Si esta tildado, solo muestra clientes con deuda o saldo a favor (saldo distinto de cero). Si esta destildado, muestra todos los clientes con cuenta corriente."
+          >
             <input
               type="checkbox"
               checked={soloConSaldo}
@@ -241,6 +244,7 @@ export default function CuentaCorrientePage() {
               className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
             />
             Solo con saldo
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold cursor-help">?</span>
           </label>
         </div>
         <div className="flex-1 overflow-y-auto">

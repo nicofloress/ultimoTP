@@ -559,6 +559,36 @@ public class VentaService : IVentaService
         }
     }
 
+    public async Task<VentaDto?> ReabrirEntregaAsync(int id)
+    {
+        try
+        {
+            var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+            if (venta is null) return null;
+
+            if (venta.Estado != EstadoVenta.NoEntregado)
+                throw new InvalidOperationException("Solo se puede reabrir una venta en estado No Entregado.");
+
+            // Volver a EnCamino para que el repartidor pueda entregarla
+            venta.Estado = EstadoVenta.EnCamino;
+            venta.MotivoCancelacion = null;
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
+
+            return ToDto(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(ReabrirEntregaAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(ReabrirEntregaAsync), ex.Message);
+            throw;
+        }
+    }
+
     public async Task<VentaDto?> MarcarNoEntregadoAsync(int id, string motivo)
     {
         try

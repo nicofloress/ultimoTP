@@ -67,10 +67,11 @@ public class DashboardService : IDashboardService
             // --- Top productos del dia ---
             var ventasHoy = (await _ventaRepo.GetVentasHoyConLineasAsync(localId)).ToList();
 
+            // Top 10 combos más vendidos del día
             var topProductos = ventasHoy
                 .SelectMany(v => v.Lineas)
-                .Where(l => l.ProductoId.HasValue && l.Producto is not null)
-                .GroupBy(l => new { l.ProductoId, Nombre = l.Producto!.Nombre })
+                .Where(l => l.ComboId.HasValue && l.Combo is not null)
+                .GroupBy(l => new { l.ComboId, Nombre = l.Combo!.Nombre })
                 .Select(g => new TopProductoDto(
                     g.Key.Nombre,
                     g.Sum(l => l.Cantidad),
@@ -131,8 +132,10 @@ public class DashboardService : IDashboardService
                     .ToList();
             }
 
-            // --- Cuenta Corriente ---
-            var cuentasConSaldo = (await _ctaCteRepo.GetConSaldoAsync(localId)).ToList();
+            // --- Cuenta Corriente (solo deudas, saldo positivo) ---
+            var cuentasConSaldo = (await _ctaCteRepo.GetConSaldoAsync(localId))
+                .Where(c => c.SaldoActual > 0)
+                .ToList();
             var saldoCtaCteTotal = cuentasConSaldo.Sum(c => c.SaldoActual);
             var clientesConDeuda = cuentasConSaldo.Count;
             var topDeudores = cuentasConSaldo
