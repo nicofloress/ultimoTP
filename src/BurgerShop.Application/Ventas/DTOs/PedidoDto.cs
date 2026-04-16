@@ -43,7 +43,8 @@ public record VentaDto(
     decimal MontoNeto = 0,
     decimal MontoIVA = 0,
     DateTime? FechaEnvioDeposito = null,
-    bool VencidoDeposito = false);
+    bool VencidoDeposito = false,
+    int? CierreCajaId = null);
 
 public record LineaVentaDto(
     int Id,

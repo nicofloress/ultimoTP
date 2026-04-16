@@ -7,6 +7,7 @@ import { Categoria, Producto } from '../../types';
 import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import { formatGramaje } from '../../utils/formatGramaje';
 
 const inputClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -302,7 +303,7 @@ export default function StockPage() {
                 onClick={() => setGramajesFiltro(g)}
                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
-                {g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg` : `${g} gr`}
+                {formatGramaje(g, productos)}
               </button>
             ))}
           </div>

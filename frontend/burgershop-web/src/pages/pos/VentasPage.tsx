@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Venta, estadoLabels, estadoColores, TipoVenta } from '../../types';
-import { getVentas, getVentaStats, VentaStats } from '../../api/pedidos';
+import { getVentas, getVentaStats, VentaStats, asignarCaja } from '../../api/pedidos';
 import { getLocales, LocalDto } from '../../api/locales';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
@@ -42,6 +42,7 @@ function StatItem({ label, value, porcentaje }: { label: string; value: number; 
 export default function VentasPage() {
   const { usuario } = useAuth();
   const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+  const esAdmin = esSuperAdmin || usuario?.rol === RolUsuario.Administrador;
 
   const [fechaDesde, setFechaDesde] = useState(getHoy());
   const [fechaHasta, setFechaHasta] = useState(getHoy());
@@ -231,6 +232,7 @@ export default function VentasPage() {
                     ['formaPagoNombre', 'Forma Pago', ''],
                     ['total', 'Total', 'text-right'],
                     ['estaPago', 'Pago', 'text-center'],
+                    ['cierreCajaId', 'Caja', 'text-center'],
                     ['acciones', 'Acciones', 'text-center'],
                   ] as [string, string, string][]).map(([col, label, align]) => (
                     <th
@@ -268,6 +270,33 @@ export default function VentasPage() {
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Pagado</span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">Cta Cte</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {v.cierreCajaId ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">#{v.cierreCajaId}</span>
+                      ) : esAdmin ? (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await asignarCaja(v.id);
+                              showToast('Venta asociada a la caja abierta', 'success');
+                              const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
+                              const data = await getVentas(fechaDesde, undefined, hasta, localSeleccionado || undefined);
+                              setVentas(data.filter(x => x.tipo === TipoVenta.Mostrador));
+                            } catch (err: unknown) {
+                              const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al asociar a caja';
+                              showToast(msg, 'error');
+                            }
+                          }}
+                          className="px-2 py-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded hover:bg-amber-100"
+                          title="Asociar a la caja abierta"
+                        >
+                          Sin caja
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">Sin caja</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">

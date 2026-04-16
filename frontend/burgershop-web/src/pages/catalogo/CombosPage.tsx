@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import { formatGramaje } from '../../utils/formatGramaje';
 
 export default function CombosPage() {
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -170,7 +171,7 @@ export default function CombosPage() {
                 onClick={() => setGramajesFiltro(g)}
                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
-                {g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg` : `${g} gr`}
+                {formatGramaje(g, productos)}
               </button>
             ))}
           </div>

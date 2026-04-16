@@ -12,6 +12,7 @@ import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
 import { getMarcasActivas, MarcaDto } from '../../api/marcas';
+import { formatGramaje } from '../../utils/formatGramaje';
 
 const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0, alicuotaIVA: 21, unidadMedida: 'g' };
 
@@ -473,7 +474,7 @@ export default function ProductosPage() {
                 placeholder={unidadPeso === 'kg' ? 'Ej: 2.5' : unidadPeso === 'L' ? 'Ej: 1.5' : 'Ej: 250'}
                 className="border rounded px-3 py-2 flex-1"
                 min={0}
-                step={(unidadPeso === 'kg' || unidadPeso === 'L') ? 0.1 : 1}
+                step={(unidadPeso === 'kg' || unidadPeso === 'L') ? 0.01 : 1}
               />
               <select
                 value={unidadPeso}
@@ -616,7 +617,7 @@ export default function ProductosPage() {
             <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
             <button onClick={() => setGramajesFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!gramajesFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
             {gramajesDisponibles.map(g => (
-              <button key={g} onClick={() => setGramajesFiltro(g)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg` : `${g} gr`}</button>
+              <button key={g} onClick={() => setGramajesFiltro(g)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{formatGramaje(g, productos)}</button>
             ))}
           </div>
         )}

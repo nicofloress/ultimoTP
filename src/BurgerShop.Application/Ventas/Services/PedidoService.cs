@@ -206,15 +206,16 @@ public class VentaService : IVentaService
                 }
             }
 
+            // Validar que exista caja abierta en el local antes de permitir la venta
+            var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
+            if (cajaAbierta is null)
+                throw new InvalidOperationException("No se puede registrar la operacion: no hay una caja abierta en el local.");
+
             // Asignar caja abierta solo para ventas Mostrador
             // Las ventas Domicilio se vinculan a caja al aprobar la rendición
             if (dto.Tipo == TipoVenta.Mostrador)
             {
-                var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(dto.LocalId);
-                if (cajaAbierta is not null)
-                {
-                    venta.CierreCajaId = cajaAbierta.Id;
-                }
+                venta.CierreCajaId = cajaAbierta.Id;
             }
 
             await _ventaRepo.AddAsync(venta);
@@ -970,6 +971,41 @@ public class VentaService : IVentaService
         }
     }
 
+    public async Task<VentaDto?> AsignarCajaActualAsync(int ventaId)
+    {
+        try
+        {
+            var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+            if (venta is null) return null;
+
+            if (venta.CierreCajaId.HasValue)
+                throw new InvalidOperationException("La venta ya esta asociada a una caja.");
+
+            if (!venta.LocalId.HasValue)
+                throw new InvalidOperationException("La venta no tiene local asignado.");
+
+            var cajaAbierta = await _cajaRepo.GetCajaAbiertaAsync(venta.LocalId.Value);
+            if (cajaAbierta is null)
+                throw new InvalidOperationException("No hay una caja abierta en el local para asociar la venta.");
+
+            venta.CierreCajaId = cajaAbierta.Id;
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
+
+            return ToDto(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(AsignarCajaActualAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(AsignarCajaActualAsync), ex.Message);
+            throw;
+        }
+    }
+
     public async Task MarcarVencidoDepositoAsync(int ventaId)
     {
         try
@@ -1063,6 +1099,7 @@ public class VentaService : IVentaService
             v.MontoNeto,
             v.MontoIVA,
             v.FechaEnvioDeposito,
-            v.VencidoDeposito);
+            v.VencidoDeposito,
+            v.CierreCajaId);
     }
 }

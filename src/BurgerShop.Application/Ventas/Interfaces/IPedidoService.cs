@@ -30,5 +30,6 @@ public interface IVentaService
     Task<VentaStatsDto> GetStatsAsync(DateTime fecha, int? localId = null, int? tipo = null);
     Task<IEnumerable<VentaDto>> GetVentasDepositoAsync(int? localId);
     Task MarcarVencidoDepositoAsync(int ventaId);
+    Task<VentaDto?> AsignarCajaActualAsync(int ventaId);
     Task EnviarADepositoAsync(int ventaId);
 }

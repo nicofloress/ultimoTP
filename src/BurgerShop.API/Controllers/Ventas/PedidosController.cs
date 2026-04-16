@@ -30,9 +30,16 @@ public class VentasController : ControllerBase
         if (int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid))
             usuarioId = uid;
 
-        var venta = await _service.CreateAsync(dto, usuarioId);
-        await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString());
-        return CreatedAtAction(nameof(GetById), new { id = venta.Id }, venta);
+        try
+        {
+            var venta = await _service.CreateAsync(dto, usuarioId);
+            await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString());
+            return CreatedAtAction(nameof(GetById), new { id = venta.Id }, venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
     }
 
     [HttpGet]
@@ -155,5 +162,20 @@ public class VentasController : ControllerBase
     {
         var stats = await _service.GetStatsAsync(fecha ?? DateTime.Today, localId, tipo);
         return Ok(stats);
+    }
+
+    [HttpPut("{id}/asignar-caja")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<ActionResult<VentaDto>> AsignarCaja(int id)
+    {
+        try
+        {
+            var venta = await _service.AsignarCajaActualAsync(id);
+            return venta is null ? NotFound() : Ok(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
