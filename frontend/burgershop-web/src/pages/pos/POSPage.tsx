@@ -1371,7 +1371,7 @@ export default function POSPage() {
                         onClick={() => setGramajesFiltro(g)}
                         className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                       >
-                        {g}gr
+                        {g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg` : `${g} gr`}
                       </button>
                     ))}
                   </div>

@@ -27,6 +27,7 @@ export interface Producto {
   imagenUrl?: string;
   numeroInterno?: string;
   pesoGramos?: number;
+  unidadMedida?: string; // "g" | "ml"
   unidadesPorBulto: number;
   precioLista?: number;
   marca?: string;

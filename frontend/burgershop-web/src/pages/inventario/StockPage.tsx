@@ -302,7 +302,7 @@ export default function StockPage() {
                 onClick={() => setGramajesFiltro(g)}
                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-slate-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
-                {g}gr
+                {g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg` : `${g} gr`}
               </button>
             ))}
           </div>

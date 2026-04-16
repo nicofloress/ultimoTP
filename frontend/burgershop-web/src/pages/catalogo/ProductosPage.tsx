@@ -13,7 +13,7 @@ import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
 import { getMarcasActivas, MarcaDto } from '../../api/marcas';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0, alicuotaIVA: 21 };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0, alicuotaIVA: 21, unidadMedida: 'g' };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -27,7 +27,7 @@ export default function ProductosPage() {
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [unidadPeso, setUnidadPeso] = useState<'g' | 'kg'>('g');
+  const [unidadPeso, setUnidadPeso] = useState<'g' | 'kg' | 'ml' | 'L'>('g');
   const [busqueda, setBusqueda] = useState('');
   const { usuario } = useAuth();
   const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
@@ -95,9 +95,15 @@ export default function ProductosPage() {
 
   const handleEditar = (p: Producto) => {
     setEditando(p);
-    // Si el peso es >= 1000g, mostrar en kg por defecto
-    setUnidadPeso((p.pesoGramos ?? 0) >= 1000 ? 'kg' : 'g');
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: p.pesoGramos ?? 0, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0, alicuotaIVA: p.alicuotaIVA ?? 21 });
+    // Detectar unidad de medida según lo guardado
+    const um = p.unidadMedida || 'g';
+    const peso = p.pesoGramos ?? 0;
+    if (um === 'ml') {
+      setUnidadPeso(peso >= 1000 ? 'L' : 'ml');
+    } else {
+      setUnidadPeso(peso >= 1000 ? 'kg' : 'g');
+    }
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: peso, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0, alicuotaIVA: p.alicuotaIVA ?? 21, unidadMedida: um });
     setShowForm(true);
   };
 
@@ -117,7 +123,7 @@ export default function ProductosPage() {
 
   const abrirFormProducto = () => {
     setShowFormCombo(false); setEditandoCombo(null);
-    setShowForm(true); setEditando(null); setForm(emptyForm); setUnidadPeso('g');
+    setShowForm(true); setEditando(null); setForm({ ...emptyForm }); setUnidadPeso('g');
   };
 
   const abrirFormCombo = () => {
@@ -437,45 +443,60 @@ export default function ProductosPage() {
             <input type="text" value={form.numeroInterno} onChange={e => setForm({ ...form, numeroInterno: e.target.value })} placeholder="Numero interno (ej: HAM-001)" className="border rounded px-3 py-2 w-full" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Marca</label>
-            <select
+            <label className="block text-xs font-medium text-gray-600 mb-1">Marca {marcas.length > 0 && <span className="text-gray-400 text-[10px]">({marcas.length} cargadas)</span>}</label>
+            <input
+              type="text"
+              list="marcas-datalist"
               value={form.marca}
               onChange={e => setForm({ ...form, marca: e.target.value })}
+              placeholder="Escriba o seleccione una marca"
               className="border rounded px-3 py-2 w-full"
-            >
-              <option value="">Sin marca</option>
+            />
+            <datalist id="marcas-datalist">
               {marcas.map(m => (
                 <option key={m.id} value={m.nombre}>{m.nombre}</option>
               ))}
-            </select>
+            </datalist>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Peso</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Contenido / Peso</label>
             <div className="flex gap-2">
               <input
                 type="number"
-                value={unidadPeso === 'kg' ? (form.pesoGramos / 1000) : form.pesoGramos}
+                value={(unidadPeso === 'kg' || unidadPeso === 'L') ? (form.pesoGramos / 1000) : form.pesoGramos}
                 onChange={e => {
                   const val = parseFloat(e.target.value) || 0;
-                  const gramos = unidadPeso === 'kg' ? Math.round(val * 1000) : Math.round(val);
-                  setForm({ ...form, pesoGramos: gramos });
+                  const base = (unidadPeso === 'kg' || unidadPeso === 'L') ? Math.round(val * 1000) : Math.round(val);
+                  const um = (unidadPeso === 'ml' || unidadPeso === 'L') ? 'ml' : 'g';
+                  setForm({ ...form, pesoGramos: base, unidadMedida: um });
                 }}
-                placeholder={unidadPeso === 'kg' ? 'Ej: 2.5' : 'Ej: 250'}
+                placeholder={unidadPeso === 'kg' ? 'Ej: 2.5' : unidadPeso === 'L' ? 'Ej: 1.5' : 'Ej: 250'}
                 className="border rounded px-3 py-2 flex-1"
                 min={0}
-                step={unidadPeso === 'kg' ? 0.1 : 1}
+                step={(unidadPeso === 'kg' || unidadPeso === 'L') ? 0.1 : 1}
               />
               <select
                 value={unidadPeso}
-                onChange={e => setUnidadPeso(e.target.value as 'g' | 'kg')}
+                onChange={e => {
+                  const nuevaUnidad = e.target.value as 'g' | 'kg' | 'ml' | 'L';
+                  setUnidadPeso(nuevaUnidad);
+                  const um = (nuevaUnidad === 'ml' || nuevaUnidad === 'L') ? 'ml' : 'g';
+                  setForm({ ...form, unidadMedida: um });
+                }}
                 className="border rounded px-2 py-2 w-20 bg-white"
               >
-                <option value="g">g</option>
-                <option value="kg">kg</option>
+                <optgroup label="Peso">
+                  <option value="g">g</option>
+                  <option value="kg">kg</option>
+                </optgroup>
+                <optgroup label="Liquido">
+                  <option value="ml">ml</option>
+                  <option value="L">L</option>
+                </optgroup>
               </select>
             </div>
-            {form.pesoGramos > 0 && unidadPeso === 'kg' && (
-              <div className="text-xs text-gray-500 mt-0.5">= {form.pesoGramos} gramos</div>
+            {form.pesoGramos > 0 && (unidadPeso === 'kg' || unidadPeso === 'L') && (
+              <div className="text-xs text-gray-500 mt-0.5">= {form.pesoGramos} {unidadPeso === 'L' ? 'ml' : 'gramos'}</div>
             )}
           </div>
           <div>
@@ -595,7 +616,7 @@ export default function ProductosPage() {
             <span className="text-xs text-gray-500 font-medium mr-1">Gramaje:</span>
             <button onClick={() => setGramajesFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!gramajesFiltro ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
             {gramajesDisponibles.map(g => (
-              <button key={g} onClick={() => setGramajesFiltro(g)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{g}gr</button>
+              <button key={g} onClick={() => setGramajesFiltro(g)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${gramajesFiltro === g ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg` : `${g} gr`}</button>
             ))}
           </div>
         )}
@@ -812,11 +833,15 @@ export default function ProductosPage() {
               )}
               {productoDetalle.pesoGramos != null && productoDetalle.pesoGramos > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Peso</span>
+                  <span className="text-gray-500">{productoDetalle.unidadMedida === 'ml' ? 'Contenido' : 'Peso'}</span>
                   <span className="font-medium">
-                    {productoDetalle.pesoGramos >= 1000
-                      ? `${(productoDetalle.pesoGramos / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg`
-                      : `${productoDetalle.pesoGramos} g`}
+                    {productoDetalle.unidadMedida === 'ml'
+                      ? (productoDetalle.pesoGramos >= 1000
+                          ? `${(productoDetalle.pesoGramos / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} L`
+                          : `${productoDetalle.pesoGramos} ml`)
+                      : (productoDetalle.pesoGramos >= 1000
+                          ? `${(productoDetalle.pesoGramos / 1000).toLocaleString('es-AR', { maximumFractionDigits: 3 })} kg`
+                          : `${productoDetalle.pesoGramos} g`)}
                   </span>
                 </div>
               )}

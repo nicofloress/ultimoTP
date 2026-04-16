@@ -11,6 +11,7 @@ public class Producto
     public string? ImagenUrl { get; set; }
     public string? NumeroInterno { get; set; }
     public int? PesoGramos { get; set; }
+    public string UnidadMedida { get; set; } = "g"; // "g" = gramos, "ml" = mililitros
     public int UnidadesPorBulto { get; set; } = 1;
     public string? Marca { get; set; }
     public int UnidadesPorMedia { get; set; } = 0;
