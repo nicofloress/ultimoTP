@@ -115,7 +115,7 @@ export default function App() {
               } />
             </Route>
             <Route path="/finanzas/caja" element={
-              <ProtectedRoute roles={[RolUsuario.Administrador]}><CajaPage /></ProtectedRoute>
+              <ProtectedRoute roles={[RolUsuario.Administrador, RolUsuario.Local]}><CajaPage /></ProtectedRoute>
             } />
             <Route path="/finanzas/rendiciones" element={
               <ProtectedRoute roles={[RolUsuario.Administrador]}><RendicionesPage /></ProtectedRoute>

@@ -1,6 +1,13 @@
 export enum EstadoCaja {
   Abierta = 1,
-  Cerrada = 2,
+  PendienteRevision = 2,
+  Cerrada = 3,
+}
+
+export enum ResultadoRevision {
+  SinDiferencia = 1,
+  DiferenciaLeve = 2,
+  DiferenciaGrave = 3,
 }
 
 export interface CierreCajaDetalle {
@@ -20,6 +27,8 @@ export interface CierreCaja {
   estado: EstadoCaja;
   observaciones?: string;
   usuarioId?: number;
+  localId?: number;
+  localNombre?: string;
   detalles: CierreCajaDetalle[];
   cantidadTotal: number;
   totalGeneral: number;
@@ -31,6 +40,14 @@ export interface CierreCaja {
   totalCtaCte: number;
   totalNeto?: number;
   totalIVA?: number;
+  montoEfectivoReal?: number;
+  diferenciaCaja?: number;
+  resultadoRevision?: ResultadoRevision;
+  observacionRevision?: string;
+  revisadoPorUsuarioId?: number;
+  fechaRevision?: string;
+  fechaUltimaModificacion?: string;
+  usuarioUltimaModificacionId?: number;
 }
 
 export interface AbrirCajaDto {
@@ -39,5 +56,6 @@ export interface AbrirCajaDto {
 }
 
 export interface CerrarCajaDto {
+  montoEfectivoReal: number;
   observaciones?: string;
 }

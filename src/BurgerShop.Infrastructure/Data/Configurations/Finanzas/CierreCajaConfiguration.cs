@@ -20,6 +20,15 @@ public class CierreCajaConfiguration : IEntityTypeConfiguration<CierreCaja>
         builder.Property(c => c.Observaciones)
             .HasMaxLength(1000);
 
+        builder.Property(c => c.MontoEfectivoReal)
+            .HasColumnType("decimal(18,2)");
+
+        builder.Property(c => c.DiferenciaCaja)
+            .HasColumnType("decimal(18,2)");
+
+        builder.Property(c => c.ObservacionRevision)
+            .HasMaxLength(1000);
+
         builder.HasIndex(c => c.Estado);
         builder.HasIndex(c => c.FechaApertura);
     }

@@ -136,7 +136,23 @@ public class CierreCajaService : ICierreCajaService
 
             var sumaTotalVentas = totalesPorFormaPago.Values.Sum(v => v.monto);
             caja.MontoFinal = caja.MontoInicial + sumaTotalVentas;
-            caja.Estado = EstadoCaja.Cerrada;
+            caja.MontoEfectivoReal = dto.MontoEfectivoReal;
+
+            // La diferencia se calcula solo sobre efectivo físico
+            // Monto Esperado en efectivo = MontoInicial + ventas en efectivo
+            // (las transferencias/débito no se cuentan porque no son efectivo físico)
+            var ventasEfectivo = totalesPorFormaPago
+                .Where(kvp =>
+                {
+                    var fp = ventas.SelectMany(v => v.Pagos).Select(p => p.FormaPago)
+                        .Concat(ventas.Select(v => v.FormaPago))
+                        .FirstOrDefault(f => f != null && f.Id == kvp.Key);
+                    return fp != null && fp.Nombre.Equals("Efectivo", StringComparison.OrdinalIgnoreCase);
+                })
+                .Sum(kvp => kvp.Value.monto);
+            var efectivoEsperado = caja.MontoInicial + ventasEfectivo;
+            caja.DiferenciaCaja = dto.MontoEfectivoReal - efectivoEsperado;
+            caja.Estado = EstadoCaja.PendienteRevision;
             caja.FechaCierre = DateTime.Now;
             caja.Observaciones = dto.Observaciones ?? caja.Observaciones;
 
@@ -180,6 +196,48 @@ public class CierreCajaService : ICierreCajaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetByIdAsync), ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<VentaCajaDto>> GetVentasCajaAsync(int id)
+    {
+        try
+        {
+            var ventas = await _ventaRepo.GetByCierreCajaAsync(id);
+            var result = new List<VentaCajaDto>();
+            foreach (var v in ventas)
+            {
+                if (v.Pagos != null && v.Pagos.Any())
+                {
+                    // Una línea por cada forma de pago del pago dividido
+                    foreach (var pago in v.Pagos)
+                    {
+                        result.Add(new VentaCajaDto(
+                            v.Id,
+                            v.NumeroTicket ?? $"#{v.Id}",
+                            (int)v.Tipo,
+                            pago.TotalACobrar,
+                            pago.FormaPago?.Nombre ?? "Sin forma",
+                            v.EstaPago));
+                    }
+                }
+                else
+                {
+                    result.Add(new VentaCajaDto(
+                        v.Id,
+                        v.NumeroTicket ?? $"#{v.Id}",
+                        (int)v.Tipo,
+                        v.Total,
+                        v.FormaPago?.Nombre ?? (v.EstaPago ? "Otro" : "Pago Pendiente"),
+                        v.EstaPago));
+                }
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetVentasCajaAsync), ex.Message);
             throw;
         }
     }
@@ -266,6 +324,7 @@ public class CierreCajaService : ICierreCajaService
         }
         else
         {
+            // PendienteRevision y Cerrada: usar valores persistidos
             cantidadMostrador = caja.CantidadMostrador;
             totalMostrador = caja.TotalMostrador;
             cantidadDomicilio = caja.CantidadDomicilio;
@@ -300,6 +359,75 @@ public class CierreCajaService : ICierreCajaService
             cantidadCtaCte,
             totalCtaCte,
             totalNetoVentas,
-            totalIVAVentas);
+            totalIVAVentas,
+            caja.MontoEfectivoReal,
+            caja.DiferenciaCaja,
+            caja.ResultadoRevision,
+            caja.ObservacionRevision,
+            caja.RevisadoPorUsuarioId,
+            caja.FechaRevision,
+            caja.FechaUltimaModificacion,
+            caja.UsuarioUltimaModificacionId);
+    }
+
+    public async Task<CierreCajaDto?> RevisarCajaAsync(int id, RevisarCajaDto dto, int? usuarioId)
+    {
+        try
+        {
+            var caja = await _cajaRepo.GetByIdConDetallesAsync(id);
+            if (caja is null) return null;
+
+            // Permite: revisar por primera vez (PendienteRevision) o editar una revisión ya hecha (Cerrada)
+            if (caja.Estado != EstadoCaja.PendienteRevision && caja.Estado != EstadoCaja.Cerrada)
+                throw new InvalidOperationException($"La caja {id} no puede revisarse. Estado actual: {caja.Estado}.");
+
+            var esPrimeraRevision = caja.Estado == EstadoCaja.PendienteRevision;
+
+            caja.ResultadoRevision = dto.Resultado;
+            caja.ObservacionRevision = dto.Observaciones;
+
+            if (esPrimeraRevision)
+            {
+                caja.RevisadoPorUsuarioId = usuarioId;
+                caja.FechaRevision = DateTime.Now;
+                caja.Estado = EstadoCaja.Cerrada;
+            }
+            else
+            {
+                // Es una edición posterior
+                caja.FechaUltimaModificacion = DateTime.Now;
+                caja.UsuarioUltimaModificacionId = usuarioId;
+            }
+
+            _cajaRepo.Update(caja);
+            await _cajaRepo.SaveChangesAsync();
+
+            var cajaActualizada = await _cajaRepo.GetByIdConDetallesAsync(id);
+            return ToDto(cajaActualizada!, new List<Venta>());
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(RevisarCajaAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(RevisarCajaAsync), ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<CierreCajaDto>> GetPendientesRevisionAsync(int? localId = null)
+    {
+        try
+        {
+            var cajas = await _cajaRepo.GetPendientesRevisionAsync(localId);
+            return cajas.Select(c => ToDto(c, new List<Venta>()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetPendientesRevisionAsync), ex.Message);
+            throw;
+        }
     }
 }

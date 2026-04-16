@@ -57,7 +57,14 @@ public class CajaController : ControllerBase
         [FromQuery] DateTime? fechaDesde = null,
         [FromQuery] DateTime? fechaHasta = null)
     {
-        var lid = localId ?? GetLocalIdFromClaims();
+        // Administrador/Local solo puede ver cajas de su local; SuperAdmin puede filtrar arbitrariamente
+        var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+               ?? User.FindFirst("role")?.Value;
+        int? lid;
+        if (string.Equals(rol, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            lid = localId;
+        else
+            lid = GetLocalIdFromClaims() ?? localId;
         var historial = await _service.GetHistorialAsync(lid, fechaDesde, fechaHasta);
         return Ok(historial);
     }
@@ -67,5 +74,55 @@ public class CajaController : ControllerBase
     {
         var caja = await _service.GetByIdAsync(id);
         return caja is null ? NotFound() : Ok(caja);
+    }
+
+    [HttpGet("pendientes")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<ActionResult<IEnumerable<CierreCajaDto>>> GetPendientesRevision([FromQuery] int? localId = null)
+    {
+        // Administrador solo puede ver cajas de su local; SuperAdmin puede ver todas o filtrar
+        var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+               ?? User.FindFirst("role")?.Value;
+        int? lidEfectivo;
+        if (string.Equals(rol, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+        {
+            lidEfectivo = localId;
+        }
+        else
+        {
+            lidEfectivo = GetLocalIdFromClaims() ?? localId;
+        }
+        var pendientes = await _service.GetPendientesRevisionAsync(lidEfectivo);
+        return Ok(pendientes);
+    }
+
+    [HttpPut("{id}/revisar")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<ActionResult<CierreCajaDto>> RevisarCaja(int id, RevisarCajaDto dto)
+    {
+        try
+        {
+            var usuarioId = GetUsuarioIdFromClaims();
+            var caja = await _service.RevisarCajaAsync(id, dto, usuarioId);
+            return caja is null ? NotFound() : Ok(caja);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { mensaje = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/ventas")]
+    public async Task<ActionResult<IEnumerable<VentaCajaDto>>> GetVentasCaja(int id)
+    {
+        var ventas = await _service.GetVentasCajaAsync(id);
+        return Ok(ventas);
+    }
+
+    private int? GetUsuarioIdFromClaims()
+    {
+        var claim = User.FindFirst("sub")?.Value
+                    ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
     }
 }

@@ -20,3 +20,26 @@ export const getHistorialCajas = (localId?: number, fechaDesde?: string, fechaHa
 
 export const getCaja = (id: number) =>
   api.get<CierreCaja>(`/caja/${id}`).then(r => r.data);
+
+export interface RevisarCajaDto {
+  resultado: number; // 1=SinDiferencia, 2=DiferenciaLeve, 3=DiferenciaGrave
+  observaciones?: string;
+}
+
+export const getPendientesRevision = (localId?: number) =>
+  api.get<CierreCaja[]>('/caja/pendientes', { params: localId ? { localId } : {} }).then(r => r.data);
+
+export const revisarCaja = (id: number, data: RevisarCajaDto) =>
+  api.put<CierreCaja>(`/caja/${id}/revisar`, data).then(r => r.data);
+
+export interface VentaCajaDto {
+  id: number;
+  numeroTicket: string;
+  tipo: number; // 1=Mostrador, 2=Domicilio
+  total: number;
+  formaPagoNombre: string;
+  estaPago: boolean;
+}
+
+export const getVentasCaja = (id: number) =>
+  api.get<VentaCajaDto[]>(`/caja/${id}/ventas`).then(r => r.data);

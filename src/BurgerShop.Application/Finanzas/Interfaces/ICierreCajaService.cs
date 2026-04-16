@@ -9,4 +9,7 @@ public interface ICierreCajaService
     Task<CierreCajaDto?> CerrarCajaAsync(int id, CerrarCajaDto dto);
     Task<IEnumerable<CierreCajaDto>> GetHistorialAsync(int? localId = null, DateTime? fechaDesde = null, DateTime? fechaHasta = null);
     Task<CierreCajaDto?> GetByIdAsync(int id);
+    Task<CierreCajaDto?> RevisarCajaAsync(int id, RevisarCajaDto dto, int? usuarioId);
+    Task<IEnumerable<CierreCajaDto>> GetPendientesRevisionAsync(int? localId = null);
+    Task<IEnumerable<VentaCajaDto>> GetVentasCajaAsync(int id);
 }

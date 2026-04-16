@@ -23,7 +23,15 @@ public record CierreCajaDto(
     int CantidadCtaCte = 0,
     decimal TotalCtaCte = 0,
     decimal TotalNeto = 0,
-    decimal TotalIVA = 0);
+    decimal TotalIVA = 0,
+    decimal? MontoEfectivoReal = null,
+    decimal? DiferenciaCaja = null,
+    ResultadoRevision? ResultadoRevision = null,
+    string? ObservacionRevision = null,
+    int? RevisadoPorUsuarioId = null,
+    DateTime? FechaRevision = null,
+    DateTime? FechaUltimaModificacion = null,
+    int? UsuarioUltimaModificacionId = null);
 
 public record CierreCajaDetalleDto(
     int Id,
@@ -34,4 +42,14 @@ public record CierreCajaDetalleDto(
 
 public record AbrirCajaDto(decimal MontoInicial, string? Observaciones, int? LocalId = null);
 
-public record CerrarCajaDto(string? Observaciones);
+public record CerrarCajaDto(decimal MontoEfectivoReal, string? Observaciones);
+
+public record RevisarCajaDto(ResultadoRevision Resultado, string? Observaciones);
+
+public record VentaCajaDto(
+    int Id,
+    string NumeroTicket,
+    int Tipo,
+    decimal Total,
+    string FormaPagoNombre,
+    bool EstaPago);

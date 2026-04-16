@@ -59,7 +59,7 @@ const menuSections: MenuSection[] = [
   {
     title: 'Finanzas',
     items: [
-      { to: '/finanzas/caja', label: 'Caja Diaria', roles: [SA, AD] },
+      { to: '/finanzas/caja', label: 'Caja Diaria', roles: [SA, AD, LO] },
       { to: '/finanzas/rendiciones', label: 'Rendiciones', roles: [SA, AD] },
       { to: '/finanzas/cuenta-corriente', label: 'Cuenta Corriente', roles: [SA, AD, LO] },
       { to: '/finanzas/gastos', label: 'Gastos', roles: [SA, AD] },

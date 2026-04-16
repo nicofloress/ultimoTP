@@ -24,4 +24,16 @@ public class CierreCaja
     public decimal TotalCtaCte { get; set; }
     public ICollection<CierreCajaDetalle> Detalles { get; set; } = new List<CierreCajaDetalle>();
     public ICollection<Venta> Ventas { get; set; } = new List<Venta>();
+
+    // Revisión de caja
+    public decimal? MontoEfectivoReal { get; set; }
+    public decimal? DiferenciaCaja { get; set; }
+    public ResultadoRevision? ResultadoRevision { get; set; }
+    public string? ObservacionRevision { get; set; }
+    public int? RevisadoPorUsuarioId { get; set; }
+    public DateTime? FechaRevision { get; set; }
+
+    // Última modificación (edición posterior de la revisión)
+    public DateTime? FechaUltimaModificacion { get; set; }
+    public int? UsuarioUltimaModificacionId { get; set; }
 }

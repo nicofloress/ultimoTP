@@ -55,4 +55,19 @@ public class CierreCajaRepository : Repository<CierreCaja>, ICierreCajaRepositor
             .Take(cantidad)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<CierreCaja>> GetPendientesRevisionAsync(int? localId = null)
+    {
+        var query = _dbSet
+            .Include(c => c.Detalles).ThenInclude(d => d.FormaPago)
+            .Include(c => c.Local)
+            .Where(c => c.Estado == EstadoCaja.PendienteRevision);
+
+        if (localId.HasValue)
+            query = query.Where(c => c.LocalId == localId.Value);
+
+        return await query
+            .OrderByDescending(c => c.FechaCierre)
+            .ToListAsync();
+    }
 }

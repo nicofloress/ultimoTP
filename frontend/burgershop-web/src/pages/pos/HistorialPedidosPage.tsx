@@ -68,6 +68,7 @@ export default function HistorialPedidosPage() {
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc');
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const [formaPagoFiltro, setFormaPagoFiltro] = useState<number | ''>('');
+  const [estadoPagoFiltro, setEstadoPagoFiltro] = useState<'' | 'pagado' | 'pendiente' | 'ctacte'>('');
 
   useEffect(() => {
     getLocales().then(setLocales);
@@ -115,6 +116,9 @@ export default function HistorialPedidosPage() {
         return p.formaPagoId === formaPagoFiltro;
       });
     }
+    if (estadoPagoFiltro === 'pagado') lista = lista.filter(p => p.estaPago);
+    else if (estadoPagoFiltro === 'pendiente') lista = lista.filter(p => !p.estaPago && p.formaPagoNombre !== 'Cuenta Corriente');
+    else if (estadoPagoFiltro === 'ctacte') lista = lista.filter(p => p.formaPagoNombre === 'Cuenta Corriente');
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
       lista = lista.filter(p =>
@@ -145,7 +149,7 @@ export default function HistorialPedidosPage() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro]);
+  }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro, estadoPagoFiltro]);
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] overflow-hidden gap-4">
@@ -236,6 +240,16 @@ export default function HistorialPedidosPage() {
             {formasPago.map(fp => (
               <option key={fp.id} value={fp.id}>{fp.nombre}</option>
             ))}
+          </select>
+          <select
+            value={estadoPagoFiltro}
+            onChange={e => setEstadoPagoFiltro(e.target.value as '' | 'pagado' | 'pendiente' | 'ctacte')}
+            className={selectClass}
+          >
+            <option value="">Pago: Todos</option>
+            <option value="pagado">Pagados</option>
+            <option value="pendiente">Pago Pendiente</option>
+            <option value="ctacte">Cuenta Corriente</option>
           </select>
           <input
             type="text"
