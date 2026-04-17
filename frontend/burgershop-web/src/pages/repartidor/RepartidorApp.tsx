@@ -459,7 +459,7 @@ export default function RepartidorApp() {
       <main className="max-w-2xl mx-auto px-4 py-4">
         {activeTab === 'pendientes' && (
           <>
-            {/* Info de ruta optimizada */}
+            {/* Ruta optimizada: botón navegar al siguiente + resumen de ruta */}
             {optimizando && (
               <div className="mb-3 bg-slate-600 text-amber-400 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2">
                 <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -469,17 +469,59 @@ export default function RepartidorApp() {
                 Optimizando reparto...
               </div>
             )}
-            {!optimizando && rutaOptimizada && (
-              <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                  </svg>
-                  Ruta optimizada
+            {!optimizando && rutaOptimizada && (() => {
+              // Buscar el siguiente pedido pendiente (no entregado) en el orden optimizado
+              const listaOrdenada = ordenManual || rutaOptimizada.orden;
+              const siguiente = listaOrdenada.find(p =>
+                p.direccionEntrega && (p.estado === EstadoVenta.Asignado || p.estado === EstadoVenta.EnCamino)
+              );
+
+              return (
+                <div className="mb-3 space-y-2">
+                  {/* Botón grande: Navegar al siguiente */}
+                  {siguiente && (
+                    <button
+                      onClick={() => navegarAPedido(siguiente.direccionEntrega!)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-base"
+                    >
+                      {'\uD83E\uDDED'} Navegar al siguiente
+                      <span className="text-blue-200 text-xs font-normal truncate max-w-[200px]">
+                        ({siguiente.direccionEntrega})
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Resumen de ruta optimizada */}
+                  <details className="bg-emerald-50 border border-emerald-200 rounded-lg overflow-hidden">
+                    <summary className="px-4 py-2 flex items-center justify-between cursor-pointer select-none">
+                      <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Ver ruta optimizada
+                      </div>
+                      <span className="text-emerald-600 text-xs font-semibold">{rutaOptimizada.distancia} · {rutaOptimizada.duracion}</span>
+                    </summary>
+                    <div className="px-4 pb-3 border-t border-emerald-200">
+                      <ol className="mt-2 space-y-1">
+                        {listaOrdenada.filter(p => p.direccionEntrega).map((p, i) => {
+                          const entregado = p.estado === EstadoVenta.Entregado || p.estado === EstadoVenta.NoEntregado;
+                          const esSiguiente = siguiente && p.id === siguiente.id;
+                          return (
+                            <li key={p.id} className={`flex items-center gap-2 text-xs py-1 ${entregado ? 'line-through text-gray-400' : esSiguiente ? 'text-blue-700 font-bold' : 'text-gray-700'}`}>
+                              <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${entregado ? 'bg-gray-200 text-gray-400' : esSiguiente ? 'bg-blue-600 text-white' : 'bg-emerald-200 text-emerald-700'}`}>
+                                {entregado ? '\u2713' : i + 1}
+                              </span>
+                              <span className="truncate">{p.direccionEntrega}</span>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </div>
+                  </details>
                 </div>
-                <span className="text-emerald-600 text-xs font-semibold">{rutaOptimizada.distancia} · {rutaOptimizada.duracion}</span>
-              </div>
-            )}
+              );
+            })()}
             <PendientesTab
               pedidos={ordenManual || (rutaOptimizada ? rutaOptimizada.orden : pendientes)}
               onMover={moverPedido}
