@@ -77,7 +77,7 @@ export default function RepartidorApp() {
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
   const [optimizando, setOptimizando] = useState(false);
-  const [rutaOptimizada, setRutaOptimizada] = useState<{ orden: Venta[]; duracion: string; distancia: string } | null>(null);
+  const [rutaOptimizada, setRutaOptimizada] = useState<{ orden: Venta[]; duracion: string; distancia: string; directions: google.maps.DirectionsResult } | null>(null);
   const [ordenManual, setOrdenManual] = useState<Venta[] | null>(null);
   const optimizacionIniciada = useRef(false);
 
@@ -145,6 +145,7 @@ export default function RepartidorApp() {
         orden: reordenados,
         duracion: minutos < 60 ? `${minutos} min` : `${Math.floor(minutos/60)}h ${minutos%60}min`,
         distancia: `${km} km`,
+        directions: result,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
@@ -520,6 +521,8 @@ export default function RepartidorApp() {
                       <span className="text-emerald-600 text-xs font-semibold">{rutaOptimizada.distancia} · {rutaOptimizada.duracion}</span>
                     </summary>
                     <div className="px-4 pb-3 border-t border-emerald-200">
+                      {/* Mapa con la ruta dibujada */}
+                      <RutaMap directions={rutaOptimizada.directions} />
                       <ol className="mt-2 space-y-1">
                         {listaOrdenada.filter(p => p.direccionEntrega).map((p, i) => {
                           const entregado = p.estado === EstadoVenta.Entregado || p.estado === EstadoVenta.NoEntregado;
@@ -679,6 +682,53 @@ export default function RepartidorApp() {
       )}
     </div>
   );
+}
+
+// ============================
+// Mapa de ruta optimizada
+// ============================
+
+/**
+ * Renderiza un mapa con la ruta optimizada dibujada.
+ * Usa DirectionsRenderer de Google Maps para mostrar la polyline con marcadores numerados.
+ */
+function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.google?.maps) return;
+
+    // Crear mapa solo la primera vez
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+        zoom: 12,
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'greedy',
+      });
+    }
+
+    // Limpiar renderer anterior
+    if (rendererRef.current) {
+      rendererRef.current.setMap(null);
+    }
+
+    // Crear renderer y dibujar la ruta
+    rendererRef.current = new google.maps.DirectionsRenderer({
+      map: mapInstanceRef.current,
+      directions,
+      suppressMarkers: false,
+      polylineOptions: {
+        strokeColor: '#2563eb',
+        strokeWeight: 4,
+        strokeOpacity: 0.8,
+      },
+    });
+  }, [directions]);
+
+  return <div ref={mapRef} className="w-full rounded-lg mt-2" style={{ height: '250px' }} />;
 }
 
 // ============================
