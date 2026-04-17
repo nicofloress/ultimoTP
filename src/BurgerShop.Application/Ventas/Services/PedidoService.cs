@@ -560,6 +560,73 @@ public class VentaService : IVentaService
         }
     }
 
+    public async Task<VentaDto?> CambiarEstadoPedidoAsync(int id, EstadoVenta nuevoEstado, string? motivo, int? formaPagoId = null)
+    {
+        try
+        {
+            var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+            if (venta is null) return null;
+
+            var estadosPermitidos = new[] { EstadoVenta.Entregado, EstadoVenta.NoEntregado, EstadoVenta.EnCamino, EstadoVenta.Asignado };
+            if (!estadosPermitidos.Contains(nuevoEstado))
+                throw new InvalidOperationException("Estado no permitido para cambio manual.");
+
+            if (nuevoEstado == EstadoVenta.NoEntregado && string.IsNullOrWhiteSpace(motivo))
+                throw new InvalidOperationException("El motivo es obligatorio al marcar como No Entregado.");
+
+            venta.Estado = nuevoEstado;
+
+            if (nuevoEstado == EstadoVenta.Entregado)
+            {
+                if (venta.FechaEntrega == null) venta.FechaEntrega = DateTime.Now;
+                venta.MotivoCancelacion = null;
+                venta.EstaPago = true;
+            }
+            else if (nuevoEstado == EstadoVenta.NoEntregado)
+            {
+                venta.MotivoCancelacion = motivo?.Trim();
+                venta.EstaPago = false;
+            }
+            else
+            {
+                venta.FechaEntrega = null;
+                venta.MotivoCancelacion = null;
+            }
+
+            // Actualizar forma de pago si se indicó (reemplaza cualquier multi-pago)
+            if (formaPagoId.HasValue)
+            {
+                var formaPago = await _formaPagoRepo.GetByIdAsync(formaPagoId.Value);
+                if (formaPago is null)
+                    throw new InvalidOperationException("Forma de pago no encontrada.");
+
+                venta.Pagos.Clear();
+                venta.FormaPagoId = formaPagoId.Value;
+
+                var porcentaje = formaPago.PorcentajeRecargo;
+                var baseCalculo = venta.Subtotal - venta.Descuento;
+                var recargo = baseCalculo * porcentaje / 100m;
+                venta.Recargo = recargo;
+                venta.Total = baseCalculo + recargo;
+            }
+
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
+
+            return ToDto(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(CambiarEstadoPedidoAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(CambiarEstadoPedidoAsync), ex.Message);
+            throw;
+        }
+    }
+
     public async Task<VentaDto?> ReabrirEntregaAsync(int id)
     {
         try

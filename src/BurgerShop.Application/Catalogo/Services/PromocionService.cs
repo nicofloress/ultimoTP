@@ -1,6 +1,7 @@
 using BurgerShop.Application.Catalogo.DTOs;
 using BurgerShop.Application.Catalogo.Interfaces;
 using BurgerShop.Domain.Entities.Catalogo;
+using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces.Catalogo;
 using Microsoft.Extensions.Logging;
 
@@ -82,6 +83,10 @@ public class PromocionService : IPromocionService
                 Locales = dto.LocalIds.Select(localId => new PromocionLocal
                 {
                     LocalId = localId
+                }).ToList(),
+                TiposVenta = (dto.TiposVenta ?? new List<int>()).Select(tv => new PromocionTipoVenta
+                {
+                    TipoVenta = (TipoVenta)tv
                 }).ToList()
             };
 
@@ -133,6 +138,19 @@ public class PromocionService : IPromocionService
                     PromocionId = id,
                     LocalId = localId
                 });
+            }
+
+            promo.TiposVenta.Clear();
+            if (dto.TiposVenta is { Count: > 0 })
+            {
+                foreach (var tv in dto.TiposVenta)
+                {
+                    promo.TiposVenta.Add(new PromocionTipoVenta
+                    {
+                        PromocionId = id,
+                        TipoVenta = (TipoVenta)tv
+                    });
+                }
             }
 
             _repo.Update(promo);
@@ -206,6 +224,7 @@ public class PromocionService : IPromocionService
         p.Locales.Select(l => new PromocionLocalDto(
             l.LocalId,
             l.Local?.Nombre ?? string.Empty
-        )).ToList()
+        )).ToList(),
+        p.TiposVenta.Select(tv => (int)tv.TipoVenta).ToList()
     );
 }

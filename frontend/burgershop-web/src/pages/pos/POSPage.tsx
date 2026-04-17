@@ -185,15 +185,18 @@ export default function POSPage() {
   // --- Promociones vigentes ---
   const promosVigentes = useMemo(() => {
     const hoy = new Date().toISOString().split('T')[0];
+    const tipoActual = envioADomicilio ? 2 : 1; // 1=Mostrador, 2=Domicilio
     return promociones.filter(p => {
       if (!p.activa) return false;
       const desde = p.fechaDesde.split('T')[0];
       const hasta = p.fechaHasta.split('T')[0];
       if (desde > hoy || hasta < hoy) return false;
       if (localActivo !== 0 && !p.locales.some(l => l.localId === localActivo)) return false;
+      // Filtrar por tipo de venta: vacío = aplica a todos
+      if (p.tiposVenta && p.tiposVenta.length > 0 && !p.tiposVenta.includes(tipoActual)) return false;
       return true;
     });
-  }, [promociones, localActivo]);
+  }, [promociones, localActivo, envioADomicilio]);
 
   const preciosPromoProductos = useMemo(() => {
     const map = new Map<number, { precioPromo: number; nombrePromo: string }>();

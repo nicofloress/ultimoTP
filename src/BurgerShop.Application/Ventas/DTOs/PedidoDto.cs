@@ -107,6 +107,7 @@ public record ActualizarVentaDto(
     List<CrearPagoVentaDto>? Pagos = null);
 
 public record CambiarEstadoDto(EstadoVenta NuevoEstado);
+public record CambiarEstadoPedidoDto(EstadoVenta NuevoEstado, string? Motivo = null, int? FormaPagoId = null);
 public record CancelarVentaDto(string Motivo);
 
 public record AsignarEntregaDto(int VentaId, int RepartidorId);

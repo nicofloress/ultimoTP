@@ -39,6 +39,9 @@ export const prepararTodos = () => api.put('/ventas/preparar-todos').then(r => r
 export const enviarADeposito = (id: number) => api.post(`/ventas/${id}/enviar-deposito`).then(r => r.data);
 export const asignarCaja = (id: number) => api.put<Venta>(`/ventas/${id}/asignar-caja`).then(r => r.data);
 
+export const cambiarEstadoPedido = (id: number, nuevoEstado: number, motivo?: string, formaPagoId?: number) =>
+  api.put<Venta>(`/ventas/${id}/cambiar-estado`, { nuevoEstado, motivo, formaPagoId }).then(r => r.data);
+
 export interface VentaStats {
   ventasHoy: number;
   ventasAyer: number;

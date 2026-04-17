@@ -16,4 +16,5 @@ public class Promocion
 
     public ICollection<PromocionItem> Items { get; set; } = new List<PromocionItem>();
     public ICollection<PromocionLocal> Locales { get; set; } = new List<PromocionLocal>();
+    public ICollection<PromocionTipoVenta> TiposVenta { get; set; } = new List<PromocionTipoVenta>();
 }

@@ -63,6 +63,7 @@ export default function PromocionesPage() {
   const [tipoDescuento, setTipoDescuento] = useState<number>(1);
   const [valorDescuento, setValorDescuento] = useState<number | ''>('');
   const [localIds, setLocalIds] = useState<number[]>([]);
+  const [tiposVenta, setTiposVenta] = useState<number[]>([]); // 1=Mostrador, 2=Domicilio. Vacío = todos
   const [items, setItems] = useState<ItemFila[]>([]);
 
   // Confirm modal
@@ -88,6 +89,7 @@ export default function PromocionesPage() {
     setTipoDescuento(1);
     setValorDescuento('');
     setLocalIds([]);
+    setTiposVenta([]);
     setItems([]);
     setEditando(null);
     setShowForm(false);
@@ -102,6 +104,7 @@ export default function PromocionesPage() {
     setTipoDescuento(p.tipoDescuento);
     setValorDescuento(p.valorDescuento);
     setLocalIds(p.locales.map(l => l.localId));
+    setTiposVenta(p.tiposVenta ?? []);
     setItems(
       p.items.map(it => ({
         tipo: it.productoId ? 'producto' as const : 'combo' as const,
@@ -139,6 +142,7 @@ export default function PromocionesPage() {
           valorDescuento: Number(valorDescuento),
           items: itemsDto,
           localIds,
+          tiposVenta: tiposVenta.length > 0 ? tiposVenta : undefined,
           activa: editando.activa,
         });
         showToast('Promocion actualizada correctamente', 'success');
@@ -152,6 +156,7 @@ export default function PromocionesPage() {
           valorDescuento: Number(valorDescuento),
           items: itemsDto,
           localIds,
+          tiposVenta: tiposVenta.length > 0 ? tiposVenta : undefined,
         });
         showToast('Promocion creada correctamente', 'success');
       }
@@ -185,6 +190,10 @@ export default function PromocionesPage() {
 
   const toggleLocal = (id: number) => {
     setLocalIds(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
+  };
+
+  const toggleTipoVenta = (tv: number) => {
+    setTiposVenta(prev => prev.includes(tv) ? prev.filter(t => t !== tv) : [...prev, tv]);
   };
 
   const agregarItem = () => {
@@ -318,6 +327,32 @@ export default function PromocionesPage() {
             </div>
           </div>
 
+          {/* Tipo de venta */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de Venta</label>
+            <div className="flex flex-wrap gap-3">
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={tiposVenta.includes(1)}
+                  onChange={() => toggleTipoVenta(1)}
+                  className="rounded border-gray-300 text-amber-600 focus:ring-amber-400"
+                />
+                Mostrador
+              </label>
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={tiposVenta.includes(2)}
+                  onChange={() => toggleTipoVenta(2)}
+                  className="rounded border-gray-300 text-amber-600 focus:ring-amber-400"
+                />
+                Domicilio
+              </label>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">Si no se selecciona ninguno, aplica a todos los tipos de venta</p>
+          </div>
+
           {/* Info descuento */}
           <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-xs text-blue-700">
             <span className="font-semibold">Descuento general</span> se aplica a todos los productos/combos de la promo.
@@ -448,16 +483,25 @@ export default function PromocionesPage() {
                   Del {formatFechaCorta(p.fechaDesde)} al {formatFechaCorta(p.fechaHasta)}
                 </div>
 
-                {/* Locales badges */}
-                {p.locales.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {p.locales.map(l => (
-                      <span key={l.localId} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-medium">
-                        {l.localNombre}
+                {/* Locales y Tipo Venta badges */}
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {p.locales.map(l => (
+                    <span key={l.localId} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-medium">
+                      {l.localNombre}
+                    </span>
+                  ))}
+                  {p.tiposVenta && p.tiposVenta.length > 0 ? (
+                    p.tiposVenta.map(tv => (
+                      <span key={tv} className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                        {tv === 1 ? 'Mostrador' : tv === 2 ? 'Domicilio' : `Tipo ${tv}`}
                       </span>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <span className="bg-gray-50 text-gray-500 px-2 py-0.5 rounded-full text-xs font-medium">
+                      Todos los tipos
+                    </span>
+                  )}
+                </div>
 
                 {/* Items */}
                 {p.items.length > 0 && (
@@ -491,7 +535,7 @@ export default function PromocionesPage() {
                     <button
                       onClick={async () => {
                         try {
-                          await actualizarPromocion(p.id, { ...p, activa: true, localIds: p.locales?.map(l => l.localId) || [], items: p.items?.map(i => ({ productoId: i.productoId, comboId: i.comboId, precioPromo: i.precioPromo })) || [] });
+                          await actualizarPromocion(p.id, { ...p, activa: true, localIds: p.locales?.map(l => l.localId) || [], items: p.items?.map(i => ({ productoId: i.productoId, comboId: i.comboId, precioPromo: i.precioPromo })) || [], tiposVenta: p.tiposVenta?.length ? p.tiposVenta : undefined });
                           showToast('Promocion activada', 'success');
                           cargar();
                         } catch { showToast('Error al activar', 'error'); }

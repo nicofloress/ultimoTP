@@ -14,7 +14,7 @@ public class NotificacionService : INotificacionService
         _logger = logger;
     }
 
-    public async Task NotificarNuevoPedidoAsync(int pedidoId, string numeroTicket, string tipo)
+    public async Task NotificarNuevoPedidoAsync(int pedidoId, string numeroTicket, string tipo, int? localId = null)
     {
         try
         {
@@ -23,6 +23,7 @@ public class NotificacionService : INotificacionService
                 pedidoId,
                 numeroTicket,
                 tipo,
+                localId,
                 mensaje = $"Nuevo pedido {numeroTicket} ({tipo})",
                 fecha = DateTime.Now
             });
@@ -54,7 +55,7 @@ public class NotificacionService : INotificacionService
         }
     }
 
-    public async Task NotificarPedidoEntregadoAsync(int pedidoId, string numeroTicket, string? repartidorNombre)
+    public async Task NotificarPedidoEntregadoAsync(int pedidoId, string numeroTicket, string? repartidorNombre, int? localId = null)
     {
         try
         {
@@ -63,6 +64,7 @@ public class NotificacionService : INotificacionService
                 pedidoId,
                 numeroTicket,
                 repartidorNombre,
+                localId,
                 mensaje = $"Pedido {numeroTicket} entregado por {repartidorNombre ?? "N/A"}",
                 fecha = DateTime.Now
             });
@@ -74,7 +76,7 @@ public class NotificacionService : INotificacionService
         }
     }
 
-    public async Task NotificarPedidoCanceladoAsync(int pedidoId, string numeroTicket)
+    public async Task NotificarPedidoCanceladoAsync(int pedidoId, string numeroTicket, int? localId = null)
     {
         try
         {
@@ -82,6 +84,7 @@ public class NotificacionService : INotificacionService
             {
                 pedidoId,
                 numeroTicket,
+                localId,
                 mensaje = $"Pedido {numeroTicket} fue cancelado",
                 fecha = DateTime.Now
             });
@@ -112,7 +115,7 @@ public class NotificacionService : INotificacionService
         }
     }
 
-    public async Task NotificarMensajeParaAdminAsync(int repartidorId, string repartidorNombre, string texto)
+    public async Task NotificarMensajeParaAdminAsync(int repartidorId, string repartidorNombre, string texto, int? localId = null)
     {
         try
         {
@@ -122,6 +125,7 @@ public class NotificacionService : INotificacionService
                 repartidorId,
                 repartidorNombre,
                 texto,
+                localId,
                 mensaje = $"Nuevo mensaje de {repartidorNombre}",
                 fecha = DateTime.Now
             });
@@ -154,7 +158,7 @@ public class NotificacionService : INotificacionService
         }
     }
 
-    public async Task NotificarCambioEstadoAsync(int pedidoId, string numeroTicket, string nuevoEstado)
+    public async Task NotificarCambioEstadoAsync(int pedidoId, string numeroTicket, string nuevoEstado, int? localId = null)
     {
         try
         {
@@ -163,6 +167,7 @@ public class NotificacionService : INotificacionService
                 pedidoId,
                 numeroTicket,
                 nuevoEstado,
+                localId,
                 mensaje = $"Pedido {numeroTicket} cambió a {nuevoEstado}",
                 fecha = DateTime.Now
             });

@@ -30,7 +30,8 @@ public record PromocionDto(
     bool Activa,
     DateTime FechaCreacion,
     List<PromocionItemDto> Items,
-    List<PromocionLocalDto> Locales
+    List<PromocionLocalDto> Locales,
+    List<int> TiposVenta
 );
 
 // DTO de creación para cada item
@@ -49,7 +50,8 @@ public record CrearPromocionDto(
     TipoDescuento TipoDescuento,
     decimal ValorDescuento,
     List<CrearPromocionItemDto> Items,
-    List<int> LocalIds
+    List<int> LocalIds,
+    List<int>? TiposVenta = null
 );
 
 // DTO de actualización (incluye Activa)
@@ -62,5 +64,6 @@ public record ActualizarPromocionDto(
     decimal ValorDescuento,
     bool Activa,
     List<CrearPromocionItemDto> Items,
-    List<int> LocalIds
+    List<int> LocalIds,
+    List<int>? TiposVenta = null
 );

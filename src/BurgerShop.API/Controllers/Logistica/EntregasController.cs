@@ -57,7 +57,7 @@ public class EntregasController : ControllerBase
     {
         var venta = await _ventaService.MarcarEntregadoAsync(ventaId, dto);
         if (venta is null) return NotFound();
-        await _notificaciones.NotificarPedidoEntregadoAsync(venta.Id, venta.NumeroTicket, venta.RepartidorNombre);
+        await _notificaciones.NotificarPedidoEntregadoAsync(venta.Id, venta.NumeroTicket, venta.RepartidorNombre, venta.LocalId);
         return Ok(venta);
     }
 

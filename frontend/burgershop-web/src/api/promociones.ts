@@ -25,6 +25,7 @@ export interface PromocionDto {
   fechaCreacion: string;
   items: PromocionItemDto[];
   locales: PromocionLocalDto[];
+  tiposVenta: number[]; // 1=Mostrador, 2=Domicilio. Vacío = aplica a todos
 }
 
 export interface CrearPromocionItemDto {
@@ -42,6 +43,7 @@ export interface CrearPromocionDto {
   valorDescuento: number;
   items: CrearPromocionItemDto[];
   localIds: number[];
+  tiposVenta?: number[];
 }
 
 export interface ActualizarPromocionDto extends CrearPromocionDto {

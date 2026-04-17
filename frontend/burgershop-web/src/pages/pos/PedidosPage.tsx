@@ -156,7 +156,7 @@ export default function PedidosPage() {
     }
   }, [listaPrecioSeleccionada, listasPrecios]);
 
-  // --- Promociones vigentes ---
+  // --- Promociones vigentes (filtradas para Domicilio) ---
   const promosVigentes = useMemo(() => {
     const hoy = new Date().toISOString().split('T')[0];
     return promociones.filter(p => {
@@ -165,6 +165,8 @@ export default function PedidosPage() {
       const hasta = p.fechaHasta.split('T')[0];
       if (desde > hoy || hasta < hoy) return false;
       if (localActivo !== 0 && !p.locales.some(l => l.localId === localActivo)) return false;
+      // Filtrar por tipo de venta: vacío = aplica a todos, sino debe incluir Domicilio (2)
+      if (p.tiposVenta && p.tiposVenta.length > 0 && !p.tiposVenta.includes(2)) return false;
       return true;
     });
   }, [promociones, localActivo]);
@@ -1206,7 +1208,7 @@ export default function PedidosPage() {
         {/* Header con fecha */}
         <div className="px-3 py-2 border-b-2 border-amber-500 flex-shrink-0 bg-gradient-to-b from-slate-500 to-slate-700 rounded-t-lg shadow-lg">
           <div className="flex items-center justify-between mb-1.5">
-            <h2 className="text-sm font-bold text-white">Pedidos del dia</h2>
+            <h2 className="text-sm font-bold text-white">Pedidos del dia ({pedidos.length})</h2>
             <span className="text-xs text-slate-300 font-medium">
               {new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
             </span>

@@ -51,6 +51,7 @@ public class BurgerShopDbContext : DbContext
     public DbSet<Promocion> Promociones => Set<Promocion>();
     public DbSet<PromocionItem> PromocionItems => Set<PromocionItem>();
     public DbSet<PromocionLocal> PromocionLocales => Set<PromocionLocal>();
+    public DbSet<PromocionTipoVenta> PromocionTiposVenta => Set<PromocionTipoVenta>();
 
     // Inventario
     public DbSet<Empresa> Empresas => Set<Empresa>();

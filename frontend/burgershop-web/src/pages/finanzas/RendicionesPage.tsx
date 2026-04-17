@@ -7,10 +7,14 @@ import {
   getRepartidoresPendientes,
   crearRendicion,
 } from '../../api/rendiciones';
-import { getVenta } from '../../api/pedidos';
-import { Venta } from '../../types';
+import { getVenta, cambiarEstadoPedido } from '../../api/pedidos';
+import { getFormasPagoActivas } from '../../api/formasPago';
+import { Venta, FormaPago } from '../../types';
+import { EstadoVenta } from '../../types/ventas';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 
 type FiltroEstado = 'todas' | 'pendientes' | 'aprobadas' | 'rechazadas';
 
@@ -43,6 +47,80 @@ export default function RendicionesPage() {
   const [pedidoExpandidoId, setPedidoExpandidoId] = useState<number | null>(null);
   const [pedidoExpandido, setPedidoExpandido] = useState<Venta | null>(null);
   const [cargandoPedido, setCargandoPedido] = useState(false);
+
+  // Edición de estado de pedido (solo admin/superadmin)
+  const { hasRole } = useAuth();
+  const puedeEditarEstado = hasRole(RolUsuario.SuperAdmin, RolUsuario.Administrador);
+  const [editandoEstadoPedidoId, setEditandoEstadoPedidoId] = useState<number | null>(null);
+  const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState<EstadoVenta>(EstadoVenta.Entregado);
+  const [motivoNoEntregado, setMotivoNoEntregado] = useState('');
+  const [nuevaFormaPagoId, setNuevaFormaPagoId] = useState<number | ''>('');
+  const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+  const [guardandoEstadoPedido, setGuardandoEstadoPedido] = useState(false);
+
+  useEffect(() => {
+    if (!puedeEditarEstado) return;
+    getFormasPagoActivas()
+      .then(setFormasPago)
+      .catch(() => { /* ignore */ });
+  }, [puedeEditarEstado]);
+
+  const abrirEditarEstado = (pedidoId: number, estadoActual: string, formaPagoActual?: string) => {
+    setEditandoEstadoPedidoId(pedidoId);
+    const estadoMap: Record<string, EstadoVenta> = {
+      'Entregado': EstadoVenta.Entregado,
+      'NoEntregado': EstadoVenta.NoEntregado,
+      'EnCamino': EstadoVenta.EnCamino,
+      'Asignado': EstadoVenta.Asignado,
+    };
+    setNuevoEstadoPedido(estadoMap[estadoActual] ?? EstadoVenta.Entregado);
+    setMotivoNoEntregado('');
+    // Pre-seleccionar forma de pago actual si matchea por nombre
+    const fpMatch = formaPagoActual
+      ? formasPago.find(fp => fp.nombre === formaPagoActual)
+      : undefined;
+    setNuevaFormaPagoId(fpMatch?.id ?? '');
+  };
+
+  const cerrarEditarEstado = () => {
+    setEditandoEstadoPedidoId(null);
+    setMotivoNoEntregado('');
+    setNuevaFormaPagoId('');
+  };
+
+  const confirmarCambioEstado = async () => {
+    if (!editandoEstadoPedidoId) return;
+    if (nuevoEstadoPedido === EstadoVenta.NoEntregado && !motivoNoEntregado.trim()) {
+      showToast('El motivo es obligatorio para No Entregado', 'error');
+      return;
+    }
+    setGuardandoEstadoPedido(true);
+    try {
+      await cambiarEstadoPedido(
+        editandoEstadoPedidoId,
+        nuevoEstadoPedido,
+        nuevoEstadoPedido === EstadoVenta.NoEntregado ? motivoNoEntregado.trim() : undefined,
+        typeof nuevaFormaPagoId === 'number' ? nuevaFormaPagoId : undefined
+      );
+      showToast('Pedido actualizado', 'success');
+      cerrarEditarEstado();
+      if (repartidorSeleccionado) {
+        try {
+          const data = await getRepartidoresPendientes();
+          setRepartidoresPendientes(data);
+          const actualizado = data.find(r =>
+            r.repartidorId === repartidorSeleccionado.repartidorId &&
+            r.repartoZonaId === repartidorSeleccionado.repartoZonaId
+          );
+          if (actualizado) setRepartidorSeleccionado(actualizado);
+        } catch { /* ignore */ }
+      }
+    } catch {
+      showToast('Error al actualizar el pedido', 'error');
+    } finally {
+      setGuardandoEstadoPedido(false);
+    }
+  };
 
   const verDetallePedido = async (pedidoId: number) => {
     if (pedidoExpandidoId === pedidoId) {
@@ -972,6 +1050,17 @@ export default function RendicionesPage() {
                             }`}>{p.formaPago}</span>
                           )}
                           <span className="text-sm font-bold text-gray-800">${p.total.toLocaleString('es-AR')}</span>
+                          {puedeEditarEstado && (
+                            <button
+                              onClick={() => abrirEditarEstado(p.id, p.estado, p.formaPago ?? undefined)}
+                              className="p-1 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Editar pedido"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
@@ -988,6 +1077,75 @@ export default function RendicionesPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Estado Pedido */}
+      {editandoEstadoPedidoId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-5 py-3 bg-slate-700">
+              <h3 className="font-bold text-white text-sm">Editar pedido</h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select
+                  value={nuevoEstadoPedido}
+                  onChange={e => setNuevoEstadoPedido(Number(e.target.value) as EstadoVenta)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                >
+                  <option value={EstadoVenta.Entregado}>Entregado</option>
+                  <option value={EstadoVenta.NoEntregado}>No Entregado</option>
+                  <option value={EstadoVenta.EnCamino}>En Camino</option>
+                  <option value={EstadoVenta.Asignado}>Asignado</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Forma de pago</label>
+                <select
+                  value={nuevaFormaPagoId}
+                  onChange={e => setNuevaFormaPagoId(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                >
+                  <option value="">— Sin cambios —</option>
+                  {formasPago.map(fp => (
+                    <option key={fp.id} value={fp.id}>{fp.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              {nuevoEstadoPedido === EstadoVenta.NoEntregado && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Motivo <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={motivoNoEntregado}
+                    onChange={e => setMotivoNoEntregado(e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none"
+                    rows={3}
+                    placeholder="Motivo por el cual no se entregó..."
+                  />
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
+              <button
+                onClick={cerrarEditarEstado}
+                disabled={guardandoEstadoPedido}
+                className="px-4 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarCambioEstado}
+                disabled={guardandoEstadoPedido}
+                className="px-4 py-2 rounded bg-green-600 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {guardandoEstadoPedido ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

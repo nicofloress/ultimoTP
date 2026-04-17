@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState } from '@microsoft/signalr';
 import { useAuth } from '../context/AuthContext';
+import { useLocalActivo } from '../context/LocalContext';
 import { useGlobalToast, ToastType } from '../components/Toast';
 import { playNotificationSound } from '../utils/sound';
 
@@ -8,18 +9,32 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 
 interface SignalREvent {
   mensaje: string;
+  localId?: number | null;
   [key: string]: unknown;
 }
 
 export function useSignalR() {
   const { token, isAuthenticated } = useAuth();
+  const { localActivo } = useLocalActivo();
   const { showToast } = useGlobalToast();
   const connectionRef = useRef<HubConnection | null>(null);
+  const localActivoRef = useRef(localActivo);
+
+  // Mantener ref actualizada para que los callbacks de SignalR siempre lean el valor actual
+  useEffect(() => {
+    localActivoRef.current = localActivo;
+  }, [localActivo]);
 
   const notify = useCallback((message: string, type: ToastType = 'info') => {
     playNotificationSound();
     showToast(message, type);
   }, [showToast]);
+
+  const notifyIfLocal = useCallback((data: SignalREvent, type: ToastType = 'info') => {
+    // Si la notificación trae localId, solo mostrar si coincide con el local activo
+    if (data.localId != null && data.localId !== localActivoRef.current) return;
+    notify(data.mensaje, type);
+  }, [notify]);
 
   useEffect(() => {
     if (!isAuthenticated || !token) return;
@@ -38,7 +53,7 @@ export function useSignalR() {
 
     // Pedidos
     connection.on('NuevoPedido', (data: SignalREvent) => {
-      notify(data.mensaje, 'info');
+      notifyIfLocal(data, 'info');
     });
 
     connection.on('PedidoAsignado', (data: SignalREvent) => {
@@ -46,23 +61,23 @@ export function useSignalR() {
     });
 
     connection.on('PedidoEntregado', (data: SignalREvent) => {
-      notify(data.mensaje, 'success');
+      notifyIfLocal(data, 'success');
     });
 
     connection.on('PedidoCancelado', (data: SignalREvent) => {
-      notify(data.mensaje, 'error');
+      notifyIfLocal(data, 'error');
     });
 
     connection.on('CambioEstado', (data: SignalREvent) => {
-      notify(data.mensaje, 'info');
+      notifyIfLocal(data, 'info');
     });
 
     // Mensajes
     connection.on('NuevoMensaje', (data: SignalREvent) => {
-      notify(data.mensaje, 'info');
+      notifyIfLocal(data, 'info');
     });
 
-    // Reparto masivo
+    // Reparto masivo (va directo al repartidor, no necesita filtro)
     connection.on('RepartoIniciado', (data: SignalREvent) => {
       notify(data.mensaje, 'info');
     });
@@ -78,7 +93,7 @@ export function useSignalR() {
         connection.stop();
       }
     };
-  }, [isAuthenticated, token, notify]);
+  }, [isAuthenticated, token, notify, notifyIfLocal]);
 
   return connectionRef;
 }

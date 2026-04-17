@@ -33,7 +33,7 @@ public class VentasController : ControllerBase
         try
         {
             var venta = await _service.CreateAsync(dto, usuarioId);
-            await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString());
+            await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString(), venta.LocalId);
             return CreatedAtAction(nameof(GetById), new { id = venta.Id }, venta);
         }
         catch (InvalidOperationException ex)
@@ -89,7 +89,7 @@ public class VentasController : ControllerBase
     {
         var venta = await _service.CambiarEstadoAsync(id, dto.NuevoEstado);
         if (venta is null) return NotFound();
-        await _notificaciones.NotificarCambioEstadoAsync(venta.Id, venta.NumeroTicket, dto.NuevoEstado.ToString());
+        await _notificaciones.NotificarCambioEstadoAsync(venta.Id, venta.NumeroTicket, dto.NuevoEstado.ToString(), venta.LocalId);
         return Ok(venta);
     }
 
@@ -100,7 +100,7 @@ public class VentasController : ControllerBase
         {
             var venta = await _service.CancelarAsync(id, dto.Motivo);
             if (venta is null) return NotFound();
-            await _notificaciones.NotificarPedidoCanceladoAsync(venta.Id, venta.NumeroTicket);
+            await _notificaciones.NotificarPedidoCanceladoAsync(venta.Id, venta.NumeroTicket, venta.LocalId);
             return Ok(venta);
         }
         catch (InvalidOperationException ex)
@@ -172,6 +172,23 @@ public class VentasController : ControllerBase
         {
             var venta = await _service.AsignarCajaActualAsync(id);
             return venta is null ? NotFound() : Ok(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id}/cambiar-estado")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<ActionResult<VentaDto>> CambiarEstadoPedido(int id, [FromBody] CambiarEstadoPedidoDto dto)
+    {
+        try
+        {
+            var venta = await _service.CambiarEstadoPedidoAsync(id, dto.NuevoEstado, dto.Motivo, dto.FormaPagoId);
+            if (venta is null) return NotFound();
+            await _notificaciones.NotificarCambioEstadoAsync(venta.Id, venta.NumeroTicket, dto.NuevoEstado.ToString(), venta.LocalId);
+            return Ok(venta);
         }
         catch (InvalidOperationException ex)
         {

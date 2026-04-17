@@ -52,7 +52,7 @@ public class MensajesController : ControllerBase
         var mensaje = await _service.EnviarMensajeAsync(crearDto, esDeAdmin: false);
 
         var repartidor = await _repartidorRepo.GetByIdAsync(repartidorId);
-        await _notificaciones.NotificarMensajeParaAdminAsync(repartidorId, repartidor?.Nombre ?? "Repartidor", dto.Texto);
+        await _notificaciones.NotificarMensajeParaAdminAsync(repartidorId, repartidor?.Nombre ?? "Repartidor", dto.Texto, repartidor?.LocalId);
         return Ok(mensaje);
     }
 

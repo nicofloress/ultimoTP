@@ -32,6 +32,11 @@ public class PromocionConfiguration : IEntityTypeConfiguration<Promocion>
             .WithOne(l => l.Promocion)
             .HasForeignKey(l => l.PromocionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(p => p.TiposVenta)
+            .WithOne(tv => tv.Promocion)
+            .HasForeignKey(tv => tv.PromocionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -67,5 +72,13 @@ public class PromocionLocalConfiguration : IEntityTypeConfiguration<PromocionLoc
             .WithMany()
             .HasForeignKey(pl => pl.LocalId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PromocionTipoVentaConfiguration : IEntityTypeConfiguration<PromocionTipoVenta>
+{
+    public void Configure(EntityTypeBuilder<PromocionTipoVenta> builder)
+    {
+        builder.HasKey(pt => new { pt.PromocionId, pt.TipoVenta });
     }
 }
