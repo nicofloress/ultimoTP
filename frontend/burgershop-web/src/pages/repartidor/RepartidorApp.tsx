@@ -23,6 +23,9 @@ export default function RepartidorApp() {
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
 
   useEffect(() => {
+    // Solo chequear version en produccion (evita loops en dev local)
+    if (import.meta.env.DEV) return;
+
     let actualizando = false;
     const autoActualizar = async () => {
       if (actualizando) return;
@@ -163,8 +166,22 @@ export default function RepartidorApp() {
    * así que el orden de los pedidos en la lista ya es el óptimo.
    * El repartidor navega de a uno: toca "Navegar", entrega, vuelve a la app, toca el siguiente.
    */
-  const navegarAPedido = (direccion: string) => {
-    const destino = encodeURIComponent(direccion);
+  const navegarAPedido = async (pedido: Venta) => {
+    // Si está Asignado, marcarlo como EnCamino antes de navegar
+    if (pedido.estado === EstadoVenta.Asignado) {
+      setActionLoading(pedido.id);
+      try {
+        await marcarEnCamino(pedido.id);
+        await refresh();
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Error al iniciar entrega';
+        showToast(msg, 'error');
+        setActionLoading(null);
+        return;
+      }
+      setActionLoading(null);
+    }
+    const destino = encodeURIComponent(pedido.direccionEntrega!);
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
     window.open(url, '_blank');
     // Refrescar datos al volver de Maps (el visibilitychange ya lo hace,
@@ -499,8 +516,9 @@ export default function RepartidorApp() {
                   {/* Botón grande: Navegar al siguiente */}
                   {siguiente && (
                     <button
-                      onClick={() => navegarAPedido(siguiente.direccionEntrega!)}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-base"
+                      onClick={() => navegarAPedido(siguiente)}
+                      disabled={actionLoading === siguiente.id}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-base"
                     >
                       {'\uD83E\uDDED'} Navegar al siguiente
                       <span className="text-blue-200 text-xs font-normal truncate max-w-[200px]">
@@ -549,7 +567,7 @@ export default function RepartidorApp() {
               onEnCamino={handleEnCamino}
               onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
               onCancelar={(p) => { setCancelarPedido(p); setMotivoCancelacion(''); }}
-              onNavegar={navegarAPedido}
+              onNavegar={(p) => navegarAPedido(p)}
               formatTime={formatTime}
             />
           </>
@@ -560,6 +578,8 @@ export default function RepartidorApp() {
             pedidos={completados}
             formatTime={formatTime}
             onVerComprobante={setComprobanteSrc}
+            onReabrir={handleReabrir}
+            actionLoading={actionLoading}
           />
         )}
 
@@ -750,9 +770,10 @@ function PendientesTab({
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
   onMover?: (fromIdx: number, toIdx: number) => void;
-  onNavegar: (direccion: string) => void;
+  onNavegar: (p: Venta) => void;
   formatTime: (s: string) => string;
 }) {
+  const hayEnCamino = pedidos.some(p => p.estado === EstadoVenta.EnCamino);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const touchStartY = useRef(0);
@@ -852,6 +873,7 @@ function PendientesTab({
               onEntregado={onEntregado}
               onCancelar={onCancelar}
               onNavegar={onNavegar}
+              hayEnCamino={hayEnCamino}
               formatTime={formatTime}
             />
           </div>
@@ -871,6 +893,7 @@ function PedidoCard({
   onEntregado,
   onCancelar,
   onNavegar,
+  hayEnCamino,
   formatTime,
 }: {
   pedido: Venta;
@@ -878,7 +901,8 @@ function PedidoCard({
   onEnCamino: (p: Venta) => void;
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
-  onNavegar: (direccion: string) => void;
+  onNavegar: (p: Venta) => void;
+  hayEnCamino: boolean;
   formatTime: (s: string) => string;
 }) {
   const isAsignado = pedido.estado === EstadoVenta.Asignado;
@@ -920,8 +944,9 @@ function PedidoCard({
               {'\uD83D\uDCCD'} {pedido.direccionEntrega}
             </p>
             <button
-              onClick={() => onNavegar(pedido.direccionEntrega!)}
-              className="flex-shrink-0 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+              onClick={() => onNavegar(pedido)}
+              disabled={actionLoading === pedido.id}
+              className="flex-shrink-0 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
             >
               {'\uD83E\uDDED'} Navegar
             </button>
@@ -969,8 +994,8 @@ function PedidoCard({
         {isAsignado && (
           <button
             onClick={() => onEnCamino(pedido)}
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={loading || hayEnCamino}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
           >
             {loading ? (
               <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1019,10 +1044,14 @@ function CompletadosTab({
   pedidos,
   formatTime,
   onVerComprobante,
+  onReabrir,
+  actionLoading,
 }: {
   pedidos: Venta[];
   formatTime: (s: string) => string;
   onVerComprobante: (src: string) => void;
+  onReabrir: (id: number) => void;
+  actionLoading: number | null;
 }) {
   if (pedidos.length === 0) {
     return (
@@ -1080,6 +1109,13 @@ function CompletadosTab({
                 Ver comprobante
               </button>
             )}
+            <button
+              onClick={() => onReabrir(p.id)}
+              disabled={actionLoading === p.id}
+              className="mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 px-3 text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {'\u21A9'} {actionLoading === p.id ? 'Reabriendo...' : 'Reabrir pedido'}
+            </button>
           </div>
         ))}
       </div>
@@ -1292,7 +1328,7 @@ function EntregaModal({
               {metodoPago === 'transferencia' && (
                 <div className="mt-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Comprobante de transferencia
+                    Comprobante de transferencia <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
                   {!comprobanteBase64 ? (
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer bg-blue-50 hover:bg-blue-100 transition-colors">
@@ -1351,7 +1387,7 @@ function EntregaModal({
             </button>
             <button
               onClick={onConfirm}
-              disabled={loading || (necesitaPago && !metodoPago) || (metodoPago === 'transferencia' && !comprobanteBase64)}
+              disabled={loading || (necesitaPago && !metodoPago)}
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (

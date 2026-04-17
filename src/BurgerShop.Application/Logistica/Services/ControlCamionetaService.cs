@@ -295,6 +295,28 @@ public class ControlCamionetaService : IControlCamionetaService
             {
                 if (linea.ComboId != null && linea.Combo != null)
                 {
+                    // Si el combo es una caja/bulto completo de salchichas (un solo producto
+                    // con cantidad >= UnidadesPorBulto), mostrarlo como "Caja" en la sección correspondiente.
+                    var detallesConProducto = linea.Combo.Detalles.Where(d => d.Producto != null).ToList();
+                    if (detallesConProducto.Count == 1)
+                    {
+                        var det = detallesConProducto[0];
+                        var seccionDet = InferirSeccion(det.Producto!);
+                        var esSalchicha = seccionDet is SeccionCamioneta.SalchichaCorta or SeccionCamioneta.SalchichaLarga;
+                        var bulto = det.Producto!.UnidadesPorBulto;
+                        if (esSalchicha && bulto > 1 && det.Cantidad >= bulto)
+                        {
+                            var dict = seccionDet == SeccionCamioneta.SalchichaCorta
+                                ? data.SalchichaCorta
+                                : data.SalchichaLarga;
+                            // Key negativo = cajas (se convierte a "Caja" en el frontend)
+                            var cantCajas = det.Cantidad / bulto;
+                            const int cajaKey = -1;
+                            dict[cajaKey] = dict.GetValueOrDefault(cajaKey) + (cantCajas * linea.Cantidad);
+                            continue;
+                        }
+                    }
+
                     // Los combos incluyen componentes como ComboDetalle explícito.
                     // Productos con sección específica (hamburguesas, salchichas, panes) se procesan individualmente.
                     // Productos "Otro" (snacks, etc.) se agrupan bajo el nombre del combo.

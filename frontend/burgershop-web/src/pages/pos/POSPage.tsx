@@ -390,7 +390,7 @@ export default function POSPage() {
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
     if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
     if (categoriaFiltro === 'ofertas') return activos.filter(p => p.esOfertaSemanal);
-    if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id) && preciosLista.get(p.id) !== p.precio);
+    if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id));
     if (!megaActiva) return activos;
     let filtered = activos.filter(p => megaActiva.catIds.includes(p.categoriaId));
     if (lineaFiltro) {
@@ -418,7 +418,7 @@ export default function POSPage() {
     }
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
-    if (categoriaFiltro === 'descuento') return activos.filter(c => preciosListaCombos.has(c.id) && preciosListaCombos.get(c.id) !== c.precio);
+    if (categoriaFiltro === 'descuento') return activos.filter(c => preciosListaCombos.has(c.id));
     if (!megaActiva) return [];
     let prodsEnCat = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));
     if (lineaFiltro) {

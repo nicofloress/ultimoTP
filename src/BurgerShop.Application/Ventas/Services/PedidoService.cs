@@ -634,12 +634,13 @@ public class VentaService : IVentaService
             var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
             if (venta is null) return null;
 
-            if (venta.Estado != EstadoVenta.NoEntregado)
-                throw new InvalidOperationException("Solo se puede reabrir una venta en estado No Entregado.");
+            if (venta.Estado != EstadoVenta.NoEntregado && venta.Estado != EstadoVenta.Entregado)
+                throw new InvalidOperationException("Solo se puede reabrir una venta en estado Entregado o No Entregado.");
 
             // Volver a EnCamino para que el repartidor pueda entregarla
             venta.Estado = EstadoVenta.EnCamino;
             venta.MotivoCancelacion = null;
+            venta.FechaEntrega = null;
             _ventaRepo.Update(venta);
             await _ventaRepo.SaveChangesAsync();
 
@@ -782,7 +783,27 @@ public class VentaService : IVentaService
     {
         try
         {
-            return await CambiarEstadoAsync(ventaId, EstadoVenta.EnCamino);
+            var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+            if (venta is null) return null;
+
+            // Validar que el repartidor no tenga otro pedido en camino
+            if (venta.RepartidorId.HasValue)
+            {
+                var entregasHoy = await _ventaRepo.GetByRepartidorHoyAsync(venta.RepartidorId.Value);
+                var enCamino = entregasHoy.Any(v => v.Id != ventaId && v.Estado == EstadoVenta.EnCamino);
+                if (enCamino)
+                    throw new InvalidOperationException("Ya tenés un pedido en camino. Entregalo o marcalo como no entregado antes de iniciar otro.");
+            }
+
+            venta.Estado = EstadoVenta.EnCamino;
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
+            return ToDto(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(MarcarEnCaminoAsync), ex.Message);
+            throw;
         }
         catch (Exception ex)
         {

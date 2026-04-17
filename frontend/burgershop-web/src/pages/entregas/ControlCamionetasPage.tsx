@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getControlCamioneta, RepartidorTally, CompletaMedia, descargarControlCamioneta,
   getControlCamionetaHistorial, ControlCamionetaHistorialItem
 } from '../../api/entregas';
 import { useLocalActivo } from '../../context/LocalContext';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 function formatCantidad(count: number): string {
   if (count <= 0) return '';
@@ -50,17 +52,18 @@ interface CheckRowProps {
 
 function CheckRow({ id, checked, onChange, label, value, bg, readonly = false }: CheckRowProps) {
   if (!value) return null;
-  const rowClass = checked ? 'bg-gray-300 text-gray-500 line-through' : (bg || '');
+  const cellBg = checked ? 'bg-gray-300 text-gray-500 line-through' : '';
+  const rowBg = checked ? '' : (bg || '');
   return (
-    <tr className={rowClass}>
-      <td className="px-3 py-1.5 border border-gray-300">
+    <tr className={rowBg}>
+      <td className={`px-3 py-1.5 border border-gray-300 ${cellBg}`}>
         {readonly
           ? <span className="inline-block w-4 h-4" />
           : <input type="checkbox" checked={checked} onChange={(e) => onChange(id, e.target.checked)} className="w-4 h-4" />
         }
       </td>
-      <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{label}</td>
-      <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm">{value}</td>
+      <td className={`px-3 py-1.5 border border-gray-300 font-medium text-sm ${cellBg}`}>{label}</td>
+      <td className={`px-3 py-1.5 border border-gray-300 font-mono text-sm ${cellBg}`}>{value}</td>
     </tr>
   );
 }
@@ -95,19 +98,19 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
     const idC = `${prefix}-${peso}-completa`;
     const idM = `${prefix}-${peso}-media`;
     const isChecked = !!checks[idC] && !!checks[idM];
-    const rowClass = isChecked ? 'bg-gray-300 text-gray-500 line-through' : '';
+    const cellBg = isChecked ? 'bg-gray-300 text-gray-500 line-through' : '';
     return (
-      <tr key={`${prefix}-${peso}`} className={rowClass}>
-        <td className="px-3 py-1.5 border border-gray-300">
+      <tr key={`${prefix}-${peso}`}>
+        <td className={`px-3 py-1.5 border border-gray-300 ${cellBg}`}>
           {readonly
             ? <span className="inline-block w-4 h-4" />
             : <input type="checkbox" checked={isChecked} onChange={(e) => { toggle(idC, e.target.checked); toggle(idM, e.target.checked); }} className="w-4 h-4" />
           }
         </td>
-        <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{peso} GR</td>
-        <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{cm.completa > 0 ? formatCantidad(cm.completa) : '-'}</td>
-        <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{cm.media > 0 ? formatCantidad(cm.media) : '-'}</td>
-        <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{cm.sueltos > 0 ? cm.sueltos : '-'}</td>
+        <td className={`px-3 py-1.5 border border-gray-300 font-medium text-sm ${cellBg}`}>{peso} GR</td>
+        <td className={`px-3 py-1.5 border border-gray-300 font-mono text-sm text-center ${cellBg}`}>{cm.completa > 0 ? formatCantidad(cm.completa) : '-'}</td>
+        <td className={`px-3 py-1.5 border border-gray-300 font-mono text-sm text-center ${cellBg}`}>{cm.media > 0 ? formatCantidad(cm.media) : '-'}</td>
+        <td className={`px-3 py-1.5 border border-gray-300 font-mono text-sm text-center ${cellBg}`}>{cm.sueltos > 0 ? cm.sueltos : '-'}</td>
       </tr>
     );
   };
@@ -160,29 +163,6 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
               </>
             )}
 
-            {/* Otros */}
-            {Object.keys(tally.otros).length > 0 && (
-              <>
-                <tr className={colors.azulSolido}>
-                  <td colSpan={5} className="px-3 py-2 border border-gray-300 font-bold text-sm uppercase">Otros</td>
-                </tr>
-                {Object.entries(tally.otros).sort(([a], [b]) => a.localeCompare(b)).map(([nombre, cantidad]) => {
-                  const id = `otros-${nombre}`;
-                  return (
-                    <tr key={id} className={checks[id] ? 'bg-gray-300 text-gray-500 line-through' : ''}>
-                      <td className="px-3 py-1.5 border border-gray-300">
-                        {readonly
-                          ? <span className="inline-block w-4 h-4" />
-                          : <input type="checkbox" checked={!!checks[id]} onChange={(e) => toggle(id, e.target.checked)} className="w-4 h-4" />
-                        }
-                      </td>
-                      <td colSpan={2} className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{nombre}</td>
-                      <td colSpan={2} className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{cantidad}</td>
-                    </tr>
-                  );
-                })}
-              </>
-            )}
           </tbody>
         </table>
 
@@ -199,34 +179,68 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
             </thead>
             <tbody>
               {(() => {
-                const cortasKeys = Object.keys(tally.salchichaCorta).map(Number).sort((a, b) => a - b);
-                const largasKeys = Object.keys(tally.salchichaLarga).map(Number).sort((a, b) => a - b);
+                const cortasKeys = Object.keys(tally.salchichaCorta).map(Number).sort((a, b) => (a < 0 ? 99999 : a) - (b < 0 ? 99999 : b));
+                const largasKeys = Object.keys(tally.salchichaLarga).map(Number).sort((a, b) => (a < 0 ? 99999 : a) - (b < 0 ? 99999 : b));
                 const maxRows = Math.max(cortasKeys.length, largasKeys.length, 1);
                 return Array.from({ length: maxRows }, (_, i) => {
                   const ck = cortasKeys[i];
                   const lk = largasKeys[i];
+                  const cortaChk = ck != null && !!checks[`sc-${ck}`];
+                  const largaChk = lk != null && !!checks[`sl-${lk}`];
+                  const cellBgC = cortaChk ? 'bg-gray-300 text-gray-500 line-through' : '';
+                  const cellBgL = largaChk ? 'bg-gray-300 text-gray-500 line-through' : '';
                   return (
                     <tr key={`sal-${i}`}>
-                      <td className="px-2 py-1.5 border border-gray-300 text-center">
+                      <td className={`px-2 py-1.5 border border-gray-300 text-center ${cellBgC}`}>
                         {ck != null && (readonly
                           ? <span className="inline-block w-4 h-4" />
                           : <input type="checkbox" checked={!!checks[`sc-${ck}`]} onChange={(e) => toggle(`sc-${ck}`, e.target.checked)} className="w-4 h-4" />
                         )}
                       </td>
-                      <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{ck != null ? `${ck} un.` : ''}</td>
-                      <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{ck != null ? formatCantidad(tally.salchichaCorta[ck.toString()]) : '-'}</td>
-                      <td className="px-2 py-1.5 border border-gray-300 text-center">
+                      <td className={`px-3 py-1.5 border border-gray-300 font-medium text-sm ${cellBgC}`}>{ck != null ? (ck < 0 ? 'Caja' : `${ck} un.`) : ''}</td>
+                      <td className={`px-3 py-1.5 border border-gray-300 font-mono text-sm text-center ${cellBgC}`}>{ck != null ? formatCantidad(tally.salchichaCorta[ck.toString()]) : '-'}</td>
+                      <td className={`px-2 py-1.5 border border-gray-300 text-center ${cellBgL}`}>
                         {lk != null && (readonly
                           ? <span className="inline-block w-4 h-4" />
                           : <input type="checkbox" checked={!!checks[`sl-${lk}`]} onChange={(e) => toggle(`sl-${lk}`, e.target.checked)} className="w-4 h-4" />
                         )}
                       </td>
-                      <td className="px-3 py-1.5 border border-gray-300 font-medium text-sm">{lk != null ? `${lk} un.` : ''}</td>
-                      <td className="px-3 py-1.5 border border-gray-300 font-mono text-sm text-center">{lk != null ? formatCantidad(tally.salchichaLarga[lk.toString()]) : '-'}</td>
+                      <td className={`px-3 py-1.5 border border-gray-300 font-medium text-sm ${cellBgL}`}>{lk != null ? (lk < 0 ? 'Caja' : `${lk} un.`) : ''}</td>
+                      <td className={`px-3 py-1.5 border border-gray-300 font-mono text-sm text-center ${cellBgL}`}>{lk != null ? formatCantidad(tally.salchichaLarga[lk.toString()]) : '-'}</td>
                     </tr>
                   );
                 });
               })()}
+            </tbody>
+          </table>
+        )}
+
+        {/* Otros - debajo de salchichas */}
+        {Object.keys(tally.otros).length > 0 && (
+          <table className="w-full border-collapse mt-1">
+            <thead>
+              <tr className={colors.azulSolido}>
+                <th className="w-10 px-2 py-2 border border-gray-300"></th>
+                <th className="px-3 py-2 border border-gray-300 text-left text-sm font-bold" colSpan={4}>Otros</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(tally.otros).sort(([a], [b]) => a.localeCompare(b)).map(([nombre, cantidad]) => {
+                const id = `otros-${nombre}`;
+                const cellBg = checks[id] ? 'bg-gray-300 text-gray-500 line-through' : '';
+                return (
+                  <tr key={id}>
+                    <td className={`px-3 py-1.5 border border-gray-300 ${cellBg}`}>
+                      {readonly
+                        ? <span className="inline-block w-4 h-4" />
+                        : <input type="checkbox" checked={!!checks[id]} onChange={(e) => toggle(id, e.target.checked)} className="w-4 h-4" />
+                      }
+                    </td>
+                    <td colSpan={2} className={`px-3 py-1.5 border border-gray-300 font-medium text-sm ${cellBg}`}>{nombre}</td>
+                    <td colSpan={2} className={`px-3 py-1.5 border border-gray-300 font-mono text-sm text-center ${cellBg}`}>{cantidad}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -415,6 +429,43 @@ export default function ControlCamionetasPage() {
   const [data, setData] = useState<RepartidorTally[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+  const tallyRef = useRef<HTMLDivElement>(null);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+
+  const descargarPDF = async () => {
+    if (!tallyRef.current) return;
+    setGenerandoPDF(true);
+    try {
+      const canvas = await html2canvas(tallyRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        windowWidth: tallyRef.current.scrollWidth,
+        windowHeight: tallyRef.current.scrollHeight,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgProps = pdf.getImageProperties(imgData);
+      const margin = 5;
+      const availW = pageWidth - margin * 2;
+      const availH = pageHeight - margin * 2;
+      const ratio = Math.min(availW / imgProps.width, availH / imgProps.height);
+      const w = imgProps.width * ratio;
+      const h = imgProps.height * ratio;
+      pdf.addImage(imgData, 'PNG', (pageWidth - w) / 2, margin, w, h);
+      const fecha = new Date().toISOString().slice(0, 10);
+      const nombre = activeTally?.nombre?.replace(/\s+/g, '_') ?? 'Control';
+      pdf.save(`ControlCamionetas_${nombre}_${fecha}.pdf`);
+    } catch (err) {
+      console.error('Error generando PDF:', err);
+      alert('Error al generar el PDF. Revisá la consola del navegador.');
+    } finally {
+      setGenerandoPDF(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -480,43 +531,57 @@ export default function ControlCamionetasPage() {
                 ))}
               </div>
 
-              <button
-                onClick={() => descargarControlCamioneta([])}
-                className="px-4 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-medium flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-                Descargar Excel
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => descargarControlCamioneta([])}
+                  className="px-4 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-medium flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  Descargar Excel
+                </button>
+                <button
+                  onClick={descargarPDF}
+                  disabled={generandoPDF}
+                  className="px-4 py-2 text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  {generandoPDF ? 'Generando...' : 'Descargar PDF'}
+                </button>
+              </div>
             </div>
 
             {/* Info repartidor activo */}
-            {activeTally && (
-              <div className="bg-white rounded-lg shadow-sm border p-4">
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Repartidor:</span>
-                    <span className="ml-2 font-semibold">{activeTally.nombre}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Camioneta:</span>
-                    <span className="ml-2 font-semibold">{activeTally.vehiculo || '-'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Fecha:</span>
-                    <span className="ml-2 font-semibold">{activeTally.fecha}</span>
+            <div ref={tallyRef} className="bg-white">
+              {activeTally && (
+                <div className="bg-white rounded-lg shadow-sm border p-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">Repartidor:</span>
+                      <span className="ml-2 font-semibold">{activeTally.nombre}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Camioneta:</span>
+                      <span className="ml-2 font-semibold">{activeTally.vehiculo || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Fecha:</span>
+                      <span className="ml-2 font-semibold">{activeTally.fecha}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Tally activo */}
-            {activeTally && (
-              <div className="bg-white rounded-lg shadow-sm border p-4">
-                <RepartidorPanel key={activeTally.repartidorId} tally={activeTally} />
-              </div>
-            )}
+              {/* Tally activo */}
+              {activeTally && (
+                <div className="bg-white rounded-lg shadow-sm border p-4 mt-4">
+                  <RepartidorPanel key={activeTally.repartidorId} tally={activeTally} />
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

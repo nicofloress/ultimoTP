@@ -48,8 +48,15 @@ public class EntregasController : ControllerBase
     [HttpPut("{ventaId}/en-camino")]
     public async Task<ActionResult<VentaDto>> MarcarEnCamino(int ventaId)
     {
-        var venta = await _ventaService.MarcarEnCaminoAsync(ventaId);
-        return venta is null ? NotFound() : Ok(venta);
+        try
+        {
+            var venta = await _ventaService.MarcarEnCaminoAsync(ventaId);
+            return venta is null ? NotFound() : Ok(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{ventaId}/entregar")]
