@@ -166,6 +166,9 @@ export default function RepartidorApp() {
     const destino = encodeURIComponent(direccion);
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
     window.open(url, '_blank');
+    // Refrescar datos al volver de Maps (el visibilitychange ya lo hace,
+    // pero también refrescamos inmediatamente para actualizar la UI)
+    refresh();
   };
 
   // Polling mensajes no leidos
