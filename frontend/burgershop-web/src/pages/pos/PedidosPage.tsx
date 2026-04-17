@@ -278,6 +278,7 @@ export default function PedidosPage() {
       geocodificarDireccion(c.direccion);
     }
     if (c.zonaId) setZonaSeleccionada(c.zonaId);
+    if (c.listaPrecioId) setListaPrecioSeleccionada(c.listaPrecioId);
   };
 
   const limpiarCliente = () => {

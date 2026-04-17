@@ -111,10 +111,15 @@ export default function ListasPrecioPage() {
     const dto = tipoDetalle === 'combo'
       ? { comboId: Number(nuevoItemId), precio: nuevoPrecio }
       : { productoId: Number(nuevoItemId), precio: nuevoPrecio };
-    await upsertDetalle(seleccionada.id, dto);
-    setNuevoItemId('');
-    setNuevoPrecio(0);
-    cargarSeleccionada(seleccionada.id);
+    try {
+      await upsertDetalle(seleccionada.id, dto);
+      showToast('Producto agregado a la lista', 'success');
+      setNuevoItemId('');
+      setNuevoPrecio(0);
+      cargarSeleccionada(seleccionada.id);
+    } catch {
+      showToast('Error al agregar producto', 'error');
+    }
   };
 
   const handleGuardarDetalle = async (det: { productoId?: number; comboId?: number }) => {
@@ -122,19 +127,29 @@ export default function ListasPrecioPage() {
     const dto = det.comboId
       ? { comboId: det.comboId, precio: editandoDetallePrecio }
       : { productoId: det.productoId, precio: editandoDetallePrecio };
-    await upsertDetalle(seleccionada.id, dto);
-    setEditandoDetalleKey(null);
-    cargarSeleccionada(seleccionada.id);
+    try {
+      await upsertDetalle(seleccionada.id, dto);
+      showToast('Precio actualizado', 'success');
+      setEditandoDetalleKey(null);
+      cargarSeleccionada(seleccionada.id);
+    } catch {
+      showToast('Error al actualizar precio', 'error');
+    }
   };
 
   const handleEliminarDetalle = async (det: { productoId?: number; comboId?: number }) => {
     if (!seleccionada) return;
-    if (det.comboId) {
-      await eliminarDetalleCombo(seleccionada.id, det.comboId);
-    } else if (det.productoId) {
-      await eliminarDetalle(seleccionada.id, det.productoId);
+    try {
+      if (det.comboId) {
+        await eliminarDetalleCombo(seleccionada.id, det.comboId);
+      } else if (det.productoId) {
+        await eliminarDetalle(seleccionada.id, det.productoId);
+      }
+      showToast('Producto eliminado de la lista', 'success');
+      cargarSeleccionada(seleccionada.id);
+    } catch {
+      showToast('Error al eliminar producto', 'error');
     }
-    cargarSeleccionada(seleccionada.id);
   };
 
   const productosEnLista = seleccionada?.detalles.filter(d => d.productoId).map(d => d.productoId!) || [];
