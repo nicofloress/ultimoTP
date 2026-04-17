@@ -155,45 +155,17 @@ export default function RepartidorApp() {
   };
 
   /**
-   * Abre la ruta de entregas en una app de navegación.
+   * Abre Google Maps con navegación a UNA dirección específica.
+   * Se usa en cada tarjeta de pedido (paso a paso).
    *
-   * - 10 pedidos o menos → Google Maps (soporta hasta 9 waypoints + origin + destination)
-   * - Más de 10 → RouteXL (soporta hasta 20 paradas gratis, con deep link)
-   *
-   * RouteXL deep link: https://www.routexl.com/?q=dir1$dir2$dir3
-   *   - Las direcciones se separan con "$"
-   *   - Se encodean con encodeURIComponent
-   *   - RouteXL optimiza el orden automáticamente
-   *   - Desde ahí el repartidor puede navegar con Google Maps o Waze
+   * La ruta ya fue optimizada por Google Directions API (soporta hasta 25 waypoints),
+   * así que el orden de los pedidos en la lista ya es el óptimo.
+   * El repartidor navega de a uno: toca "Navegar", entrega, vuelve a la app, toca el siguiente.
    */
-  const abrirRutaNavegacion = () => {
-    const pedidos = (ordenManual || rutaOptimizada?.orden || pendientes).filter(p => p.direccionEntrega);
-    if (pedidos.length === 0) return;
-
-    const MAX_GOOGLE_MAPS_WAYPOINTS = 9; // Límite de Google Maps URL scheme
-    const totalPuntos = pedidos.length + (lastPosition ? 1 : 0); // +1 si tenemos ubicación actual como origin
-
-    if (totalPuntos <= MAX_GOOGLE_MAPS_WAYPOINTS + 2) {
-      // Google Maps: origin + hasta 9 waypoints + destination = 11 puntos máximo
-      const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
-      const origin = lastPosition
-        ? `${lastPosition.lat},${lastPosition.lng}`
-        : direcciones[0];
-      const startIdx = lastPosition ? 0 : 1;
-      const destination = direcciones[direcciones.length - 1];
-      const waypoints = direcciones.slice(startIdx, -1).join('|');
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
-      window.open(url, '_blank');
-    } else {
-      // RouteXL: soporta hasta 20 paradas gratis con optimización automática
-      const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
-      // Si tenemos ubicación actual, la agregamos como primer punto
-      if (lastPosition) {
-        direcciones.unshift(encodeURIComponent(`${lastPosition.lat},${lastPosition.lng}`));
-      }
-      const url = `https://www.routexl.com/?q=${direcciones.join('$')}&roundtrip=false`;
-      window.open(url, '_blank');
-    }
+  const navegarAPedido = (direccion: string) => {
+    const destino = encodeURIComponent(direccion);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
+    window.open(url, '_blank');
   };
 
   // Polling mensajes no leidos
@@ -487,32 +459,25 @@ export default function RepartidorApp() {
       <main className="max-w-2xl mx-auto px-4 py-4">
         {activeTab === 'pendientes' && (
           <>
-            {/* Botón de ruta */}
-            {(optimizando || rutaOptimizada) && (
-              <div className="mb-3">
-                <button
-                  onClick={abrirRutaNavegacion}
-                  disabled={optimizando}
-                  className={`w-full py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${optimizando ? 'bg-slate-600 text-amber-400' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
-                >
-                  {optimizando ? (
-                    <>
-                      <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Optimizando reparto...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                      Abrir ruta
-                      <span className="text-emerald-200 text-xs">({rutaOptimizada?.distancia} · {rutaOptimizada?.duracion})</span>
-                    </>
-                  )}
-                </button>
+            {/* Info de ruta optimizada */}
+            {optimizando && (
+              <div className="mb-3 bg-slate-600 text-amber-400 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2">
+                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Optimizando reparto...
+              </div>
+            )}
+            {!optimizando && rutaOptimizada && (
+              <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  Ruta optimizada
+                </div>
+                <span className="text-emerald-600 text-xs font-semibold">{rutaOptimizada.distancia} · {rutaOptimizada.duracion}</span>
               </div>
             )}
             <PendientesTab
@@ -522,6 +487,7 @@ export default function RepartidorApp() {
               onEnCamino={handleEnCamino}
               onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
               onCancelar={(p) => { setCancelarPedido(p); setMotivoCancelacion(''); }}
+              onNavegar={navegarAPedido}
               formatTime={formatTime}
             />
           </>
@@ -666,6 +632,7 @@ function PendientesTab({
   onEntregado,
   onCancelar,
   onMover,
+  onNavegar,
   formatTime,
 }: {
   pedidos: Venta[];
@@ -674,6 +641,7 @@ function PendientesTab({
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
   onMover?: (fromIdx: number, toIdx: number) => void;
+  onNavegar: (direccion: string) => void;
   formatTime: (s: string) => string;
 }) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -774,6 +742,7 @@ function PendientesTab({
               onEnCamino={onEnCamino}
               onEntregado={onEntregado}
               onCancelar={onCancelar}
+              onNavegar={onNavegar}
               formatTime={formatTime}
             />
           </div>
@@ -792,6 +761,7 @@ function PedidoCard({
   onEnCamino,
   onEntregado,
   onCancelar,
+  onNavegar,
   formatTime,
 }: {
   pedido: Venta;
@@ -799,6 +769,7 @@ function PedidoCard({
   onEnCamino: (p: Venta) => void;
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
+  onNavegar: (direccion: string) => void;
   formatTime: (s: string) => string;
 }) {
   const isAsignado = pedido.estado === EstadoVenta.Asignado;
@@ -833,11 +804,19 @@ function PedidoCard({
           </p>
         )}
 
-        {/* Direccion */}
+        {/* Direccion + botón Navegar */}
         {pedido.direccionEntrega && (
-          <p className="text-sm text-gray-600 mb-1">
-            {'\uD83D\uDCCD'} {pedido.direccionEntrega}
-          </p>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <p className="text-sm text-gray-600">
+              {'\uD83D\uDCCD'} {pedido.direccionEntrega}
+            </p>
+            <button
+              onClick={() => onNavegar(pedido.direccionEntrega!)}
+              className="flex-shrink-0 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+            >
+              {'\uD83E\uDDED'} Navegar
+            </button>
+          </div>
         )}
 
         {/* Zona */}
