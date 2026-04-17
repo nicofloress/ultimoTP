@@ -154,19 +154,46 @@ export default function RepartidorApp() {
     }
   };
 
-  const abrirGoogleMapsConRuta = () => {
+  /**
+   * Abre la ruta de entregas en una app de navegación.
+   *
+   * - 10 pedidos o menos → Google Maps (soporta hasta 9 waypoints + origin + destination)
+   * - Más de 10 → RouteXL (soporta hasta 20 paradas gratis, con deep link)
+   *
+   * RouteXL deep link: https://www.routexl.com/?q=dir1$dir2$dir3
+   *   - Las direcciones se separan con "$"
+   *   - Se encodean con encodeURIComponent
+   *   - RouteXL optimiza el orden automáticamente
+   *   - Desde ahí el repartidor puede navegar con Google Maps o Waze
+   */
+  const abrirRutaNavegacion = () => {
     const pedidos = (ordenManual || rutaOptimizada?.orden || pendientes).filter(p => p.direccionEntrega);
     if (pedidos.length === 0) return;
 
-    const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
-    const origin = lastPosition
-      ? `${lastPosition.lat},${lastPosition.lng}`
-      : direcciones[0];
-    const startIdx = lastPosition ? 0 : 1;
-    const destination = direcciones[direcciones.length - 1];
-    const waypoints = direcciones.slice(startIdx, -1).join('|');
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
-    window.open(url, '_blank');
+    const MAX_GOOGLE_MAPS_WAYPOINTS = 9; // Límite de Google Maps URL scheme
+    const totalPuntos = pedidos.length + (lastPosition ? 1 : 0); // +1 si tenemos ubicación actual como origin
+
+    if (totalPuntos <= MAX_GOOGLE_MAPS_WAYPOINTS + 2) {
+      // Google Maps: origin + hasta 9 waypoints + destination = 11 puntos máximo
+      const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
+      const origin = lastPosition
+        ? `${lastPosition.lat},${lastPosition.lng}`
+        : direcciones[0];
+      const startIdx = lastPosition ? 0 : 1;
+      const destination = direcciones[direcciones.length - 1];
+      const waypoints = direcciones.slice(startIdx, -1).join('|');
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ''}&travelmode=driving`;
+      window.open(url, '_blank');
+    } else {
+      // RouteXL: soporta hasta 20 paradas gratis con optimización automática
+      const direcciones = pedidos.map(p => encodeURIComponent(p.direccionEntrega!));
+      // Si tenemos ubicación actual, la agregamos como primer punto
+      if (lastPosition) {
+        direcciones.unshift(encodeURIComponent(`${lastPosition.lat},${lastPosition.lng}`));
+      }
+      const url = `https://www.routexl.com/?q=${direcciones.join('$')}&roundtrip=false`;
+      window.open(url, '_blank');
+    }
   };
 
   // Polling mensajes no leidos
@@ -464,7 +491,7 @@ export default function RepartidorApp() {
             {(optimizando || rutaOptimizada) && (
               <div className="mb-3">
                 <button
-                  onClick={abrirGoogleMapsConRuta}
+                  onClick={abrirRutaNavegacion}
                   disabled={optimizando}
                   className={`w-full py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${optimizando ? 'bg-slate-600 text-amber-400' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
                 >
@@ -481,7 +508,7 @@ export default function RepartidorApp() {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                       </svg>
-                      Abrir ruta en Google Maps
+                      Abrir ruta
                       <span className="text-emerald-200 text-xs">({rutaOptimizada?.distancia} · {rutaOptimizada?.duracion})</span>
                     </>
                   )}
