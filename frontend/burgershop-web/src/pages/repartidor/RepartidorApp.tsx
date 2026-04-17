@@ -251,6 +251,9 @@ export default function RepartidorApp() {
     try {
       await reabrirEntrega(ventaId);
       showToast('Pedido reabierto, pasa a En Camino', 'success');
+      setRutaOptimizada(null);
+      setOrdenManual(null);
+      optimizacionIniciada.current = false;
       await refresh();
     } catch {
       showToast('Error al reabrir pedido', 'error');
@@ -267,6 +270,9 @@ export default function RepartidorApp() {
       showToast(`Pedido ${cancelarPedido.numeroTicket} marcado como no entregado`, 'success');
       setCancelarPedido(null);
       setMotivoCancelacion('');
+      setRutaOptimizada(null);
+      setOrdenManual(null);
+      optimizacionIniciada.current = false;
       await refresh();
     } catch {
       showToast('Error al cancelar entrega', 'error');
@@ -281,6 +287,10 @@ export default function RepartidorApp() {
     try {
       await marcarEnCamino(pedido.id);
       showToast(`Entrega ${pedido.numeroTicket} en camino`, 'success');
+      // Limpiar ruta/orden para que se recalcule con los datos nuevos
+      setRutaOptimizada(null);
+      setOrdenManual(null);
+      optimizacionIniciada.current = false;
       await refresh();
     } catch {
       showToast('Error al iniciar entrega', 'error');
@@ -318,6 +328,10 @@ export default function RepartidorApp() {
       setNotasEntrega('');
       setMetodoPago(null);
       setComprobanteBase64(null);
+      // Limpiar ruta/orden para que se recalcule con los datos nuevos
+      setRutaOptimizada(null);
+      setOrdenManual(null);
+      optimizacionIniciada.current = false;
       await refresh();
     } catch {
       showToast('Error al marcar entregado', 'error');
