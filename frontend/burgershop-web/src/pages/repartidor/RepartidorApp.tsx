@@ -762,13 +762,22 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const fullscreenMapRef = useRef<HTMLDivElement>(null);
+  const fullscreenInstanceRef = useRef<google.maps.Map | null>(null);
+  const fullscreenRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
+  const fullscreenMarkersRef = useRef<google.maps.Marker[]>([]);
+  const [expandido, setExpandido] = useState(false);
 
-  useEffect(() => {
-    if (!mapRef.current || !window.google?.maps) return;
+  const renderDirections = useCallback((
+    container: HTMLDivElement,
+    mapInstance: React.MutableRefObject<google.maps.Map | null>,
+    rendererInstance: React.MutableRefObject<google.maps.DirectionsRenderer | null>,
+    markersInstance: React.MutableRefObject<google.maps.Marker[]>
+  ) => {
+    if (!window.google?.maps) return;
 
-    // Crear mapa solo la primera vez
-    if (!mapInstanceRef.current) {
-      mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+    if (!mapInstance.current) {
+      mapInstance.current = new google.maps.Map(container, {
         zoom: 12,
         disableDefaultUI: true,
         zoomControl: true,
@@ -776,14 +785,12 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
       });
     }
 
-    // Limpiar renderer y markers anteriores
-    if (rendererRef.current) rendererRef.current.setMap(null);
-    markersRef.current.forEach(m => m.setMap(null));
-    markersRef.current = [];
+    if (rendererInstance.current) rendererInstance.current.setMap(null);
+    markersInstance.current.forEach(m => m.setMap(null));
+    markersInstance.current = [];
 
-    // Renderer sin marcadores (los dibujamos manualmente con números)
-    rendererRef.current = new google.maps.DirectionsRenderer({
-      map: mapInstanceRef.current,
+    rendererInstance.current = new google.maps.DirectionsRenderer({
+      map: mapInstance.current,
       directions,
       suppressMarkers: true,
       polylineOptions: {
@@ -793,7 +800,6 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
       },
     });
 
-    // Crear markers numerados en cada waypoint (origen + waypoints ordenados + destino)
     const route = directions.routes[0];
     if (!route) return;
     const legs = route.legs;
@@ -806,7 +812,7 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
     puntos.forEach((pos, idx) => {
       const marker = new google.maps.Marker({
         position: pos,
-        map: mapInstanceRef.current,
+        map: mapInstance.current,
         label: { text: String(idx + 1), color: '#ffffff', fontSize: '12px', fontWeight: 'bold' },
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
@@ -817,11 +823,56 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
           strokeWeight: 2,
         },
       });
-      markersRef.current.push(marker);
+      markersInstance.current.push(marker);
     });
   }, [directions]);
 
-  return <div ref={mapRef} className="w-full rounded-lg mt-2" style={{ height: '250px' }} />;
+  useEffect(() => {
+    if (!mapRef.current) return;
+    renderDirections(mapRef.current, mapInstanceRef, rendererRef, markersRef);
+  }, [renderDirections]);
+
+  useEffect(() => {
+    if (!expandido || !fullscreenMapRef.current) return;
+    // Resetear refs cuando se abre el modal para que se cree de nuevo
+    fullscreenInstanceRef.current = null;
+    renderDirections(fullscreenMapRef.current, fullscreenInstanceRef, fullscreenRendererRef, fullscreenMarkersRef);
+  }, [expandido, renderDirections]);
+
+  return (
+    <>
+      <div className="relative mt-2">
+        <div ref={mapRef} className="w-full rounded-lg" style={{ height: '250px' }} />
+        <button
+          type="button"
+          onClick={() => setExpandido(true)}
+          className="absolute top-2 right-2 bg-white/95 hover:bg-white shadow-md rounded-lg p-2 transition-colors z-10"
+          title="Expandir mapa"
+        >
+          <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
+      </div>
+      {expandido && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-2">
+          <div className="relative w-full h-full max-w-5xl">
+            <div ref={fullscreenMapRef} className="w-full h-full rounded-lg" />
+            <button
+              type="button"
+              onClick={() => setExpandido(false)}
+              className="absolute top-3 right-3 bg-white/95 hover:bg-white shadow-md rounded-lg px-3 py-2 flex items-center gap-1.5 text-sm font-medium text-gray-800 transition-colors z-10"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 // ============================
