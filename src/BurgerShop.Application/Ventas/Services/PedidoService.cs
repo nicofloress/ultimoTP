@@ -269,67 +269,6 @@ public class VentaService : IVentaService
                 throw new InvalidOperationException(
                     $"No se puede editar una venta en estado '{venta.Estado}'. Solo se permite en estado Pendiente o Asignado.");
 
-            // En estado Asignado solo se permite editar teléfono, estaPago y formaPago
-            if (venta.Estado == EstadoVenta.Asignado)
-            {
-                venta.TelefonoCliente = dto.TelefonoCliente;
-                venta.EstaPago = dto.EstaPago;
-
-                // Recalcular recargo si cambia la forma de pago
-                if (dto.Pagos is { Count: > 0 })
-                {
-                    venta.Pagos.Clear();
-                    decimal recargoTotal = 0;
-                    venta.FormaPagoId = null;
-
-                    foreach (var pagoDto in dto.Pagos)
-                    {
-                        var formaPago = await _formaPagoRepo.GetByIdAsync(pagoDto.FormaPagoId);
-                        var porcentaje = formaPago?.PorcentajeRecargo ?? 0m;
-                        var recargoPago = pagoDto.Monto * porcentaje / 100m;
-                        var totalACobrar = pagoDto.Monto + recargoPago;
-
-                        venta.Pagos.Add(new PagoVenta
-                        {
-                            FormaPagoId = pagoDto.FormaPagoId,
-                            Monto = pagoDto.Monto,
-                            PorcentajeRecargo = porcentaje,
-                            Recargo = recargoPago,
-                            TotalACobrar = totalACobrar
-                        });
-
-                        recargoTotal += recargoPago;
-                    }
-
-                    venta.Recargo = recargoTotal;
-                    venta.Total = venta.Subtotal - venta.Descuento + recargoTotal;
-                }
-                else
-                {
-                    venta.Pagos.Clear();
-                    venta.FormaPagoId = dto.FormaPagoId;
-                    decimal recargo = 0;
-
-                    if (dto.FormaPagoId.HasValue)
-                    {
-                        var formaPago = await _formaPagoRepo.GetByIdAsync(dto.FormaPagoId.Value);
-                        if (formaPago is not null && formaPago.PorcentajeRecargo > 0)
-                        {
-                            recargo = (venta.Subtotal - venta.Descuento) * formaPago.PorcentajeRecargo / 100m;
-                        }
-                    }
-
-                    venta.Recargo = recargo;
-                    venta.Total = venta.Subtotal - venta.Descuento + recargo;
-                }
-
-                _ventaRepo.Update(venta);
-                await _ventaRepo.SaveChangesAsync();
-
-                var updatedAsignado = await _ventaRepo.GetByIdWithLineasAsync(venta.Id);
-                return ToDto(updatedAsignado!);
-            }
-
             if (dto.FechaProgramada.HasValue)
             {
                 var fechaProg = dto.FechaProgramada.Value.Date;

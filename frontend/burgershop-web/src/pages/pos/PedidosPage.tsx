@@ -47,7 +47,7 @@ const estadosFiltro = [
 
 export default function PedidosPage() {
   const { showToast: addToast } = useGlobalToast();
-  const { localActivo } = useLocalActivo();
+  const { localActivo, locales } = useLocalActivo();
   // ===== DATA =====
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -68,7 +68,8 @@ export default function PedidosPage() {
 
   // ===== PANEL IZQUIERDO: FORMULARIO =====
   const [editandoPedido, setEditandoPedido] = useState<Venta | null>(null);
-  const esEdicionLimitada = editandoPedido?.estado === EstadoVenta.Asignado;
+  // Asignado permite edición completa igual que Pendiente
+  const esEdicionLimitada = false;
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -120,6 +121,24 @@ export default function PedidosPage() {
   const direccionRef = useRef<HTMLInputElement>(null);
   const { sugerencias: sugerenciasDireccion, coordenadas, setCoordenadas, buscarDirecciones, limpiarSugerencias, geocodificar, geocodificarDireccion, limpiarCoordenadas } = useGooglePlaces();
   const [mostrarSugerenciasDireccion, setMostrarSugerenciasDireccion] = useState(false);
+  const [coordenadasLocal, setCoordenadasLocal] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Geocodificar la dirección del local activo para usar como centro por defecto del mapa
+  useEffect(() => {
+    const local = locales.find(l => l.id === localActivo);
+    const direccionLocal = local?.direccion;
+    if (!direccionLocal) { setCoordenadasLocal(null); return; }
+    if (!window.google?.maps) return;
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: direccionLocal, componentRestrictions: { country: 'ar' } }, (results, status) => {
+      if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+        const loc = results[0].geometry.location;
+        setCoordenadasLocal({ lat: loc.lat(), lng: loc.lng() });
+      } else {
+        setCoordenadasLocal(null);
+      }
+    });
+  }, [localActivo, locales]);
 
   // ===== CARGAR DATOS INICIALES =====
   useEffect(() => {
@@ -862,7 +881,7 @@ export default function PedidosPage() {
           <div className="w-72 flex-shrink-0">
             <div className="relative h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <GoogleMap
-                coordenadas={coordenadas || { lat: -34.6037, lng: -58.3816 }}
+                coordenadas={coordenadas || coordenadasLocal || { lat: -34.6037, lng: -58.3816 }}
                 className="h-full"
                 onClick={(coords, dir) => {
                   setCoordenadas(coords);
@@ -1385,7 +1404,7 @@ export default function PedidosPage() {
             </div>
             <div className="flex-1 relative">
               <GoogleMap
-                coordenadas={coordenadas || { lat: -34.6037, lng: -58.3816 }}
+                coordenadas={coordenadas || coordenadasLocal || { lat: -34.6037, lng: -58.3816 }}
                 className="h-full"
                 onClick={(coords, dir) => {
                   setCoordenadas(coords);

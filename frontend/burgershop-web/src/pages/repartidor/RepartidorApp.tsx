@@ -11,6 +11,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
 import { useGeoTracking } from '../../hooks/useGeoTracking';
 import { desactivarTracking } from '../../api/tracking';
+import { getLocal } from '../../api/locales';
 import { GoogleMap } from '../../components/GoogleMap';
 
 type Tab = 'pendientes' | 'completados' | 'noEntregados';
@@ -84,7 +85,21 @@ export default function RepartidorApp() {
   const [optimizando, setOptimizando] = useState(false);
   const [rutaOptimizada, setRutaOptimizada] = useState<{ orden: Venta[]; duracion: string; distancia: string; directions: google.maps.DirectionsResult } | null>(null);
   const [ordenManual, setOrdenManual] = useState<Venta[] | null>(null);
+  const [direccionLocal, setDireccionLocal] = useState<string | null>(null);
   const optimizacionIniciada = useRef(false);
+
+  // Cargar dirección del local del repartidor para usar como punto de partida
+  useEffect(() => {
+    const localId = usuario?.localId;
+    if (!localId) { setDireccionLocal(null); return; }
+    getLocal(localId)
+      .then(l => {
+        setDireccionLocal(l.direccion ?? null);
+        // Re-optimizar ruta ahora que tenemos el origen correcto
+        optimizacionIniciada.current = false;
+      })
+      .catch(() => setDireccionLocal(null));
+  }, [usuario?.localId]);
 
   const moverPedido = (fromIdx: number, toIdx: number) => {
     const lista = ordenManual || rutaOptimizada?.orden || pendientes;
@@ -102,11 +117,20 @@ export default function RepartidorApp() {
     try {
       const directionsService = new google.maps.DirectionsService();
 
-      const origin = lastPosition
-        ? new google.maps.LatLng(lastPosition.lat, lastPosition.lng)
-        : conDireccion[0].direccionEntrega!;
+      // Origen: GPS > dirección del local asignado > primer pedido
+      let origin: google.maps.LatLng | string;
+      let pedidosParaRuta: Venta[];
+      if (lastPosition) {
+        origin = new google.maps.LatLng(lastPosition.lat, lastPosition.lng);
+        pedidosParaRuta = conDireccion;
+      } else if (direccionLocal) {
+        origin = direccionLocal;
+        pedidosParaRuta = conDireccion;
+      } else {
+        origin = conDireccion[0].direccionEntrega!;
+        pedidosParaRuta = conDireccion.slice(1);
+      }
 
-      const pedidosParaRuta = lastPosition ? conDireccion : conDireccion.slice(1);
       const destination = conDireccion[conDireccion.length - 1].direccionEntrega!;
 
       const waypoints = pedidosParaRuta.slice(0, -1).map(p => ({
@@ -133,7 +157,8 @@ export default function RepartidorApp() {
       // Reordenar pedidos según waypoint_order
       const waypointOrder = result.routes[0].waypoint_order;
       const reordenados: Venta[] = [];
-      if (!lastPosition) reordenados.push(conDireccion[0]); // origin es el primer pedido
+      // Si origin no es un pedido (GPS o local), no se agrega. Si lo es (primer pedido), sí.
+      if (!lastPosition && !direccionLocal) reordenados.push(conDireccion[0]);
       for (const idx of waypointOrder) {
         reordenados.push(pedidosParaRuta[idx]);
       }
@@ -229,7 +254,7 @@ export default function RepartidorApp() {
       optimizacionIniciada.current = false;
       setRutaOptimizada(null);
     }
-  }, [pendientes]);
+  }, [pendientes, direccionLocal]);
 
   // Detectar cambios en los IDs de pendientes y resetear ruta/orden manual
   const pendientesIdsRef = useRef<string>('');
@@ -736,6 +761,7 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
 
   useEffect(() => {
     if (!mapRef.current || !window.google?.maps) return;
@@ -750,21 +776,48 @@ function RutaMap({ directions }: { directions: google.maps.DirectionsResult }) {
       });
     }
 
-    // Limpiar renderer anterior
-    if (rendererRef.current) {
-      rendererRef.current.setMap(null);
-    }
+    // Limpiar renderer y markers anteriores
+    if (rendererRef.current) rendererRef.current.setMap(null);
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
 
-    // Crear renderer y dibujar la ruta
+    // Renderer sin marcadores (los dibujamos manualmente con números)
     rendererRef.current = new google.maps.DirectionsRenderer({
       map: mapInstanceRef.current,
       directions,
-      suppressMarkers: false,
+      suppressMarkers: true,
       polylineOptions: {
         strokeColor: '#2563eb',
         strokeWeight: 4,
         strokeOpacity: 0.8,
       },
+    });
+
+    // Crear markers numerados en cada waypoint (origen + waypoints ordenados + destino)
+    const route = directions.routes[0];
+    if (!route) return;
+    const legs = route.legs;
+    const puntos: google.maps.LatLng[] = [];
+    if (legs.length > 0) {
+      puntos.push(legs[0].start_location);
+      legs.forEach(l => puntos.push(l.end_location));
+    }
+
+    puntos.forEach((pos, idx) => {
+      const marker = new google.maps.Marker({
+        position: pos,
+        map: mapInstanceRef.current,
+        label: { text: String(idx + 1), color: '#ffffff', fontSize: '12px', fontWeight: 'bold' },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 14,
+          fillColor: '#dc2626',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+      });
+      markersRef.current.push(marker);
     });
   }, [directions]);
 
