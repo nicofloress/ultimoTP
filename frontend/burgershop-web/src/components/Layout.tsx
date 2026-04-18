@@ -6,6 +6,18 @@ import { useTheme } from '../context/ThemeContext';
 
 declare const __APP_VERSION__: string;
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+
+// Guardar fecha de la última actualización de versión
+const VERSION_DATE_KEY = 'app_version_date';
+const VERSION_KEY = 'app_version_current';
+(() => {
+  const storedVersion = localStorage.getItem(VERSION_KEY);
+  if (storedVersion !== APP_VERSION) {
+    localStorage.setItem(VERSION_KEY, APP_VERSION);
+    localStorage.setItem(VERSION_DATE_KEY, new Date().toISOString());
+  }
+})();
+const fechaVersion = localStorage.getItem(VERSION_DATE_KEY);
 import { RolUsuario } from '../types/auth';
 
 interface MenuItem {
@@ -106,6 +118,9 @@ export default function Layout() {
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
 
   useEffect(() => {
+    // Solo chequear version en produccion (evita loops en dev local)
+    if (import.meta.env.DEV) return;
+
     let actualizando = false;
     const autoActualizar = async () => {
       if (actualizando) return;
@@ -276,9 +291,13 @@ export default function Layout() {
           <div className="px-4 py-2 border-t border-slate-700">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-500">v{APP_VERSION}</span>
-              {hayNuevaVersion && (
+              {hayNuevaVersion ? (
                 <span className="text-[10px] text-amber-400 font-medium animate-pulse">
                   Actualizando...
+                </span>
+              ) : fechaVersion && (
+                <span className="text-[9px] text-slate-400">
+                  {new Date(fechaVersion).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
                 </span>
               )}
             </div>
