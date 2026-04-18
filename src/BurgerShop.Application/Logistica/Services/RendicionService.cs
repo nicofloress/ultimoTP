@@ -241,6 +241,8 @@ public class RendicionService : IRendicionService
             rendicion.FechaAprobacion = DateTime.Now;
             if (dto.Observaciones is not null)
                 rendicion.Observaciones = dto.Observaciones;
+            if (dto.ResultadoRevision.HasValue)
+                rendicion.ResultadoRevision = (Domain.Enums.ResultadoRevision)dto.ResultadoRevision.Value;
 
             _rendicionRepo.Update(rendicion);
             await _rendicionRepo.SaveChangesAsync();
@@ -487,6 +489,7 @@ public class RendicionService : IRendicionService
             r.Observaciones,
             r.Aprobada,
             r.FechaAprobacion,
+            r.ResultadoRevision.HasValue ? (int)r.ResultadoRevision.Value : null,
             detalles,
             zonas,
             r.RepartoZonaId,

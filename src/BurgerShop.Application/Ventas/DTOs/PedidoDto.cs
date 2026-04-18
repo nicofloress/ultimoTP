@@ -107,7 +107,7 @@ public record ActualizarVentaDto(
     List<CrearPagoVentaDto>? Pagos = null);
 
 public record CambiarEstadoDto(EstadoVenta NuevoEstado);
-public record CambiarEstadoPedidoDto(EstadoVenta NuevoEstado, string? Motivo = null, int? FormaPagoId = null);
+public record CambiarEstadoPedidoDto(EstadoVenta NuevoEstado, string? Motivo = null, int? FormaPagoId = null, List<PagoEntregaDto>? Pagos = null);
 public record CancelarVentaDto(string Motivo);
 
 public record AsignarEntregaDto(int VentaId, int RepartidorId);
@@ -115,7 +115,10 @@ public record AsignarEntregaDto(int VentaId, int RepartidorId);
 public record MarcarEntregadoDto(
     string? Notas = null,
     int? FormaPagoId = null,
-    string? ComprobanteBase64 = null);
+    string? ComprobanteBase64 = null,
+    List<PagoEntregaDto>? Pagos = null);
+
+public record PagoEntregaDto(int FormaPagoId, decimal Monto);
 
 public record EmpezarRepartoDto(List<AsignacionZonaDto> Asignaciones);
 public record AsignacionZonaDto(int ZonaId, int RepartidorId, decimal MontoInicialCambio = 0);

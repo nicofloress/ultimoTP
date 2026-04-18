@@ -1280,7 +1280,7 @@ export default function PedidosPage() {
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-gray-400">{new Date(p.fechaCreacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                <span className="text-[10px] text-gray-400">{new Date(p.fechaCreacion.endsWith('Z') ? p.fechaCreacion : p.fechaCreacion + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
               </div>
 
               {/* Fila 2: Direccion + Zona */}

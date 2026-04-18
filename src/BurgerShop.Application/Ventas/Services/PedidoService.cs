@@ -560,7 +560,7 @@ public class VentaService : IVentaService
         }
     }
 
-    public async Task<VentaDto?> CambiarEstadoPedidoAsync(int id, EstadoVenta nuevoEstado, string? motivo, int? formaPagoId = null)
+    public async Task<VentaDto?> CambiarEstadoPedidoAsync(int id, EstadoVenta nuevoEstado, string? motivo, int? formaPagoId = null, List<PagoEntregaDto>? pagos = null)
     {
         try
         {
@@ -593,8 +593,29 @@ public class VentaService : IVentaService
                 venta.MotivoCancelacion = null;
             }
 
-            // Actualizar forma de pago si se indicó (reemplaza cualquier multi-pago)
-            if (formaPagoId.HasValue)
+            // Actualizar forma de pago
+            if (pagos is { Count: > 0 })
+            {
+                // Pago dividido
+                venta.Pagos.Clear();
+                venta.FormaPagoId = null;
+                foreach (var pago in pagos)
+                {
+                    var fp = await _formaPagoRepo.GetByIdAsync(pago.FormaPagoId);
+                    var porcentaje = fp?.PorcentajeRecargo ?? 0m;
+                    var recargo = pago.Monto * porcentaje / 100m;
+                    venta.Pagos.Add(new Domain.Entities.Ventas.PagoVenta
+                    {
+                        FormaPagoId = pago.FormaPagoId,
+                        Monto = pago.Monto,
+                        PorcentajeRecargo = porcentaje,
+                        Recargo = recargo,
+                        TotalACobrar = pago.Monto + recargo
+                    });
+                }
+                venta.EstaPago = true;
+            }
+            else if (formaPagoId.HasValue)
             {
                 var formaPago = await _formaPagoRepo.GetByIdAsync(formaPagoId.Value);
                 if (formaPago is null)
@@ -608,6 +629,7 @@ public class VentaService : IVentaService
                 var recargo = baseCalculo * porcentaje / 100m;
                 venta.Recargo = recargo;
                 venta.Total = baseCalculo + recargo;
+                venta.EstaPago = true;
             }
 
             _ventaRepo.Update(venta);
@@ -823,7 +845,28 @@ public class VentaService : IVentaService
             venta.FechaEntrega = DateTime.Now;
             venta.NotasEntrega = dto.Notas;
 
-            if (dto.FormaPagoId.HasValue)
+            if (dto.Pagos is { Count: > 0 })
+            {
+                // Pago dividido: múltiples formas de pago
+                venta.Pagos.Clear();
+                venta.FormaPagoId = null;
+                foreach (var pago in dto.Pagos)
+                {
+                    var formaPago = await _formaPagoRepo.GetByIdAsync(pago.FormaPagoId);
+                    var porcentaje = formaPago?.PorcentajeRecargo ?? 0m;
+                    var recargo = pago.Monto * porcentaje / 100m;
+                    venta.Pagos.Add(new Domain.Entities.Ventas.PagoVenta
+                    {
+                        FormaPagoId = pago.FormaPagoId,
+                        Monto = pago.Monto,
+                        PorcentajeRecargo = porcentaje,
+                        Recargo = recargo,
+                        TotalACobrar = pago.Monto + recargo
+                    });
+                }
+                venta.EstaPago = true;
+            }
+            else if (dto.FormaPagoId.HasValue)
             {
                 venta.FormaPagoId = dto.FormaPagoId.Value;
                 venta.EstaPago = true;

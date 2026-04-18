@@ -16,6 +16,7 @@ public record RendicionDto(
     string? Observaciones,
     bool Aprobada,
     DateTime? FechaAprobacion,
+    int? ResultadoRevision,
     List<RendicionDetalleDto> Detalles,
     List<RendicionZonaDto> Zonas,
     int? RepartoZonaId,
@@ -41,7 +42,8 @@ public record CrearRendicionDto(
 
 public record AprobarRendicionDto(
     bool Aprobada,
-    string? Observaciones);
+    string? Observaciones,
+    int? ResultadoRevision = null);
 
 public record RendicionZonaDto(
     int ZonaId,

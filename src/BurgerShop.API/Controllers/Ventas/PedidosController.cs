@@ -185,7 +185,7 @@ public class VentasController : ControllerBase
     {
         try
         {
-            var venta = await _service.CambiarEstadoPedidoAsync(id, dto.NuevoEstado, dto.Motivo, dto.FormaPagoId);
+            var venta = await _service.CambiarEstadoPedidoAsync(id, dto.NuevoEstado, dto.Motivo, dto.FormaPagoId, dto.Pagos);
             if (venta is null) return NotFound();
             await _notificaciones.NotificarCambioEstadoAsync(venta.Id, venta.NumeroTicket, dto.NuevoEstado.ToString(), venta.LocalId);
             return Ok(venta);

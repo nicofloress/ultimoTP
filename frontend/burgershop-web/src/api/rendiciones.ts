@@ -37,6 +37,7 @@ export interface RendicionDto {
   observaciones?: string;
   aprobada: boolean;
   fechaAprobacion?: string;
+  resultadoRevision?: number | null;
   detalles: RendicionDetalleDto[];
   zonas: RendicionZonaDto[];
   repartoZonaId?: number;
@@ -55,7 +56,7 @@ export const getRendicionesRepartidor = (id: number) =>
 export const getRendicion = (id: number) =>
   api.get<RendicionDto>(`/rendiciones/${id}`).then(r => r.data);
 
-export const aprobarRendicion = (id: number, data: { aprobada: boolean; observaciones?: string }) =>
+export const aprobarRendicion = (id: number, data: { aprobada: boolean; observaciones?: string; resultadoRevision?: number | null }) =>
   api.put<RendicionDto>(`/rendiciones/${id}/aprobar`, data).then(r => r.data);
 
 export const getEstadoRepartoRepartidor = (repartidorId: number) =>

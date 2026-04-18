@@ -25,6 +25,7 @@ public class RendicionRepartidor
     public string? Observaciones { get; set; }
     public bool Aprobada { get; set; }
     public DateTime? FechaAprobacion { get; set; }
+    public Enums.ResultadoRevision? ResultadoRevision { get; set; }
 
     public List<RendicionDetalle> Detalles { get; set; } = new();
 }

@@ -54,7 +54,9 @@ export default function RendicionesPage() {
   const [editandoEstadoPedidoId, setEditandoEstadoPedidoId] = useState<number | null>(null);
   const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState<EstadoVenta>(EstadoVenta.Entregado);
   const [motivoNoEntregado, setMotivoNoEntregado] = useState('');
-  const [nuevaFormaPagoId, setNuevaFormaPagoId] = useState<number | ''>('');
+  const [nuevaFormaPagoId, setNuevaFormaPagoId] = useState<number | '' | 'dividido'>('');
+  const [montoEfectivoRend, setMontoEfectivoRend] = useState('');
+  const [montoTransferenciaRend, setMontoTransferenciaRend] = useState('');
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const [guardandoEstadoPedido, setGuardandoEstadoPedido] = useState(false);
 
@@ -86,6 +88,8 @@ export default function RendicionesPage() {
     setEditandoEstadoPedidoId(null);
     setMotivoNoEntregado('');
     setNuevaFormaPagoId('');
+    setMontoEfectivoRend('');
+    setMontoTransferenciaRend('');
   };
 
   const confirmarCambioEstado = async () => {
@@ -96,11 +100,23 @@ export default function RendicionesPage() {
     }
     setGuardandoEstadoPedido(true);
     try {
+      const pagosDiv = nuevaFormaPagoId === 'dividido'
+        ? (() => {
+            const ef = parseFloat(montoEfectivoRend) || 0;
+            const tr = parseFloat(montoTransferenciaRend) || 0;
+            const p: { formaPagoId: number; monto: number }[] = [];
+            if (ef > 0) p.push({ formaPagoId: 1, monto: ef });
+            if (tr > 0) p.push({ formaPagoId: 2, monto: tr });
+            return p.length > 0 ? p : undefined;
+          })()
+        : undefined;
+
       await cambiarEstadoPedido(
         editandoEstadoPedidoId,
         nuevoEstadoPedido,
         nuevoEstadoPedido === EstadoVenta.NoEntregado ? motivoNoEntregado.trim() : undefined,
-        typeof nuevaFormaPagoId === 'number' ? nuevaFormaPagoId : undefined
+        typeof nuevaFormaPagoId === 'number' ? nuevaFormaPagoId : undefined,
+        pagosDiv
       );
       showToast('Pedido actualizado', 'success');
       cerrarEditarEstado();
@@ -214,8 +230,16 @@ export default function RendicionesPage() {
     ? efectivoDeclaradoNum - repartidorSeleccionado.totalEfectivo
     : 0;
 
+  const pedidosPagoPendiente = repartidorSeleccionado?.pedidos.filter(
+    p => p.estado === 'Entregado' && !p.formaPago
+  ) ?? [];
+
   const handleCrearRendicion = async () => {
     if (!repartidorSeleccionado) return;
+    if (pedidosPagoPendiente.length > 0) {
+      showToast(`Hay ${pedidosPagoPendiente.length} pedido(s) con pago pendiente. Asignales una forma de pago antes de crear la rendicion.`, 'error');
+      return;
+    }
     setCreandoRendicion(true);
     try {
       await crearRendicion({
@@ -278,18 +302,26 @@ export default function RendicionesPage() {
     return { pendientes: pendientes.length, aprobadas: aprobadas.length, totalEfectivo, totalTransferencia };
   }, [rendiciones]);
 
+  const [resultadoRevision, setResultadoRevision] = useState<number | null>(null);
+
   const handleAccion = (id: number, aprobar: boolean) => {
     setAccionPendiente({ id, aprobar });
     setObsAdmin('');
+    setResultadoRevision(null);
   };
 
   const confirmarAccion = async () => {
     if (!accionPendiente) return;
+    if (accionPendiente.aprobar && !resultadoRevision) {
+      showToast('Selecciona el resultado de la revision', 'error');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarRendicion(accionPendiente.id, {
         aprobada: accionPendiente.aprobar,
         observaciones: obsAdmin || undefined,
+        resultadoRevision: accionPendiente.aprobar ? resultadoRevision : undefined,
       });
       showToast(
         accionPendiente.aprobar ? 'Rendicion aprobada' : 'Rendicion rechazada',
@@ -316,9 +348,21 @@ export default function RendicionesPage() {
     });
   };
 
+  const getResultadoBadge = (resultado?: number | null) => {
+    if (resultado === 1) return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Sin Diferencia</span>;
+    if (resultado === 2) return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800">Dif. Leve</span>;
+    if (resultado === 3) return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">Dif. Grave</span>;
+    return null;
+  };
+
   const getEstadoBadge = (r: RendicionDto) => {
     if (r.aprobada) {
-      return <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">Aprobada</span>;
+      return (
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">Aprobada</span>
+          {getResultadoBadge(r.resultadoRevision)}
+        </div>
+      );
     }
     if (r.fechaAprobacion) {
       return <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">Rechazada</span>;
@@ -1008,10 +1052,12 @@ export default function RendicionesPage() {
                   </button>
                   <button
                     onClick={handleCrearRendicion}
-                    disabled={creandoRendicion || efectivoDeclarado === ''}
+                    disabled={creandoRendicion || efectivoDeclarado === '' || pedidosPagoPendiente.length > 0}
                     className="flex-[1.5] py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white hover:bg-amber-700 transition-colors shadow-md shadow-amber-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {creandoRendicion ? 'Creando...' : 'Crear Rendicion'}
+                    {pedidosPagoPendiente.length > 0
+                      ? `${pedidosPagoPendiente.length} pago(s) pendiente(s)`
+                      : creandoRendicion ? 'Creando...' : 'Crear Rendicion'}
                   </button>
                 </div>
               )}
@@ -1042,13 +1088,17 @@ export default function RendicionesPage() {
                           }`}>{p.estado}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {p.formaPago && (
+                          {p.formaPago ? (
                             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                               p.formaPago.toLowerCase().includes('efectivo')
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-blue-100 text-blue-700'
                             }`}>{p.formaPago}</span>
-                          )}
+                          ) : p.estado === 'Entregado' ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-orange-100 text-orange-700 border border-orange-300">
+                              Pago Pendiente
+                            </span>
+                          ) : null}
                           <span className="text-sm font-bold text-gray-800">${p.total.toLocaleString('es-AR')}</span>
                           {puedeEditarEstado && (
                             <button
@@ -1106,14 +1156,51 @@ export default function RendicionesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Forma de pago</label>
                 <select
                   value={nuevaFormaPagoId}
-                  onChange={e => setNuevaFormaPagoId(e.target.value === '' ? '' : Number(e.target.value))}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setNuevaFormaPagoId(v === '' ? '' : v === 'dividido' ? 'dividido' : Number(v));
+                    if (v !== 'dividido') { setMontoEfectivoRend(''); setMontoTransferenciaRend(''); }
+                  }}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                 >
                   <option value="">— Sin cambios —</option>
                   {formasPago.map(fp => (
                     <option key={fp.id} value={fp.id}>{fp.nombre}</option>
                   ))}
+                  <option value="dividido">Dividido (Efectivo + Transferencia)</option>
                 </select>
+                {nuevaFormaPagoId === 'dividido' && (
+                  <div className="mt-2 flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Efectivo</label>
+                      <input
+                        type="number"
+                        value={montoEfectivoRend}
+                        onChange={e => {
+                          setMontoEfectivoRend(e.target.value);
+                          const totalPedido = repartidorSeleccionado?.pedidos.find(p => p.id === editandoEstadoPedidoId)?.total ?? 0;
+                          const ef = parseFloat(e.target.value) || 0;
+                          const resto = Math.max(0, totalPedido - ef);
+                          setMontoTransferenciaRend(resto > 0 ? resto.toString() : '');
+                        }}
+                        placeholder="$0"
+                        className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                        min={0}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Transferencia</label>
+                      <input
+                        type="number"
+                        value={montoTransferenciaRend}
+                        onChange={e => setMontoTransferenciaRend(e.target.value)}
+                        placeholder="$0"
+                        className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               {nuevoEstadoPedido === EstadoVenta.NoEntregado && (
                 <div>
@@ -1162,15 +1249,38 @@ export default function RendicionesPage() {
         textoConfirmar={accionPendiente?.aprobar ? 'Aprobar' : 'Rechazar'}
         cargando={procesando}
         detalle={
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones (opcional)</label>
-            <textarea
-              value={obsAdmin}
-              onChange={e => setObsAdmin(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm resize-none"
-              rows={2}
-              placeholder="Observaciones para el repartidor..."
-            />
+          <div className="space-y-3">
+            {accionPendiente?.aprobar && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Resultado de la revision</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { val: 1, label: 'Sin Diferencia', inactive: 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100', active: 'bg-green-600 text-white border-green-600' },
+                    { val: 2, label: 'Dif. Leve', inactive: 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100', active: 'bg-yellow-500 text-white border-yellow-500' },
+                    { val: 3, label: 'Dif. Grave', inactive: 'bg-red-50 text-red-700 border-red-300 hover:bg-red-100', active: 'bg-red-600 text-white border-red-600' },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => setResultadoRevision(opt.val)}
+                      className={`py-2 rounded-lg text-xs font-semibold border-2 transition-all ${resultadoRevision === opt.val ? opt.active : opt.inactive}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones (opcional)</label>
+              <textarea
+                value={obsAdmin}
+                onChange={e => setObsAdmin(e.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm resize-none"
+                rows={2}
+                placeholder="Observaciones para el repartidor..."
+              />
+            </div>
           </div>
         }
         onConfirmar={confirmarAccion}

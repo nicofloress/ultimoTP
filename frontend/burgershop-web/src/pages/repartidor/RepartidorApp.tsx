@@ -74,8 +74,10 @@ export default function RepartidorApp() {
   const [activeTab, setActiveTab] = useState<Tab>('pendientes');
   const [modalPedido, setModalPedido] = useState<Venta | null>(null);
   const [notasEntrega, setNotasEntrega] = useState('');
-  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'pendiente' | null>(null);
+  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'pendiente' | 'dividido' | null>(null);
   const [comprobanteBase64, setComprobanteBase64] = useState<string | null>(null);
+  const [montoEfectivo, setMontoEfectivo] = useState('');
+  const [montoTransferencia, setMontoTransferencia] = useState('');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [chatAbierto, setChatAbierto] = useState(false);
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0);
@@ -328,13 +330,27 @@ export default function RepartidorApp() {
 
     setActionLoading(modalPedido.id);
     try {
-      const data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string } = {
+      const data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string; pagos?: { formaPagoId: number; monto: number }[] } = {
         notas: notasEntrega || undefined,
       };
 
       if (!modalPedido.estaPago && metodoPago && metodoPago !== 'pendiente') {
-        data.formaPagoId = metodoPago === 'efectivo' ? 1 : 2;
-        if (metodoPago === 'transferencia' && comprobanteBase64) {
+        if (metodoPago === 'dividido') {
+          const efNum = parseFloat(montoEfectivo) || 0;
+          const trNum = parseFloat(montoTransferencia) || 0;
+          if (efNum <= 0 && trNum <= 0) {
+            showToast('Ingresa los montos del pago dividido', 'error');
+            setActionLoading(null);
+            return;
+          }
+          const pagos: { formaPagoId: number; monto: number }[] = [];
+          if (efNum > 0) pagos.push({ formaPagoId: 1, monto: efNum });
+          if (trNum > 0) pagos.push({ formaPagoId: 2, monto: trNum });
+          data.pagos = pagos;
+        } else {
+          data.formaPagoId = metodoPago === 'efectivo' ? 1 : 2;
+        }
+        if ((metodoPago === 'transferencia' || metodoPago === 'dividido') && comprobanteBase64) {
           data.comprobanteBase64 = comprobanteBase64;
         }
       }
@@ -565,7 +581,7 @@ export default function RepartidorApp() {
               onMover={moverPedido}
               actionLoading={actionLoading}
               onEnCamino={handleEnCamino}
-              onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
+              onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); setMontoEfectivo(''); setMontoTransferencia(''); }}
               onCancelar={(p) => { setCancelarPedido(p); setMotivoCancelacion(''); }}
               onNavegar={(p) => navegarAPedido(p)}
               formatTime={formatTime}
@@ -603,8 +619,12 @@ export default function RepartidorApp() {
           onMetodoPagoChange={setMetodoPago}
           comprobanteBase64={comprobanteBase64}
           onComprobanteChange={setComprobanteBase64}
+          montoEfectivo={montoEfectivo}
+          onMontoEfectivoChange={setMontoEfectivo}
+          montoTransferencia={montoTransferencia}
+          onMontoTransferenciaChange={setMontoTransferencia}
           onConfirm={handleEntregado}
-          onCancel={() => { setModalPedido(null); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); }}
+          onCancel={() => { setModalPedido(null); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); setMontoEfectivo(''); setMontoTransferencia(''); }}
           loading={actionLoading === modalPedido.id}
           formatTime={formatTime}
         />
@@ -1203,6 +1223,10 @@ function EntregaModal({
   onMetodoPagoChange,
   comprobanteBase64,
   onComprobanteChange,
+  montoEfectivo,
+  onMontoEfectivoChange,
+  montoTransferencia,
+  onMontoTransferenciaChange,
   onConfirm,
   onCancel,
   loading,
@@ -1211,10 +1235,14 @@ function EntregaModal({
   pedido: Venta;
   notas: string;
   onNotasChange: (v: string) => void;
-  metodoPago: 'efectivo' | 'transferencia' | 'pendiente' | null;
-  onMetodoPagoChange: (v: 'efectivo' | 'transferencia' | 'pendiente' | null) => void;
+  metodoPago: 'efectivo' | 'transferencia' | 'pendiente' | 'dividido' | null;
+  onMetodoPagoChange: (v: 'efectivo' | 'transferencia' | 'pendiente' | 'dividido' | null) => void;
   comprobanteBase64: string | null;
   onComprobanteChange: (v: string | null) => void;
+  montoEfectivo: string;
+  onMontoEfectivoChange: (v: string) => void;
+  montoTransferencia: string;
+  onMontoTransferenciaChange: (v: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
   loading: boolean;
@@ -1285,7 +1313,7 @@ function EntregaModal({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Metodo de pago
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => { onMetodoPagoChange('efectivo'); onComprobanteChange(null); }}
@@ -1312,6 +1340,18 @@ function EntregaModal({
                 </button>
                 <button
                   type="button"
+                  onClick={() => onMetodoPagoChange('dividido')}
+                  className={`py-3 rounded-lg font-semibold text-sm border-2 transition-all flex flex-col items-center gap-1 ${
+                    metodoPago === 'dividido'
+                      ? 'border-purple-500 bg-purple-50 text-purple-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="text-2xl">{'\uD83D\uDCB3'}</span>
+                  Dividido
+                </button>
+                <button
+                  type="button"
                   onClick={() => { onMetodoPagoChange('pendiente'); onComprobanteChange(null); }}
                   className={`py-3 rounded-lg font-semibold text-sm border-2 transition-all flex flex-col items-center gap-1 ${
                     metodoPago === 'pendiente'
@@ -1324,8 +1364,47 @@ function EntregaModal({
                 </button>
               </div>
 
-              {/* Subir comprobante si es transferencia */}
-              {metodoPago === 'transferencia' && (
+              {/* Montos pago dividido */}
+              {metodoPago === 'dividido' && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Efectivo</label>
+                      <input
+                        type="number"
+                        value={montoEfectivo}
+                        onChange={e => {
+                          onMontoEfectivoChange(e.target.value);
+                          const ef = parseFloat(e.target.value) || 0;
+                          const resto = Math.max(0, pedido.total - ef);
+                          onMontoTransferenciaChange(resto > 0 ? resto.toString() : '');
+                        }}
+                        placeholder="$0"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400"
+                        min={0}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Transferencia</label>
+                      <input
+                        type="number"
+                        value={montoTransferencia}
+                        onChange={e => onMontoTransferenciaChange(e.target.value)}
+                        placeholder="$0"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400"
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 text-right">
+                    Total: ${((parseFloat(montoEfectivo) || 0) + (parseFloat(montoTransferencia) || 0)).toLocaleString('es-AR')}
+                    {' / '}${pedido.total.toLocaleString('es-AR')}
+                  </p>
+                </div>
+              )}
+
+              {/* Subir comprobante si es transferencia o dividido */}
+              {(metodoPago === 'transferencia' || metodoPago === 'dividido') && (
                 <div className="mt-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Comprobante de transferencia <span className="text-gray-400 font-normal">(opcional)</span>
@@ -1387,7 +1466,7 @@ function EntregaModal({
             </button>
             <button
               onClick={onConfirm}
-              disabled={loading || (necesitaPago && !metodoPago)}
+              disabled={loading || (necesitaPago && !metodoPago) || (metodoPago === 'dividido' && (parseFloat(montoEfectivo) || 0) + (parseFloat(montoTransferencia) || 0) <= 0)}
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
