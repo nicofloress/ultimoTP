@@ -14,7 +14,6 @@ import VentasPage from './pages/pos/VentasPage';
 import CatalogoLayout from './pages/catalogo/CatalogoLayout';
 
 import ProductosPage from './pages/catalogo/ProductosPage';
-import CombosPage from './pages/catalogo/CombosPage';
 import ProveedoresPage from './pages/catalogo/ProveedoresPage';
 import RepartidoresPage from './pages/catalogo/RepartidoresPage';
 
@@ -85,9 +84,6 @@ export default function App() {
               <Route index element={<Navigate to="productos" replace />} />
               <Route path="productos" element={
                 <ProtectedRoute roles={[RolUsuario.Administrador]}><ProductosPage /></ProtectedRoute>
-              } />
-              <Route path="combos" element={
-                <ProtectedRoute roles={[RolUsuario.Administrador]}><CombosPage /></ProtectedRoute>
               } />
               <Route path="proveedores" element={
                 <ProtectedRoute roles={[]}><ProveedoresPage /></ProtectedRoute>

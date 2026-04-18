@@ -572,16 +572,24 @@ export default function ProductosPage() {
               <label className="text-xs font-medium text-gray-600">Productos del combo</label>
               <button type="button" onClick={() => setComboDetalles([...comboDetalles, { productoId: 0, cantidad: 1 }])} className="text-sm text-amber-600 hover:underline">+ Agregar producto</button>
             </div>
-            {comboDetalles.map((d, i) => (
-              <div key={i} className="flex gap-2 mb-2">
-                <select value={d.productoId} onChange={e => { const n = [...comboDetalles]; n[i].productoId = Number(e.target.value); setComboDetalles(n); }} className="border rounded px-3 py-2 flex-1">
-                  <option value={0}>Seleccionar producto</option>
-                  {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (${p.precio})</option>)}
-                </select>
-                <input type="number" value={d.cantidad} onChange={e => { const n = [...comboDetalles]; n[i].cantidad = Number(e.target.value); setComboDetalles(n); }} className="border rounded px-3 py-2 w-20" min={1} />
-                <button type="button" onClick={() => setComboDetalles(comboDetalles.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 px-2">X</button>
-              </div>
-            ))}
+            {comboDetalles.map((d, i) => {
+              const prod = productos.find(p => p.id === d.productoId);
+              const um = prod?.unidadMinima ?? 1;
+              const totalUn = d.cantidad * um;
+              return (
+                <div key={i} className="flex gap-2 mb-2 items-center">
+                  <select value={d.productoId} onChange={e => { const n = [...comboDetalles]; n[i].productoId = Number(e.target.value); setComboDetalles(n); }} className="border rounded px-3 py-2 flex-1">
+                    <option value={0}>Seleccionar producto</option>
+                    {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (${p.precio})</option>)}
+                  </select>
+                  <input type="number" value={d.cantidad} onChange={e => { const n = [...comboDetalles]; n[i].cantidad = Number(e.target.value); setComboDetalles(n); }} className="border rounded px-3 py-2 w-20" min={1} />
+                  {prod && d.cantidad > 0 && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">= {totalUn} un.</span>
+                  )}
+                  <button type="button" onClick={() => setComboDetalles(comboDetalles.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 px-2">X</button>
+                </div>
+              );
+            })}
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={guardando} className="text-purple-700 bg-purple-50 border border-purple-300 rounded-md hover:bg-purple-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editandoCombo ? 'Actualizar Combo' : 'Crear Combo')}</button>
