@@ -115,6 +115,23 @@ export default function Layout() {
     }))
     .filter((section) => section.items.length > 0);
 
+  // Estado colapsable por sección (persistido en localStorage)
+  const [seccionesColapsadas, setSeccionesColapsadas] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('sidebar_secciones_colapsadas');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+  const toggleSeccion = (title: string) => {
+    setSeccionesColapsadas(prev => {
+      const next = { ...prev, [title]: !prev[title] };
+      try { localStorage.setItem('sidebar_secciones_colapsadas', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
 
   useEffect(() => {
@@ -258,34 +275,51 @@ export default function Layout() {
         <div className="flex-1 flex flex-col min-w-[16rem]">
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-2 sidebar-scroll">
-            {filteredSections.map((section, sIdx) => (
-              <div key={sIdx}>
-                {sIdx > 0 && (
-                  <div className="mx-4 my-1 border-t border-slate-700" />
-                )}
-                {section.title && (
-                  <div className="px-5 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    {section.title}
-                  </div>
-                )}
-                {section.items.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      `block mx-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'bg-slate-700 text-white border-l-4 border-amber-500 pl-2'
-                          : 'hover:bg-slate-700/60 hover:text-white border-l-4 border-transparent pl-2'
-                      }`
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-            ))}
+            {filteredSections.map((section, sIdx) => {
+              const colapsada = section.title ? !!seccionesColapsadas[section.title] : false;
+              return (
+                <div key={sIdx}>
+                  {sIdx > 0 && (
+                    <div className="mx-4 my-1 border-t border-slate-700" />
+                  )}
+                  {section.title ? (
+                    <button
+                      onClick={() => toggleSeccion(section.title!)}
+                      className="w-full flex items-center justify-between px-5 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                      aria-expanded={!colapsada}
+                      aria-label={`${colapsada ? 'Expandir' : 'Colapsar'} ${section.title}`}
+                    >
+                      <span>{section.title}</span>
+                      <svg
+                        className={`w-3 h-3 transition-transform ${colapsada ? '' : 'rotate-90'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ) : null}
+                  {!colapsada && section.items.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      className={({ isActive }) =>
+                        `block mx-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-slate-700 text-white border-l-4 border-amber-500 pl-2'
+                            : 'hover:bg-slate-700/60 hover:text-white border-l-4 border-transparent pl-2'
+                        }`
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              );
+            })}
           </nav>
           {/* Version label */}
           <div className="px-4 py-2 border-t border-slate-700">
