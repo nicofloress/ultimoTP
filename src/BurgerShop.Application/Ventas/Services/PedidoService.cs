@@ -20,6 +20,8 @@ public class VentaService : IVentaService
     private readonly IRepository<FormaPago> _formaPagoRepo;
     private readonly ICierreCajaRepository _cajaRepo;
     private readonly IMovimientoService _movimientoService;
+    private readonly ICuentaCorrienteService _cuentaCorrienteService;
+    private readonly Domain.Interfaces.Ventas.ICuentaCorrienteRepository _cuentaCorrienteRepo;
     private readonly ILogger<VentaService> _logger;
 
     public VentaService(
@@ -29,6 +31,8 @@ public class VentaService : IVentaService
         IRepository<FormaPago> formaPagoRepo,
         ICierreCajaRepository cajaRepo,
         IMovimientoService movimientoService,
+        ICuentaCorrienteService cuentaCorrienteService,
+        Domain.Interfaces.Ventas.ICuentaCorrienteRepository cuentaCorrienteRepo,
         ILogger<VentaService> logger)
     {
         _ventaRepo = ventaRepo;
@@ -37,7 +41,57 @@ public class VentaService : IVentaService
         _formaPagoRepo = formaPagoRepo;
         _cajaRepo = cajaRepo;
         _movimientoService = movimientoService;
+        _cuentaCorrienteService = cuentaCorrienteService;
+        _cuentaCorrienteRepo = cuentaCorrienteRepo;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Registra un cargo en la cuenta corriente del cliente si la venta fue pagada (total o parcialmente) en cta cte.
+    /// Soporta pago simple (FormaPagoId) y pago dividido (Pagos).
+    /// Idempotente: si ya existe un cargo para esa venta, no crea otro.
+    /// </summary>
+    private async Task RegistrarCargoCtaCteAsync(Venta venta, int? usuarioId)
+    {
+        try
+        {
+            if (!venta.ClienteId.HasValue) return;
+
+            // Evitar doble cargo
+            var existente = await _cuentaCorrienteRepo.GetCargoPorVentaAsync(venta.Id);
+            if (existente != null) return;
+
+            decimal montoCargo = 0;
+            if (venta.Pagos != null && venta.Pagos.Any())
+            {
+                foreach (var pago in venta.Pagos)
+                {
+                    var fp = await _formaPagoRepo.GetByIdAsync(pago.FormaPagoId);
+                    if (fp != null && fp.Nombre.Equals("Cuenta Corriente", StringComparison.OrdinalIgnoreCase))
+                        montoCargo += pago.Monto;
+                }
+            }
+            else if (venta.FormaPagoId.HasValue)
+            {
+                var fp = await _formaPagoRepo.GetByIdAsync(venta.FormaPagoId.Value);
+                if (fp != null && fp.Nombre.Equals("Cuenta Corriente", StringComparison.OrdinalIgnoreCase))
+                    montoCargo = venta.Total;
+            }
+
+            if (montoCargo <= 0) return;
+
+            var dto = new CrearCargoDto(
+                ClienteId: venta.ClienteId.Value,
+                Monto: montoCargo,
+                VentaId: venta.Id,
+                Observaciones: $"Venta #{venta.NumeroTicket}");
+            await _cuentaCorrienteService.RegistrarCargoAsync(dto, usuarioId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en RegistrarCargoCtaCteAsync Venta#{VentaId}: {Message}", venta.Id, ex.Message);
+            // No bloquear el flujo principal
+        }
     }
 
     public async Task<VentaDto> CreateAsync(CrearVentaDto dto, int? usuarioId = null)
@@ -242,6 +296,10 @@ public class VentaService : IVentaService
                 {
                     // No bloquear la creación si falla el registro de movimientos
                 }
+
+                // Si la venta fue pagada con cuenta corriente, registrar el cargo
+                if (created != null)
+                    await RegistrarCargoCtaCteAsync(created, usuarioId);
             }
 
             return ToDto(created!);
@@ -574,6 +632,10 @@ public class VentaService : IVentaService
             _ventaRepo.Update(venta);
             await _ventaRepo.SaveChangesAsync();
 
+            // Si cambió a Entregado con cta cte, registrar cargo (idempotente)
+            if (nuevoEstado == EstadoVenta.Entregado)
+                await RegistrarCargoCtaCteAsync(venta, null);
+
             return ToDto(venta);
         }
         catch (InvalidOperationException ex)
@@ -821,6 +883,9 @@ public class VentaService : IVentaService
 
             if (venta.ZonaId.HasValue)
                 await _ventaRepo.IncrementarContadorRepartoAsync(venta.ZonaId.Value, EstadoVenta.Entregado);
+
+            // Si se entregó con forma de pago cta cte, registrar el cargo correspondiente
+            await RegistrarCargoCtaCteAsync(venta, null);
 
             return ToDto(venta);
         }
@@ -1116,6 +1181,43 @@ public class VentaService : IVentaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error en {Method}: {Message}", nameof(EnviarADepositoAsync), ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Crea cargos faltantes en cuenta corriente para ventas entregadas pagadas con cta cte.
+    /// Idempotente: no duplica cargos existentes.
+    /// Retorna la cantidad de cargos creados.
+    /// </summary>
+    public async Task<int> RepararCargosCtaCteAsync(DateTime desde, DateTime hasta)
+    {
+        try
+        {
+            var ventas = await _ventaRepo.GetByRangoFechasAsync(desde, hasta);
+            int creados = 0;
+            foreach (var v in ventas)
+            {
+                if (!v.ClienteId.HasValue) continue;
+                // Solo ventas finalizadas (entregadas o mostrador)
+                if (v.Estado != EstadoVenta.Entregado) continue;
+
+                var existente = await _cuentaCorrienteRepo.GetCargoPorVentaAsync(v.Id);
+                if (existente != null) continue;
+
+                var ventaConLineas = await _ventaRepo.GetByIdWithLineasAsync(v.Id);
+                if (ventaConLineas == null) continue;
+
+                var cuentaAntes = await _cuentaCorrienteRepo.GetCargoPorVentaAsync(v.Id);
+                await RegistrarCargoCtaCteAsync(ventaConLineas, null);
+                var cuentaDespues = await _cuentaCorrienteRepo.GetCargoPorVentaAsync(v.Id);
+                if (cuentaAntes == null && cuentaDespues != null) creados++;
+            }
+            return creados;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(RepararCargosCtaCteAsync), ex.Message);
             throw;
         }
     }

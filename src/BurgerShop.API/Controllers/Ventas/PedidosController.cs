@@ -195,4 +195,12 @@ public class VentasController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("reparar-cargos-ctacte")]
+    [Authorize(Roles = "SuperAdmin,Administrador")]
+    public async Task<ActionResult> RepararCargosCtaCte([FromQuery] DateTime desde, [FromQuery] DateTime hasta)
+    {
+        var creados = await _service.RepararCargosCtaCteAsync(desde, hasta);
+        return Ok(new { creados, mensaje = $"Se crearon {creados} cargos retroactivos." });
+    }
 }

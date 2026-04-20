@@ -101,12 +101,17 @@ export default function CuentaCorrientePage() {
     }
   };
 
+  const [cargandoMovs, setCargandoMovs] = useState(false);
+
   const cargarMovimientos = async (clienteId: number) => {
+    setCargandoMovs(true);
     try {
       const data = await getMovimientosCuenta(clienteId, desde || undefined, hasta || undefined);
       setMovimientos(data);
     } catch {
       showToast('Error al cargar movimientos', 'error');
+    } finally {
+      setCargandoMovs(false);
     }
   };
 
@@ -127,7 +132,7 @@ export default function CuentaCorrientePage() {
       cargarMovimientos(seleccionada.clienteId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seleccionada, desde, hasta]);
+  }, [seleccionada]);
 
   const seleccionar = (cuenta: CuentaCorrienteDto) => {
     setSeleccionada(cuenta);
@@ -352,6 +357,23 @@ export default function CuentaCorrientePage() {
                   max={hoy}
                   className="border rounded px-2 py-1 text-sm"
                 />
+                <button
+                  onClick={() => seleccionada && cargarMovimientos(seleccionada.clienteId)}
+                  disabled={!seleccionada || cargandoMovs}
+                  className="ml-1 px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {cargandoMovs ? (
+                    <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  )}
+                  {cargandoMovs ? 'Buscando...' : 'Buscar'}
+                </button>
               </div>
               {movimientos.length > 0 && (
                 <div className="flex gap-2">

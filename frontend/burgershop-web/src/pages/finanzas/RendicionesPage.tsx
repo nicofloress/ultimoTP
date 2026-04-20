@@ -180,12 +180,11 @@ export default function RendicionesPage() {
     } catch { /* silenciar */ }
   };
 
+  // Cargar al montar solo
   useEffect(() => {
     cargarDatos();
-  }, [filtroFechaDesde, filtroFechaHasta]);
-
-  useEffect(() => {
     cargarPendientesCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const abrirNuevaRendicion = useCallback(async () => {
@@ -453,10 +452,27 @@ export default function RendicionesPage() {
               <option value="rechazadas">Rechazadas</option>
             </select>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
+            <button
+              onClick={cargarDatos}
+              disabled={cargando}
+              className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {cargando ? (
+                <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              )}
+              {cargando ? 'Buscando...' : 'Buscar'}
+            </button>
             <button
               onClick={() => { setFiltroFechaDesde(hoy); setFiltroFechaHasta(hoy); setFiltroEstado('todas'); }}
-              className="text-sm text-gray-500 hover:text-gray-700 underline mt-5"
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
               Limpiar filtros
             </button>

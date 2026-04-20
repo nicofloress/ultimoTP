@@ -33,4 +33,5 @@ public interface IVentaService
     Task MarcarVencidoDepositoAsync(int ventaId);
     Task<VentaDto?> AsignarCajaActualAsync(int ventaId);
     Task EnviarADepositoAsync(int ventaId);
+    Task<int> RepararCargosCtaCteAsync(DateTime desde, DateTime hasta);
 }
