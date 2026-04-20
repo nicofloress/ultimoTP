@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Repartidor, Mensaje } from '../../types';
 import { getRepartidores } from '../../api/repartidores';
 import { getMensajesRepartidor, enviarMensajeAdmin, marcarLeidos, getNoLeidos } from '../../api/mensajes';
+import { useGlobalToast } from '../../components/Toast';
 
 interface Props {
   abierto: boolean;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function AdminChat({ abierto, onCerrar }: Props) {
+  const { showToast } = useGlobalToast();
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [seleccionado, setSeleccionado] = useState<Repartidor | null>(null);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
@@ -24,8 +26,9 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
       setRepartidores(reps.filter(r => r.activo));
     } catch (err) {
       console.error('Error cargando repartidores:', err);
+      showToast('Error al cargar repartidores', 'error');
     }
-  }, []);
+  }, [showToast]);
 
   const cargarNoLeidos = useCallback(async () => {
     try {
@@ -54,8 +57,9 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
       });
     } catch (err) {
       console.error('Error cargando mensajes:', err);
+      showToast('Error al cargar mensajes', 'error');
     }
-  }, [seleccionado]);
+  }, [seleccionado, showToast]);
 
   useEffect(() => {
     if (abierto) {
@@ -100,6 +104,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
       await cargarMensajes();
     } catch (err) {
       console.error('Error enviando mensaje:', err);
+      showToast('Error al enviar el mensaje', 'error');
     } finally {
       setEnviando(false);
     }
@@ -121,7 +126,13 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
   if (!abierto) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCerrar}>
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onCerrar}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Chat con repartidores"
+    >
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[80vh] flex overflow-hidden"
         onClick={e => e.stopPropagation()}
@@ -181,6 +192,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
             <button
               onClick={onCerrar}
               className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              aria-label="Cerrar chat"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -239,6 +251,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
                     onClick={handleEnviar}
                     disabled={!texto.trim() || enviando}
                     className="bg-slate-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    aria-label="Enviar mensaje"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

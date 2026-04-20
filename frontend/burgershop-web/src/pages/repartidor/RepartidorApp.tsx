@@ -180,6 +180,7 @@ export default function RepartidorApp() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       console.error('Error optimizando ruta:', msg, err);
+      showToast('No se pudo optimizar la ruta, reintentá en unos segundos', 'error');
     } finally {
       setOptimizando(false);
     }
@@ -208,7 +209,11 @@ export default function RepartidorApp() {
       }
       setActionLoading(null);
     }
-    const destino = encodeURIComponent(pedido.direccionEntrega!);
+    if (!pedido.direccionEntrega) {
+      showToast('El pedido no tiene dirección de entrega', 'error');
+      return;
+    }
+    const destino = encodeURIComponent(pedido.direccionEntrega);
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
     window.open(url, '_blank');
     // Refrescar datos al volver de Maps (el visibilitychange ya lo hace,

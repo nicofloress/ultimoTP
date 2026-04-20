@@ -4,6 +4,7 @@ import {
   getControlCamionetaHistorial, ControlCamionetaHistorialItem
 } from '../../api/entregas';
 import { useLocalActivo } from '../../context/LocalContext';
+import { useGlobalToast } from '../../components/Toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -426,6 +427,7 @@ function SeccionHistorial({ localActivo }: { localActivo: number | null }) {
 
 export default function ControlCamionetasPage() {
   const { localActivo } = useLocalActivo();
+  const { showToast } = useGlobalToast();
   const [data, setData] = useState<RepartidorTally[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -461,7 +463,7 @@ export default function ControlCamionetasPage() {
       pdf.save(`ControlCamionetas_${nombre}_${fecha}.pdf`);
     } catch (err) {
       console.error('Error generando PDF:', err);
-      alert('Error al generar el PDF. Revisá la consola del navegador.');
+      showToast('Error al generar el PDF', 'error');
     } finally {
       setGenerandoPDF(false);
     }
@@ -473,6 +475,7 @@ export default function ControlCamionetasPage() {
       setData(localActivo ? res.repartidores.filter(r => !r.repartidorLocalId || r.repartidorLocalId === localActivo) : res.repartidores);
     } catch (err) {
       console.error('Error cargando control camioneta:', err);
+      showToast('Error al cargar el control de camioneta', 'error');
     } finally {
       setLoading(false);
     }

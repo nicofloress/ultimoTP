@@ -93,6 +93,9 @@ export function ConfirmModal({
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       onClick={() => !cargando && onCancelar()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
     >
       <div
         className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
@@ -104,7 +107,7 @@ export function ConfirmModal({
             <Icon />
           </div>
           <div>
-            <h3 className="text-white font-bold text-lg">{titulo}</h3>
+            <h3 id="confirm-modal-title" className="text-white font-bold text-lg">{titulo}</h3>
             {mensaje && (
               <p className={`${mensajeColors[tipo] || mensajeColors.info} text-sm`}>{mensaje}</p>
             )}
