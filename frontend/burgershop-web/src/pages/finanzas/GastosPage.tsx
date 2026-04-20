@@ -11,6 +11,7 @@ import {
 import { getLocales, LocalDto } from '../../api/locales';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { FormaPago } from '../../types/ventas';
+import { compareBy } from '../../utils/tableSort';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { useGlobalToast } from '../../components/Toast';
@@ -130,15 +131,7 @@ export default function GastosPage() {
       const q = busquedaNombre.toLowerCase();
       lista = lista.filter(g => g.nombre.toLowerCase().includes(q));
     }
-    lista.sort((a, b) => {
-      const valA = (a as unknown as Record<string, unknown>)[ordenCol];
-      const valB = (b as unknown as Record<string, unknown>)[ordenCol];
-      let cmp = 0;
-      if (typeof valA === 'string' && typeof valB === 'string') cmp = valA.localeCompare(valB);
-      else if (typeof valA === 'number' && typeof valB === 'number') cmp = valA - valB;
-      else cmp = String(valA ?? '').localeCompare(String(valB ?? ''));
-      return ordenDir === 'asc' ? cmp : -cmp;
-    });
+    lista.sort((a, b) => compareBy(a, b, ordenCol, ordenDir));
     return lista;
   }, [gastos, busquedaNombre, ordenCol, ordenDir]);
 

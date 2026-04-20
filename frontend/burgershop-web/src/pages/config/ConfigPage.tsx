@@ -76,7 +76,7 @@ function TiposClienteTab({ onConfirm }: { onConfirm: (tipo: string, id: number, 
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2" required />
           <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2" />
           <label className="flex items-center gap-2 col-span-2">
@@ -496,7 +496,7 @@ function LocalesTab({ onConfirm }: { onConfirm: (tipo: string, id: number, nombr
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2" required />
           <div className="relative">
             <input type="text" value={form.direccion} onChange={e => { setForm({ ...form, direccion: e.target.value }); buscarDirLocal(e.target.value); setMostrarSugDirLocal(true); }} onFocus={() => { if (sugDirLocal.length > 0) setMostrarSugDirLocal(true); }} onBlur={() => setTimeout(() => setMostrarSugDirLocal(false), 200)} placeholder="Direccion" className="border rounded px-3 py-2 w-full" />

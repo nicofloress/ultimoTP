@@ -6,6 +6,7 @@ import { Producto } from '../../types';
 import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import { compareBy } from '../../utils/tableSort';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -89,15 +90,7 @@ export default function TransferenciasPage() {
 
   const movFiltrados = useMemo(() => {
     const lista = [...movimientos];
-    lista.sort((a, b) => {
-      const va = (a as unknown as Record<string, unknown>)[ordenCol];
-      const vb = (b as unknown as Record<string, unknown>)[ordenCol];
-      let cmp = 0;
-      if (typeof va === 'string' && typeof vb === 'string') cmp = va.localeCompare(vb);
-      else if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
-      else cmp = String(va ?? '').localeCompare(String(vb ?? ''));
-      return ordenDir === 'asc' ? cmp : -cmp;
-    });
+    lista.sort((a, b) => compareBy(a, b, ordenCol, ordenDir));
     return lista;
   }, [movimientos, ordenCol, ordenDir]);
 

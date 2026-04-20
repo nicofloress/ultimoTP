@@ -389,7 +389,7 @@ export default function ProductosPage() {
 
       {/* Form admin */}
       {showForm && esSuperAdmin && (
-        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-3 grid grid-cols-2 gap-3 text-sm">
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
             <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 w-full" required />

@@ -13,6 +13,7 @@ import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { compareBy } from '../../utils/tableSort';
 
 const inputClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -130,15 +131,7 @@ export default function ComprasPage() {
   const movimientosFiltrados = useMemo(() => {
     let lista = [...movimientos];
     if (filtroProducto !== '') lista = lista.filter(m => m.productoId === filtroProducto);
-    lista.sort((a, b) => {
-      const valA = (a as unknown as Record<string, unknown>)[ordenCol];
-      const valB = (b as unknown as Record<string, unknown>)[ordenCol];
-      let cmp = 0;
-      if (typeof valA === 'string' && typeof valB === 'string') cmp = valA.localeCompare(valB);
-      else if (typeof valA === 'number' && typeof valB === 'number') cmp = valA - valB;
-      else cmp = String(valA ?? '').localeCompare(String(valB ?? ''));
-      return ordenDir === 'asc' ? cmp : -cmp;
-    });
+    lista.sort((a, b) => compareBy(a, b, ordenCol, ordenDir));
     return lista;
   }, [movimientos, filtroProducto, ordenCol, ordenDir]);
 

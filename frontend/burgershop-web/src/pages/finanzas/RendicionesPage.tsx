@@ -582,7 +582,7 @@ export default function RendicionesPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setDetalleId(null); setPedidoExpandidoId(null); setPedidoExpandido(null); }}>
           <div className="flex items-stretch gap-3 max-h-[85vh]" onClick={e => e.stopPropagation()}>
             {/* Panel izquierdo: Rendición */}
-            <div className="bg-white rounded-xl shadow-2xl w-[28rem] overflow-hidden flex flex-col flex-shrink-0">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md sm:w-[28rem] overflow-hidden flex flex-col flex-shrink-0">
               {/* Header */}
               <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0 bg-slate-700">
                 <div>
