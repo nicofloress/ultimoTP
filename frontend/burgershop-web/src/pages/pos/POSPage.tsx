@@ -296,7 +296,11 @@ export default function POSPage() {
   const eliminarItem = (index: number) => setCarrito(carrito.filter((_, i) => i !== index));
 
   // --- Calculos ---
-  const subtotal = carrito.reduce((sum, item) => sum + item.precioUnitario * item.cantidad, 0);
+  const subtotalLinea = (item: CarritoItem) => {
+    const desc = item.descuentoPorcentaje ?? 0;
+    return item.precioUnitario * item.cantidad * (1 - desc / 100);
+  };
+  const subtotal = carrito.reduce((sum, item) => sum + subtotalLinea(item), 0);
 
   const descuentoCalculado = tipoDescuento === '%'
     ? Math.round(subtotal * descuento / 100)
@@ -545,8 +549,10 @@ export default function POSPage() {
         productoId: item.productoId,
         comboId: item.comboId,
         cantidad: item.cantidad,
-        precioUnitario: item.precioUnitario,
-        notas: item.notas,
+        precioUnitario: Math.round(item.precioUnitario * (1 - (item.descuentoPorcentaje ?? 0) / 100) * 100) / 100,
+        notas: (item.descuentoPorcentaje ?? 0) > 0
+          ? `${item.notas ? item.notas + ' | ' : ''}Desc ${item.descuentoPorcentaje}% (precio original $${item.precioUnitario})`
+          : item.notas,
       }));
       const esCtaCte = modoPago === 'cuentaCorriente';
       const ctaCteFormaPago = formasPago.find(fp => fp.nombre === 'Cuenta Corriente');
@@ -885,6 +891,7 @@ export default function POSPage() {
                 <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Cant</th>
                 <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Unidades</th>
                 <th className="text-right px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Precio</th>
+                <th className="text-center px-1 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Desc%</th>
                 <th className="text-right px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">SubTotal</th>
                 <th className="w-7 px-1"></th>
               </tr>
@@ -895,7 +902,7 @@ export default function POSPage() {
               <tbody>
                 {carrito.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-6 text-gray-400">
+                    <td colSpan={8} className="text-center py-6 text-gray-400">
                       <svg className="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
                       </svg>
@@ -934,8 +941,30 @@ export default function POSPage() {
                             decimales
                           />
                         </td>
+                        <td className="px-1 py-1 w-16">
+                          <input
+                            type="number"
+                            value={item.descuentoPorcentaje ?? 0}
+                            onChange={e => {
+                              const v = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                              actualizarItem(i, 'descuentoPorcentaje', v);
+                            }}
+                            className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                            min={0}
+                            max={100}
+                            step={1}
+                            title="Descuento % por artículo"
+                          />
+                        </td>
                         <td className="px-2.5 py-1.5 text-right font-semibold text-gray-800 w-24">
-                          ${formatearNumero(item.precioUnitario * item.cantidad)}
+                          {(item.descuentoPorcentaje ?? 0) > 0 ? (
+                            <div className="flex flex-col items-end leading-tight">
+                              <span className="text-xs text-gray-400 line-through">${formatearNumero(item.precioUnitario * item.cantidad)}</span>
+                              <span className="text-green-700">${formatearNumero(subtotalLinea(item))}</span>
+                            </div>
+                          ) : (
+                            <span>${formatearNumero(item.precioUnitario * item.cantidad)}</span>
+                          )}
                         </td>
                         <td className="px-1 py-1.5 w-7">
                           <button onClick={() => eliminarItem(i)} className="text-gray-300 hover:text-red-500 transition-colors p-0.5 rounded hover:bg-red-50">

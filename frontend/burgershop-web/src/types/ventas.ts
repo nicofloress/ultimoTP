@@ -76,6 +76,8 @@ export interface CarritoItem {
   nombre: string;
   cantidad: number;
   precioUnitario: number;
+  /** Porcentaje de descuento aplicado sobre precioUnitario (0-100). 0 = sin descuento */
+  descuentoPorcentaje?: number;
   notas?: string;
 }
 
