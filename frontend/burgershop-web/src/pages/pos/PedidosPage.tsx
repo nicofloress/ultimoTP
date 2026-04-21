@@ -31,6 +31,9 @@ import { useGlobalToast } from '../../components/Toast';
 import { getPromociones, PromocionDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { formatearNumero } from '../../components/NumericInput';
+import ModalCancelarPedido from './pedidos/ModalCancelarPedido';
+import ModalAsignarRepartidor from './pedidos/ModalAsignarRepartidor';
+import ModalMapaGrande from './pedidos/ModalMapaGrande';
 
 const inputClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors';
 const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -1391,55 +1394,15 @@ export default function PedidosPage() {
 
       {/* ============ MODAL MAPA GRANDE ============ */}
       {mostrarMapaGrande && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setMostrarMapaGrande(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-800">Seleccionar ubicacion</h3>
-              {coordenadas && (
-                <span className="text-sm text-gray-500 truncate max-w-md">{direccion || 'Ubicacion seleccionada'}</span>
-              )}
-              <button onClick={() => setMostrarMapaGrande(false)} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="flex-1 relative">
-              <GoogleMap
-                coordenadas={coordenadas || coordenadasLocal || { lat: -34.6037, lng: -58.3816 }}
-                className="h-full"
-                onClick={(coords, dir) => {
-                  setCoordenadas(coords);
-                  setDireccion(dir);
-                }}
-              />
-              {!coordenadas && (
-                <div className="absolute inset-0 flex items-end justify-center pb-6 pointer-events-none">
-                  <span className="bg-black/60 text-white text-sm px-4 py-2 rounded-full">Hace click en el mapa para seleccionar ubicacion</span>
-                </div>
-              )}
-            </div>
-            {coordenadas && (
-              <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  <span className="font-medium">Direccion:</span> {direccion || '-'}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { limpiarCoordenadas(); setDireccion(''); }}
-                    className="px-3 py-1.5 text-sm text-red-600 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 transition-colors"
-                  >
-                    Limpiar
-                  </button>
-                  <button
-                    onClick={() => setMostrarMapaGrande(false)}
-                    className="px-3 py-1.5 text-sm text-white bg-amber-500 rounded-md hover:bg-amber-600 transition-colors font-medium"
-                  >
-                    Confirmar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ModalMapaGrande
+          coordenadas={coordenadas}
+          coordenadasLocal={coordenadasLocal}
+          direccion={direccion}
+          setCoordenadas={setCoordenadas}
+          setDireccion={setDireccion}
+          limpiarCoordenadas={limpiarCoordenadas}
+          onCerrar={() => setMostrarMapaGrande(false)}
+        />
       )}
 
       {/* ============ MODAL CATALOGO ============ */}
@@ -1614,72 +1577,26 @@ export default function PedidosPage() {
 
       {/* ============ MODAL CANCELAR PEDIDO ============ */}
       {pedidoCancelar && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setPedidoCancelar(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="bg-red-600 px-5 py-3 rounded-t-xl">
-              <h3 className="text-white font-bold">Cancelar pedido</h3>
-              <p className="text-red-100 text-sm">#{pedidoCancelar.numeroTicket}</p>
-            </div>
-            <div className="px-5 py-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Motivo de cancelacion *</label>
-              <textarea
-                value={motivoCancelacion}
-                onChange={e => setMotivoCancelacion(e.target.value)}
-                placeholder="Ingresa el motivo..."
-                rows={3}
-                className={`${inputClass} resize-none`}
-                autoFocus
-              />
-            </div>
-            <div className="px-5 py-3 flex gap-3 border-t border-gray-200">
-              <button
-                onClick={() => { setPedidoCancelar(null); setMotivoCancelacion(''); }}
-                className="flex-1 py-2 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Volver
-              </button>
-              <button
-                onClick={confirmarCancelacion}
-                disabled={!motivoCancelacion.trim()}
-                className="flex-1 py-2 rounded-lg font-bold text-sm bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                Cancelar pedido
-              </button>
-            </div>
-          </div>
-        </div>
+        <ModalCancelarPedido
+          pedido={pedidoCancelar}
+          motivoCancelacion={motivoCancelacion}
+          setMotivoCancelacion={setMotivoCancelacion}
+          onConfirmar={confirmarCancelacion}
+          onCerrar={() => { setPedidoCancelar(null); setMotivoCancelacion(""); }}
+          inputClass={inputClass}
+        />
       )}
 
       {/* Modal Preparar Todos eliminado */}
 
       {/* ============ MODAL ASIGNAR REPARTIDOR ============ */}
       {mostrarAsignarRepartidor && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setMostrarAsignarRepartidor(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-              <h2 className="text-base font-bold text-gray-800">Asignar Repartidor</h2>
-              <button onClick={() => setMostrarAsignarRepartidor(null)} className="text-gray-400 hover:text-gray-600 p-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-              {repartidores.filter(r => r.activo).map(r => (
-                <button
-                  key={r.id}
-                  onClick={() => handleAsignarRepartidor(mostrarAsignarRepartidor, r.id)}
-                  className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all text-sm"
-                >
-                  <div className="font-medium text-gray-800">{r.nombre}</div>
-                  {r.telefono && <div className="text-xs text-gray-500">{r.telefono}</div>}
-                  {r.vehiculo && <div className="text-xs text-gray-400">{r.vehiculo}</div>}
-                </button>
-              ))}
-              {repartidores.filter(r => r.activo).length === 0 && (
-                <p className="text-gray-400 text-center py-4 text-sm">No hay repartidores activos</p>
-              )}
-            </div>
-          </div>
-        </div>
+        <ModalAsignarRepartidor
+          pedido={mostrarAsignarRepartidor}
+          repartidores={repartidores}
+          onAsignar={handleAsignarRepartidor}
+          onCerrar={() => setMostrarAsignarRepartidor(null)}
+        />
       )}
     </div>
   );
