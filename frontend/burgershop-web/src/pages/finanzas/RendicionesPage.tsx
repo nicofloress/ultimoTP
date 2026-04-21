@@ -7,9 +7,9 @@ import {
   getRepartidoresPendientes,
   crearRendicion,
 } from '../../api/rendiciones';
-import { getVenta, cambiarEstadoPedido } from '../../api/pedidos';
+import { cambiarEstadoPedido } from '../../api/pedidos';
 import { getFormasPagoActivas } from '../../api/formasPago';
-import { Venta, FormaPago } from '../../types';
+import { FormaPago } from '../../types';
 import { EstadoVenta } from '../../types/ventas';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
@@ -46,10 +46,6 @@ export default function RendicionesPage() {
   const [creandoRendicion, setCreandoRendicion] = useState(false);
   const [, setMostrarPedidosReparto] = useState(false);
 
-  // Detalle de pedido expandido dentro del modal de rendición
-  const [pedidoExpandidoId, setPedidoExpandidoId] = useState<number | null>(null);
-  const [pedidoExpandido, setPedidoExpandido] = useState<Venta | null>(null);
-  const [cargandoPedido, setCargandoPedido] = useState(false);
 
   // Edición de estado de pedido (solo admin/superadmin)
   const { hasRole } = useAuth();
@@ -141,25 +137,6 @@ export default function RendicionesPage() {
     }
   };
 
-  const verDetallePedido = async (pedidoId: number) => {
-    if (pedidoExpandidoId === pedidoId) {
-      setPedidoExpandidoId(null);
-      setPedidoExpandido(null);
-      return;
-    }
-    setPedidoExpandidoId(pedidoId);
-    setPedidoExpandido(null);
-    setCargandoPedido(true);
-    try {
-      const data = await getVenta(pedidoId);
-      setPedidoExpandido(data);
-    } catch {
-      showToast('Error al cargar detalle del pedido', 'error');
-      setPedidoExpandidoId(null);
-    } finally {
-      setCargandoPedido(false);
-    }
-  };
 
   const cargarDatos = async () => {
     setCargando(true);
