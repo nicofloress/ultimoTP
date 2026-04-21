@@ -7,6 +7,8 @@ import { useGlobalToast } from '../../components/Toast';
 import { useLocalActivo } from '../../context/LocalContext';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import DetalleCajaModal from './caja/DetalleCajaModal';
+import RevisionCajaModal from './caja/RevisionCajaModal';
 
 const hoy = new Date();
 const hace7Dias = new Date(hoy);
@@ -605,412 +607,39 @@ export default function CajaPage() {
       />
 
       {/* Modal Detalle de Caja */}
-      {(cajaDetalle || cargandoDetalle) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !cargandoDetalle && setCajaDetalle(null)}>
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4" onClick={e => e.stopPropagation()}>
-            {cargandoDetalle ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-gray-500">Cargando detalle...</div>
-              </div>
-            ) : cajaDetalle && (() => {
-              const esAbierta = cajaDetalle.estado === EstadoCaja.Abierta;
-              const detalleEfectivo = cajaDetalle.detalles.find(d => d.formaPagoNombre.toLowerCase() === 'efectivo');
-              const ventasEfectivo = detalleEfectivo?.montoTotal ?? 0;
-              const plataformas = cajaDetalle.detalles.filter(d => d.formaPagoNombre.toLowerCase() !== 'efectivo');
-              const dineroEnCaja = cajaDetalle.montoInicial + ventasEfectivo;
-              const diferenciaCaja = cajaDetalle.montoFinal != null ? cajaDetalle.montoFinal - dineroEnCaja : 0;
-              const totalGeneralGeneral = cajaDetalle.detalles.reduce((s, d) => s + d.montoTotal, 0);
-
-              return (
-                <>
-                  {/* Header */}
-                  <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
-                    <h3 className="text-lg font-bold">Caja #{cajaDetalle.id}</h3>
-                    <button onClick={() => setCajaDetalle(null)} className="text-white hover:text-gray-300 transition-colors text-2xl leading-none">&times;</button>
-                  </div>
-
-                  {/* Info superior */}
-                  <div className="px-6 py-4 border-b bg-gray-50">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-sm text-gray-600">
-                        Desde: {formatFecha(cajaDetalle.fechaApertura)} hs.
-                        {' - '}
-                        Hasta: {cajaDetalle.fechaCierre ? `${formatFecha(cajaDetalle.fechaCierre)} hs.` : 'Abierta'}
-                      </span>
-                      <span className={`px-2.5 py-1 rounded text-xs font-bold ${
-                        esAbierta ? 'bg-green-100 text-green-800 border border-green-300'
-                        : cajaDetalle.estado === EstadoCaja.PendienteRevision ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                        : 'bg-red-100 text-red-800 border border-red-300'
-                      }`}>
-                        {esAbierta ? 'CAJA ABIERTA' : cajaDetalle.estado === EstadoCaja.PendienteRevision ? 'PENDIENTE REVISION' : 'CAJA CERRADA'}
-                      </span>
-                      <button
-                        onClick={() => window.print()}
-                        className="ml-auto text-slate-600 bg-slate-50 border border-slate-300 rounded-md hover:bg-slate-100 px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        Imprimir
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Cuerpo - 2 columnas */}
-                  <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Columna izquierda - Efectivo */}
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Efectivo</h4>
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Detalle</th>
-                              <th className="text-right px-4 py-2 text-xs font-medium text-gray-500">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            <tr>
-                              <td className="px-4 py-2 text-sm">Monto inicial</td>
-                              <td className="px-4 py-2 text-sm text-right">${formatMonto(cajaDetalle.montoInicial)}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2 text-sm text-green-700">+ Ingresos</td>
-                              <td className="px-4 py-2 text-sm text-right text-green-700">${formatMonto(0)}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2 text-sm text-red-600">- Retiros</td>
-                              <td className="px-4 py-2 text-sm text-right text-red-600">${formatMonto(0)}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2 text-sm text-green-700">+ Ventas</td>
-                              <td className="px-4 py-2 text-sm text-right text-green-700">${formatMonto(ventasEfectivo)}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2 text-sm text-red-600">- Compras</td>
-                              <td className="px-4 py-2 text-sm text-right text-red-600">${formatMonto(0)}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2 text-sm text-red-600">- Gastos</td>
-                              <td className="px-4 py-2 text-sm text-right text-red-600">${formatMonto(0)}</td>
-                            </tr>
-                            <tr className="bg-amber-50 border-t-2 border-amber-200">
-                              <td className="px-4 py-2 text-sm font-bold">Dinero en caja</td>
-                              <td className="px-4 py-2 text-sm text-right font-bold">${formatMonto(dineroEnCaja)}</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2 text-sm">Diferencia de caja</td>
-                              <td className={`px-4 py-2 text-sm text-right font-medium ${diferenciaCaja < 0 ? 'text-red-600' : diferenciaCaja > 0 ? 'text-green-700' : ''}`}>
-                                ${formatMonto(diferenciaCaja)}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Columna derecha - Plataformas de pago */}
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Plataformas de Pago</h4>
-                      {plataformas.length === 0 ? (
-                        <p className="text-gray-400 text-sm py-4">Sin operaciones en otras plataformas</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {plataformas.map(p => (
-                            <div key={p.id} className="border rounded-lg overflow-hidden">
-                              <div className="bg-slate-50 px-4 py-2 border-b">
-                                <span className="text-sm font-semibold text-slate-700">{p.formaPagoNombre}</span>
-                              </div>
-                              <div className="divide-y">
-                                <div className="flex justify-between px-4 py-2">
-                                  <span className="text-sm text-green-700">Ventas {p.formaPagoNombre}</span>
-                                  <span className="text-sm text-green-700">${formatMonto(p.montoTotal)}</span>
-                                </div>
-                                <div className="flex justify-between px-4 py-2">
-                                  <span className="text-sm text-red-600">Compras</span>
-                                  <span className="text-sm text-red-600">${formatMonto(0)}</span>
-                                </div>
-                                <div className="flex justify-between px-4 py-2 bg-amber-50 border-t border-amber-200">
-                                  <span className="text-sm font-bold">Total</span>
-                                  <span className="text-sm font-bold">${formatMonto(p.montoTotal)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg">
-                    {(cajaDetalle.totalNeto != null && cajaDetalle.totalNeto > 0) && (
-                      <div className="mb-3 border rounded-lg overflow-hidden">
-                        <div className="bg-slate-50 px-4 py-2 border-b">
-                          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Desglose Fiscal</span>
-                        </div>
-                        <div className="divide-y">
-                          <div className="flex justify-between px-4 py-2">
-                            <span className="text-sm text-gray-600">Total Neto (sin IVA)</span>
-                            <span className="text-sm font-medium text-gray-800">${formatMonto(cajaDetalle.totalNeto)}</span>
-                          </div>
-                          <div className="flex justify-between px-4 py-2">
-                            <span className="text-sm text-gray-600">IVA Debito Fiscal</span>
-                            <span className="text-sm font-medium text-gray-800">${formatMonto(cajaDetalle.totalIVA ?? 0)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-bold text-gray-800">
-                        TOTAL VENTAS: <span className="text-green-700">${formatMonto(totalGeneralGeneral)}</span>
-                      </div>
-                    </div>
-                    {cajaDetalle.observaciones && (
-                      <p className="text-sm text-gray-500 mt-2">
-                        <span className="font-medium">Observaciones:</span> {cajaDetalle.observaciones}
-                      </p>
-                    )}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+      <DetalleCajaModal
+        caja={cajaDetalle}
+        cargando={cargandoDetalle}
+        onClose={() => setCajaDetalle(null)}
+        formatMonto={formatMonto}
+        formatFecha={formatFecha}
+      />
       {/* Modal Revisión de Caja (admin) */}
       {cajaRevisando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => { setCajaRevisando(null); setFormaPagoExpandida(null); }}>
-          <div className="flex gap-0 items-start" onClick={e => e.stopPropagation()}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
-            <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
-              <h3 className="text-lg font-bold">Revisar Caja #{cajaRevisando.id}</h3>
-              <button onClick={() => setCajaRevisando(null)} className="text-white hover:text-gray-300 text-2xl">&times;</button>
-            </div>
-            <div className="p-6 space-y-4">
-              {/* Info */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-gray-50 rounded p-3">
-                  <div className="text-xs text-gray-500">Local</div>
-                  <div className="font-semibold">{cajaRevisando.localNombre || '-'}</div>
-                </div>
-                <div className="bg-gray-50 rounded p-3">
-                  <div className="text-xs text-gray-500">Periodo</div>
-                  <div className="font-semibold text-xs">{formatFecha(cajaRevisando.fechaApertura)} → {cajaRevisando.fechaCierre ? formatFecha(cajaRevisando.fechaCierre) : '-'}</div>
-                </div>
-              </div>
-
-              {/* Historial de revision (solo si ya fue revisada) */}
-              {cajaRevisando.fechaRevision && (
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-blue-600">Revisada originalmente:</span>
-                    <span className="font-medium text-blue-800">{formatFecha(cajaRevisando.fechaRevision)}</span>
-                  </div>
-                  {cajaRevisando.fechaUltimaModificacion && (
-                    <div className="flex justify-between">
-                      <span className="text-blue-600">Ultima modificacion:</span>
-                      <span className="font-medium text-blue-800">{formatFecha(cajaRevisando.fechaUltimaModificacion)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Montos */}
-              {(() => {
-                const efectivoVentas = cajaRevisando.detalles.find(d => d.formaPagoNombre.toLowerCase() === 'efectivo')?.montoTotal ?? 0;
-                const efectivoEsperado = cajaRevisando.montoInicial + efectivoVentas;
-                return (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 text-center">
-                  <div className="text-xs text-blue-600">Efectivo Esperado</div>
-                  <div className="text-lg font-bold text-blue-800">${formatMonto(efectivoEsperado)}</div>
-                  <div className="text-[10px] text-blue-500 mt-0.5">Inicial ${formatMonto(cajaRevisando.montoInicial)} + Vtas ${formatMonto(efectivoVentas)}</div>
-                </div>
-                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-center">
-                  <div className="text-xs text-amber-600">Efectivo Declarado</div>
-                  <div className="text-lg font-bold text-amber-800">${formatMonto(cajaRevisando.montoEfectivoReal ?? 0)}</div>
-                </div>
-                <div className={`rounded p-3 text-center border ${
-                  (cajaRevisando.diferenciaCaja ?? 0) === 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                }`}>
-                  <div className="text-xs text-gray-600">Diferencia</div>
-                  <div className={`text-lg font-bold ${(cajaRevisando.diferenciaCaja ?? 0) === 0 ? 'text-green-700' : 'text-red-700'}`}>
-                    ${formatMonto(cajaRevisando.diferenciaCaja ?? 0)}
-                  </div>
-                </div>
-              </div>
-                );
-              })()}
-
-              {/* Detalle por forma de pago */}
-              {cajaRevisando.detalles.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Detalle por Forma de Pago <span className="text-[10px] text-gray-400 normal-case">(click para ver desglose)</span></h4>
-                  <table className="w-full text-sm border rounded">
-                    <thead className="bg-gray-50"><tr>
-                      <th className="text-left px-3 py-2 text-xs text-gray-500">Forma</th>
-                      <th className="text-right px-3 py-2 text-xs text-gray-500">Operaciones</th>
-                      <th className="text-right px-3 py-2 text-xs text-gray-500">Monto</th>
-                    </tr></thead>
-                    <tbody className="divide-y">
-                      {cajaRevisando.detalles.map(d => {
-                        const activo = formaPagoExpandida === d.formaPagoNombre;
-                        return (
-                          <tr key={d.id} onClick={() => setFormaPagoExpandida(activo ? null : d.formaPagoNombre)} className={`cursor-pointer hover:bg-amber-50 transition-colors ${activo ? 'bg-amber-100' : ''}`}>
-                            <td className="px-3 py-1.5">
-                              <span className="inline-block w-3 text-gray-400">{activo ? '\u25B6' : '\u25BB'}</span> {d.formaPagoNombre}
-                            </td>
-                            <td className="px-3 py-1.5 text-right">{d.cantidadOperaciones}</td>
-                            <td className="px-3 py-1.5 text-right font-medium">${formatMonto(d.montoTotal)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Ventas resumen */}
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div className="bg-green-50 rounded p-2 text-center">
-                  <div className="text-xs text-green-600">Mostrador</div>
-                  <div className="font-bold text-green-700">{cajaRevisando.cantidadMostrador} - ${formatMonto(cajaRevisando.totalMostrador)}</div>
-                </div>
-                <div className="bg-blue-50 rounded p-2 text-center">
-                  <div className="text-xs text-blue-600">Domicilio</div>
-                  <div className="font-bold text-blue-700">{cajaRevisando.cantidadDomicilio} - ${formatMonto(cajaRevisando.totalDomicilio)}</div>
-                </div>
-                <div className="bg-purple-50 rounded p-2 text-center">
-                  <div className="text-xs text-purple-600">Cta Cte</div>
-                  <div className="font-bold text-purple-700">{cajaRevisando.cantidadCtaCte} - ${formatMonto(cajaRevisando.totalCtaCte)}</div>
-                </div>
-              </div>
-
-              {cajaRevisando.observaciones && (
-                <div className="text-sm text-gray-600"><span className="font-medium">Obs. cierre:</span> {cajaRevisando.observaciones}</div>
-              )}
-
-              {/* Movimiento correctivo */}
-              <div className="border-t pt-4">
-                <button
-                  onClick={() => setMostrarMovCorrectivo(!mostrarMovCorrectivo)}
-                  className="text-sm text-blue-600 hover:underline font-medium"
-                >
-                  {mostrarMovCorrectivo ? 'Ocultar' : 'Registrar movimiento correctivo'}
-                </button>
-                {mostrarMovCorrectivo && (
-                  <div className="mt-3 bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div className="flex gap-3">
-                      <select value={movTipo} onChange={e => setMovTipo(e.target.value as 'ingreso' | 'egreso')} className="border rounded px-3 py-2 text-sm">
-                        <option value="ingreso">Ingreso (ajuste +)</option>
-                        <option value="egreso">Egreso (ajuste -)</option>
-                      </select>
-                      <input type="number" value={movMonto || ''} onChange={e => setMovMonto(Number(e.target.value))} placeholder="Monto" className="border rounded px-3 py-2 text-sm w-32" min={0} />
-                      <input type="text" value={movObs} onChange={e => setMovObs(e.target.value)} placeholder="Motivo del ajuste" className="border rounded px-3 py-2 text-sm flex-1" />
-                      <button onClick={handleMovCorrectivo} disabled={movMonto <= 0} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 text-sm font-semibold disabled:opacity-50">
-                        Aplicar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Resultado revisión */}
-              <div className="border-t pt-4 space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Resultado de la revision</label>
-                  <div className="flex gap-2">
-                    {[
-                      { val: 1, label: 'Sin Diferencia', color: 'bg-green-100 text-green-800 border-green-300', active: 'bg-green-600 text-white' },
-                      { val: 2, label: 'Diferencia Leve', color: 'bg-yellow-100 text-yellow-800 border-yellow-300', active: 'bg-yellow-500 text-white' },
-                      { val: 3, label: 'Diferencia Grave', color: 'bg-red-100 text-red-800 border-red-300', active: 'bg-red-600 text-white' },
-                    ].map(opt => (
-                      <button
-                        key={opt.val}
-                        onClick={() => setRevResultado(opt.val)}
-                        className={`px-4 py-2 rounded-md text-sm font-semibold border transition-all ${revResultado === opt.val ? opt.active : opt.color}`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones de revision</label>
-                  <textarea value={revObservaciones} onChange={e => setRevObservaciones(e.target.value)} className="w-full border rounded px-3 py-2 text-sm resize-none" rows={2} placeholder="Notas del revisor..." />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end gap-3">
-              <button onClick={() => { setCajaRevisando(null); setFormaPagoExpandida(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800">Cancelar</button>
-              <button
-                onClick={handleRevisar}
-                disabled={revGuardando || revResultado === 0}
-                title={revResultado === 0 ? 'Seleccione un resultado de revision' : ''}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {revGuardando ? 'Guardando...' : 'Confirmar Revision'}
-              </button>
-            </div>
-          </div>
-
-          {/* Panel lateral - Desglose de forma de pago */}
-          {formaPagoExpandida && (
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
-              {(() => {
-                const ventasForma = ventasCaja.filter(v => v.formaPagoNombre === formaPagoExpandida);
-                const mostrador = ventasForma.filter(v => v.tipo === 1);
-                const domicilio = ventasForma.filter(v => v.tipo === 2);
-                const totalMostrador = mostrador.reduce((s, v) => s + v.total, 0);
-                const totalDomicilio = domicilio.reduce((s, v) => s + v.total, 0);
-                return (
-                  <>
-                    <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
-                      <h3 className="text-lg font-bold">{formaPagoExpandida}</h3>
-                      <button onClick={() => setFormaPagoExpandida(null)} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
-                    </div>
-                    <div className="p-4 bg-amber-50 border-b grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-white rounded px-3 py-2 border border-green-200">
-                        <div className="text-xs text-green-600 font-medium">Mostrador</div>
-                        <div className="font-bold text-green-700">{mostrador.length} - ${formatMonto(totalMostrador)}</div>
-                      </div>
-                      <div className="bg-white rounded px-3 py-2 border border-blue-200">
-                        <div className="text-xs text-blue-600 font-medium">Domicilio</div>
-                        <div className="font-bold text-blue-700">{domicilio.length} - ${formatMonto(totalDomicilio)}</div>
-                      </div>
-                    </div>
-                    <div className="overflow-y-auto flex-1 p-4">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr className="text-gray-600">
-                            <th className="text-left px-3 py-2 text-xs uppercase tracking-wider">Ticket</th>
-                            <th className="text-left px-3 py-2 text-xs uppercase tracking-wider">Tipo</th>
-                            <th className="text-right px-3 py-2 text-xs uppercase tracking-wider">Monto</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {ventasForma.map((v, i) => (
-                            <tr key={`${v.id}-${i}`} className="hover:bg-amber-50/50">
-                              <td className="px-3 py-2 font-mono text-xs">{v.numeroTicket}</td>
-                              <td className="px-3 py-2">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${v.tipo === 1 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                  {v.tipo === 1 ? 'Mostrador' : 'Domicilio'}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-right font-semibold">${formatMonto(v.total)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-          </div>
-        </div>
+        <RevisionCajaModal
+          caja={cajaRevisando}
+          ventasCaja={ventasCaja}
+          revResultado={revResultado}
+          setRevResultado={setRevResultado}
+          revObservaciones={revObservaciones}
+          setRevObservaciones={setRevObservaciones}
+          revGuardando={revGuardando}
+          mostrarMovCorrectivo={mostrarMovCorrectivo}
+          setMostrarMovCorrectivo={setMostrarMovCorrectivo}
+          movMonto={movMonto}
+          setMovMonto={setMovMonto}
+          movObs={movObs}
+          setMovObs={setMovObs}
+          movTipo={movTipo}
+          setMovTipo={setMovTipo}
+          formaPagoExpandida={formaPagoExpandida}
+          setFormaPagoExpandida={setFormaPagoExpandida}
+          onClose={() => { setCajaRevisando(null); setFormaPagoExpandida(null); }}
+          onRevisar={handleRevisar}
+          onMovCorrectivo={handleMovCorrectivo}
+          formatMonto={formatMonto}
+          formatFecha={formatFecha}
+        />
       )}
     </div>
   );
