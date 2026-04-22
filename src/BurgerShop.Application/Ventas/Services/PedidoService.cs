@@ -1082,6 +1082,82 @@ public class VentaService : IVentaService
         }
     }
 
+    public async Task<IEnumerable<RepartoAbandonadoDto>> GetRepartosAbandonadosAsync(int? localId)
+    {
+        try
+        {
+            var repartos = await _ventaRepo.GetRepartosAbandonadosAsync(localId);
+            var result = new List<RepartoAbandonadoDto>();
+
+            foreach (var r in repartos)
+            {
+                var ventas = await _ventaRepo.GetVentasByRepartoZonaIdAsync(r.Id);
+                result.Add(new RepartoAbandonadoDto(
+                    r.Id,
+                    r.ZonaId,
+                    r.Zona?.Nombre ?? string.Empty,
+                    r.RepartidorId,
+                    r.Repartidor?.Nombre ?? string.Empty,
+                    r.Fecha,
+                    ventas.Count,
+                    ventas.Count(v => v.Estado == EstadoVenta.Pendiente),
+                    ventas.Count(v => v.Estado == EstadoVenta.Entregado),
+                    ventas.Count(v => v.Estado == EstadoVenta.NoEntregado),
+                    ventas.Count(v => v.Estado == EstadoVenta.Cancelado),
+                    ventas.Count(v => v.Estado == EstadoVenta.EnCamino),
+                    ventas.Count(v => v.Estado == EstadoVenta.Asignado)
+                ));
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetRepartosAbandonadosAsync), ex.Message);
+            throw;
+        }
+    }
+
+    public async Task FinalizarRepartoAbandonadoAsync(int repartoZonaId)
+    {
+        try
+        {
+            var ventas = await _ventaRepo.GetVentasByRepartoZonaIdAsync(repartoZonaId);
+            var pendientes = ventas.Count(v => v.Estado == EstadoVenta.Pendiente);
+            if (pendientes > 0)
+                throw new InvalidOperationException(
+                    $"No se puede finalizar el reparto: {pendientes} pedido(s) siguen en estado Pendiente. Resolvelos desde Historial primero.");
+
+            var reparto = await _ventaRepo.FinalizarRepartoZonaPorIdAsync(repartoZonaId);
+            if (reparto == null)
+                throw new InvalidOperationException("Reparto no encontrado o ya estaba finalizado.");
+
+            // Generar movimientos de stock (EGR_VTA) para todas las ventas entregadas
+            var entregadas = ventas.Where(v => v.Estado == EstadoVenta.Entregado).ToList();
+            foreach (var venta in entregadas)
+            {
+                try
+                {
+                    await _movimientoService.RegistrarMovimientosVentaStockAsync(venta.Id, venta.LocalId ?? 1, null);
+                }
+                catch
+                {
+                    // No bloquear si falla un movimiento individual
+                }
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(FinalizarRepartoAbandonadoAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(FinalizarRepartoAbandonadoAsync), ex.Message);
+            throw;
+        }
+    }
+
     public async Task<VentaStatsDto> GetStatsAsync(DateTime fecha, int? localId = null, int? tipo = null)
     {
         try

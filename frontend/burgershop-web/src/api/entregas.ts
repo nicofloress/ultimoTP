@@ -22,6 +22,28 @@ export const finalizarRepartoZona = (zonaId: number, repartidorId: number) => ap
 export const empezarReparto = (asignaciones: { zonaId: number; repartidorId: number; montoInicialCambio: number }[]) =>
   api.post('/entregas/empezar-reparto', { asignaciones }).then(r => r.data);
 
+export interface RepartoAbandonadoDto {
+  id: number;
+  zonaId: number;
+  zonaNombre: string;
+  repartidorId: number;
+  repartidorNombre: string;
+  fecha: string;
+  totalVentas: number;
+  totalPendientes: number;
+  totalEntregados: number;
+  totalNoEntregados: number;
+  totalCancelados: number;
+  totalEnCamino: number;
+  totalAsignados: number;
+}
+
+export const getRepartosAbandonados = () =>
+  api.get<RepartoAbandonadoDto[]>('/entregas/repartos-abandonados').then(r => r.data);
+
+export const finalizarRepartoPorId = (id: number) =>
+  api.post(`/entregas/finalizar-reparto/${id}`).then(r => r.data);
+
 export interface CompletaMedia {
   completa: number;
   media: number;

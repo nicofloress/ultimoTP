@@ -24,6 +24,7 @@ public interface IVentaRepository : IRepository<Venta>
     // RepartoZona
     Task<RepartoZona> CrearRepartoZonaAsync(int zonaId, int repartidorId, int totalVentas, decimal montoInicialCambio = 0);
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
+    Task<RepartoZona?> FinalizarRepartoZonaPorIdAsync(int repartoZonaId);
     Task GuardarTallyRepartoAsync(int zonaId, int repartidorId, string tallyJson);
     Task<RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task IncrementarContadorRepartoAsync(int zonaId, EstadoVenta estadoFinal);
@@ -32,6 +33,8 @@ public interface IVentaRepository : IRepository<Venta>
     Task<List<RepartoZona>> GetRepartosZonaByRepartidorFechaAsync(int repartidorId, DateTime fecha);
     Task<List<RepartoZona>> GetRepartosZonaFinalizadosHoyAsync();
     Task<List<RepartoZona>> GetRepartosZonaFinalizadosByFechaAsync(DateTime fecha);
+    Task<List<RepartoZona>> GetRepartosAbandonadosAsync(int? localId);
+    Task<List<Venta>> GetVentasByRepartoZonaIdAsync(int repartoZonaId);
 
     // Dashboard
     Task<IEnumerable<Venta>> GetVentasHoyConLineasAsync(int? localId = null);

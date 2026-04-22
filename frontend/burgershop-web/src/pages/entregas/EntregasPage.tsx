@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Venta, Repartidor, EstadoVenta, estadoLabels, TipoVenta } from '../../types';
-import { getPedidosPorZona, empezarReparto, finalizarRepartoZona } from '../../api/entregas';
+import { getPedidosPorZona, empezarReparto, finalizarRepartoZona, getRepartosAbandonados, RepartoAbandonadoDto } from '../../api/entregas';
 import { getRepartidores } from '../../api/repartidores';
 import { getZonas } from '../../api/zonas';
 import { getProductos } from '../../api/productos';
@@ -8,6 +8,7 @@ import { crearVenta, getVenta } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
 import { useLocalActivo } from '../../context/LocalContext';
 import AdminChat from './AdminChat';
+import RepartosAbandonadosModal from './repartos/RepartosAbandonadosModal';
 
 // Separate from shared estadoColores: entregas uses different colors for visual distinction in the delivery context
 const estadoColorEntrega: Partial<Record<EstadoVenta, string>> = {
@@ -37,6 +38,21 @@ export default function EntregasPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { showToast } = useGlobalToast();
   const [chatAbierto, setChatAbierto] = useState(false);
+  const [repartosAbandonados, setRepartosAbandonados] = useState<RepartoAbandonadoDto[]>([]);
+  const [mostrarAbandonadosModal, setMostrarAbandonadosModal] = useState(false);
+
+  const cargarAbandonados = useCallback(async () => {
+    try {
+      const data = await getRepartosAbandonados();
+      setRepartosAbandonados(data);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarAbandonados();
+  }, [cargarAbandonados]);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -247,8 +263,35 @@ export default function EntregasPage() {
     }
   };
 
+  const cantidadAbandonados = repartosAbandonados.length;
+  const colorBanner = cantidadAbandonados === 0
+    ? ''
+    : cantidadAbandonados === 1
+      ? 'bg-amber-50 border-amber-300 text-amber-800'
+      : cantidadAbandonados < 6
+        ? 'bg-amber-100 border-amber-400 text-amber-900'
+        : 'bg-red-50 border-red-300 text-red-800';
+
   return (
     <div className="flex flex-col h-[calc(100vh-7.5rem)] overflow-hidden">
+      {/* Banner repartos sin finalizar */}
+      {cantidadAbandonados > 0 && (
+        <button
+          onClick={() => setMostrarAbandonadosModal(true)}
+          className={`mb-2 flex-shrink-0 border rounded-md px-3 py-2 text-sm font-medium flex items-center justify-between gap-2 hover:shadow-md transition-shadow ${colorBanner}`}
+        >
+          <span className="flex items-center gap-2">
+            <span className="text-base">⚠</span>
+            {cantidadAbandonados === 1
+              ? '1 reparto sin finalizar de días anteriores'
+              : cantidadAbandonados < 6
+                ? `${cantidadAbandonados} repartos sin finalizar de días anteriores`
+                : `${cantidadAbandonados} repartos acumulados sin finalizar`}
+          </span>
+          <span className="text-xs underline">Ver detalle</span>
+        </button>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -838,6 +881,14 @@ export default function EntregasPage() {
             onClick={e => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {mostrarAbandonadosModal && (
+        <RepartosAbandonadosModal
+          repartos={repartosAbandonados}
+          onClose={() => setMostrarAbandonadosModal(false)}
+          onChanged={cargarAbandonados}
+        />
       )}
 
     </div>

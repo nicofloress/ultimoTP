@@ -120,6 +120,24 @@ public record ActualizarDatosPedidoDto(
     string? NotaInterna,
     bool? EstaPago);
 
+/// <summary>
+/// DTO para representar un reparto EnCurso de días anteriores (abandonado).
+/// </summary>
+public record RepartoAbandonadoDto(
+    int Id,
+    int ZonaId,
+    string ZonaNombre,
+    int RepartidorId,
+    string RepartidorNombre,
+    DateTime Fecha,
+    int TotalVentas,
+    int TotalPendientes,
+    int TotalEntregados,
+    int TotalNoEntregados,
+    int TotalCancelados,
+    int TotalEnCamino,
+    int TotalAsignados);
+
 public record CambiarEstadoDto(EstadoVenta NuevoEstado);
 public record CambiarEstadoPedidoDto(EstadoVenta NuevoEstado, string? Motivo = null, int? FormaPagoId = null, List<PagoEntregaDto>? Pagos = null);
 public record CancelarVentaDto(string Motivo);

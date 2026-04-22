@@ -27,6 +27,8 @@ public interface IVentaService
     Task<IEnumerable<VentaDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);
     Task<int> PrepararTodosAsync();
     Task FinalizarRepartoZonaAsync(int zonaId, int repartidorId);
+    Task<IEnumerable<RepartoAbandonadoDto>> GetRepartosAbandonadosAsync(int? localId);
+    Task FinalizarRepartoAbandonadoAsync(int repartoZonaId);
     Task GuardarTallyRepartoAsync(int zonaId, int repartidorId, string tallyJson);
     Task<BurgerShop.Domain.Entities.Logistica.RepartoZona?> GetRepartoZonaActivoHoyAsync(int zonaId);
     Task<VentaStatsDto> GetStatsAsync(DateTime fecha, int? localId = null, int? tipo = null);

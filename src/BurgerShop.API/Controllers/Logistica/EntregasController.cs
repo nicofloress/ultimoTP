@@ -5,6 +5,7 @@ using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BurgerShop.API.Controllers.Logistica;
 
@@ -121,6 +122,36 @@ public class EntregasController : ControllerBase
             await _notificaciones.NotificarRepartoIniciadoAsync(asignaciones);
 
             return Ok(ventas);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("repartos-abandonados")]
+    [Authorize(Roles = "SuperAdmin,Administrador,Local")]
+    public async Task<ActionResult<IEnumerable<RepartoAbandonadoDto>>> GetRepartosAbandonados()
+    {
+        int? localId = null;
+        var rol = User.FindFirstValue(ClaimTypes.Role);
+        if (rol != "SuperAdmin")
+        {
+            var localIdClaim = User.FindFirstValue("localId");
+            if (int.TryParse(localIdClaim, out var parsed))
+                localId = parsed;
+        }
+        return Ok(await _ventaService.GetRepartosAbandonadosAsync(localId));
+    }
+
+    [HttpPost("finalizar-reparto/{id}")]
+    [Authorize(Roles = "SuperAdmin,Administrador,Local")]
+    public async Task<IActionResult> FinalizarRepartoPorId(int id)
+    {
+        try
+        {
+            await _ventaService.FinalizarRepartoAbandonadoAsync(id);
+            return Ok();
         }
         catch (InvalidOperationException ex)
         {

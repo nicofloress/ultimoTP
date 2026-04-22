@@ -252,6 +252,52 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
                 && r.Estado == EstadoReparto.EnCurso);
     }
 
+    public async Task<RepartoZona?> FinalizarRepartoZonaPorIdAsync(int repartoZonaId)
+    {
+        var reparto = await _context.RepartosZona
+            .FirstOrDefaultAsync(r => r.Id == repartoZonaId && r.Estado == EstadoReparto.EnCurso);
+
+        if (reparto == null) return null;
+
+        reparto.Estado = EstadoReparto.Finalizado;
+        reparto.FechaFinalizacion = DateTime.Now;
+
+        var ventasZona = await _dbSet
+            .Where(v => v.RepartoZonaId == reparto.Id)
+            .ToListAsync();
+
+        reparto.TotalVentas = ventasZona.Count;
+        reparto.TotalEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.Entregado);
+        reparto.TotalNoEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.NoEntregado);
+        reparto.TotalCancelados = ventasZona.Count(v => v.Estado == EstadoVenta.Cancelado);
+
+        await _context.SaveChangesAsync();
+        return reparto;
+    }
+
+    public async Task<List<RepartoZona>> GetRepartosAbandonadosAsync(int? localId)
+    {
+        var hoy = DateTime.Today;
+        var query = _context.RepartosZona
+            .Include(r => r.Zona)
+            .Include(r => r.Repartidor)
+            .Where(r => r.Estado == EstadoReparto.EnCurso && r.Fecha < hoy);
+
+        if (localId.HasValue)
+        {
+            query = query.Where(r => r.Repartidor!.LocalId == null || r.Repartidor.LocalId == localId.Value);
+        }
+
+        return await query.OrderByDescending(r => r.Fecha).ThenBy(r => r.Zona!.Nombre).ToListAsync();
+    }
+
+    public async Task<List<Venta>> GetVentasByRepartoZonaIdAsync(int repartoZonaId)
+    {
+        return await _dbSet
+            .Where(v => v.RepartoZonaId == repartoZonaId)
+            .ToListAsync();
+    }
+
     public async Task IncrementarContadorRepartoAsync(int zonaId, EstadoVenta estadoFinal)
     {
         var hoy = DateTime.Today;
