@@ -93,6 +93,20 @@ public class VentasController : ControllerBase
         return Ok(venta);
     }
 
+    [HttpPatch("{id}/datos")]
+    public async Task<ActionResult<VentaDto>> ActualizarDatos(int id, [FromBody] ActualizarDatosPedidoDto dto)
+    {
+        try
+        {
+            var venta = await _service.ActualizarDatosPedidoAsync(id, dto);
+            return venta is null ? NotFound() : Ok(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{id}/cancelar")]
     public async Task<ActionResult<VentaDto>> Cancelar(int id, [FromBody] CancelarVentaDto dto)
     {

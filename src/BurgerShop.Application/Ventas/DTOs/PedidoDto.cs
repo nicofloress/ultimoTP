@@ -104,7 +104,21 @@ public record ActualizarVentaDto(
     List<CrearLineaVentaDto> Lineas,
     DateTime? FechaProgramada = null,
     bool EstaPago = false,
-    List<CrearPagoVentaDto>? Pagos = null);
+    List<CrearPagoVentaDto>? Pagos = null,
+    int? ClienteId = null);
+
+/// <summary>
+/// DTO para actualizar solo datos de la venta (cliente, domicilio, zona, nota, estado de pago)
+/// sin tocar líneas, descuento, estado o forma de pago. Funciona en cualquier estado.
+/// </summary>
+public record ActualizarDatosPedidoDto(
+    int? ClienteId,
+    string? NombreCliente,
+    string? TelefonoCliente,
+    string? DireccionEntrega,
+    int? ZonaId,
+    string? NotaInterna,
+    bool? EstaPago);
 
 public record CambiarEstadoDto(EstadoVenta NuevoEstado);
 public record CambiarEstadoPedidoDto(EstadoVenta NuevoEstado, string? Motivo = null, int? FormaPagoId = null, List<PagoEntregaDto>? Pagos = null);

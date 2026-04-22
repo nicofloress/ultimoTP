@@ -835,8 +835,11 @@ public class MovimientoService : IMovimientoService
             if (dto.LocalOrigenId == dto.LocalDestinoId)
                 throw new InvalidOperationException("El local de origen y el local de destino no pueden ser el mismo.");
 
-            if (dto.CantidadBultos <= 0)
-                throw new InvalidOperationException("La cantidad de bultos debe ser mayor a cero.");
+            if (dto.CantidadBultos < 0 || dto.CantidadUnidades < 0)
+                throw new InvalidOperationException("Las cantidades no pueden ser negativas.");
+
+            if (dto.CantidadBultos == 0 && dto.CantidadUnidades == 0)
+                throw new InvalidOperationException("Debe ingresar una cantidad en bultos y/o unidades mayor a cero.");
 
             var producto = await _productoRepo.GetByIdAsync(dto.ProductoId)
                 ?? throw new InvalidOperationException($"Producto {dto.ProductoId} no encontrado.");
@@ -847,10 +850,23 @@ public class MovimientoService : IMovimientoService
             var codigoIng = await _codigoRepo.GetByIdAsync(10) // ING_TRF
                 ?? throw new InvalidOperationException("Código ING_TRF (Id=10) no encontrado en la base de datos.");
 
-            var upb              = producto.UnidadesPorBulto > 0 ? producto.UnidadesPorBulto : 1;
-            var cantidadPaquetes = (decimal)(dto.CantidadBultos * upb);
+            var upb = producto.UnidadesPorBulto > 0 ? producto.UnidadesPorBulto : 1;
+            var um  = producto.UnidadMinima > 0 ? producto.UnidadMinima : 1;
 
-            var obsBase = $"Transferencia: {dto.CantidadBultos} bulto{(dto.CantidadBultos != 1 ? "s" : "")} x {upb} paq/bulto = {cantidadPaquetes} paq. De local {dto.LocalOrigenId} a local {dto.LocalDestinoId}.";
+            var paquetesDeBultos    = (decimal)(dto.CantidadBultos * upb);
+            var paquetesDeUnidades  = (decimal)dto.CantidadUnidades / um;
+            var cantidadPaquetes    = paquetesDeBultos + paquetesDeUnidades;
+
+            if (cantidadPaquetes <= 0)
+                throw new InvalidOperationException("La cantidad total a transferir debe ser mayor a cero.");
+
+            var partes = new List<string>();
+            if (dto.CantidadBultos > 0)
+                partes.Add($"{dto.CantidadBultos} bulto{(dto.CantidadBultos != 1 ? "s" : "")} x {upb} paq/bulto");
+            if (dto.CantidadUnidades > 0)
+                partes.Add($"{dto.CantidadUnidades} un. ({paquetesDeUnidades:0.##} paq.)");
+
+            var obsBase = $"Transferencia: {string.Join(" + ", partes)} = {cantidadPaquetes:0.##} paq. De local {dto.LocalOrigenId} a local {dto.LocalDestinoId}.";
             var observaciones = string.IsNullOrWhiteSpace(dto.Observaciones)
                 ? obsBase
                 : $"{obsBase} {dto.Observaciones}";

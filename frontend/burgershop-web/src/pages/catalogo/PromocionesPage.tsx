@@ -14,6 +14,7 @@ import {
 } from '../../api/promociones';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
+import ProductoSelect from '../../components/ProductoSelect';
 
 function getHoy(): string {
   const d = new Date();
@@ -385,16 +386,13 @@ export default function PromocionesPage() {
                   <option value="combo">Combo</option>
                 </select>
                 {item.tipo === 'producto' ? (
-                  <select
+                  <ProductoSelect
+                    productos={productos}
                     value={item.productoId || ''}
-                    onChange={e => actualizarItem(idx, { productoId: e.target.value ? Number(e.target.value) : undefined })}
-                    className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 flex-1"
-                  >
-                    <option value="">Seleccionar producto...</option>
-                    {productos.filter(p => p.activo).map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre} (${p.precio})</option>
-                    ))}
-                  </select>
+                    onChange={id => actualizarItem(idx, { productoId: id === '' ? undefined : id })}
+                    className="flex-1"
+                    renderSuffix={p => `($${p.precio})`}
+                  />
                 ) : (
                   <select
                     value={item.comboId || ''}

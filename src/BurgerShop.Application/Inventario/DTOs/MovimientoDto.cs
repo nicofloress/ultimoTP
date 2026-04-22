@@ -50,12 +50,14 @@ public record EditarCompraDto(
     bool     ImpactarEnCaja);
 
 /// <summary>
-/// DTO para registrar una transferencia de stock entre locales expresada en bultos.
-/// El servicio convierte bultos → paquetes usando UnidadesPorBulto del producto.
+/// DTO para registrar una transferencia de stock entre locales.
+/// Permite ingresar cantidad en bultos, unidades sueltas o ambos.
+/// El servicio calcula los paquetes totales: CantidadBultos * UnidadesPorBulto + CantidadUnidades / UnidadMinima.
 /// </summary>
 public record CrearTransferenciaDto(
     int      ProductoId,
     int      LocalOrigenId,
     int      LocalDestinoId,
     int      CantidadBultos,
-    string?  Observaciones);
+    string?  Observaciones,
+    int      CantidadUnidades = 0);

@@ -1,5 +1,6 @@
 import { Producto } from '../../../types';
 import { formatearNumero } from '../../../components/NumericInput';
+import ProductoSelect from '../../../components/ProductoSelect';
 
 export interface ComboDetalleForm {
   productoId: number;
@@ -76,10 +77,15 @@ export default function ComboForm({
           const totalUn = d.cantidad * um;
           return (
             <div key={i} className="flex gap-2 mb-2 items-center">
-              <select value={d.productoId} onChange={e => { const n = [...detalles]; n[i].productoId = Number(e.target.value); setDetalles(n); }} className="border rounded px-3 py-2 flex-1">
-                <option value={0}>Seleccionar producto</option>
-                {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} (${p.precio})</option>)}
-              </select>
+              <ProductoSelect
+                productos={productos}
+                onlyActivos={false}
+                value={d.productoId || ''}
+                onChange={id => { const n = [...detalles]; n[i].productoId = id === '' ? 0 : id; setDetalles(n); }}
+                className="flex-1"
+                placeholder="Seleccionar producto"
+                renderSuffix={p => `($${p.precio})`}
+              />
               <input type="number" value={d.cantidad} onChange={e => { const n = [...detalles]; n[i].cantidad = Number(e.target.value); setDetalles(n); }} className="border rounded px-3 py-2 w-20" min={1} />
               {prod && d.cantidad > 0 && (
                 <span className="text-xs text-gray-500 whitespace-nowrap">= {totalUn} un.</span>

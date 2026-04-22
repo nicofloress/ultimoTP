@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { compareBy } from '../../utils/tableSort';
+import ProductoSelect from '../../components/ProductoSelect';
 
 const inputClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -374,17 +375,13 @@ export default function ComprasPage() {
               {/* Producto */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Producto <span className="text-red-500">*</span></label>
-                <select
-                  className={`${selectClass} w-full`}
+                <ProductoSelect
+                  productos={productos}
                   value={formProductoId}
-                  onChange={e => setFormProductoId(e.target.value === '' ? '' : Number(e.target.value))}
+                  onChange={setFormProductoId}
                   disabled={!!editandoId}
-                >
-                  <option value="">Seleccionar...</option>
-                  {productos.filter(p => p.activo).map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} ({p.unidadesPorBulto} paq/bulto)</option>
-                  ))}
-                </select>
+                  renderSuffix={p => `(${p.unidadesPorBulto} paq/bulto)`}
+                />
               </div>
 
               {/* Local destino */}

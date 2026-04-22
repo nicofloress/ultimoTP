@@ -14,6 +14,7 @@ import {
 } from '../../api/listasPrecios';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
+import ProductoSelect from '../../components/ProductoSelect';
 
 export default function ListasPrecioPage() {
   const [listas, setListas] = useState<ListaPrecio[]>([]);
@@ -260,33 +261,40 @@ export default function ListasPrecioPage() {
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium text-gray-700 block mb-1">{tipoDetalle === 'combo' ? 'Combo' : 'Producto'}</label>
-              <select
-                value={nuevoItemId}
-                onChange={e => {
-                  const id = Number(e.target.value);
-                  setNuevoItemId(id || '');
-                  if (id) {
-                    if (tipoDetalle === 'combo') {
+              {tipoDetalle === 'combo' ? (
+                <select
+                  value={nuevoItemId}
+                  onChange={e => {
+                    const id = Number(e.target.value);
+                    setNuevoItemId(id || '');
+                    if (id) {
                       const c = combos.find(x => x.id === id);
                       if (c) setNuevoPrecio(c.precio);
-                    } else {
+                    }
+                  }}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                >
+                  <option value="">Seleccionar combo...</option>
+                  {combosDisponibles.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre} (${c.precio.toLocaleString()})</option>
+                  ))}
+                </select>
+              ) : (
+                <ProductoSelect
+                  productos={productosDisponibles}
+                  onlyActivos={false}
+                  value={nuevoItemId}
+                  onChange={id => {
+                    setNuevoItemId(id || '');
+                    if (id) {
                       const p = productos.find(x => x.id === id);
                       if (p) setNuevoPrecio(p.precio);
                     }
-                  }
-                }}
-                className="w-full border rounded px-3 py-2 text-sm"
-              >
-                <option value="">Seleccionar {tipoDetalle}...</option>
-                {tipoDetalle === 'combo'
-                  ? combosDisponibles.map(c => (
-                      <option key={c.id} value={c.id}>{c.nombre} (${c.precio.toLocaleString()})</option>
-                    ))
-                  : productosDisponibles.map(p => (
-                      <option key={p.id} value={p.id}>{p.nombre} (${p.precio.toLocaleString()})</option>
-                    ))
-                }
-              </select>
+                  }}
+                  placeholder="Seleccionar producto..."
+                  renderSuffix={p => `($${p.precio.toLocaleString()})`}
+                />
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">Precio</label>

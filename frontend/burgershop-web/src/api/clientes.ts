@@ -7,6 +7,9 @@ export const buscarClientes = (term: string) =>
 export const getClientes = () =>
   api.get<ClienteDto[]>('/clientes').then(r => r.data);
 
+export const getCliente = (id: number) =>
+  api.get<ClienteDto>(`/clientes/${id}`).then(r => r.data);
+
 export const crearCliente = (data: CrearClienteDto) =>
   api.post<ClienteDto>('/clientes', data).then(r => r.data);
 

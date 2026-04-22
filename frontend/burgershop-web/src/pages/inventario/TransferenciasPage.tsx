@@ -7,6 +7,7 @@ import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { compareBy } from '../../utils/tableSort';
+import ProductoSelect from '../../components/ProductoSelect';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -48,6 +49,7 @@ export default function TransferenciasPage() {
   const [formLocalOrigen, setFormLocalOrigen] = useState<number>(localDelUsuario || 1);
   const [formLocalDestino, setFormLocalDestino] = useState<number | ''>('');
   const [formBultos, setFormBultos] = useState<string>('');
+  const [formUnidades, setFormUnidades] = useState<string>('');
   const [formObservaciones, setFormObservaciones] = useState('');
 
   useEffect(() => {
@@ -63,8 +65,11 @@ export default function TransferenciasPage() {
   const upb = productoSel?.unidadesPorBulto || 1;
   const um = productoSel?.unidadMinima || 1;
   const cantBultos = parseInt(formBultos) || 0;
-  const totalPaq = cantBultos * upb;
-  const totalUn = totalPaq * um;
+  const cantUnidades = parseInt(formUnidades) || 0;
+  const paqDeBultos = cantBultos * upb;
+  const paqDeUnidades = um > 0 ? cantUnidades / um : 0;
+  const totalPaq = paqDeBultos + paqDeUnidades;
+  const totalUn = cantBultos * upb * um + cantUnidades;
 
   // Cargar
   const cargar = useCallback(async () => {
@@ -107,12 +112,13 @@ export default function TransferenciasPage() {
     setFormLocalOrigen(esSuperAdmin ? (locales[0]?.id || 1) : (localDelUsuario || 1));
     setFormLocalDestino('');
     setFormBultos('');
+    setFormUnidades('');
     setFormObservaciones('');
     setModalOpen(true);
   };
 
   const guardar = async () => {
-    if (formProductoId === '' || formLocalDestino === '' || !formBultos) {
+    if (formProductoId === '' || formLocalDestino === '') {
       showToast('Completa los campos obligatorios', 'error');
       return;
     }
@@ -120,8 +126,8 @@ export default function TransferenciasPage() {
       showToast('El local origen y destino no pueden ser el mismo', 'error');
       return;
     }
-    if (cantBultos <= 0) {
-      showToast('La cantidad debe ser mayor a 0', 'error');
+    if (cantBultos <= 0 && cantUnidades <= 0) {
+      showToast('Ingresa una cantidad en bultos y/o unidades', 'error');
       return;
     }
     setGuardando(true);
@@ -131,6 +137,7 @@ export default function TransferenciasPage() {
         localOrigenId: formLocalOrigen,
         localDestinoId: formLocalDestino as number,
         cantidadBultos: cantBultos,
+        cantidadUnidades: cantUnidades || undefined,
         observaciones: formObservaciones || undefined,
       });
       showToast('Transferencia registrada correctamente', 'success');
@@ -244,12 +251,12 @@ export default function TransferenciasPage() {
               {/* Producto */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Producto <span className="text-red-500">*</span></label>
-                <select className={`${selectClass} w-full`} value={formProductoId} onChange={e => setFormProductoId(e.target.value === '' ? '' : Number(e.target.value))}>
-                  <option value="">Seleccionar...</option>
-                  {productos.filter(p => p.activo).map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} ({p.unidadesPorBulto} paq/bulto)</option>
-                  ))}
-                </select>
+                <ProductoSelect
+                  productos={productos}
+                  value={formProductoId}
+                  onChange={setFormProductoId}
+                  renderSuffix={p => `(${p.unidadesPorBulto} paq/bulto)`}
+                />
               </div>
 
               {/* Locales origen y destino */}
@@ -286,11 +293,36 @@ export default function TransferenciasPage() {
 
               {/* Cantidad */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Cantidad de Bultos <span className="text-red-500">*</span></label>
-                <input type="number" className={`${inputClass} w-full`} value={formBultos} onChange={e => setFormBultos(e.target.value)} min="1" step="1" />
-                {cantBultos > 0 && productoSel && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    = <strong className="text-blue-600">{totalPaq} paquetes</strong> / <strong className="text-blue-600">{totalUn} unidades</strong>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Cantidad <span className="text-red-500">*</span> <span className="text-[10px] text-gray-400 font-normal">(bultos y/o unidades)</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <input
+                      type="number"
+                      className={`${inputClass} w-full`}
+                      value={formBultos}
+                      onChange={e => setFormBultos(e.target.value)}
+                      min="0"
+                      step="1"
+                      placeholder="Bultos"
+                    />
+                    <div className="text-[10px] text-gray-400 mt-0.5">Bultos</div>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      className={`${inputClass} w-full`}
+                      value={formUnidades}
+                      onChange={e => setFormUnidades(e.target.value)}
+                      min="0"
+                      step="1"
+                      placeholder="Unidades"
+                    />
+                    <div className="text-[10px] text-gray-400 mt-0.5">Unidades sueltas</div>
+                  </div>
+                </div>
+                {productoSel && (cantBultos > 0 || cantUnidades > 0) && (
+                  <div className="text-xs text-gray-500 mt-1.5">
+                    Total: <strong className="text-blue-600">{totalPaq % 1 === 0 ? totalPaq : totalPaq.toFixed(2)} paquetes</strong> / <strong className="text-blue-600">{totalUn} unidades</strong>
                   </div>
                 )}
               </div>
@@ -302,10 +334,14 @@ export default function TransferenciasPage() {
               </div>
 
               {/* Resumen */}
-              {cantBultos > 0 && productoSel && formLocalDestino !== '' && (
+              {(cantBultos > 0 || cantUnidades > 0) && productoSel && formLocalDestino !== '' && (
                 <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm">
                   <div className="font-semibold text-amber-800">
-                    Transferir {cantBultos} bulto{cantBultos !== 1 ? 's' : ''} ({totalPaq} paq.) de <strong>{locales.find(l => l.id === formLocalOrigen)?.nombre}</strong> a <strong>{locales.find(l => l.id === formLocalDestino)?.nombre}</strong>
+                    Transferir{' '}
+                    {cantBultos > 0 && <>{cantBultos} bulto{cantBultos !== 1 ? 's' : ''}</>}
+                    {cantBultos > 0 && cantUnidades > 0 && <> + </>}
+                    {cantUnidades > 0 && <>{cantUnidades} un.</>}
+                    {' '}({totalPaq % 1 === 0 ? totalPaq : totalPaq.toFixed(2)} paq.) de <strong>{locales.find(l => l.id === formLocalOrigen)?.nombre}</strong> a <strong>{locales.find(l => l.id === formLocalDestino)?.nombre}</strong>
                   </div>
                 </div>
               )}

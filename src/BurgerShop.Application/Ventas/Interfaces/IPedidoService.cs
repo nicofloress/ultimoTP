@@ -7,6 +7,7 @@ public interface IVentaService
 {
     Task<VentaDto> CreateAsync(CrearVentaDto dto, int? usuarioId = null);
     Task<VentaDto?> UpdateAsync(int id, ActualizarVentaDto dto);
+    Task<VentaDto?> ActualizarDatosPedidoAsync(int id, ActualizarDatosPedidoDto dto);
     Task<VentaDto?> GetByIdAsync(int id);
     Task<IEnumerable<VentaDto>> GetByFechaAsync(DateTime fecha);
     Task<IEnumerable<VentaDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);

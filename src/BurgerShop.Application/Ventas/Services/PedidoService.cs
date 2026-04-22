@@ -346,6 +346,7 @@ public class VentaService : IVentaService
             venta.TipoFactura = dto.TipoFactura;
             venta.FechaProgramada = dto.FechaProgramada;
             venta.EstaPago = dto.EstaPago;
+            venta.ClienteId = dto.ClienteId;
 
             // Reemplazar líneas existentes con las nuevas
             venta.Lineas.Clear();
@@ -460,6 +461,38 @@ public class VentaService : IVentaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetByIdAsync), ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza solo datos del pedido (cliente, domicilio, zona, nota, estado de pago).
+    /// No afecta líneas, descuento, estado ni forma de pago. Funciona en cualquier estado.
+    /// </summary>
+    public async Task<VentaDto?> ActualizarDatosPedidoAsync(int id, ActualizarDatosPedidoDto dto)
+    {
+        try
+        {
+            var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
+            if (venta is null) return null;
+
+            if (dto.ClienteId is not null) venta.ClienteId = dto.ClienteId;
+            if (dto.NombreCliente is not null) venta.NombreCliente = dto.NombreCliente;
+            if (dto.TelefonoCliente is not null) venta.TelefonoCliente = dto.TelefonoCliente;
+            if (dto.DireccionEntrega is not null) venta.DireccionEntrega = dto.DireccionEntrega;
+            if (dto.ZonaId is not null) venta.ZonaId = dto.ZonaId;
+            if (dto.NotaInterna is not null) venta.NotaInterna = dto.NotaInterna;
+            if (dto.EstaPago.HasValue) venta.EstaPago = dto.EstaPago.Value;
+
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
+
+            var updated = await _ventaRepo.GetByIdWithLineasAsync(venta.Id);
+            return ToDto(updated!);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(ActualizarDatosPedidoAsync), ex.Message);
             throw;
         }
     }

@@ -4,9 +4,12 @@ import { getVentas, getVentaStats, VentaStats, cancelarVenta } from '../../api/p
 import { useGlobalToast } from '../../components/Toast';
 import { getLocales, LocalDto } from '../../api/locales';
 import { getFormasPagoActivas } from '../../api/formasPago';
+import { getZonas } from '../../api/zonas';
 import { FormaPago } from '../../types/ventas';
+import { Zona } from '../../types/logistica';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import EditarPedidoModal from './historial/EditarPedidoModal';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -69,10 +72,13 @@ export default function HistorialPedidosPage() {
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const [formaPagoFiltro, setFormaPagoFiltro] = useState<number | ''>('');
   const [estadoPagoFiltro, setEstadoPagoFiltro] = useState<'' | 'pagado' | 'pendiente' | 'ctacte'>('');
+  const [zonas, setZonas] = useState<Zona[]>([]);
+  const [mostrarEditar, setMostrarEditar] = useState(false);
 
   useEffect(() => {
     getLocales().then(setLocales);
     getFormasPagoActivas().then(setFormasPago);
+    getZonas().then(setZonas).catch(() => {});
   }, []);
 
   const cargar = async () => {
@@ -575,6 +581,19 @@ export default function HistorialPedidosPage() {
               )}
             </div>
 
+            {/* Boton editar */}
+            <div className="pt-2">
+              <button
+                onClick={() => setMostrarEditar(true)}
+                className="w-full py-1.5 text-sm font-semibold text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Editar pedido
+              </button>
+            </div>
+
             {/* Boton anular — solo si no está cancelado ni entregado */}
             {seleccionado.estado !== EstadoVenta.Cancelado && seleccionado.estado !== EstadoVenta.Entregado && (
               <div className="pt-2">
@@ -641,6 +660,17 @@ export default function HistorialPedidosPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Modal editar pedido */}
+      {mostrarEditar && seleccionado && (
+        <EditarPedidoModal
+          pedido={seleccionado}
+          formasPago={formasPago}
+          zonas={zonas}
+          onClose={() => setMostrarEditar(false)}
+          onSaved={() => { cargar(); setSeleccionado(null); }}
+        />
       )}
 
       {/* Lightbox comprobante */}

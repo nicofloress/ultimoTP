@@ -104,6 +104,7 @@ export interface CrearTransferenciaDto {
   localDestinoId: number;
   cantidadBultos: number;
   observaciones?: string;
+  cantidadUnidades?: number;
 }
 
 export const crearTransferencia = (data: CrearTransferenciaDto) =>

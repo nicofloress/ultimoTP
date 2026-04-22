@@ -32,6 +32,16 @@ export const cancelarVenta = (id: number, motivo: string) => api.put<Venta>(`/ve
 export const actualizarVenta = (id: number, data: Partial<Parameters<typeof crearVenta>[0]>) =>
   api.put<Venta>(`/ventas/${id}`, data).then(r => r.data);
 
+export const actualizarDatosPedido = (id: number, data: {
+  clienteId?: number | null;
+  nombreCliente?: string;
+  telefonoCliente?: string;
+  direccionEntrega?: string;
+  zonaId?: number | null;
+  notaInterna?: string;
+  estaPago?: boolean;
+}) => api.patch<Venta>(`/ventas/${id}/datos`, data).then(r => r.data);
+
 export const getTicket = (id: number) => api.get(`/ventas/${id}/ticket`).then(r => r.data);
 
 export const prepararTodos = () => api.put('/ventas/preparar-todos').then(r => r.data);
