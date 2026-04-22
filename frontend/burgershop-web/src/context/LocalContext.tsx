@@ -22,9 +22,14 @@ export function LocalProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (usuario) {
-      getLocales().then(setLocales).catch(() => {});
-    }
+    if (!usuario) return;
+    const rolesConAccesoLocales: RolUsuario[] = [
+      RolUsuario.SuperAdmin,
+      RolUsuario.Administrador,
+      RolUsuario.Local,
+    ];
+    if (!rolesConAccesoLocales.includes(usuario.rol)) return;
+    getLocales().then(setLocales).catch(() => {});
   }, [usuario?.id]);
 
   // Si el usuario cambia (login), resetear al local del usuario

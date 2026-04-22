@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 
@@ -30,8 +31,22 @@ export default function LoginPage() {
       } else {
         navigate('/', { replace: true });
       }
-    } catch {
-      setError('Usuario o contraseña incorrectos');
+    } catch (err) {
+      setPassword('');
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        if (status === 401 || status === 400) {
+          setError('Usuario o contraseña incorrectos');
+        } else if (status && status >= 500) {
+          setError('El servidor no está respondiendo. Intente nuevamente en unos minutos');
+        } else if (!err.response) {
+          setError('No se pudo conectar con el servidor. Verifique su conexión');
+        } else {
+          setError('Ocurrió un error inesperado. Intente nuevamente');
+        }
+      } else {
+        setError('Ocurrió un error inesperado. Intente nuevamente');
+      }
     } finally {
       setLoading(false);
     }
