@@ -285,7 +285,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
 
         if (localId.HasValue)
         {
-            query = query.Where(r => r.Repartidor!.LocalId == null || r.Repartidor.LocalId == localId.Value);
+            query = query.Where(r => r.Zona!.LocalId == null || r.Zona.LocalId == localId.Value);
         }
 
         return await query.OrderByDescending(r => r.Fecha).ThenBy(r => r.Zona!.Nombre).ToListAsync();
@@ -294,8 +294,63 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
     public async Task<List<Venta>> GetVentasByRepartoZonaIdAsync(int repartoZonaId)
     {
         return await _dbSet
+            .Include(v => v.Lineas)
+            .Include(v => v.FormaPago)
+            .Include(v => v.Cliente)
+            .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(v => v.RepartoZonaId == repartoZonaId)
+            .AsSplitQuery()
             .ToListAsync();
+    }
+
+    public async Task<List<Venta>> GetVentasByRepartoZonaIdsAsync(IEnumerable<int> repartoZonaIds, bool incluirDetalles)
+    {
+        var ids = repartoZonaIds.ToList();
+        if (ids.Count == 0) return new List<Venta>();
+
+        IQueryable<Venta> query = _dbSet.Where(v => v.RepartoZonaId != null && ids.Contains(v.RepartoZonaId.Value));
+
+        if (incluirDetalles)
+        {
+            query = query
+                .Include(v => v.Lineas)
+                .Include(v => v.FormaPago)
+                .Include(v => v.Cliente)
+                .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+                .AsSplitQuery();
+        }
+
+        return await query.ToListAsync();
+    }
+
+    public async Task<RepartoZona?> GetRepartoZonaByIdAsync(int repartoZonaId)
+    {
+        return await _context.RepartosZona
+            .Include(r => r.Zona)
+            .Include(r => r.Repartidor)
+            .FirstOrDefaultAsync(r => r.Id == repartoZonaId);
+    }
+
+    public async Task<List<RepartoZona>> GetRepartosZonaFinalizadosSinRendicionAsync(int diasAtras, int? localId)
+    {
+        var desde = DateTime.Today.AddDays(-diasAtras);
+        var hasta = DateTime.Today;
+
+        var query = _context.RepartosZona
+            .Include(r => r.Zona)
+            .Include(r => r.Repartidor)
+            .Where(r => r.Estado == EstadoReparto.Finalizado
+                && r.Fecha >= desde
+                && r.Fecha <= hasta
+                && !_context.RendicionesRepartidor.Any(rd => rd.RepartoZonaId == r.Id));
+
+        if (localId.HasValue)
+        {
+            // Filtra por local de la zona (consistente con EntregasPage). Incluye zonas globales sin local.
+            query = query.Where(r => r.Zona!.LocalId == null || r.Zona.LocalId == localId.Value);
+        }
+
+        return await query.OrderBy(r => r.Fecha).ToListAsync();
     }
 
     public async Task IncrementarContadorRepartoAsync(int zonaId, EstadoVenta estadoFinal)

@@ -40,13 +40,17 @@ export default function EntregasPage() {
   const [chatAbierto, setChatAbierto] = useState(false);
   const [repartosAbandonados, setRepartosAbandonados] = useState<RepartoAbandonadoDto[]>([]);
   const [mostrarAbandonadosModal, setMostrarAbandonadosModal] = useState(false);
+  const [cargandoAbandonados, setCargandoAbandonados] = useState(true);
 
   const cargarAbandonados = useCallback(async () => {
+    setCargandoAbandonados(true);
     try {
       const data = await getRepartosAbandonados();
       setRepartosAbandonados(data);
     } catch {
       /* silent */
+    } finally {
+      setCargandoAbandonados(false);
     }
   }, []);
 
@@ -275,7 +279,15 @@ export default function EntregasPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-7.5rem)] overflow-hidden">
       {/* Banner repartos sin finalizar */}
-      {cantidadAbandonados > 0 && (
+      {cargandoAbandonados ? (
+        <div className="mb-2 flex-shrink-0 border rounded-md px-3 py-2 text-sm flex items-center gap-2 bg-slate-50 border-slate-200 text-slate-500">
+          <svg className="animate-spin w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span>Buscando repartos sin finalizar de días anteriores...</span>
+        </div>
+      ) : cantidadAbandonados > 0 ? (
         <button
           onClick={() => setMostrarAbandonadosModal(true)}
           className={`mb-2 flex-shrink-0 border rounded-md px-3 py-2 text-sm font-medium flex items-center justify-between gap-2 hover:shadow-md transition-shadow ${colorBanner}`}
@@ -290,7 +302,7 @@ export default function EntregasPage() {
           </span>
           <span className="text-xs underline">Ver detalle</span>
         </button>
-      )}
+      ) : null}
 
       {/* Header */}
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between flex-shrink-0">

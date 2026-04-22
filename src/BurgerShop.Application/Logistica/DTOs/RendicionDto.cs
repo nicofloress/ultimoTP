@@ -79,4 +79,5 @@ public record RepartidorPendienteRendicionDto(
     decimal TotalNoEntregado,
     List<PedidoPendienteRendicionDto> Pedidos,
     int? RepartidorLocalId = null,
-    decimal MontoInicialCambio = 0);
+    decimal MontoInicialCambio = 0,
+    DateTime Fecha = default);

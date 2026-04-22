@@ -1087,29 +1087,33 @@ public class VentaService : IVentaService
         try
         {
             var repartos = await _ventaRepo.GetRepartosAbandonadosAsync(localId);
-            var result = new List<RepartoAbandonadoDto>();
+            if (repartos.Count == 0) return Enumerable.Empty<RepartoAbandonadoDto>();
 
-            foreach (var r in repartos)
+            var ventas = await _ventaRepo.GetVentasByRepartoZonaIdsAsync(
+                repartos.Select(r => r.Id), incluirDetalles: false);
+            var ventasPorReparto = ventas
+                .Where(v => v.RepartoZonaId.HasValue)
+                .GroupBy(v => v.RepartoZonaId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            return repartos.Select(r =>
             {
-                var ventas = await _ventaRepo.GetVentasByRepartoZonaIdAsync(r.Id);
-                result.Add(new RepartoAbandonadoDto(
+                var vs = ventasPorReparto.TryGetValue(r.Id, out var lista) ? lista : new List<Venta>();
+                return new RepartoAbandonadoDto(
                     r.Id,
                     r.ZonaId,
                     r.Zona?.Nombre ?? string.Empty,
                     r.RepartidorId,
                     r.Repartidor?.Nombre ?? string.Empty,
                     r.Fecha,
-                    ventas.Count,
-                    ventas.Count(v => v.Estado == EstadoVenta.Pendiente),
-                    ventas.Count(v => v.Estado == EstadoVenta.Entregado),
-                    ventas.Count(v => v.Estado == EstadoVenta.NoEntregado),
-                    ventas.Count(v => v.Estado == EstadoVenta.Cancelado),
-                    ventas.Count(v => v.Estado == EstadoVenta.EnCamino),
-                    ventas.Count(v => v.Estado == EstadoVenta.Asignado)
-                ));
-            }
-
-            return result;
+                    vs.Count,
+                    vs.Count(v => v.Estado == EstadoVenta.Pendiente),
+                    vs.Count(v => v.Estado == EstadoVenta.Entregado),
+                    vs.Count(v => v.Estado == EstadoVenta.NoEntregado),
+                    vs.Count(v => v.Estado == EstadoVenta.Cancelado),
+                    vs.Count(v => v.Estado == EstadoVenta.EnCamino),
+                    vs.Count(v => v.Estado == EstadoVenta.Asignado));
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -1123,10 +1127,20 @@ public class VentaService : IVentaService
         try
         {
             var ventas = await _ventaRepo.GetVentasByRepartoZonaIdAsync(repartoZonaId);
-            var pendientes = ventas.Count(v => v.Estado == EstadoVenta.Pendiente);
-            if (pendientes > 0)
+            var sinResolver = ventas.Where(v =>
+                v.Estado != EstadoVenta.Entregado &&
+                v.Estado != EstadoVenta.NoEntregado &&
+                v.Estado != EstadoVenta.Cancelado).ToList();
+
+            if (sinResolver.Count > 0)
+            {
+                var detalle = sinResolver
+                    .GroupBy(v => v.Estado)
+                    .Select(g => $"{g.Count()} {g.Key}")
+                    .ToList();
                 throw new InvalidOperationException(
-                    $"No se puede finalizar el reparto: {pendientes} pedido(s) siguen en estado Pendiente. Resolvelos desde Historial primero.");
+                    $"No se puede finalizar el reparto: {sinResolver.Count} pedido(s) no están resueltos ({string.Join(", ", detalle)}). Todos los pedidos deben estar Entregado, No Entregado o Cancelado. Resolvelos desde Historial primero.");
+            }
 
             var reparto = await _ventaRepo.FinalizarRepartoZonaPorIdAsync(repartoZonaId);
             if (reparto == null)

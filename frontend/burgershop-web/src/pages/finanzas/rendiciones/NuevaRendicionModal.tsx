@@ -1,4 +1,5 @@
 import { RepartidorPendienteRendicionDto } from '../../../api/rendiciones';
+import { parseFechaLocal, esDiaAnterior } from '../../../utils/fechas';
 
 interface Props {
   repartidoresPendientes: RepartidorPendienteRendicionDto[];
@@ -82,34 +83,47 @@ export default function NuevaRendicionModal({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {repartidoresPendientes.map(rp => (
-                      <button
-                        key={rp.repartoZonaId}
-                        onClick={() => onSeleccionarRepartidor(rp)}
-                        className="w-full text-left bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-300 rounded-lg p-4 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-gray-800 group-hover:text-amber-800">
-                              {rp.repartidorNombre}
+                    {repartidoresPendientes.map(rp => {
+                      const fechaReparto = rp.fecha ? parseFechaLocal(rp.fecha) : null;
+                      const esDeDiaAnterior = rp.fecha ? esDiaAnterior(rp.fecha) : false;
+                      return (
+                        <button
+                          key={rp.repartoZonaId}
+                          onClick={() => onSeleccionarRepartidor(rp)}
+                          className={`w-full text-left border rounded-lg p-4 transition-colors group ${
+                            esDeDiaAnterior
+                              ? 'bg-amber-50/60 hover:bg-amber-50 border-amber-300 hover:border-amber-400'
+                              : 'bg-gray-50 hover:bg-amber-50 border-gray-200 hover:border-amber-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold text-gray-800 group-hover:text-amber-800 flex items-center gap-2">
+                                {rp.repartidorNombre}
+                                {esDeDiaAnterior && fechaReparto && (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-200 text-amber-900">
+                                    ⚠ {fechaReparto.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
+                                <span className="text-blue-600 font-medium">{rp.zonaNombre}</span>
+                                <span className="text-green-600">{rp.totalEntregados} entregados</span>
+                                {rp.totalNoEntregados > 0 && (
+                                  <span className="text-red-500">{rp.totalNoEntregados} no entreg.</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
-                              <span className="text-blue-600 font-medium">{rp.zonaNombre}</span>
-                              <span className="text-green-600">{rp.totalEntregados} entregados</span>
-                              {rp.totalNoEntregados > 0 && (
-                                <span className="text-red-500">{rp.totalNoEntregados} no entreg.</span>
-                              )}
+                            <div className="text-right">
+                              <div className="text-sm font-semibold text-gray-700">
+                                ${(rp.totalEfectivo + rp.totalTransferencia).toLocaleString('es-AR')}
+                              </div>
+                              <div className="text-[10px] text-gray-400 uppercase tracking-wider">Total</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-sm font-semibold text-gray-700">
-                              ${(rp.totalEfectivo + rp.totalTransferencia).toLocaleString('es-AR')}
-                            </div>
-                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">Total</div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(dotnet run:*)",
+	"Bash(git push:*)",
       "Bash(npm run:*)",
       "Bash(curl:*)",
       "Bash(dotnet test:*)",
@@ -10,7 +11,13 @@
       "Bash(dotnet ef:*)",
       "Bash(npx shadcn@latest:*)",
       "Bash(node:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(find 'C:\\\\Users\\\\nestigarribia\\\\Proyectos NET\\\\ProyectoHLP' -name *PedidosController* -o -name *pedidos*controller*)",
+      "Bash(find 'C:\\\\Users\\\\nestigarribia\\\\Proyectos NET\\\\ProyectoHLP\\\\src\\\\BurgerShop.Infrastructure\\\\Data\\\\Configurations' -name *.cs)",
+      "Bash(ls:*)",
+      "Read(//c/Users/nestigarribia/Proyectos NET/ProyectoHLP/src/BurgerShop.Domain/Enums//**)",
+      "Read(//c/Users/nestigarribia/Proyectos NET/ProyectoHLP/src/BurgerShop.Domain/Entities/Catalogo//**)",
+      "Bash(grep -l \"class.*Service\" \"/c/Users/nestigarribia/Proyectos NET/ProyectoHLP/src/BurgerShop.Application\"/**/Services/*.cs)"
     ]
   }
 }

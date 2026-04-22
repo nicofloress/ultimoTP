@@ -5,6 +5,7 @@ import { Zona } from '../../../types/logistica';
 import { actualizarDatosPedido, cambiarEstado, cambiarEstadoPedido } from '../../../api/pedidos';
 import { buscarClientes, getCliente } from '../../../api/clientes';
 import { useGlobalToast } from '../../../components/Toast';
+import { useListNavigation } from '../../../hooks/useListNavigation';
 
 interface Props {
   pedido: Venta;
@@ -98,6 +99,12 @@ export default function EditarPedidoModal({ pedido, formasPago, zonas, onClose, 
     setBusquedaCliente('');
     setSugerencias([]);
   };
+
+  const clientesNav = useListNavigation(sugerencias, {
+    onSelect: seleccionarCliente,
+    onEscape: () => setSugerencias([]),
+    dataAttr: 'data-cliente-idx',
+  });
 
   const guardar = async () => {
     if (estado === EstadoVenta.Cancelado && pedido.estado !== EstadoVenta.Cancelado && !motivoCancel.trim()) {
@@ -208,6 +215,7 @@ export default function EditarPedidoModal({ pedido, formasPago, zonas, onClose, 
                 type="text"
                 value={busquedaCliente}
                 onChange={e => buscarClientesHandler(e.target.value)}
+                onKeyDown={clientesNav.handleKeyDown}
                 placeholder="Buscar cliente..."
                 className={inputClass}
               />
@@ -225,12 +233,14 @@ export default function EditarPedidoModal({ pedido, formasPago, zonas, onClose, 
               )}
               {sugerencias.length > 0 && (
                 <div className="absolute z-10 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-40 overflow-y-auto">
-                  {sugerencias.map(c => (
+                  {sugerencias.map((c, idx) => (
                     <button
                       key={c.id}
+                      data-cliente-idx={idx}
                       type="button"
+                      onMouseEnter={() => clientesNav.setActiveIndex(idx)}
                       onClick={() => seleccionarCliente(c)}
-                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0 text-left"
+                      className={`w-full flex items-center justify-between px-3 py-2 text-sm border-b border-gray-100 last:border-b-0 text-left ${clientesNav.activeIndex === idx ? 'bg-amber-100' : 'hover:bg-amber-50'}`}
                     >
                       <span className="font-medium text-gray-800 truncate">{c.nombre}</span>
                       {c.telefono && <span className="text-gray-400 ml-2 text-xs">{c.telefono}</span>}

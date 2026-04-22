@@ -19,9 +19,11 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
   const [procesandoTodos, setProcesandoTodos] = useState(false);
   const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null);
 
-  const puedeFinalizar = (r: RepartoAbandonadoDto) => r.totalPendientes === 0;
+  const sinResolverCount = (r: RepartoAbandonadoDto) =>
+    r.totalPendientes + r.totalAsignados + r.totalEnCamino;
+  const puedeFinalizar = (r: RepartoAbandonadoDto) => sinResolverCount(r) === 0;
   const repartosFinalizables = repartos.filter(puedeFinalizar);
-  const totalPendientesGlobal = repartos.reduce((acc, r) => acc + r.totalPendientes, 0);
+  const totalPendientesGlobal = repartos.reduce((acc, r) => acc + sinResolverCount(r), 0);
 
   const finalizarUno = async (r: RepartoAbandonadoDto) => {
     if (!puedeFinalizar(r)) return;
@@ -82,8 +84,8 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
         <div className="p-4 flex-1 overflow-y-auto">
           {totalPendientesGlobal > 0 && (
             <div className="bg-amber-50 border border-amber-300 rounded-md px-3 py-2 mb-3 text-sm text-amber-800">
-              Hay {totalPendientesGlobal} pedido(s) en estado <strong>Pendiente</strong>. Para finalizar esos repartos,
-              cambiales el estado desde <strong>Historial de Pedidos</strong> (Entregado / Cancelado / No Entregado).
+              Hay {totalPendientesGlobal} pedido(s) sin resolver (Pendiente / Asignado / En Camino). Para finalizar esos repartos,
+              cambiales el estado desde <strong>Historial de Pedidos</strong> a <strong>Entregado</strong>, <strong>No Entregado</strong> o <strong>Cancelado</strong>.
             </div>
           )}
 
@@ -133,7 +135,7 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
                       <button
                         onClick={() => finalizarUno(r)}
                         disabled={bloqueado || procesandoId === r.id || procesandoTodos}
-                        title={bloqueado ? 'Hay pedidos en Pendiente. Resolvelos desde Historial primero.' : 'Finalizar reparto'}
+                        title={bloqueado ? 'Hay pedidos sin resolver (Pendiente / Asignado / En Camino). Resolvelos desde Historial primero.' : 'Finalizar reparto'}
                         className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
                           bloqueado
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'

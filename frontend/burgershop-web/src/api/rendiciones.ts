@@ -84,7 +84,9 @@ export interface RepartidorPendienteRendicionDto {
   totalTransferencia: number;
   totalNoEntregado: number;
   pedidos: PedidoPendienteRendicionDto[];
+  repartidorLocalId?: number | null;
   montoInicialCambio: number;
+  fecha: string;
 }
 
 export const getRepartidoresPendientes = () =>

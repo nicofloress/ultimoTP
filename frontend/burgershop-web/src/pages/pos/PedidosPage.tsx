@@ -18,6 +18,7 @@ import { getRepartidores } from '../../api/repartidores';
 import { getListasPrecios } from '../../api/listasPrecios';
 import { Repartidor } from '../../types/logistica';
 import { useGooglePlaces } from '../../hooks/useGooglePlaces';
+import { useListNavigation } from '../../hooks/useListNavigation';
 import { GoogleMap } from '../../components/GoogleMap';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -310,6 +311,29 @@ export default function PedidosPage() {
     setSugerenciasCliente([]);
     setEsCtaCte(false);
   };
+
+  // Navegación por flechas en sugerencias de cliente
+  const clientesNav = useListNavigation(sugerenciasCliente, {
+    onSelect: seleccionarCliente,
+    onEscape: () => setSugerenciasCliente([]),
+    dataAttr: 'data-cliente-idx',
+    enabled: !clienteSeleccionado,
+  });
+
+  const seleccionarSugerenciaDireccion = (s: { descripcion: string; placeId: string }) => {
+    setDireccion(s.descripcion);
+    setMostrarSugerenciasDireccion(false);
+    limpiarSugerencias();
+    geocodificar(s.placeId);
+  };
+
+  // Navegación por flechas en sugerencias de dirección
+  const direccionNav = useListNavigation(sugerenciasDireccion, {
+    onSelect: seleccionarSugerenciaDireccion,
+    onEscape: () => setMostrarSugerenciasDireccion(false),
+    dataAttr: 'data-dir-idx',
+    enabled: mostrarSugerenciasDireccion && direccion.length >= 3,
+  });
 
   const actualizarItem = (index: number, field: keyof CarritoItem, value: number | string) => {
     setCarrito(carrito.map((item, i) => i === index ? { ...item, [field]: value } : item));
@@ -722,6 +746,7 @@ export default function PedidosPage() {
                     type="text"
                     value={busquedaCliente}
                     onChange={e => handleBuscarCliente(e.target.value)}
+                    onKeyDown={clientesNav.handleKeyDown}
                     placeholder="Buscar cliente por nombre o telefono..."
                     className={`${inputClass} pl-8`}
                   />
@@ -734,11 +759,13 @@ export default function PedidosPage() {
                   )}
                   {sugerenciasCliente.length > 0 && !clienteSeleccionado && (
                     <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
-                      {sugerenciasCliente.map(c => (
+                      {sugerenciasCliente.map((c, idx) => (
                         <button
                           key={c.id}
+                          data-cliente-idx={idx}
+                          onMouseEnter={() => clientesNav.setActiveIndex(idx)}
                           onClick={() => seleccionarCliente(c)}
-                          className="w-full flex items-center justify-between px-3 py-2 hover:bg-amber-50 text-sm border-b border-gray-100 last:border-b-0"
+                          className={`w-full flex items-center justify-between px-3 py-2 text-sm border-b border-gray-100 last:border-b-0 ${clientesNav.activeIndex === idx ? 'bg-amber-100' : 'hover:bg-amber-50'}`}
                         >
                           <div>
                             <span className="font-medium text-gray-800">{c.nombre}</span>
@@ -771,23 +798,21 @@ export default function PedidosPage() {
                   }}
                   onFocus={() => { if (sugerenciasDireccion.length > 0) setMostrarSugerenciasDireccion(true); }}
                   onBlur={() => { setTimeout(() => setMostrarSugerenciasDireccion(false), 200); }}
+                  onKeyDown={direccionNav.handleKeyDown}
                   placeholder="Domicilio / Direccion de entrega..."
                   disabled={esEdicionLimitada}
                   className={`${inputClass} pl-8${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 />
                 {mostrarSugerenciasDireccion && sugerenciasDireccion.length > 0 && direccion.length >= 3 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
-                    {sugerenciasDireccion.map(s => (
+                    {sugerenciasDireccion.map((s, idx) => (
                       <button
                         key={s.placeId}
+                        data-dir-idx={idx}
                         onMouseDown={e => e.preventDefault()}
-                        onClick={() => {
-                          setDireccion(s.descripcion);
-                          setMostrarSugerenciasDireccion(false);
-                          limpiarSugerencias();
-                          geocodificar(s.placeId);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-50 active:bg-amber-100 text-sm text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                        onMouseEnter={() => direccionNav.setActiveIndex(idx)}
+                        onClick={() => seleccionarSugerenciaDireccion(s)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left border-b border-gray-100 last:border-b-0 transition-colors ${direccionNav.activeIndex === idx ? 'bg-amber-100' : 'hover:bg-amber-50 active:bg-amber-100'}`}
                       >
                         <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

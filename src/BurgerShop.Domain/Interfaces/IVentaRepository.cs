@@ -35,6 +35,9 @@ public interface IVentaRepository : IRepository<Venta>
     Task<List<RepartoZona>> GetRepartosZonaFinalizadosByFechaAsync(DateTime fecha);
     Task<List<RepartoZona>> GetRepartosAbandonadosAsync(int? localId);
     Task<List<Venta>> GetVentasByRepartoZonaIdAsync(int repartoZonaId);
+    Task<List<Venta>> GetVentasByRepartoZonaIdsAsync(IEnumerable<int> repartoZonaIds, bool incluirDetalles);
+    Task<List<RepartoZona>> GetRepartosZonaFinalizadosSinRendicionAsync(int diasAtras, int? localId);
+    Task<RepartoZona?> GetRepartoZonaByIdAsync(int repartoZonaId);
 
     // Dashboard
     Task<IEnumerable<Venta>> GetVentasHoyConLineasAsync(int? localId = null);

@@ -45,24 +45,20 @@ public class RendicionService : IRendicionService
             if (existente is not null)
                 throw new InvalidOperationException("Ya existe una rendicion para este reparto.");
 
-            // Obtener ventas del repartidor de hoy y filtrar solo las del RepartoZona
-            var ventas = (await _ventaRepo.GetByRepartidorHoyAsync(dto.RepartidorId))
-                .Where(v => v.RepartoZonaId == dto.RepartoZonaId)
-                .ToList();
+            var repartoZona = await _ventaRepo.GetRepartoZonaByIdAsync(dto.RepartoZonaId);
+            if (repartoZona is null)
+                throw new InvalidOperationException("No se encontro el reparto de zona especificado.");
+            if (repartoZona.RepartidorId != dto.RepartidorId)
+                throw new InvalidOperationException("El reparto no pertenece al repartidor indicado.");
+            if (repartoZona.Estado == EstadoReparto.EnCurso)
+                throw new InvalidOperationException("No se puede crear la rendicion. El reparto de zona aun no fue finalizado.");
 
-            // No debe poder crear si tiene ventas EnCamino o Asignadas en este reparto
+            var ventas = await _ventaRepo.GetVentasByRepartoZonaIdAsync(dto.RepartoZonaId);
+
             var tienePendientes = ventas.Any(v =>
                 v.Estado == EstadoVenta.EnCamino || v.Estado == EstadoVenta.Asignado);
             if (tienePendientes)
                 throw new InvalidOperationException("No se puede crear la rendicion. Existen ventas en camino o asignadas sin finalizar.");
-
-            // Obtener el RepartoZona para verificar que está finalizado
-            var repartosZona = await _ventaRepo.GetRepartosZonaByRepartidorHoyAsync(dto.RepartidorId);
-            var repartoZona = repartosZona.FirstOrDefault(r => r.Id == dto.RepartoZonaId);
-            if (repartoZona is null)
-                throw new InvalidOperationException("No se encontro el reparto de zona especificado.");
-            if (repartoZona.Estado == EstadoReparto.EnCurso)
-                throw new InvalidOperationException("No se puede crear la rendicion. El reparto de zona aun no fue finalizado.");
 
             // Filtrar solo Entregadas y NoEntregadas
             var entregadas = ventas.Where(v => v.Estado == EstadoVenta.Entregado).ToList();
@@ -314,28 +310,25 @@ public class RendicionService : IRendicionService
     {
         try
         {
-            // Obtener todos los repartos de hoy que estan finalizados
-            var repartosFinalizados = await _ventaRepo.GetRepartosZonaFinalizadosHoyAsync();
-
-            if (!repartosFinalizados.Any())
+            var repartosFinalizados = await _ventaRepo.GetRepartosZonaFinalizadosSinRendicionAsync(30, null);
+            if (repartosFinalizados.Count == 0)
                 return Enumerable.Empty<RepartidorPendienteRendicionDto>();
+
+            var ventasTodas = await _ventaRepo.GetVentasByRepartoZonaIdsAsync(
+                repartosFinalizados.Select(r => r.Id), incluirDetalles: true);
+            var ventasPorReparto = ventasTodas
+                .Where(v => v.RepartoZonaId.HasValue)
+                .GroupBy(v => v.RepartoZonaId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
             var resultado = new List<RepartidorPendienteRendicionDto>();
 
-            // Iterar cada RepartoZona finalizado individualmente
             foreach (var reparto in repartosFinalizados)
             {
-                // Saltar si ya tiene rendicion creada para este RepartoZona
-                var rendicionExistente = await _rendicionRepo.GetByRepartoZonaIdAsync(reparto.Id);
-                if (rendicionExistente is not null)
-                    continue;
+                var ventas = ventasPorReparto.TryGetValue(reparto.Id, out var lista)
+                    ? lista
+                    : new List<BurgerShop.Domain.Entities.Ventas.Venta>();
 
-                // Obtener ventas de este repartidor hoy, filtradas por RepartoZonaId
-                var ventas = (await _ventaRepo.GetByRepartidorHoyAsync(reparto.RepartidorId))
-                    .Where(v => v.RepartoZonaId == reparto.Id)
-                    .ToList();
-
-                // Verificar que no tenga ventas activas en este reparto
                 if (ventas.Any(v => v.Estado == EstadoVenta.Asignado || v.Estado == EstadoVenta.EnCamino))
                     continue;
 
@@ -408,7 +401,8 @@ public class RendicionService : IRendicionService
                     totalNoEntregado,
                     ventasDto,
                     reparto.Repartidor?.LocalId,
-                    reparto.MontoInicialCambio));
+                    reparto.MontoInicialCambio,
+                    reparto.Fecha));
             }
 
             return resultado;
