@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hlp-v2';
+const CACHE_NAME = 'hlp-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -13,15 +13,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (new URL(event.request.url).origin !== self.location.origin) return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
   // version.json siempre directo a la red, sin cache
-  if (event.request.url.includes('version.json')) {
+  if (url.pathname.includes('version.json')) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Network-first para todo lo demas
+  // Nunca cachear HTML (navegacion) - siempre ir a la red
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // No cachear llamadas a la API
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/hubs/')) {
+    return;
+  }
+
+  // Assets estaticos: network-first con fallback a cache
   event.respondWith(
     fetch(event.request)
       .then((response) => {

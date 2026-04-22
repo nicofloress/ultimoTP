@@ -14,9 +14,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>(null!);
 
+function safeGetItem(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function safeSetItem(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch { /* Safari private mode */ }
+}
+
+function safeRemoveItem(key: string) {
+  try { localStorage.removeItem(key); } catch { /* Safari private mode */ }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(safeGetItem('token'));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,8 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getMe()
         .then(res => setUsuario(res.data))
         .catch(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('usuario');
+          safeRemoveItem('token');
+          safeRemoveItem('usuario');
           setToken(null);
           setUsuario(null);
         })
@@ -38,15 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginFn = async (data: LoginRequest) => {
     const res = await apiLogin(data);
     const { token: newToken, usuario: newUsuario } = res.data;
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('usuario', JSON.stringify(newUsuario));
+    safeSetItem('token', newToken);
+    safeSetItem('usuario', JSON.stringify(newUsuario));
     setToken(newToken);
     setUsuario(newUsuario);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
+    safeRemoveItem('token');
+    safeRemoveItem('usuario');
     setToken(null);
     setUsuario(null);
     window.location.href = '/login';

@@ -32,10 +32,24 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').catch(function() {});
         });
       }
+      // Fallback: si React no carga en 12s, mostrar boton de reintentar
+      setTimeout(function() {
+        var splash = document.getElementById('splash');
+        if (splash && splash.offsetParent !== null) {
+          var btn = document.createElement('button');
+          btn.textContent = 'Reintentar';
+          btn.style.cssText = 'margin-top:24px;padding:12px 32px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer';
+          btn.onclick = function() {
+            if ('caches' in window) { caches.keys().then(function(k) { k.forEach(function(n) { caches.delete(n) }) }) }
+            window.location.reload();
+          };
+          splash.appendChild(btn);
+        }
+      }, 12000);
     </script>
   </body>
 </html>
