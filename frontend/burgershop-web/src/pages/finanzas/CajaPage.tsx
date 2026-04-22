@@ -457,25 +457,25 @@ export default function CajaPage() {
                   </th>
                   <th
                     onClick={() => handleSort('fechaCierre')}
-                    className="cursor-pointer text-left px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                    className="cursor-pointer text-left px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none hidden sm:table-cell"
                   >
                     Fecha Cierre {sortField === 'fechaCierre' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                   </th>
                   <th
                     onClick={() => handleSort('montoInicial')}
-                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none hidden md:table-cell"
                   >
                     Monto Inicial {sortField === 'montoInicial' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                   </th>
                   <th
                     onClick={() => handleSort('montoFinal')}
-                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none hidden md:table-cell"
                   >
                     Monto Final {sortField === 'montoFinal' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                   </th>
                   <th
                     onClick={() => handleSort('cantidadTotal')}
-                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none"
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 select-none hidden sm:table-cell"
                   >
                     Cant. Ventas {sortField === 'cantidadTotal' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                   </th>
@@ -487,13 +487,13 @@ export default function CajaPage() {
                   </th>
                   <th
                     onClick={() => handleSort('cantidadDomicilio')}
-                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-blue-500 hover:text-blue-700 select-none"
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-blue-500 hover:text-blue-700 select-none hidden sm:table-cell"
                   >
                     Cant. Pedidos {sortField === 'cantidadDomicilio' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                   </th>
                   <th
                     onClick={() => handleSort('totalDomicilio')}
-                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-blue-500 hover:text-blue-700 select-none"
+                    className="cursor-pointer text-right px-4 py-3 text-sm font-medium text-blue-500 hover:text-blue-700 select-none hidden sm:table-cell"
                   >
                     Total Pedidos {sortField === 'totalDomicilio' && <span className="text-amber-500">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                   </th>
@@ -509,15 +509,15 @@ export default function CajaPage() {
                         className="w-full text-left hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-center">
-                          <div className="px-4 py-3 text-sm" style={{ flex: '1 1 0' }}>{formatFecha(caja.fechaApertura)}</div>
-                          <div className="px-4 py-3 text-sm" style={{ flex: '1 1 0' }}>{caja.fechaCierre ? formatFecha(caja.fechaCierre) : '-'}</div>
-                          <div className="px-4 py-3 text-sm text-right" style={{ flex: '1 1 0' }}>${caja.montoInicial.toLocaleString()}</div>
-                          <div className="px-4 py-3 text-sm text-right" style={{ flex: '1 1 0' }}>{caja.montoFinal != null ? `$${caja.montoFinal.toLocaleString()}` : '-'}</div>
-                          <div className="px-4 py-3 text-sm text-right" style={{ flex: '1 1 0' }}>{caja.cantidadTotal}</div>
-                          <div className="px-4 py-3 text-sm text-right font-medium" style={{ flex: '1 1 0' }}>${caja.totalGeneral.toLocaleString()}</div>
-                          <div className="px-4 py-3 text-sm text-right text-blue-700" style={{ flex: '1 1 0' }}>{caja.cantidadDomicilio ?? 0}</div>
-                          <div className="px-4 py-3 text-sm text-right font-medium text-blue-700" style={{ flex: '1 1 0' }}>${(caja.totalDomicilio ?? 0).toLocaleString()}</div>
-                          <div className="px-4 py-3 text-sm text-center" style={{ flex: '1 1 0' }}>
+                          <div className="px-3 py-3 text-xs sm:text-sm" style={{ flex: '1 1 0' }}>{formatFecha(caja.fechaApertura)}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm hidden sm:block" style={{ flex: '1 1 0' }}>{caja.fechaCierre ? formatFecha(caja.fechaCierre) : '-'}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-right hidden md:block" style={{ flex: '1 1 0' }}>${caja.montoInicial.toLocaleString()}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-right hidden md:block" style={{ flex: '1 1 0' }}>{caja.montoFinal != null ? `$${caja.montoFinal.toLocaleString()}` : '-'}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-right hidden sm:block" style={{ flex: '1 1 0' }}>{caja.cantidadTotal}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-right font-medium" style={{ flex: '1 1 0' }}>${caja.totalGeneral.toLocaleString()}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-right text-blue-700 hidden sm:block" style={{ flex: '1 1 0' }}>{caja.cantidadDomicilio ?? 0}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-right font-medium text-blue-700 hidden sm:block" style={{ flex: '1 1 0' }}>${(caja.totalDomicilio ?? 0).toLocaleString()}</div>
+                          <div className="px-3 py-3 text-xs sm:text-sm text-center" style={{ flex: '1 1 0' }}>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                               caja.estado === EstadoCaja.Abierta ? 'bg-green-100 text-green-800'
                               : caja.estado === EstadoCaja.PendienteRevision ? 'bg-amber-100 text-amber-800'

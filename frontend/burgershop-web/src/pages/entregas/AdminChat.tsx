@@ -134,11 +134,11 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
       aria-label="Chat con repartidores"
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[80vh] flex overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl w-[95vw] sm:w-full max-w-2xl h-[80vh] flex flex-col sm:flex-row overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Panel lateral - Lista de repartidores */}
-        <div className="w-64 border-r border-gray-200 flex flex-col bg-gray-50 flex-shrink-0">
+        <div className="w-full sm:w-64 border-b sm:border-b-0 sm:border-r border-gray-200 flex flex-col bg-gray-50 flex-shrink-0 max-h-48 sm:max-h-none overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-b from-slate-500 to-slate-700">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-sm">Chat con Repartidores</h3>

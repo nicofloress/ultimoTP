@@ -152,10 +152,10 @@ export default function EmpresasTab({ onConfirm }: Props) {
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Razon Social</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre Fantasia</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">CUIT</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Condicion IVA</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Nombre Fantasia</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">CUIT</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden lg:table-cell">Condicion IVA</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Telefono</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
@@ -163,11 +163,11 @@ export default function EmpresasTab({ onConfirm }: Props) {
             {empresas.map(emp => (
               <tr key={emp.id}>
                 <td className="px-4 py-3 text-sm font-medium">{emp.razonSocial}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.nombreFantasia || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.cuit}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.condicionIva}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.telefono || '-'}</td>
-                <td className="px-4 py-3 text-sm text-right">
+                <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{emp.nombreFantasia || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{emp.cuit}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">{emp.condicionIva}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{emp.telefono || '-'}</td>
+                <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                   <button onClick={() => handleEditar(emp)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => onConfirm('empresa', emp.id, emp.razonSocial)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>

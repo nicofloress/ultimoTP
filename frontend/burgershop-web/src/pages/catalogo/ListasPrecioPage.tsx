@@ -177,8 +177,8 @@ export default function ListasPrecioPage() {
       </div>
 
       {/* Formulario crear/editar */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6 items-end">
-        <div className="flex-1">
+      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 mb-6 items-end">
+        <div className="flex-1 min-w-[200px]">
           <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de la Lista</label>
           <input
             type="text"
@@ -200,14 +200,13 @@ export default function ListasPrecioPage() {
       </form>
 
       {/* Tabla de listas */}
-      <div className="bg-white rounded-lg shadow mb-6">
+      <div className="bg-white rounded-lg shadow mb-6 overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -217,22 +216,21 @@ export default function ListasPrecioPage() {
                 className={`cursor-pointer ${seleccionada?.id === lista.id ? 'bg-amber-50' : 'hover:bg-gray-50'}`}
                 onClick={() => handleSeleccionar(lista)}
               >
-                <td className="px-4 py-3 text-sm">{lista.id}</td>
-                <td className="px-4 py-3 text-sm font-medium">{lista.nombre}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">{lista.nombre}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm">
                   <span className={`px-2 py-1 rounded text-xs ${lista.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {lista.activa ? 'Activa' : 'Inactiva'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-right" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => handleEditar(lista)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => handleEditar(lista)} className="text-blue-600 hover:underline mr-2 sm:mr-3">Editar</button>
                   <button onClick={() => handleEliminar(lista.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>
             ))}
             {listas.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">No hay listas de precios</td>
+                <td colSpan={3} className="px-4 py-6 text-center text-gray-400 text-sm">No hay listas de precios</td>
               </tr>
             )}
           </tbody>
@@ -247,8 +245,8 @@ export default function ListasPrecioPage() {
           </h2>
 
           {/* Agregar producto o combo */}
-          <div className="flex gap-2 mb-4 items-end">
-            <div className="w-32">
+          <div className="flex flex-wrap gap-2 mb-4 items-end">
+            <div className="w-full sm:w-32">
               <label className="text-sm font-medium text-gray-700 block mb-1">Tipo</label>
               <select
                 value={tipoDetalle}
@@ -259,7 +257,7 @@ export default function ListasPrecioPage() {
                 <option value="combo">Combo</option>
               </select>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-[180px]">
               <label className="text-sm font-medium text-gray-700 block mb-1">{tipoDetalle === 'combo' ? 'Combo' : 'Producto'}</label>
               {tipoDetalle === 'combo' ? (
                 <select
@@ -296,13 +294,13 @@ export default function ListasPrecioPage() {
                 />
               )}
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="text-sm font-medium text-gray-700 block mb-1">Precio</label>
               <input
                 type="number"
                 value={nuevoPrecio}
                 onChange={e => setNuevoPrecio(Number(e.target.value))}
-                className="border rounded px-3 py-2 w-32 text-sm"
+                className="border rounded px-3 py-2 w-full sm:w-32 text-sm"
                 min={0}
                 step={100}
               />
@@ -310,21 +308,21 @@ export default function ListasPrecioPage() {
             <button
               onClick={handleAgregarDetalle}
               disabled={!nuevoItemId || nuevoPrecio <= 0}
-              className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               Agregar
             </button>
           </div>
 
           {/* Tabla de detalles */}
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[400px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo</th>
-                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-                <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Precio Base</th>
-                <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Precio Lista</th>
-                <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+                <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+                <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Precio Base</th>
+                <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Precio Lista</th>
+                <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -335,22 +333,22 @@ export default function ListasPrecioPage() {
                 const precioBase = getPrecioBase(det);
                 return (
                   <tr key={key}>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${esCombo ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {esCombo ? 'Combo' : 'Producto'}
+                    <td className="px-2 sm:px-4 py-3 text-sm font-medium">
+                      <span className={`inline-block mr-1.5 px-1.5 py-0.5 rounded text-xs font-medium ${esCombo ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {esCombo ? 'C' : 'P'}
                       </span>
+                      {nombreItem}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium">{nombreItem}</td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-500">
+                    <td className="px-2 sm:px-4 py-3 text-sm text-right text-gray-500 hidden sm:table-cell">
                       ${precioBase.toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
+                    <td className="px-2 sm:px-4 py-3 text-sm text-right">
                       {editandoDetalleKey === key ? (
                         <input
                           type="number"
                           value={editandoDetallePrecio}
                           onChange={e => setEditandoDetallePrecio(Number(e.target.value))}
-                          className="border rounded px-2 py-1 w-28 text-sm text-right"
+                          className="border rounded px-2 py-1 w-24 sm:w-28 text-sm text-right"
                           min={0}
                           step={100}
                           autoFocus
@@ -365,10 +363,10 @@ export default function ListasPrecioPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
+                    <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap">
                       {editandoDetalleKey === key ? (
                         <>
-                          <button onClick={() => handleGuardarDetalle(det)} className="text-green-600 hover:underline mr-3">Guardar</button>
+                          <button onClick={() => handleGuardarDetalle(det)} className="text-green-600 hover:underline mr-2">Guardar</button>
                           <button onClick={() => setEditandoDetalleKey(null)} className="text-gray-500 hover:underline">Cancelar</button>
                         </>
                       ) : (
@@ -378,7 +376,7 @@ export default function ListasPrecioPage() {
                               setEditandoDetalleKey(key);
                               setEditandoDetallePrecio(det.precio);
                             }}
-                            className="text-blue-600 hover:underline mr-3"
+                            className="text-blue-600 hover:underline mr-2"
                           >
                             Editar
                           </button>
@@ -391,11 +389,12 @@ export default function ListasPrecioPage() {
               })}
               {seleccionada.detalles.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">No hay productos ni combos en esta lista</td>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">No hay productos ni combos en esta lista</td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       <ConfirmModal

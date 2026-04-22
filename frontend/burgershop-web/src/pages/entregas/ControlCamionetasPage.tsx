@@ -169,6 +169,7 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
 
         {/* Salchichas Cortas + Largas - tabla separada de 6 columnas */}
         {(Object.keys(tally.salchichaCorta).length > 0 || Object.keys(tally.salchichaLarga).length > 0) && (
+          <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full border-collapse mt-1">
             <thead>
               <tr className={colors.azulCielo}>
@@ -214,6 +215,7 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
               })()}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Otros - debajo de salchichas */}
@@ -316,8 +318,8 @@ function HistorialItem({ item }: { item: ControlCamionetaHistorialItem }) {
   return (
     <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
       {/* Cabecera del ítem */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-gray-50 border-b gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <div>
             <span className="font-semibold text-gray-800">{item.repartidorNombre}</span>
             {item.repartidorVehiculo && (
@@ -326,7 +328,7 @@ function HistorialItem({ item }: { item: ControlCamionetaHistorialItem }) {
           </div>
           <span className="text-xs text-gray-400">Zona: {item.zonaNombre}</span>
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
           <div className="flex gap-3 text-xs">
             <span className="text-green-700 font-medium">{item.totalEntregados} entregados</span>
             {item.totalNoEntregados > 0 && (
@@ -516,7 +518,7 @@ export default function ControlCamionetasPage() {
         ) : (
           <>
             {/* Tabs + botón Excel */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                 {data.map((rep, idx) => (
                   <button
@@ -561,7 +563,7 @@ export default function ControlCamionetasPage() {
             <div ref={tallyRef} className="bg-white">
               {activeTally && (
                 <div className="bg-white rounded-lg shadow-sm border p-4">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">Repartidor:</span>
                       <span className="ml-2 font-semibold">{activeTally.nombre}</span>

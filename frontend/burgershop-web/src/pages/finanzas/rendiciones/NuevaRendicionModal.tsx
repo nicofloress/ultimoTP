@@ -30,9 +30,9 @@ export default function NuevaRendicionModal({
 }: Props) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCerrar} role="dialog" aria-modal="true" aria-labelledby="nueva-rendicion-title">
-      <div className={`flex gap-4 max-h-[85vh] ${repartidorSeleccionado ? 'w-full max-w-4xl' : 'w-full max-w-xl'}`} onClick={e => e.stopPropagation()}>
+      <div className={`flex flex-col lg:flex-row gap-4 max-h-[85vh] ${repartidorSeleccionado ? 'w-full max-w-4xl' : 'w-full max-w-xl'}`} onClick={e => e.stopPropagation()}>
         {/* Panel izquierdo: Formulario */}
-        <div className={`bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col ${repartidorSeleccionado ? 'w-1/2' : 'w-full'}`}>
+        <div className={`bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col ${repartidorSeleccionado ? 'w-full lg:w-1/2' : 'w-full'}`}>
           {/* Header */}
           <div className="px-6 py-4 bg-slate-700 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -249,7 +249,7 @@ export default function NuevaRendicionModal({
 
         {/* Panel derecho: Pedidos del reparto */}
         {repartidorSeleccionado && repartidorSeleccionado.pedidos && repartidorSeleccionado.pedidos.length > 0 && (
-          <div className="bg-white rounded-xl shadow-2xl w-1/2 overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl w-full lg:w-1/2 overflow-hidden flex flex-col">
             <div className="px-5 py-4 bg-slate-700 flex-shrink-0">
               <h3 className="font-bold text-white text-sm">
                 Pedidos del Reparto ({repartidorSeleccionado.pedidos.length})

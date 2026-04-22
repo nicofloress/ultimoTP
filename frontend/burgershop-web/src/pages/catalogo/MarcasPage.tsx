@@ -100,18 +100,17 @@ export default function MarcasPage() {
       </div>
 
       {/* Barra de filtros uniforme */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
+      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-2 flex-wrap">
         <input
           type="text"
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre, descripcion o proveedor..."
-          className={selectClass + ' flex-1 min-w-[200px]'}
+          className={selectClass + ' flex-1 min-w-[180px] w-full sm:w-auto'}
         />
-        <div className="flex-1" />
         <button
           onClick={() => { setShowForm(true); setEditando(null); setForm(emptyForm); }}
-          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5 whitespace-nowrap"
+          className="w-full sm:w-auto px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -156,7 +155,7 @@ export default function MarcasPage() {
               ))}
             </select>
           </div>
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-full flex gap-2">
             <button
               type="submit"
               disabled={guardando}
@@ -175,31 +174,34 @@ export default function MarcasPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Proveedor</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Descripcion</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Proveedor</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {marcasFiltradas.map(m => (
               <tr key={m.id} className={!m.activo ? 'opacity-50' : ''}>
-                <td className="px-4 py-3 text-sm font-medium">{m.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{m.descripcion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{m.proveedorNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">
+                  <div>{m.nombre}</div>
+                  <div className="sm:hidden text-xs text-gray-500">{m.proveedorNombre || ''}</div>
+                </td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{m.descripcion || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{m.proveedorNombre || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm">
                   {m.activo
                     ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Activa</span>
                     : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactiva</span>
                   }
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <button onClick={() => handleEditar(m)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap">
+                  <button onClick={() => handleEditar(m)} className="text-blue-600 hover:underline mr-2 sm:mr-3">Editar</button>
                   <button onClick={() => handleEliminar(m.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>

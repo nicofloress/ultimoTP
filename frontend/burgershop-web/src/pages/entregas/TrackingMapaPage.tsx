@@ -150,7 +150,7 @@ export default function TrackingMapaPage() {
         <h2 className="text-lg font-bold text-white">Tracking en Vivo</h2>
       </div>
       {/* Header con stats */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
             {repartidores.length} repartidor{repartidores.length !== 1 ? 'es' : ''} activo{repartidores.length !== 1 ? 's' : ''}

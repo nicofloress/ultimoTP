@@ -57,11 +57,13 @@ export default function RepartidoresTab({ onConfirm }: Props) {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6 flex-wrap">
-        <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 flex-1 min-w-[150px]" required />
-        <input type="text" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="Telefono" className="border rounded px-3 py-2" />
-        <input type="text" value={form.vehiculo} onChange={e => setForm({ ...form, vehiculo: e.target.value })} placeholder="Vehiculo" className="border rounded px-3 py-2" />
-        <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
+        <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 w-full" required />
+        <input type="text" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="Telefono" className="border rounded px-3 py-2 w-full" />
+        <input type="text" value={form.vehiculo} onChange={e => setForm({ ...form, vehiculo: e.target.value })} placeholder="Vehiculo" className="border rounded px-3 py-2 w-full" />
+        <div className="flex items-end">
+          <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+        </div>
       </form>
       <div className="space-y-4">
         {repartidores.map(r => (

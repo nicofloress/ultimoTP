@@ -48,14 +48,14 @@ export default function RevisionCajaModal({
       aria-modal="true"
       aria-labelledby="revision-caja-title"
     >
-      <div className="flex gap-0 items-start" onClick={e => e.stopPropagation()}>
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+      <div className="flex flex-col lg:flex-row gap-3 items-start w-full max-w-4xl mx-4 max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="bg-white rounded-lg shadow-xl w-full lg:max-w-2xl overflow-y-auto" style={{ maxHeight: '90vh' }}>
           <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
             <h3 id="revision-caja-title" className="text-lg font-bold">Revisar Caja #{caja.id}</h3>
             <button onClick={onClose} className="text-white hover:text-gray-300 text-2xl" aria-label="Cerrar">&times;</button>
           </div>
           <div className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-gray-50 rounded p-3">
                 <div className="text-xs text-gray-500">Local</div>
                 <div className="font-semibold">{caja.localNombre || '-'}</div>
@@ -81,7 +81,7 @@ export default function RevisionCajaModal({
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-blue-50 border border-blue-200 rounded p-3 text-center">
                 <div className="text-xs text-blue-600">Efectivo Esperado</div>
                 <div className="text-lg font-bold text-blue-800">${formatMonto(efectivoEsperado)}</div>
@@ -128,7 +128,7 @@ export default function RevisionCajaModal({
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
               <div className="bg-green-50 rounded p-2 text-center">
                 <div className="text-xs text-green-600">Mostrador</div>
                 <div className="font-bold text-green-700">{caja.cantidadMostrador} - ${formatMonto(caja.totalMostrador)}</div>

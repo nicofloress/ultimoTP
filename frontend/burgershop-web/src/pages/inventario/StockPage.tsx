@@ -170,16 +170,16 @@ export default function StockPage() {
       <span className="text-amber-400 ml-1">{ordenDir === 'asc' ? '\u25B2' : '\u25BC'}</span>
     ) : null;
 
-  const columnas: { key: string; label: string; align?: string }[] = [
+  const columnas: { key: string; label: string; align?: string; hide?: string }[] = [
     { key: 'productoNombre', label: 'Producto' },
-    { key: 'localNombre', label: 'Local' },
-    { key: 'ingresoLocal', label: 'Ingresos', align: 'text-right' },
-    { key: 'egresoLocal', label: 'Egresos', align: 'text-right' },
-    { key: 'ventaLocal', label: 'Ventas', align: 'text-right' },
+    { key: 'localNombre', label: 'Local', hide: 'hidden sm:table-cell' },
+    { key: 'ingresoLocal', label: 'Ingresos', align: 'text-right', hide: 'hidden sm:table-cell' },
+    { key: 'egresoLocal', label: 'Egresos', align: 'text-right', hide: 'hidden sm:table-cell' },
+    { key: 'ventaLocal', label: 'Ventas', align: 'text-right', hide: 'hidden sm:table-cell' },
     { key: 'stockFinal', label: 'Stock (Paq.)', align: 'text-right' },
-    { key: 'bultos', label: 'Bultos', align: 'text-right' },
-    { key: 'stockMinimo', label: 'Stock Min.', align: 'text-right' },
-    { key: 'ultimaModificacion', label: 'Ultima Modificacion' },
+    { key: 'bultos', label: 'Bultos', align: 'text-right', hide: 'hidden md:table-cell' },
+    { key: 'stockMinimo', label: 'Stock Min.', align: 'text-right', hide: 'hidden md:table-cell' },
+    { key: 'ultimaModificacion', label: 'Ultima Mod.', hide: 'hidden md:table-cell' },
   ];
 
   return (
@@ -311,7 +311,7 @@ export default function StockPage() {
               {columnas.map(col => (
                 <th
                   key={col.key}
-                  className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200 transition-colors ${col.align || ''}`}
+                  className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200 transition-colors ${col.align || ''} ${col.hide ?? ''}`}
                   onClick={() => toggleOrden(col.key)}
                 >
                   {col.label}
@@ -344,23 +344,23 @@ export default function StockPage() {
                       idx % 2 === 1 ? 'bg-gray-50/50' : ''
                     }`}
                   >
-                    <td className="px-3 py-2">{s.productoNombre}</td>
-                    <td className="px-3 py-2">{s.localNombre}</td>
-                    <td className="px-3 py-2 text-right">{s.ingresoLocal}</td>
-                    <td className="px-3 py-2 text-right">{s.egresoLocal}</td>
-                    <td className="px-3 py-2 text-right">{s.ventaLocal}</td>
-                    <td className={`px-3 py-2 text-right font-semibold ${
+                    <td className="px-3 py-2 text-xs sm:text-sm">{s.productoNombre}</td>
+                    <td className="px-3 py-2 hidden sm:table-cell">{s.localNombre}</td>
+                    <td className="px-3 py-2 text-right hidden sm:table-cell">{s.ingresoLocal}</td>
+                    <td className="px-3 py-2 text-right hidden sm:table-cell">{s.egresoLocal}</td>
+                    <td className="px-3 py-2 text-right hidden sm:table-cell">{s.ventaLocal}</td>
+                    <td className={`px-3 py-2 text-right font-semibold text-xs sm:text-sm ${
                       esNegativo ? 'text-red-600 font-bold' : esBajo ? 'text-red-600' : s.stockMinimo != null ? 'text-green-600' : ''
                     }`}>
                       {s.stockFinal}
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-500 font-mono">
+                    <td className="px-3 py-2 text-right text-gray-500 font-mono hidden md:table-cell">
                       {s.bultos > 0 ? s.bultos : '-'}
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-500">
+                    <td className="px-3 py-2 text-right text-gray-500 hidden md:table-cell">
                       {s.stockMinimo != null ? s.stockMinimo : '-'}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap hidden md:table-cell">
                       {s.ultimaModificacion ? formatFecha(s.ultimaModificacion) : '-'}
                     </td>
                   </tr>

@@ -72,7 +72,7 @@ export default function ProveedoresPage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center gap-2 justify-between">
         <h2 className="text-lg font-bold text-white">Proveedores</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
@@ -125,7 +125,7 @@ export default function ProveedoresPage() {
               className="border rounded px-3 py-2 w-full"
             />
           </div>
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-full flex gap-2">
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
@@ -136,26 +136,29 @@ export default function ProveedoresPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Contacto</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Contacto</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Telefono</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Direccion</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {proveedores.map(p => (
               <tr key={p.id}>
-                <td className="px-4 py-3 text-sm font-medium">{p.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{p.contacto || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{p.telefono || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{p.direccion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <button onClick={() => handleEditar(p)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">
+                  <div>{p.nombre}</div>
+                  <div className="sm:hidden text-xs text-gray-500">{p.telefono || ''}</div>
+                </td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{p.contacto || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{p.telefono || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{p.direccion || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap">
+                  <button onClick={() => handleEditar(p)} className="text-blue-600 hover:underline mr-2 sm:mr-3">Editar</button>
                   <button onClick={() => handleEliminar(p.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>

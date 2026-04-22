@@ -193,9 +193,17 @@ export default function TransferenciasPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-100 border-b border-slate-200">
-              {['fechaMovimiento', 'codigoAccionNombre', 'localNombre', 'productoNombre', 'cantidad', 'usuarioNombre', 'observaciones'].map(col => (
-                <th key={col} className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200" onClick={() => toggleOrden(col)}>
-                  {{ fechaMovimiento: 'Fecha/Hora', codigoAccionNombre: 'Tipo', localNombre: 'Local', productoNombre: 'Producto', cantidad: 'Cantidad', usuarioNombre: 'Usuario', observaciones: 'Observaciones' }[col]}
+              {([
+                ['fechaMovimiento', 'Fecha/Hora', ''],
+                ['codigoAccionNombre', 'Tipo', ''],
+                ['localNombre', 'Local', 'hidden sm:table-cell'],
+                ['productoNombre', 'Producto', ''],
+                ['cantidad', 'Cantidad', ''],
+                ['usuarioNombre', 'Usuario', 'hidden md:table-cell'],
+                ['observaciones', 'Observaciones', 'hidden md:table-cell'],
+              ] as [string, string, string][]).map(([col, label, hide]) => (
+                <th key={col} className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200 ${hide}`} onClick={() => toggleOrden(col)}>
+                  {label}
                   <SortArrow col={col} />
                 </th>
               ))}
@@ -211,19 +219,19 @@ export default function TransferenciasPage() {
                 const esEgreso = m.codigoAccionCodigo === 'EGR_TRF';
                 return (
                   <tr key={m.id} className={`border-b border-gray-100 hover:bg-amber-50/40 ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{formatFecha(m.fechaMovimiento)}</td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${esEgreso ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                         {esEgreso ? 'Envio' : 'Recepcion'}
                       </span>
                     </td>
-                    <td className="px-3 py-2">{m.localNombre}</td>
-                    <td className="px-3 py-2">{m.productoNombre || '-'}</td>
-                    <td className={`px-3 py-2 font-semibold ${esEgreso ? 'text-red-600' : 'text-green-600'}`}>
+                    <td className="px-3 py-2 hidden sm:table-cell">{m.localNombre}</td>
+                    <td className="px-3 py-2 text-xs sm:text-sm">{m.productoNombre || '-'}</td>
+                    <td className={`px-3 py-2 font-semibold text-xs sm:text-sm ${esEgreso ? 'text-red-600' : 'text-green-600'}`}>
                       {esEgreso ? '-' : '+'}{m.cantidad} paq.
                     </td>
-                    <td className="px-3 py-2">{m.usuarioNombre || '-'}</td>
-                    <td className="px-3 py-2 text-xs text-gray-500 max-w-[250px] truncate">{m.observaciones || '-'}</td>
+                    <td className="px-3 py-2 hidden md:table-cell">{m.usuarioNombre || '-'}</td>
+                    <td className="px-3 py-2 text-xs text-gray-500 max-w-[250px] truncate hidden md:table-cell">{m.observaciones || '-'}</td>
                   </tr>
                 );
               })
@@ -260,7 +268,7 @@ export default function TransferenciasPage() {
               </div>
 
               {/* Locales origen y destino */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Local Origen <span className="text-red-500">*</span></label>
                   {esSuperAdmin ? (
@@ -294,7 +302,7 @@ export default function TransferenciasPage() {
               {/* Cantidad */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Cantidad <span className="text-red-500">*</span> <span className="text-[10px] text-gray-400 font-normal">(bultos y/o unidades)</span></label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <input
                       type="number"

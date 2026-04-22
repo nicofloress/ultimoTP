@@ -68,20 +68,20 @@ export default function FormasPagoTab({ onConfirm }: Props) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4 items-end flex-wrap">
-          <div className="flex-1 min-w-[200px]">
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+          <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
             <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Efectivo, Tarjeta, MercadoPago" className="w-full border rounded px-3 py-2" required />
           </div>
-          <div className="w-40">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Recargo (%)</label>
             <input type="number" value={form.porcentajeRecargo} onChange={e => setForm({ ...form, porcentajeRecargo: Number(e.target.value) })} className="w-full border rounded px-3 py-2" min={0} max={100} step={0.5} />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Activa</label>
+          <div className="flex items-center gap-2 pt-6">
             <input type="checkbox" checked={form.activa} onChange={e => setForm({ ...form, activa: e.target.checked })} className="w-5 h-5" />
+            <label className="text-sm font-medium text-gray-700">Activa</label>
           </div>
-          <div className="flex gap-2">
+          <div className="sm:col-span-2 flex gap-2">
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
             <button type="button" onClick={() => { setShowForm(false); setEditando(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
           </div>

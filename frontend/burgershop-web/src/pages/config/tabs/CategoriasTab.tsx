@@ -70,18 +70,14 @@ export default function CategoriasTab({ onConfirm }: Props) {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6 items-end flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la categoria" className="border rounded px-3 py-2 w-full" required />
-        </div>
-        <div className="w-56">
-          <select value={categoriaPadreId ?? ''} onChange={e => setCategoriaPadreId(e.target.value ? Number(e.target.value) : null)} className="border rounded px-3 py-2 w-full">
-            <option value="">Sin categoria padre (raiz)</option>
-            {opcionesPadre().map(c => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
-        </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 mb-6 items-end">
+        <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la categoria" className="border rounded px-3 py-2 w-full" required />
+        <select value={categoriaPadreId ?? ''} onChange={e => setCategoriaPadreId(e.target.value ? Number(e.target.value) : null)} className="border rounded px-3 py-2 w-full sm:w-56">
+          <option value="">Sin categoria padre (raiz)</option>
+          {opcionesPadre().map(c => (
+            <option key={c.id} value={c.id}>{c.nombre}</option>
+          ))}
+        </select>
         <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
         {editando && (
           <button type="button" onClick={() => { setEditando(null); setNombre(''); setCategoriaPadreId(null); }} className="bg-gray-400 text-white px-4 py-2 rounded">Cancelar</button>
@@ -92,9 +88,9 @@ export default function CategoriasTab({ onConfirm }: Props) {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">ID</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Categoria Padre</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Categoria Padre</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
@@ -104,18 +100,18 @@ export default function CategoriasTab({ onConfirm }: Props) {
               const esHija = !!cat.categoriaPadreId;
               return (
                 <tr key={cat.id} className={esHija ? 'bg-gray-50/50' : ''}>
-                  <td className="px-4 py-3 text-sm">{cat.id}</td>
-                  <td className={`px-4 py-3 text-sm ${esHija ? 'pl-10' : 'font-semibold'}`}>
+                  <td className="px-4 py-3 text-sm hidden sm:table-cell">{cat.id}</td>
+                  <td className={`px-4 py-3 text-sm ${esHija ? 'pl-8 sm:pl-10' : 'font-semibold'}`}>
                     {esHija && <span className="text-gray-400 mr-1">--</span>}
                     {cat.nombre}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{cat.categoriaPadreNombre ?? '-'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{cat.categoriaPadreNombre ?? '-'}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`px-2 py-1 rounded text-xs ${cat.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {cat.activa ? 'Activa' : 'Inactiva'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-right">
+                  <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                     <button onClick={() => handleEditar(cat)} className="text-blue-600 hover:underline mr-3">Editar</button>
                     <button onClick={() => onConfirm('categoria', cat.id, cat.nombre)} className="text-red-600 hover:underline">Desactivar</button>
                   </td>

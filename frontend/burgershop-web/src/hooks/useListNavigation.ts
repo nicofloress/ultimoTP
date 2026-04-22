@@ -9,51 +9,47 @@ interface Options<T> {
 
 export function useListNavigation<T>(items: T[], opts: Options<T>) {
   const [activeIndex, setActiveIndex] = useState(-1);
+  const optsRef = useRef(opts);
+  optsRef.current = opts;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const indexRef = useRef(-1);
   indexRef.current = activeIndex;
 
   useEffect(() => {
     setActiveIndex(-1);
-    indexRef.current = -1;
   }, [items]);
 
-  const scrollTo = useCallback((i: number) => {
-    if (!opts.dataAttr || i < 0) return;
-    document.querySelector(`[${opts.dataAttr}="${i}"]`)?.scrollIntoView({ block: 'nearest' });
-  }, [opts.dataAttr]);
+  useEffect(() => {
+    if (activeIndex < 0 || !optsRef.current.dataAttr) return;
+    document.querySelector(`[${optsRef.current.dataAttr}="${activeIndex}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (opts.enabled === false) return;
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (optsRef.current.enabled === false) return;
+    const len = itemsRef.current.length;
     if (e.key === 'ArrowDown') {
-      if (items.length === 0) return;
+      if (len === 0) return;
       e.preventDefault();
-      setActiveIndex(prev => {
-        const next = Math.min(prev + 1, items.length - 1);
-        scrollTo(next);
-        return next;
-      });
+      setActiveIndex(prev => Math.min(prev + 1, len - 1));
     } else if (e.key === 'ArrowUp') {
-      if (items.length === 0) return;
+      if (len === 0) return;
       e.preventDefault();
-      setActiveIndex(prev => {
-        const next = Math.max(prev - 1, -1);
-        scrollTo(next);
-        return next;
-      });
+      setActiveIndex(prev => Math.max(prev - 1, -1));
     } else if (e.key === 'Enter') {
       const i = indexRef.current;
-      if (i >= 0 && i < items.length) {
+      if (i >= 0 && i < itemsRef.current.length) {
         e.preventDefault();
-        opts.onSelect(items[i]);
+        optsRef.current.onSelect(itemsRef.current[i]);
       }
     } else if (e.key === 'Escape') {
-      if (opts.onEscape) {
+      if (optsRef.current.onEscape) {
         e.preventDefault();
-        opts.onEscape();
+        optsRef.current.onEscape();
       }
       setActiveIndex(-1);
     }
-  };
+  }, []);
 
   return { activeIndex, setActiveIndex, handleKeyDown };
 }

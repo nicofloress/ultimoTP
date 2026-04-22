@@ -212,9 +212,9 @@ export default function CuentaCorrientePage() {
   };
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-7.5rem)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-4 min-h-0 lg:h-[calc(100vh-7.5rem)] overflow-hidden">
       {/* Panel izquierdo - lista de cuentas */}
-      <div className="w-96 flex-shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden">
+      <div className="w-full lg:w-96 flex-shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden lg:max-h-full max-h-[40vh]">
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-3">
           <h2 className="text-lg font-bold text-white">Cuentas Corrientes</h2>
         </div>
@@ -321,7 +321,7 @@ export default function CuentaCorrientePage() {
             </div>
 
             {/* Acciones */}
-            <div className="px-6 py-3 border-b flex items-center gap-3 flex-wrap">
+            <div className="px-4 py-3 border-b flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowPago(true)}
                 className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-md hover:bg-green-100 flex items-center gap-1.5"
@@ -340,7 +340,7 @@ export default function CuentaCorrientePage() {
                 </svg>
                 Ajuste Manual
               </button>
-              <div className="flex-1 flex items-center justify-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-sm w-full sm:w-auto sm:flex-1 justify-start sm:justify-center">
                 <label className="text-gray-500">Desde:</label>
                 <input
                   type="date"
@@ -447,23 +447,23 @@ export default function CuentaCorrientePage() {
             </div>
 
             {/* Tabla movimientos */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto overflow-x-auto scrollbar-hide">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
                     {([
-                      ['fechaMovimiento', 'Fecha', 'text-left'],
-                      ['tipo', 'Tipo', 'text-left'],
-                      ['monto', 'Monto', 'text-right'],
-                      ['saldoResultante', 'Saldo', 'text-right'],
-                      ['referencia', 'Referencia', 'text-left'],
-                      ['usuarioNombre', 'Usuario', 'text-left'],
-                      ['observaciones', 'Observaciones', 'text-left'],
-                    ] as [string, string, string][]).map(([col, label, align]) => (
+                      ['fechaMovimiento', 'Fecha', 'text-left', ''],
+                      ['tipo', 'Tipo', 'text-left', ''],
+                      ['monto', 'Monto', 'text-right', ''],
+                      ['saldoResultante', 'Saldo', 'text-right', ''],
+                      ['referencia', 'Referencia', 'text-left', 'hidden sm:table-cell'],
+                      ['usuarioNombre', 'Usuario', 'text-left', 'hidden md:table-cell'],
+                      ['observaciones', 'Observaciones', 'text-left', 'hidden md:table-cell'],
+                    ] as [string, string, string, string][]).map(([col, label, align, hide]) => (
                       <th
                         key={col}
                         onClick={() => toggleOrden(col)}
-                        className={`${align} px-4 py-2 font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
+                        className={`${align} ${hide} px-4 py-2 font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
                       >
                         {label}
                         {ordenCol === col && (
@@ -476,23 +476,23 @@ export default function CuentaCorrientePage() {
                 <tbody className="divide-y">
                   {movimientosOrdenados.map(m => (
                     <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{formatFechaHora(m.fechaMovimiento)}</td>
-                      <td className="px-4 py-2">
+                      <td className="px-3 py-2 text-gray-600 whitespace-nowrap text-xs sm:text-sm">{formatFechaHora(m.fechaMovimiento)}</td>
+                      <td className="px-3 py-2">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${tipoBadge(m.tipo)}`}>
                           {m.tipo}
                         </span>
                       </td>
-                      <td className={`px-4 py-2 text-right font-medium ${m.tipo === 'Pago' ? 'text-green-600' : m.monto > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className={`px-3 py-2 text-right font-medium text-xs sm:text-sm ${m.tipo === 'Pago' ? 'text-green-600' : m.monto > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {m.tipo === 'Pago' ? '+' : ''}{formatMonto(Math.abs(m.monto))}
                       </td>
-                      <td className={`px-4 py-2 text-right font-medium ${m.saldoResultante > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className={`px-3 py-2 text-right font-medium text-xs sm:text-sm ${m.saldoResultante > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {formatMonto(m.saldoResultante)}
                       </td>
-                      <td className="px-4 py-2 text-gray-600">
+                      <td className="px-3 py-2 text-gray-600 text-xs sm:text-sm hidden sm:table-cell">
                         {m.numeroTicket ? `Ticket #${m.numeroTicket}` : m.numeroVenta ? `Venta #${m.numeroVenta}` : '-'}
                       </td>
-                      <td className="px-4 py-2 text-gray-600">{m.usuarioNombre || '-'}</td>
-                      <td className="px-4 py-2 text-gray-500 max-w-[200px] truncate" title={m.observaciones || ''}>
+                      <td className="px-3 py-2 text-gray-600 text-xs hidden md:table-cell">{m.usuarioNombre || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate text-xs hidden md:table-cell" title={m.observaciones || ''}>
                         {m.observaciones || '-'}
                       </td>
                     </tr>

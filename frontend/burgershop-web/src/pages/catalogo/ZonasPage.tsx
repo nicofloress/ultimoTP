@@ -104,11 +104,11 @@ export default function ZonasPage() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 min-w-[200px]">
+      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
           <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
           {esSuperAdmin ? (
-            <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass + ' w-full'}>
+            <select value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))} className={selectClass + ' flex-1'}>
               <option value={0}>Todos los locales</option>
               {locales.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
             </select>
@@ -121,7 +121,7 @@ export default function ZonasPage() {
         <div className="flex-1" />
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
-          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5"
+          className="w-full sm:w-auto px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center justify-center gap-1.5"
         >
           {showForm ? 'Cerrar' : (<><svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nueva Zona</>)}
         </button>
@@ -188,7 +188,7 @@ export default function ZonasPage() {
               Activa
             </label>
           )}
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-full flex gap-2">
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
@@ -199,31 +199,32 @@ export default function ZonasPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Costo Envio</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Costo Envio</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Local</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {zonasFiltradas.map(z => (
               <tr key={z.id}>
-                <td className="px-4 py-3 text-sm font-medium">{z.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{z.descripcion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">${z.costoEnvio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{z.localNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">
+                  <div>{z.nombre}</div>
+                  <div className="sm:hidden text-xs text-gray-500">${z.costoEnvio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
+                </td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">${z.costoEnvio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{z.localNombre || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${z.activa ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {z.activa ? 'Activa' : 'Inactiva'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-right space-x-3">
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap space-x-2">
                   <button onClick={() => handleEditar(z)} className="text-blue-600 hover:underline">Editar</button>
                   <button onClick={() => handleEliminar(z.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
@@ -231,7 +232,7 @@ export default function ZonasPage() {
             ))}
             {zonasFiltradas.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No hay zonas registradas</td>
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No hay zonas registradas</td>
               </tr>
             )}
           </tbody>

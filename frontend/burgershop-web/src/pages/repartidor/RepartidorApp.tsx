@@ -415,7 +415,7 @@ export default function RepartidorApp() {
   if (!repartidorId) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-md p-8 w-full max-w-sm text-center">
+        <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 w-full max-w-sm text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Error</h1>
           <p className="text-gray-600 mb-6">Este usuario no tiene un repartidor asociado.</p>
           <button onClick={logout} className="bg-slate-800 text-white px-6 py-2 rounded font-medium hover:bg-slate-700 transition-colors">
@@ -564,10 +564,10 @@ export default function RepartidorApp() {
                     <button
                       onClick={() => navegarAPedido(siguiente)}
                       disabled={actionLoading === siguiente.id}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-base"
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-lg font-semibold transition-colors flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-base"
                     >
-                      {'\uD83E\uDDED'} Navegar al siguiente
-                      <span className="text-blue-200 text-xs font-normal truncate max-w-[200px]">
+                      <span>{'\uD83E\uDDED'} Navegar al siguiente</span>
+                      <span className="text-blue-200 text-xs font-normal truncate max-w-[90%] sm:max-w-[200px]">
                         ({siguiente.direccionEntrega})
                       </span>
                     </button>

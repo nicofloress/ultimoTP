@@ -15,7 +15,7 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
       aria-modal="true"
       aria-labelledby="producto-detalle-title"
     >
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-xl w-[95vw] sm:max-w-md sm:w-full mx-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-slate-700 text-white px-5 py-4 rounded-t-xl">
           <h3 id="producto-detalle-title" className="font-bold text-lg">{producto.nombre}</h3>

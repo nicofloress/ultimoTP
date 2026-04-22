@@ -42,7 +42,7 @@ export default function ProductoForm({
   onSubmit, onCancel,
 }: Props) {
   return (
-    <form onSubmit={onSubmit} className="bg-white p-4 rounded-lg shadow mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+    <form onSubmit={onSubmit} className="bg-white p-3 sm:p-4 rounded-lg shadow mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
         <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 w-full" required />

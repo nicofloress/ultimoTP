@@ -20,6 +20,17 @@ const VERSION_KEY = 'app_version_current';
 const fechaVersion = localStorage.getItem(VERSION_DATE_KEY);
 import { RolUsuario } from '../types/auth';
 
+function useIsMobile(breakpoint = 1024) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 interface MenuItem {
   to: string;
   label: string;
@@ -101,9 +112,10 @@ const menuSections: MenuSection[] = [
 ];
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const { usuario, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const isMobile = useIsMobile();
 
   const userRol = usuario?.rol;
   const { locales, localActivo, setLocalActivo, esSuperAdmin } = useLocalActivo();
@@ -172,10 +184,10 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-900 dark:text-gray-100 transition-colors">
       {/* Header fijo - siempre arriba, todo el ancho */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-600 border-b border-slate-700 flex items-center px-4">
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-600 border-b border-slate-700 flex items-center px-2 sm:px-4">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded hover:bg-slate-600 transition-colors text-slate-200"
+          className="p-2 rounded hover:bg-slate-600 transition-colors text-slate-200 flex-shrink-0"
           aria-label="Toggle sidebar"
         >
           <svg
@@ -192,39 +204,32 @@ export default function Layout() {
             />
           </svg>
         </button>
-        <div className="ml-3 flex items-center gap-2">
-          {/* Icono hamburguesa */}
-          <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
-            {/* Pan superior (dome) */}
+        <div className="ml-1 sm:ml-3 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 32 32" fill="none">
             <path d="M4 14h24c0-6-5.4-10-12-10S4 8 4 14z" fill="#F59E0B" />
-            {/* Sesamo */}
             <ellipse cx="11" cy="9" rx="1.2" ry="0.8" fill="#FEF3C7" />
             <ellipse cx="17" cy="7.5" rx="1.2" ry="0.8" fill="#FEF3C7" />
             <ellipse cx="22" cy="10" rx="1.2" ry="0.8" fill="#FEF3C7" />
-            {/* Lechuga */}
             <path d="M3 14.5c1.5 1.5 3 0 4.5 1.5s3 0 4.5 1.5 3 0 4.5 1.5 3 0 4.5-1.5 3 0 4.5-1.5" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" />
-            {/* Carne */}
             <rect x="3.5" y="17" width="25" height="3.5" rx="1.5" fill="#92400E" />
-            {/* Queso */}
             <path d="M3 17l2-1.5h22l2 1.5" fill="#FBBF24" />
-            {/* Pan inferior */}
             <rect x="4" y="21" width="24" height="4" rx="2" fill="#D97706" />
           </svg>
-          <span className="text-base font-bold text-white tracking-tight">
+          <span className="text-sm sm:text-base font-bold text-white tracking-tight hidden sm:inline">
             Gestion HLP
           </span>
         </div>
-        <div className="flex-1 flex items-center justify-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-sm font-bold">
+        <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
             {usuario?.nombreCompleto?.charAt(0)?.toUpperCase() || 'U'}
           </div>
-          <div>
-            <div className="text-sm font-semibold text-white leading-tight">{usuario?.nombreCompleto}</div>
+          <div className="hidden sm:block min-w-0">
+            <div className="text-sm font-semibold text-white leading-tight truncate">{usuario?.nombreCompleto}</div>
             <div className="text-xs text-slate-300 leading-tight">{usuario?.rolNombre}</div>
           </div>
         </div>
         {esSuperAdmin && (
-          <div className="flex items-center gap-2 mr-4">
+          <div className="hidden md:flex items-center gap-2 mr-2 lg:mr-4 flex-shrink-0">
             <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -232,7 +237,7 @@ export default function Layout() {
             <select
               value={localActivo}
               onChange={e => setLocalActivo(Number(e.target.value))}
-              className="bg-slate-700 text-white text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-[180px]"
+              className="bg-slate-700 text-white text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-[140px] lg:min-w-[180px]"
             >
               {locales.map(l => (
                 <option key={l.id} value={l.id}>{l.nombre}</option>
@@ -242,7 +247,7 @@ export default function Layout() {
         )}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex-shrink-0"
           title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
         >
           {theme === 'dark' ? (
@@ -257,14 +262,23 @@ export default function Layout() {
         </button>
         <button
           onClick={logout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+          className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-md text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors ml-1 sm:ml-2 flex-shrink-0"
+          title="Cerrar sesion"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
-          Salir
+          <span className="hidden sm:inline">Salir</span>
         </button>
       </header>
+
+      {/* Backdrop for mobile sidebar */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar - debajo del header */}
       <aside
@@ -306,6 +320,7 @@ export default function Layout() {
                       key={item.to}
                       to={item.to}
                       end={item.end}
+                      onClick={() => { if (isMobile) setSidebarOpen(false); }}
                       className={({ isActive }) =>
                         `block mx-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                           isActive
@@ -342,11 +357,10 @@ export default function Layout() {
       {/* Main content area - debajo del header, al lado del sidebar */}
       <div
         className={`pt-14 transition-all duration-300 ${
-          sidebarOpen ? 'ml-64' : 'ml-0'
+          sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'
         }`}
       >
-        {/* Page content */}
-        <main className="p-4">
+        <main className="p-2 sm:p-4">
           <Outlet />
         </main>
       </div>

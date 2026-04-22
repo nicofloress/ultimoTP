@@ -305,7 +305,7 @@ export default function EntregasPage() {
       ) : null}
 
       {/* Header */}
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between flex-shrink-0">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-bold text-white">Entregas</h2>
           <span className="bg-amber-400/20 text-amber-200 px-2.5 py-0.5 rounded-full text-sm font-semibold">

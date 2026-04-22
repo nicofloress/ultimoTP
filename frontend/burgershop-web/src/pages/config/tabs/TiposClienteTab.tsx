@@ -80,12 +80,12 @@ export default function TiposClienteTab({ onConfirm }: Props) {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Descripcion</th>
               <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Cta Cte</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
@@ -94,14 +94,14 @@ export default function TiposClienteTab({ onConfirm }: Props) {
             {tiposCliente.map(tc => (
               <tr key={tc.id}>
                 <td className="px-4 py-3 text-sm font-medium">{tc.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{tc.descripcion || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{tc.descripcion || '-'}</td>
                 <td className="px-4 py-3 text-sm text-center">
                   {tc.permiteCuentaCorriente
                     ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>
                     : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No</span>
                   }
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
+                <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                   <button onClick={() => handleEditar(tc)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => onConfirm('tipoCliente', tc.id, tc.nombre)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>

@@ -268,7 +268,6 @@ export default function POSPage() {
     setModoPago(prev => prev === 'cuentaCorriente' ? 'total' : prev);
   };
 
-  // Navegación por flechas en sugerencias de cliente
   const clientesNav = useListNavigation(clientesSugeridos, {
     onSelect: seleccionarCliente,
     onEscape: () => setMostrarSugerencias(false),
@@ -282,7 +281,6 @@ export default function POSPage() {
     limpiarSugerencias();
   };
 
-  // Navegación por flechas en sugerencias de dirección
   const direccionNav = useListNavigation(sugerenciasDireccion, {
     onSelect: seleccionarSugerenciaDireccion,
     onEscape: () => setMostrarSugerenciasDireccion(false),
@@ -733,11 +731,11 @@ export default function POSPage() {
   const labelClass = 'text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1';
 
   return (
-    <div className="flex flex-col lg:flex-row gap-2 h-[calc(100vh-7.5rem)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-2 h-[calc(100vh-5rem)] lg:h-[calc(100vh-7.5rem)] overflow-hidden">
       {/* ============ PANEL IZQUIERDO ============ */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-1.5">
-          <h2 className="text-lg font-bold text-white">Punto de Venta</h2>
+        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2 mb-1.5">
+          <h2 className="text-base lg:text-lg font-bold text-white">Punto de Venta</h2>
         </div>
         {/* Header: Cliente + Tipo + Factura */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 mb-1.5 space-y-2">
@@ -789,11 +787,11 @@ export default function POSPage() {
           </div>
 
           {/* Fila 2: Tipo Cliente + Factura */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={tipoClienteSeleccionado || ''}
               onChange={e => setTipoClienteSeleccionado(Number(e.target.value) || undefined)}
-              className={`${selectClass} flex-1 font-medium`}
+              className={`${selectClass} flex-1 min-w-[120px] font-medium`}
             >
               <option value="">Tipo Cliente...</option>
               {tiposCliente.filter(tc => tc.activo).map(tc => (
@@ -803,7 +801,7 @@ export default function POSPage() {
             <select
               value={tipoFactura}
               onChange={e => setTipoFactura(Number(e.target.value))}
-              className={`${selectClass} flex-1 font-medium`}
+              className={`${selectClass} flex-1 min-w-[100px] font-medium`}
             >
               <option value={TipoFactura.FacturaA}>Factura A</option>
               <option value={TipoFactura.FacturaB}>Factura B</option>
@@ -815,7 +813,7 @@ export default function POSPage() {
         {/* Buscador de productos + boton catalogo */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 mb-1.5">
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -825,16 +823,16 @@ export default function POSPage() {
                 value={busqueda}
                 onChange={e => { setBusqueda(e.target.value); setIndiceBusqueda(-1); }}
                 onKeyDown={handleBusquedaKeyDown}
-                placeholder="Codigo de barras / Buscar producto..."
-                className={`${inputClass} pl-8 text-base`}
+                placeholder="Cod. barras / Buscar..."
+                className={`${inputClass} pl-8 text-sm sm:text-base`}
                 autoFocus
               />
             </div>
             <button
               onClick={() => setMostrarCatalogo(true)}
-              className="bg-amber-50 text-amber-700 border border-amber-300 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-amber-100 active:bg-amber-200 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="bg-amber-50 text-amber-700 border border-amber-300 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium hover:bg-amber-100 active:bg-amber-200 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              Ver catalogo
+              Catalogo
             </button>
           </div>
 
@@ -919,12 +917,12 @@ export default function POSPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Cod</th>
+                <th className="hidden sm:table-cell text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Cod</th>
                 <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Producto</th>
                 <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Cant</th>
-                <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Unidades</th>
-                <th className="text-right px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Precio</th>
-                <th className="text-center px-1 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Desc%</th>
+                <th className="hidden lg:table-cell text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Unidades</th>
+                <th className="hidden sm:table-cell text-right px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Precio</th>
+                <th className="hidden sm:table-cell text-center px-1 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Desc%</th>
                 <th className="text-right px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">SubTotal</th>
                 <th className="w-7 px-1"></th>
               </tr>
@@ -947,7 +945,7 @@ export default function POSPage() {
                     const prod = productos.find(p => p.id === item.productoId);
                     return (
                       <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/40 transition-colors">
-                        <td className="px-2.5 py-1.5 text-xs text-gray-400 font-mono w-20">
+                        <td className="hidden sm:table-cell px-2.5 py-1.5 text-xs text-gray-400 font-mono w-20">
                           {prod?.numeroInterno || '-'}
                         </td>
                         <td className="px-2.5 py-1.5">
@@ -962,10 +960,10 @@ export default function POSPage() {
                             min={1}
                           />
                         </td>
-                        <td className="px-1 py-1 w-14 text-center text-xs text-amber-600 font-semibold">
+                        <td className="hidden lg:table-cell px-1 py-1 w-14 text-center text-xs text-amber-600 font-semibold">
                           {prod && prod.unidadMinima > 1 ? item.cantidad * prod.unidadMinima : '-'}
                         </td>
-                        <td className="px-1 py-1 w-20">
+                        <td className="hidden sm:table-cell px-1 py-1 w-20">
                           <NumericInput
                             value={item.precioUnitario}
                             onChange={v => actualizarItem(i, 'precioUnitario', v)}
@@ -974,7 +972,7 @@ export default function POSPage() {
                             decimales
                           />
                         </td>
-                        <td className="px-1 py-1 w-16">
+                        <td className="hidden sm:table-cell px-1 py-1 w-16">
                           <input
                             type="number"
                             value={item.descuentoPorcentaje ?? 0}
@@ -1015,12 +1013,12 @@ export default function POSPage() {
 
         {/* Nota interna + Footer info */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-2 py-1.5 mt-1.5 flex-shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               value={notaInterna}
               onChange={e => setNotaInterna(e.target.value)}
               placeholder="Nota interna..."
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+              className="flex-1 min-w-0 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
             />
             <span className="text-xs text-gray-400 font-mono whitespace-nowrap">{carrito.length} items</span>
             {ticketCreado && (
@@ -1036,7 +1034,7 @@ export default function POSPage() {
       </div>
 
       {/* ============ PANEL DERECHO: CAJA ============ */}
-      <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 lg:max-h-full">
+      <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 max-h-[65vh] lg:max-h-full">
         {/* Caja info */}
         <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white shadow-lg border-b-2 border-amber-500' : 'bg-red-50 border-b border-red-200'}`}>
           <div>
@@ -1252,11 +1250,11 @@ export default function POSPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap gap-1.5">
                   <select
                     value={zonaSeleccionada || ''}
                     onChange={e => setZonaSeleccionada(Number(e.target.value) || undefined)}
-                    className="flex-1 border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                    className="flex-1 min-w-[100px] border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                   >
                     <option value="">Zona...</option>
                     {zonas.filter(z => z.activa).map(z => (
@@ -1269,7 +1267,7 @@ export default function POSPage() {
                     onChange={e => setFechaProgramada(e.target.value)}
                     min={hoy}
                     max={(() => { const d = new Date(); d.setDate(d.getDate() + 14); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
-                    className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                    className="flex-1 min-w-[130px] border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
                   />
                 </div>
               </div>

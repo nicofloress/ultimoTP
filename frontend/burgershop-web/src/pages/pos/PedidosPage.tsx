@@ -312,7 +312,6 @@ export default function PedidosPage() {
     setEsCtaCte(false);
   };
 
-  // Navegación por flechas en sugerencias de cliente
   const clientesNav = useListNavigation(sugerenciasCliente, {
     onSelect: seleccionarCliente,
     onEscape: () => setSugerenciasCliente([]),
@@ -327,7 +326,6 @@ export default function PedidosPage() {
     geocodificar(s.placeId);
   };
 
-  // Navegación por flechas en sugerencias de dirección
   const direccionNav = useListNavigation(sugerenciasDireccion, {
     onSelect: seleccionarSugerenciaDireccion,
     onEscape: () => setMostrarSugerenciasDireccion(false),
@@ -705,10 +703,28 @@ export default function PedidosPage() {
     cargarPedidos();
   };
 
+  const [panelMovil, setPanelMovil] = useState<'formulario' | 'pedidos'>('formulario');
+
   return (
-    <div className="flex flex-col lg:flex-row gap-3 h-[calc(100vh-7.5rem)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-2 lg:gap-3 h-[calc(100vh-5rem)] lg:h-[calc(100vh-7.5rem)] overflow-hidden">
+      {/* Tabs móvil para alternar entre formulario y pedidos */}
+      <div className="flex lg:hidden gap-1 flex-shrink-0">
+        <button
+          onClick={() => setPanelMovil('formulario')}
+          className={`flex-1 py-2 rounded-t-lg text-sm font-bold transition-colors ${panelMovil === 'formulario' ? 'bg-white text-amber-700 border-b-2 border-amber-500' : 'bg-gray-200 text-gray-500'}`}
+        >
+          Nuevo Pedido
+        </button>
+        <button
+          onClick={() => setPanelMovil('pedidos')}
+          className={`flex-1 py-2 rounded-t-lg text-sm font-bold transition-colors ${panelMovil === 'pedidos' ? 'bg-white text-amber-700 border-b-2 border-amber-500' : 'bg-gray-200 text-gray-500'}`}
+        >
+          Pedidos ({pedidos.length})
+        </button>
+      </div>
+
       {/* ============ PANEL IZQUIERDO: FORMULARIO ============ */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-0 ${panelMovil !== 'formulario' ? 'hidden lg:flex' : ''}`}>
         {/* Zona superior: datos del pedido (izq) + mapa (der) */}
         <div className="flex gap-2 mb-1.5 flex-shrink-0">
           {/* Columna izquierda: Header + Direccion + Telefono + Programar */}
@@ -801,8 +817,18 @@ export default function PedidosPage() {
                   onKeyDown={direccionNav.handleKeyDown}
                   placeholder="Domicilio / Direccion de entrega..."
                   disabled={esEdicionLimitada}
-                  className={`${inputClass} pl-8${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                  className={`${inputClass} pl-8 pr-10 lg:pr-2.5${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 />
+                {/* Boton mapa en mobile */}
+                <button
+                  onClick={() => setMostrarMapaGrande(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-700 lg:hidden"
+                  title="Abrir mapa"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </button>
                 {mostrarSugerenciasDireccion && sugerenciasDireccion.length > 0 && direccion.length >= 3 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 border border-gray-200 rounded-md bg-white shadow-lg max-h-48 overflow-y-auto">
                     {sugerenciasDireccion.map((s, idx) => (
@@ -914,8 +940,8 @@ export default function PedidosPage() {
             </div>
           </div>
 
-          {/* Columna derecha: Mapa interactivo (ocupa toda la altura) */}
-          <div className="w-72 flex-shrink-0">
+          {/* Columna derecha: Mapa interactivo (oculto en mobile) */}
+          <div className="w-72 flex-shrink-0 hidden lg:block">
             <div className="relative h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <GoogleMap
                 coordenadas={coordenadas || coordenadasLocal || { lat: -34.6037, lng: -58.3816 }}
@@ -1061,12 +1087,12 @@ export default function PedidosPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Cod</th>
+                <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20 hidden lg:table-cell">Cod</th>
                 <th className="text-left px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Producto</th>
                 <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Cant</th>
-                <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Unidades</th>
-                <th className="text-right px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Precio</th>
-                <th className="text-center px-1 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Desc%</th>
+                <th className="text-center px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-14 hidden xl:table-cell">Unidades</th>
+                <th className="text-right px-1.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20 hidden sm:table-cell">Precio</th>
+                <th className="text-center px-1 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16 hidden sm:table-cell">Desc%</th>
                 <th className="text-right px-2.5 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">SubTotal</th>
                 <th className="w-7 px-1"></th>
               </tr>
@@ -1089,7 +1115,7 @@ export default function PedidosPage() {
                     const prod = productos.find(p => p.id === item.productoId);
                     return (
                       <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/40 transition-colors">
-                        <td className="px-2.5 py-1.5 text-xs text-gray-400 font-mono w-20">
+                        <td className="px-2.5 py-1.5 text-xs text-gray-400 font-mono w-20 hidden lg:table-cell">
                           {prod?.numeroInterno || '-'}
                         </td>
                         <td className="px-2.5 py-1.5">
@@ -1106,10 +1132,10 @@ export default function PedidosPage() {
                             min={1}
                           />
                         </td>
-                        <td className="px-1 py-1 w-14 text-center text-xs text-amber-600 font-semibold">
+                        <td className="px-1 py-1 w-14 text-center text-xs text-amber-600 font-semibold hidden xl:table-cell">
                           {prod && prod.unidadMinima > 1 ? item.cantidad * prod.unidadMinima : '-'}
                         </td>
-                        <td className="px-1 py-1 w-20">
+                        <td className="px-1 py-1 w-20 hidden sm:table-cell">
                           <input
                             type="number"
                             value={item.precioUnitario}
@@ -1120,7 +1146,7 @@ export default function PedidosPage() {
                             step={100}
                           />
                         </td>
-                        <td className="px-1 py-1 w-16">
+                        <td className="px-1 py-1 w-16 hidden sm:table-cell">
                           <input
                             type="number"
                             value={item.descuentoPorcentaje ?? 0}
@@ -1164,20 +1190,20 @@ export default function PedidosPage() {
 
         {/* Footer: Zona + Ya pago + Subtotal + Extras + Botones */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-3 py-2 mt-1.5 flex-shrink-0 space-y-1.5">
-          {/* Fila 1: Zona (select) + Ya esta pago + Subtotal */}
-          <div className="flex items-center gap-3">
+          {/* Fila 1: Zona + Ya esta pago + Total */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <select
               value={zonaSeleccionada || ''}
               onChange={e => setZonaSeleccionada(Number(e.target.value) || undefined)}
               disabled={esEdicionLimitada}
-              className={`${selectClass} w-48${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+              className={`${selectClass} w-32 sm:w-48${esEdicionLimitada ? ' bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
             >
               <option value="">Zona...</option>
               {zonas.filter(z => z.activa).map(z => (
                 <option key={z.id} value={z.id}>{z.nombre}</option>
               ))}
             </select>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <label className="flex items-center gap-1 sm:gap-1.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={yaPago && !esCtaCte}
@@ -1189,22 +1215,22 @@ export default function PedidosPage() {
                 disabled={esCtaCte}
                 className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-400 disabled:opacity-50"
               />
-              <span className="text-sm text-gray-700 font-medium whitespace-nowrap">Ya esta pago</span>
+              <span className="text-xs sm:text-sm text-gray-700 font-medium whitespace-nowrap">Pago</span>
             </label>
             {yaPago && !esCtaCte && (
               <select
                 value={formaPagoSeleccionada || ''}
                 onChange={e => setFormaPagoSeleccionada(Number(e.target.value) || undefined)}
-                className={`${selectClass} w-40`}
+                className={`${selectClass} w-32 sm:w-40`}
               >
-                <option value="">Forma de pago...</option>
+                <option value="">Forma pago...</option>
                 {formasPago.filter(fp => fp.nombre !== 'Cuenta Corriente').map(fp => (
                   <option key={fp.id} value={fp.id}>{fp.nombre}</option>
                 ))}
               </select>
             )}
             {!esEdicionLimitada && permiteCuentaCorriente && (
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <label className="flex items-center gap-1 sm:gap-1.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={esCtaCte}
@@ -1217,13 +1243,12 @@ export default function PedidosPage() {
                   }}
                   className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-400"
                 />
-                <span className="text-sm text-purple-700 font-medium whitespace-nowrap">Cta Cte</span>
+                <span className="text-xs sm:text-sm text-purple-700 font-medium whitespace-nowrap">Cta Cte</span>
               </label>
             )}
-            {/* Icono expandir extras (nota + descuento) */}
             <button
               onClick={() => setMostrarExtras(!mostrarExtras)}
-              className={`p-1.5 rounded-md transition-colors ${mostrarExtras ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${mostrarExtras ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
               title="Nota interna y descuento"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1285,6 +1310,7 @@ export default function PedidosPage() {
       </div>
 
       {/* ============ PANEL DERECHO: PEDIDOS DEL DIA ============ */}
+      <div className={`w-full lg:w-96 flex flex-col min-h-0 ${panelMovil !== 'pedidos' ? 'hidden lg:flex' : ''}`}>
       <PedidosDelDiaPanel
         pedidos={pedidos}
         pedidosFiltrados={pedidosFiltrados}
@@ -1300,6 +1326,7 @@ export default function PedidosPage() {
         onAsignarRepartidor={(p) => setMostrarAsignarRepartidor(p)}
         onCancelar={handleCancelar}
       />
+      </div>
       {/* ============ OVERLAY PROCESANDO ============ */}
       {creandoPedido && (
         <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center">

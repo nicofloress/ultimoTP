@@ -27,7 +27,7 @@ export default function DepositoLogin({ error }: { error?: string | null }) {
     <div className="min-h-screen w-screen flex items-center justify-center bg-gray-900 text-white">
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-800 p-10 rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-5"
+        className="bg-gray-800 p-6 sm:p-10 rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-5"
       >
         <h1 className="text-3xl font-bold text-center mb-2">Depósito</h1>
         <p className="text-center text-gray-400 mb-4">Acceso a la pantalla de pedidos</p>

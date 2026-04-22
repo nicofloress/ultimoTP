@@ -188,13 +188,13 @@ export default function EditarPedidoModal({ pedido, formasPago, zonas, onClose, 
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 z-[60] flex items-start sm:items-center justify-center p-2 sm:p-4 pt-4 sm:pt-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="editar-pedido-title"
       onClick={onClose}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[96vh] sm:max-h-[90vh]" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-3 bg-slate-700 rounded-t-xl flex items-center justify-between">
           <h3 id="editar-pedido-title" className="font-bold text-white text-base">
             Editar pedido <span className="text-amber-400">#{pedido.numeroTicket}</span>
@@ -251,10 +251,10 @@ export default function EditarPedidoModal({ pedido, formasPago, zonas, onClose, 
             </div>
           </div>
 
-          {/* Teléfono + Dirección */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Teléfono + Zona */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Telefono</label>
               <input type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} className={inputClass} />
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function EditarPedidoModal({ pedido, formasPago, zonas, onClose, 
           <hr className="border-gray-100" />
 
           {/* Estado + Forma pago */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
               <select value={estado} onChange={e => setEstado(Number(e.target.value) as EstadoVenta)} className={selectClass}>

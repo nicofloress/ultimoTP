@@ -89,7 +89,7 @@ export default function ConfigPage() {
   const tabBtn = (key: TabType, label: string) => (
     <button
       onClick={() => setTab(key)}
-      className={`px-4 py-2 rounded-md font-medium ${tab === key ? 'text-amber-700 bg-amber-50 border border-amber-300' : 'bg-white shadow border border-gray-200'}`}
+      className={`flex-shrink-0 px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap ${tab === key ? 'text-amber-700 bg-amber-50 border border-amber-300' : 'bg-white shadow border border-gray-200'}`}
     >
       {label}
     </button>
@@ -101,7 +101,7 @@ export default function ConfigPage() {
         <h2 className="text-lg font-bold text-white">Configuracion</h2>
       </div>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
         {tabBtn('zonas', 'Zonas')}
         {tabBtn('repartidores', 'Repartidores')}
         {tabBtn('formasPago', 'Formas de Pago')}

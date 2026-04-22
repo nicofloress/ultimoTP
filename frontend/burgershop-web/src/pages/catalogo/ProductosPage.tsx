@@ -358,16 +358,16 @@ export default function ProductosPage() {
   return (
     <div className="h-[calc(100vh-7.5rem)] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-3 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-3 flex flex-wrap items-center gap-2 justify-between">
         <h2 className="text-lg font-bold text-white">Articulos</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Selector de lista de precios */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-200">Lista de precios:</label>
+            <label className="text-xs sm:text-sm font-medium text-gray-200 whitespace-nowrap">Lista:</label>
             <select
               value={listaPrecioId ?? ''}
               onChange={e => setListaPrecioId(e.target.value ? Number(e.target.value) : null)}
-              className="border rounded-lg px-3 py-1.5 text-sm bg-white min-w-[180px]"
+              className="border rounded-lg px-2 sm:px-3 py-1.5 text-sm bg-white min-w-[130px] sm:min-w-[180px]"
             >
               <option value="">Precio Base</option>
               {listas.filter(l => l.activa).map(l => (
@@ -379,11 +379,13 @@ export default function ProductosPage() {
           </div>
           {esSuperAdmin && (
             <div className="flex items-center gap-2">
-              <button onClick={() => abrirFormProducto()} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Producto
+              <button onClick={() => abrirFormProducto()} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                <span className="hidden sm:inline">Nuevo </span>Producto
               </button>
-              <button onClick={() => abrirFormCombo()} className="text-purple-700 bg-purple-50 border border-purple-300 rounded-md hover:bg-purple-100 px-3 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>Nuevo Combo
+              <button onClick={() => abrirFormCombo()} className="text-purple-700 bg-purple-50 border border-purple-300 rounded-md hover:bg-purple-100 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                <span className="hidden sm:inline">Nuevo </span>Combo
               </button>
             </div>
           )}

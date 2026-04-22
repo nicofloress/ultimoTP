@@ -120,16 +120,16 @@ export default function DepositoPage() {
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-white">
-      <header className="sticky top-0 z-10 bg-slate-950 border-b-4 border-orange-500 px-8 py-5 flex items-center justify-between">
-        <h1 className="text-5xl font-extrabold tracking-wide">DEPOSITO</h1>
-        <div className="text-6xl font-mono font-bold text-orange-400">{formatTime(now)}</div>
-        <div className="text-3xl font-bold">
+      <header className="sticky top-0 z-10 bg-slate-950 border-b-4 border-orange-500 px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between gap-2">
+        <h1 className="text-2xl sm:text-5xl font-extrabold tracking-wide">DEPOSITO</h1>
+        <div className="text-3xl sm:text-6xl font-mono font-bold text-orange-400">{formatTime(now)}</div>
+        <div className="text-lg sm:text-3xl font-bold">
           <span className="text-slate-400">Pedidos: </span>
           <span className="text-white">{ventas.length}</span>
         </div>
       </header>
 
-      <main className="px-8 py-6">
+      <main className="px-4 sm:px-8 py-4 sm:py-6">
         {ventas.length === 0 ? (
           <div className="flex items-center justify-center h-[70vh]">
             <div className="text-5xl text-slate-500 font-semibold">Sin pedidos pendientes</div>
@@ -148,7 +148,7 @@ export default function DepositoPage() {
                 <div
                   key={v.id}
                   className={[
-                    'relative rounded-2xl p-8 shadow-2xl transition-opacity duration-700',
+                    'relative rounded-2xl p-4 sm:p-8 shadow-2xl transition-opacity duration-700',
                     fading ? 'opacity-0' : 'opacity-100',
                     esPrimero
                       ? 'bg-slate-800 border-8 border-orange-500 ring-4 ring-yellow-400/40'
@@ -163,42 +163,42 @@ export default function DepositoPage() {
                     &times;
                   </button>
 
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between mb-4 gap-2">
                     <div>
-                      <div className="text-6xl font-extrabold text-orange-400">
+                      <div className="text-4xl sm:text-6xl font-extrabold text-orange-400">
                         #{v.numeroTicket}
                       </div>
-                      <div className="text-2xl text-slate-300 mt-2">
+                      <div className="text-lg sm:text-2xl text-slate-300 mt-2">
                         Hora: <span className="font-bold text-white">{formatHora(getFechaReferencia(v))}</span>
                       </div>
                     </div>
                     {esPrimero && (
                       <div className="text-right">
-                        <div className="text-2xl text-yellow-300 uppercase font-bold">Tiempo</div>
+                        <div className="text-lg sm:text-2xl text-yellow-300 uppercase font-bold">Tiempo</div>
                         <div
                           className={[
-                            'font-mono font-extrabold text-7xl',
+                            'font-mono font-extrabold text-5xl sm:text-7xl',
                             minutosRestantes <= 1 ? 'text-red-500 animate-pulse' : 'text-yellow-300',
                           ].join(' ')}
                         >
                           {minutosRestantes}
                         </div>
-                        <div className="text-2xl text-yellow-300/70">min</div>
+                        <div className="text-lg sm:text-2xl text-yellow-300/70">min</div>
                       </div>
                     )}
                   </div>
 
                   <ul className="divide-y divide-slate-700 border-t border-b border-slate-700">
                     {v.lineas.map(d => (
-                      <li key={d.id} className="py-3 flex items-baseline gap-6 text-3xl">
-                        <span className="font-extrabold text-orange-300 w-20">{d.cantidad}x</span>
+                      <li key={d.id} className="py-3 flex items-baseline gap-4 text-xl sm:text-3xl">
+                        <span className="font-extrabold text-orange-300 w-14 sm:w-20">{d.cantidad}x</span>
                         <span className="flex-1 font-semibold">{d.descripcion}</span>
                       </li>
                     ))}
                   </ul>
 
                   <div className="flex items-center justify-end mt-4">
-                    <div className="text-3xl">
+                    <div className="text-xl sm:text-3xl">
                       <span className="text-slate-400 mr-3">Total:</span>
                       <span className="font-extrabold text-white">{formatMoney(v.total)}</span>
                     </div>

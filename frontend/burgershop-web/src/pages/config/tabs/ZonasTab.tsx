@@ -61,17 +61,19 @@ export default function ZonasTab({ onConfirm }: Props) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6 flex-wrap">
-        <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 flex-1 min-w-[150px]" required />
-        <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2 flex-1 min-w-[150px]" />
-        <input type="number" value={form.costoEnvio} onChange={e => setForm({ ...form, costoEnvio: Number(e.target.value) })} placeholder="Costo envio" className="border rounded px-3 py-2 w-32" min={0} step={100} />
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
+        <input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre" className="border rounded px-3 py-2 w-full" required />
+        <input type="text" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripcion" className="border rounded px-3 py-2 w-full" />
+        <input type="number" value={form.costoEnvio} onChange={e => setForm({ ...form, costoEnvio: Number(e.target.value) })} placeholder="Costo envio" className="border rounded px-3 py-2 w-full" min={0} step={100} />
         {esSuperAdmin && (
-          <select value={form.localId} onChange={e => setForm({ ...form, localId: Number(e.target.value) })} className="border rounded px-3 py-2">
+          <select value={form.localId} onChange={e => setForm({ ...form, localId: Number(e.target.value) })} className="border rounded px-3 py-2 w-full">
             <option value={0}>Sin local</option>
             {locales.map(l => (<option key={l.id} value={l.id}>{l.nombre}</option>))}
           </select>
         )}
-        <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+        <div className={esSuperAdmin ? 'sm:col-span-2' : 'sm:col-span-2'}>
+          <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">{guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}</button>
+        </div>
       </form>
 
       <div className="bg-white rounded-lg shadow overflow-x-auto">
@@ -79,9 +81,9 @@ export default function ZonasTab({ onConfirm }: Props) {
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Descripcion</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Costo Envio</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Local</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
@@ -89,10 +91,10 @@ export default function ZonasTab({ onConfirm }: Props) {
             {zonas.filter(z => !localFiltro || z.localId === localFiltro).map(z => (
               <tr key={z.id}>
                 <td className="px-4 py-3 text-sm font-medium">{z.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{z.descripcion}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{z.descripcion}</td>
                 <td className="px-4 py-3 text-sm">${z.costoEnvio.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{z.localNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm text-right">
+                <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{z.localNombre || '-'}</td>
+                <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                   <button onClick={() => { setEditando(z); setForm({ nombre: z.nombre, descripcion: z.descripcion || '', costoEnvio: z.costoEnvio, localId: z.localId || 0 }); }} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => onConfirm('zona', z.id, z.nombre)} className="text-red-600 hover:underline">Desactivar</button>
                 </td>

@@ -108,7 +108,7 @@ export default function EmpresasPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <input
             type="text"
             value={form.razonSocial}
@@ -206,7 +206,7 @@ export default function EmpresasPage() {
             placeholder="Punto de Venta AFIP"
             className="border rounded px-3 py-2"
           />
-          <div className="col-span-3 flex gap-2">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex gap-2">
             <button type="submit" className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2">
               {editando ? 'Actualizar' : 'Crear'}
             </button>
@@ -217,27 +217,27 @@ export default function EmpresasPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Razon Social</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre Fantasia</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">CUIT</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Condicion IVA</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-3 py-3 text-sm font-medium text-gray-500">Razon Social</th>
+              <th className="text-left px-3 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Nombre Fantasia</th>
+              <th className="text-left px-3 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">CUIT</th>
+              <th className="text-left px-3 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Condicion IVA</th>
+              <th className="text-left px-3 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Telefono</th>
+              <th className="text-right px-3 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {empresas.map(emp => (
               <tr key={emp.id}>
-                <td className="px-4 py-3 text-sm font-medium">{emp.razonSocial}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.nombreFantasia || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.cuit}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.condicionIva}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{emp.telefono || '-'}</td>
-                <td className="px-4 py-3 text-sm text-right">
+                <td className="px-3 py-3 text-sm font-medium">{emp.razonSocial}</td>
+                <td className="px-3 py-3 text-sm text-gray-600 hidden sm:table-cell">{emp.nombreFantasia || '-'}</td>
+                <td className="px-3 py-3 text-sm text-gray-600 hidden sm:table-cell">{emp.cuit}</td>
+                <td className="px-3 py-3 text-sm text-gray-600 hidden md:table-cell">{emp.condicionIva}</td>
+                <td className="px-3 py-3 text-sm text-gray-600 hidden md:table-cell">{emp.telefono || '-'}</td>
+                <td className="px-3 py-3 text-sm text-right">
                   <button onClick={() => handleEditar(emp)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => handleEliminar(emp.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>

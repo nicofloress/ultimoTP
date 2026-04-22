@@ -479,24 +479,24 @@ export default function RendicionesPage() {
         {rendicionesFiltradas.length === 0 ? (
           <p className="text-gray-400 text-center py-8">No hay rendiciones para mostrar</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   {([
-                    ['fecha', 'Fecha', 'text-left'],
-                    ['repartidorNombre', 'Repartidor', 'text-left'],
-                    ['pedidos', 'Pedidos', 'text-right'],
-                    ['efectivo', 'Efectivo', 'text-right'],
-                    ['transferencia', 'Transferencia', 'text-right'],
-                    ['declarado', 'Declarado', 'text-right'],
-                    ['diferencia', 'Diferencia', 'text-right'],
-                    ['estado', 'Estado', 'text-center'],
-                  ] as [string, string, string][]).map(([col, label, align]) => (
+                    ['fecha', 'Fecha', 'text-left', ''],
+                    ['repartidorNombre', 'Repartidor', 'text-left', ''],
+                    ['pedidos', 'Pedidos', 'text-right', 'hidden sm:table-cell'],
+                    ['efectivo', 'Efectivo', 'text-right', 'hidden sm:table-cell'],
+                    ['transferencia', 'Transferencia', 'text-right', 'hidden md:table-cell'],
+                    ['declarado', 'Declarado', 'text-right', 'hidden sm:table-cell'],
+                    ['diferencia', 'Diferencia', 'text-right', ''],
+                    ['estado', 'Estado', 'text-center', ''],
+                  ] as [string, string, string, string][]).map(([col, label, align, hide]) => (
                     <th
                       key={col}
                       onClick={() => toggleOrden(col)}
-                      className={`${align} px-4 py-3 text-sm font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
+                      className={`${align} ${hide} px-3 py-3 text-sm font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
                     >
                       {label}
                       {ordenCol === col && (
@@ -512,16 +512,16 @@ export default function RendicionesPage() {
                   const esPendiente = !r.aprobada && !r.fechaAprobacion;
                   return (
                     <tr key={r.id} className={esPendiente ? 'bg-yellow-50/50' : ''}>
-                      <td className="px-4 py-3 text-sm">{formatFecha(r.fecha)}</td>
-                      <td className="px-4 py-3 text-sm font-medium">{r.repartidorNombre}</td>
-                      <td className="px-4 py-3 text-sm text-right">{r.cantidadEntregados + r.cantidadNoEntregados}</td>
-                      <td className="px-4 py-3 text-sm text-right">${r.totalEfectivo.toLocaleString('es-AR')}</td>
-                      <td className="px-4 py-3 text-sm text-right">${r.totalTransferencia.toLocaleString('es-AR')}</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">${r.efectivoDeclarado.toLocaleString('es-AR')}</td>
-                      <td className={`px-4 py-3 text-sm text-right font-medium ${r.diferencia !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className="px-3 py-3 text-xs sm:text-sm">{formatFecha(r.fecha)}</td>
+                      <td className="px-3 py-3 text-xs sm:text-sm font-medium">{r.repartidorNombre}</td>
+                      <td className="px-3 py-3 text-sm text-right hidden sm:table-cell">{r.cantidadEntregados + r.cantidadNoEntregados}</td>
+                      <td className="px-3 py-3 text-sm text-right hidden sm:table-cell">${r.totalEfectivo.toLocaleString('es-AR')}</td>
+                      <td className="px-3 py-3 text-sm text-right hidden md:table-cell">${r.totalTransferencia.toLocaleString('es-AR')}</td>
+                      <td className="px-3 py-3 text-sm text-right font-medium hidden sm:table-cell">${r.efectivoDeclarado.toLocaleString('es-AR')}</td>
+                      <td className={`px-3 py-3 text-xs sm:text-sm text-right font-medium ${r.diferencia !== 0 ? 'text-red-600' : 'text-green-600'}`}>
                         ${r.diferencia.toLocaleString('es-AR')}
                       </td>
-                      <td className="px-4 py-3 text-sm text-center">{getEstadoBadge(r)}</td>
+                      <td className="px-3 py-3 text-sm text-center">{getEstadoBadge(r)}</td>
                       <td className="px-4 py-3 text-sm text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button

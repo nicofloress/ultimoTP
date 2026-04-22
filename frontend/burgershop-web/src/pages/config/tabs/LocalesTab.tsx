@@ -110,9 +110,9 @@ export default function LocalesTab({ onConfirm }: Props) {
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Empresa</th>
-              <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Punto de Venta</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Direccion</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Empresa</th>
+              <th className="text-center px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Punto de Venta</th>
               <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
@@ -120,15 +120,15 @@ export default function LocalesTab({ onConfirm }: Props) {
             {locales.map(loc => (
               <tr key={loc.id}>
                 <td className="px-4 py-3 text-sm font-medium">{loc.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{loc.direccion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{loc.empresaNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm text-center">
+                <td className="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{loc.direccion || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{loc.empresaNombre || '-'}</td>
+                <td className="px-4 py-3 text-sm text-center hidden sm:table-cell">
                   {loc.esPuntoVenta
                     ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>
                     : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No</span>
                   }
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
+                <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
                   <button onClick={() => handleEditar(loc)} className="text-blue-600 hover:underline mr-3">Editar</button>
                   <button onClick={() => onConfirm('local', loc.id, loc.nombre)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>

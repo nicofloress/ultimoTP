@@ -222,7 +222,7 @@ export default function PromocionesPage() {
   return (
     <div>
       {/* Header */}
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center gap-2 justify-between">
         <h2 className="text-lg font-bold text-white">Promociones</h2>
         <button
           onClick={() => { if (showForm) { resetForm(); } else { resetForm(); setShowForm(true); } }}
@@ -264,7 +264,7 @@ export default function PromocionesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Fecha Desde *</label>
               <input
@@ -376,11 +376,11 @@ export default function PromocionesPage() {
               <p className="text-xs text-gray-400">No hay items. Agrega productos o combos a la promocion.</p>
             )}
             {items.map((item, idx) => (
-              <div key={idx} className="flex gap-2 mb-2 items-center">
+              <div key={idx} className="flex flex-wrap gap-2 mb-2 items-center">
                 <select
                   value={item.tipo}
                   onChange={e => actualizarItem(idx, { tipo: e.target.value as 'producto' | 'combo' })}
-                  className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 w-28"
+                  className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 w-full sm:w-28"
                 >
                   <option value="producto">Producto</option>
                   <option value="combo">Combo</option>
@@ -390,14 +390,14 @@ export default function PromocionesPage() {
                     productos={productos}
                     value={item.productoId || ''}
                     onChange={id => actualizarItem(idx, { productoId: id === '' ? undefined : id })}
-                    className="flex-1"
+                    className="flex-1 min-w-[160px]"
                     renderSuffix={p => `($${p.precio})`}
                   />
                 ) : (
                   <select
                     value={item.comboId || ''}
                     onChange={e => actualizarItem(idx, { comboId: e.target.value ? Number(e.target.value) : undefined })}
-                    className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 flex-1"
+                    className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 flex-1 min-w-[160px]"
                   >
                     <option value="">Seleccionar combo...</option>
                     {combos.filter(c => c.activo).map(c => (
@@ -410,7 +410,7 @@ export default function PromocionesPage() {
                   value={item.precioPromo}
                   onChange={e => actualizarItem(idx, { precioPromo: e.target.value === '' ? '' : Number(e.target.value) })}
                   placeholder="Precio promo (opc)"
-                  className="border border-gray-300 rounded-md px-2 py-1.5 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="border border-gray-300 rounded-md px-2 py-1.5 text-sm w-full sm:w-36 focus:outline-none focus:ring-2 focus:ring-amber-400"
                   min={0}
                   step="any"
                 />

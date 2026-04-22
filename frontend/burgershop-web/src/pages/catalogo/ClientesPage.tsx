@@ -160,9 +160,9 @@ export default function ClientesPage() {
       </div>
 
       {/* Barra de filtros uniforme */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
+      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-2 flex-wrap">
         {esSuperAdmin ? (
-          <div className="flex items-center gap-2 min-w-[200px]">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
             <select
               className={selectClass + ' flex-1'}
@@ -186,12 +186,11 @@ export default function ClientesPage() {
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre o telefono..."
-          className={selectClass + ' flex-1 min-w-[180px]'}
+          className={selectClass + ' flex-1 min-w-[180px] w-full sm:w-auto'}
         />
-        <div className="flex-1" />
         <button
           onClick={abrirNuevo}
-          className="px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center gap-1.5 whitespace-nowrap"
+          className="w-full sm:w-auto px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -336,7 +335,7 @@ export default function ClientesPage() {
               </div>
             )}
           </div>
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-full flex gap-2">
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
@@ -347,47 +346,44 @@ export default function ClientesPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
-        <table className="w-full">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full min-w-[500px]">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">CUIT</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Email</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Telefono</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Direccion</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Tipo Cliente</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Condicion Fiscal</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Lista Precios</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Telefono</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Tipo Cliente</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Condicion Fiscal</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden lg:table-cell">Lista Precios</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden lg:table-cell">Local</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {clientesFiltrados.map(c => (
               <tr key={c.id}>
-                <td className="px-4 py-3 text-sm font-medium">{c.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.cuit || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.email || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.telefono || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.direccion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.tipoClienteNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">
+                  <div>{c.nombre}</div>
+                  <div className="sm:hidden text-xs text-gray-500">{c.telefono || '-'}</div>
+                </td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{c.telefono || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{c.tipoClienteNombre || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
                   {CONDICION_FISCAL_OPCIONES.find(op => op.value === c.condicionFiscal)?.label || 'Consumidor Final'}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                   {c.listaPrecioId ? listasPrecios.find(l => l.id === c.listaPrecioId)?.nombre || '-' : 'Precio Base'}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">{c.localNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <button onClick={() => handleEditar(c)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">{c.localNombre || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap">
+                  <button onClick={() => handleEditar(c)} className="text-blue-600 hover:underline mr-2 sm:mr-3">Editar</button>
                   <button onClick={() => handleEliminar(c.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>
             ))}
             {clientesFiltrados.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-gray-400">No hay clientes registrados</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">No hay clientes registrados</td>
               </tr>
             )}
           </tbody>

@@ -307,16 +307,16 @@ export default function DevolucionesPage() {
   };
 
   // --- Columnas de la tabla ---
-  const columnas: { key: string; label: string }[] = [
+  const columnas: { key: string; label: string; hide?: string }[] = [
     { key: 'fechaMovimiento', label: 'Fecha' },
-    { key: 'localNombre', label: 'Local' },
+    { key: 'localNombre', label: 'Local', hide: 'hidden sm:table-cell' },
     { key: 'productoNombre', label: 'Producto / Combo' },
-    { key: 'clienteNombre', label: 'Cliente' },
+    { key: 'clienteNombre', label: 'Cliente', hide: 'hidden sm:table-cell' },
     { key: 'cantidad', label: 'Cantidad' },
-    { key: 'precioUnitario', label: 'Precio Unit.' },
+    { key: 'precioUnitario', label: 'Precio Unit.', hide: 'hidden sm:table-cell' },
     { key: 'montoTotal', label: 'Monto Total' },
-    { key: 'usuarioNombre', label: 'Usuario' },
-    { key: 'observaciones', label: 'Motivo' },
+    { key: 'usuarioNombre', label: 'Usuario', hide: 'hidden md:table-cell' },
+    { key: 'observaciones', label: 'Motivo', hide: 'hidden md:table-cell' },
   ];
 
   return (
@@ -410,7 +410,7 @@ export default function DevolucionesPage() {
               {columnas.map((col) => (
                 <th
                   key={col.key}
-                  className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200 transition-colors"
+                  className={`px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-200 transition-colors ${col.hide ?? ''}`}
                   onClick={() => toggleOrden(col.key)}
                 >
                   {col.label}
@@ -440,15 +440,15 @@ export default function DevolucionesPage() {
                     idx % 2 === 1 ? 'bg-gray-50/50' : ''
                   }`}
                 >
-                  <td className="px-3 py-2 whitespace-nowrap">{formatFecha(m.fechaMovimiento)}</td>
-                  <td className="px-3 py-2">{m.localNombre}</td>
-                  <td className="px-3 py-2">{m.productoNombre || (m.observaciones?.split(' - ')[0]) || '-'}</td>
-                  <td className="px-3 py-2 text-sm">{m.clienteNombre || 'Consumidor Final'}</td>
-                  <td className="px-3 py-2 font-semibold whitespace-nowrap text-red-600">-{m.cantidad}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{formatMonto(m.precioUnitario)}</td>
-                  <td className="px-3 py-2 whitespace-nowrap font-semibold">{formatMonto(Math.abs(m.montoTotal))}</td>
-                  <td className="px-3 py-2">{m.usuarioNombre || '-'}</td>
-                  <td className="px-3 py-2 text-xs text-gray-500 max-w-[200px] truncate">
+                  <td className="px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{formatFecha(m.fechaMovimiento)}</td>
+                  <td className="px-3 py-2 hidden sm:table-cell">{m.localNombre}</td>
+                  <td className="px-3 py-2 text-xs sm:text-sm">{m.productoNombre || (m.observaciones?.split(' - ')[0]) || '-'}</td>
+                  <td className="px-3 py-2 text-xs sm:text-sm hidden sm:table-cell">{m.clienteNombre || 'Consumidor Final'}</td>
+                  <td className="px-3 py-2 font-semibold whitespace-nowrap text-red-600 text-xs sm:text-sm">-{m.cantidad}</td>
+                  <td className="px-3 py-2 whitespace-nowrap hidden sm:table-cell">{formatMonto(m.precioUnitario)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap font-semibold text-xs sm:text-sm">{formatMonto(Math.abs(m.montoTotal))}</td>
+                  <td className="px-3 py-2 hidden md:table-cell">{m.usuarioNombre || '-'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-500 max-w-[200px] truncate hidden md:table-cell">
                     {m.observaciones || '-'}
                   </td>
                 </tr>
@@ -623,7 +623,7 @@ export default function DevolucionesPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Cantidad <span className="text-red-500">*</span>

@@ -56,7 +56,7 @@ export default function TiposClientePage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center gap-2 justify-between">
         <h2 className="text-lg font-bold text-white">Tipos de Cliente</h2>
         <button
           onClick={() => { setShowForm(!showForm); setEditando(null); setForm(emptyForm); }}
@@ -73,7 +73,7 @@ export default function TiposClientePage() {
             value={form.nombre}
             onChange={e => setForm({ ...form, nombre: e.target.value })}
             placeholder="Nombre"
-            className="border rounded px-3 py-2"
+            className="border rounded px-3 py-2 w-full"
             required
           />
           <input
@@ -81,9 +81,9 @@ export default function TiposClientePage() {
             value={form.descripcion}
             onChange={e => setForm({ ...form, descripcion: e.target.value })}
             placeholder="Descripcion"
-            className="border rounded px-3 py-2"
+            className="border rounded px-3 py-2 w-full"
           />
-          <label className="flex items-center gap-2 col-span-2">
+          <label className="flex items-center gap-2 col-span-full">
             <input
               type="checkbox"
               checked={form.permiteCuentaCorriente}
@@ -92,7 +92,7 @@ export default function TiposClientePage() {
             />
             <span className="text-sm font-medium text-gray-700">Permite Cuenta Corriente</span>
           </label>
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-full flex gap-2">
             <button type="submit" className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2">
               {editando ? 'Actualizar' : 'Crear'}
             </button>
@@ -103,36 +103,36 @@ export default function TiposClientePage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Descripcion</th>
-              <th className="text-center px-4 py-3 text-sm font-medium text-gray-500">Cta Cte</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Descripcion</th>
+              <th className="text-center px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Cta Cte</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {tiposCliente.map(tc => (
               <tr key={tc.id}>
-                <td className="px-4 py-3 text-sm font-medium">{tc.nombre}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{tc.descripcion || '-'}</td>
-                <td className="px-4 py-3 text-sm text-center">
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">{tc.nombre}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{tc.descripcion || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-center">
                   {tc.permiteCuentaCorriente
                     ? <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Si</span>
                     : <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No</span>
                   }
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <button onClick={() => handleEditar(tc)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap">
+                  <button onClick={() => handleEditar(tc)} className="text-blue-600 hover:underline mr-2 sm:mr-3">Editar</button>
                   <button onClick={() => handleEliminar(tc.id)} className="text-red-600 hover:underline">Eliminar</button>
                 </td>
               </tr>
             ))}
             {tiposCliente.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td>
+                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No hay tipos de clientes registrados</td>
               </tr>
             )}
           </tbody>

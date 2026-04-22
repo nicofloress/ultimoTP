@@ -158,23 +158,23 @@ export default function HistorialPedidosPage() {
   }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro, estadoPagoFiltro]);
 
   return (
-    <div className="flex h-[calc(100vh-7.5rem)] overflow-hidden gap-4">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-7.5rem)] overflow-hidden gap-4">
       {/* Lista */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Panel de estadisticas */}
         {stats && (
           <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg mb-3 flex-shrink-0">
             {/* Fila 1: Comparativas */}
-            <div className="flex items-center gap-6 px-4 py-2.5">
-              <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide mr-2">Nro. total de pedidos</span>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-4 py-2.5">
+              <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide w-full sm:w-auto">Nro. total de pedidos</span>
               <StatItem label="Hoy" value={stats.ventasHoy} porcentaje={stats.porcentajeVariacionAyer} />
               <StatItem label="Ayer" value={stats.ventasAyer} />
               <StatItem label="Ult. 7 dias" value={stats.ventasUltimos7Dias} porcentaje={stats.porcentajeVariacion7Dias} />
               <StatItem label="Ano pasado" value={stats.ventasAnioAnterior} porcentaje={stats.porcentajeVariacionAnio} />
             </div>
             {/* Fila 2: Resumen de la fecha */}
-            <div className="flex items-center gap-6 px-4 py-2.5 border-t border-slate-600">
-              <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide mr-2">Pedidos</span>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-4 py-2.5 border-t border-slate-600">
+              <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide w-full sm:w-auto">Pedidos</span>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xs text-slate-200">Pedidos</span>
                 <span className="text-sm font-bold text-white">{stats.totalVentasFecha.toLocaleString('es-AR')}</span>
@@ -192,13 +192,13 @@ export default function HistorialPedidosPage() {
         )}
 
         {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-3 pb-3 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pb-3 flex-shrink-0">
           {/* Filtro por local — visual, sin filtrado real (los pedidos no tienen localId directo) */}
           {/* TODO: implementar filtrado por local en backend */}
-          <div className="flex items-center gap-2 min-w-[200px]">
+          <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
             <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
             {esSuperAdmin ? (
-              <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
+              <select className={selectClass + ' flex-1 sm:w-auto'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
                 <option value={0}>Todos los locales</option>
                 {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
               </select>
@@ -208,25 +208,25 @@ export default function HistorialPedidosPage() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
             <span className="text-xs text-gray-500 font-medium">Desde</span>
             <input
               type="date"
               value={fechaDesde}
               onChange={e => setFechaDesde(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} w-full sm:w-auto`}
             />
             <span className="text-xs text-gray-500 font-medium">Hasta</span>
             <input
               type="date"
               value={fechaHasta}
               onChange={e => setFechaHasta(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} w-full sm:w-auto`}
             />
             <button
               onClick={cargar}
               disabled={cargando}
-              className="ml-1 px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
+              className="ml-0 sm:ml-1 px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
             >
               {cargando ? (
                 <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
@@ -244,7 +244,7 @@ export default function HistorialPedidosPage() {
           <select
             value={estadoFiltro}
             onChange={e => setEstadoFiltro(e.target.value === '' ? '' : Number(e.target.value))}
-            className={selectClass}
+            className={`${selectClass} w-full sm:w-auto`}
           >
             <option value="">Todos los estados</option>
             <option value={EstadoVenta.Pendiente}>{estadoLabels[EstadoVenta.Pendiente]}</option>
@@ -257,7 +257,7 @@ export default function HistorialPedidosPage() {
           <select
             value={formaPagoFiltro}
             onChange={e => setFormaPagoFiltro(e.target.value === '' ? '' : Number(e.target.value))}
-            className={selectClass}
+            className={`${selectClass} w-full sm:w-auto`}
           >
             <option value="">Todos los medios</option>
             {formasPago.map(fp => (
@@ -267,7 +267,7 @@ export default function HistorialPedidosPage() {
           <select
             value={estadoPagoFiltro}
             onChange={e => setEstadoPagoFiltro(e.target.value as '' | 'pagado' | 'pendiente' | 'ctacte')}
-            className={selectClass}
+            className={`${selectClass} w-full sm:w-auto`}
           >
             <option value="">Pago: Todos</option>
             <option value="pagado">Pagados</option>
@@ -279,7 +279,7 @@ export default function HistorialPedidosPage() {
             placeholder="Buscar ticket, cliente, direccion..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className={`${inputClass} flex-1 min-w-[200px]`}
+            className={`${inputClass} w-full sm:flex-1 sm:min-w-[200px]`}
           />
           <span className="text-sm text-gray-500">
             {pedidosFiltrados.length} resultado{pedidosFiltrados.length !== 1 ? 's' : ''}
@@ -293,7 +293,7 @@ export default function HistorialPedidosPage() {
         </div>
 
         {/* Tabla */}
-        <div className="flex-1 overflow-y-auto min-h-0 bg-white rounded-lg border-2 border-gray-300 shadow-xl">
+        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 bg-white rounded-lg border-2 border-gray-300 shadow-xl">
           {pedidosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,23 +306,23 @@ export default function HistorialPedidosPage() {
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
                 <tr className="text-left text-gray-500 text-xs uppercase tracking-wider">
                   {([
-                    ['numeroTicket', 'Ticket', ''],
-                    ['fechaCreacion', 'Fecha/Hora', ''],
-                    ['localNombre', 'Local', ''],
-                    ['tipo', 'Tipo', ''],
-                    ['nombreCliente', 'Cliente', ''],
-                    ['direccionEntrega', 'Direccion', ''],
-                    ['zonaNombre', 'Zona', ''],
-                    ['repartidorNombre', 'Repartidor', ''],
-                    ['estado', 'Estado', ''],
-                    ['formaPago', 'Medio Pago', ''],
-                    ['total', 'Total', 'text-right'],
-                    ['estaPago', 'Pago', 'text-center'],
-                  ] as [string, string, string][]).map(([col, label, align]) => (
+                    ['numeroTicket', 'Ticket', '', ''],
+                    ['fechaCreacion', 'Fecha/Hora', '', 'hidden sm:table-cell'],
+                    ['localNombre', 'Local', '', 'hidden lg:table-cell'],
+                    ['tipo', 'Tipo', '', 'hidden lg:table-cell'],
+                    ['nombreCliente', 'Cliente', '', 'hidden sm:table-cell'],
+                    ['direccionEntrega', 'Direccion', '', 'hidden md:table-cell'],
+                    ['zonaNombre', 'Zona', '', 'hidden md:table-cell'],
+                    ['repartidorNombre', 'Repartidor', '', 'hidden lg:table-cell'],
+                    ['estado', 'Estado', '', ''],
+                    ['formaPago', 'Medio Pago', '', 'hidden md:table-cell'],
+                    ['total', 'Total', 'text-right', ''],
+                    ['estaPago', 'Pago', 'text-center', 'hidden sm:table-cell'],
+                  ] as [string, string, string, string][]).map(([col, label, align, visibility]) => (
                     <th
                       key={col}
                       onClick={() => toggleOrden(col)}
-                      className={`px-4 py-3 font-semibold cursor-pointer select-none hover:text-gray-700 transition-colors ${align}`}
+                      className={`px-4 py-3 font-semibold cursor-pointer select-none hover:text-gray-700 transition-colors ${align} ${visibility}`}
                     >
                       {label}
                       {ordenCol === col && (
@@ -340,21 +340,21 @@ export default function HistorialPedidosPage() {
                     className={`hover:bg-amber-50 cursor-pointer transition-colors ${seleccionado?.id === p.id ? 'bg-amber-50' : ''}`}
                   >
                     <td className="px-4 py-2.5 font-bold text-gray-800">{p.numeroTicket}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{formatFecha(p.fechaCreacion)}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{p.localNombre || '-'}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{tipoLabels[p.tipo] || '-'}</td>
-                    <td className="px-4 py-2.5 text-gray-700">{p.nombreCliente || '-'}</td>
-                    <td className="px-4 py-2.5 text-gray-600 max-w-[200px] truncate">{p.direccionEntrega || '-'}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{p.zonaNombre || '-'}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{p.repartidorNombre || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 hidden sm:table-cell">{formatFecha(p.fechaCreacion)}</td>
+                    <td className="px-4 py-2.5 text-gray-600 hidden lg:table-cell">{p.localNombre || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 hidden lg:table-cell">{tipoLabels[p.tipo] || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-700 hidden sm:table-cell max-w-[120px] truncate">{p.nombreCliente || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 hidden md:table-cell max-w-[160px] truncate">{p.direccionEntrega || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 hidden md:table-cell">{p.zonaNombre || '-'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 hidden lg:table-cell">{p.repartidorNombre || '-'}</td>
                     <td className="px-4 py-2.5">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${estadoColores[p.estado] || 'bg-gray-100 text-gray-800'}`}>
                         {estadoLabels[p.estado]}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-gray-600 text-xs">{getFormaPagoLabel(p)}</td>
+                    <td className="px-4 py-2.5 text-gray-600 text-xs hidden md:table-cell">{getFormaPagoLabel(p)}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-amber-600">${p.total.toLocaleString('es-AR')}</td>
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-4 py-2.5 text-center hidden sm:table-cell">
                       {p.estaPago ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Pagado</span>
                       ) : p.estado === EstadoVenta.Entregado ? (
@@ -373,9 +373,9 @@ export default function HistorialPedidosPage() {
         {/* Totales */}
         {pedidosFiltrados.length > 0 && (
           <div className="px-4 py-2 bg-slate-700 rounded-lg mt-2 text-sm flex-shrink-0 shadow-lg">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-2 justify-between">
               <span className="text-slate-400">{pedidosFiltrados.length} pedido{pedidosFiltrados.length !== 1 ? 's' : ''}</span>
-              <div className="flex gap-4 items-center">
+              <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
                 {(() => {
                   const totales: Record<string, number> = {};
                   pedidosFiltrados.forEach(p => {
@@ -405,7 +405,7 @@ export default function HistorialPedidosPage() {
 
       {/* Panel detalle */}
       {seleccionado && (
-        <div className="w-96 bg-white rounded-lg border-2 border-slate-300 shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
+        <div className="fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto w-full lg:w-96 bg-white rounded-lg border-2 border-slate-300 shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
           {/* Header detalle */}
           <div className="px-4 py-3 border-b-2 border-amber-500 flex items-center justify-between bg-slate-700 shadow-lg flex-shrink-0">
             <div>

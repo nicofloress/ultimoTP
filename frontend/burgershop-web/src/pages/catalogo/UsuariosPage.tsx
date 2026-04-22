@@ -134,8 +134,8 @@ export default function UsuariosPage() {
         </button>
       </div>
 
-      <div className="mb-4 flex items-end gap-3">
-        <div className="min-w-[200px]">
+      <div className="mb-4 flex flex-wrap items-end gap-2 sm:gap-3">
+        <div className="w-full sm:w-auto sm:min-w-[200px]">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
           {esSuperAdmin ? (
             <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
@@ -148,7 +148,7 @@ export default function UsuariosPage() {
             </div>
           )}
         </div>
-        <div className="min-w-[180px]">
+        <div className="w-full sm:w-auto sm:min-w-[180px]">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Rol</label>
           <select className={selectClass + ' w-full'} value={rolFiltro} onChange={e => setRolFiltro(e.target.value === '' ? '' : Number(e.target.value))}>
             <option value="">Todos los roles</option>
@@ -247,7 +247,7 @@ export default function UsuariosPage() {
               Activo
             </label>
           )}
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-full flex gap-2">
             <button type="submit" disabled={guardando} className="text-amber-700 bg-amber-50 border border-amber-300 rounded-md hover:bg-amber-100 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {guardando ? 'Guardando...' : (editando ? 'Actualizar' : 'Crear')}
             </button>
@@ -258,25 +258,28 @@ export default function UsuariosPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow">
-        <table className="w-full">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full min-w-[480px]">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Usuario</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Nombre</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Rol</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Local</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Repartidor</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Usuario</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden sm:table-cell">Nombre</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Rol</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden md:table-cell">Local</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500 hidden lg:table-cell">Repartidor</th>
+              <th className="text-left px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Estado</th>
+              <th className="text-right px-2 sm:px-4 py-3 text-sm font-medium text-gray-500">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {usuarios.filter(u => (!localSeleccionado || u.localId === localSeleccionado) && (rolFiltro === '' || u.rol === rolFiltro)).map(u => (
               <tr key={u.id}>
-                <td className="px-4 py-3 text-sm font-medium">{u.nombreUsuario}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{u.nombreCompleto}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-2 sm:px-4 py-3 text-sm font-medium">
+                  <div>{u.nombreUsuario}</div>
+                  <div className="sm:hidden text-xs text-gray-500">{u.nombreCompleto}</div>
+                </td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">{u.nombreCompleto}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     u.rol === RolUsuario.SuperAdmin ? 'bg-purple-100 text-purple-700' :
                     u.rol === RolUsuario.Administrador ? 'bg-blue-100 text-blue-700' :
@@ -287,15 +290,15 @@ export default function UsuariosPage() {
                     {u.rolNombre}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">{u.localNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{u.repartidorNombre || '-'}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{u.localNombre || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">{u.repartidorNombre || '-'}</td>
+                <td className="px-2 sm:px-4 py-3 text-sm">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${u.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {u.activo ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <button onClick={() => handleEditar(u)} className="text-blue-600 hover:underline mr-3">Editar</button>
+                <td className="px-2 sm:px-4 py-3 text-sm text-right whitespace-nowrap">
+                  <button onClick={() => handleEditar(u)} className="text-blue-600 hover:underline mr-2 sm:mr-3">Editar</button>
                   {u.activo && (
                     <button onClick={() => handleDesactivar(u.id)} className="text-red-600 hover:underline">Desactivar</button>
                   )}

@@ -75,16 +75,16 @@ export default function ModalCatalogo({
   agregarCombo,
 }: Props) {
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 lg:p-6" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center px-4 py-3 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-800">Catalogo de Productos</h2>
-          <div className="flex items-center gap-2 mx-auto bg-amber-50 border-2 border-amber-400 rounded-lg px-4 py-1.5">
-            <span className="text-sm font-semibold text-amber-700 whitespace-nowrap">Lista de Precios:</span>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mr-auto">Catalogo de Productos</h2>
+          <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-400 rounded-lg px-2 sm:px-4 py-1 sm:py-1.5 flex-shrink-0">
+            <span className="text-xs sm:text-sm font-semibold text-amber-700 whitespace-nowrap hidden sm:inline">Lista de Precios:</span>
             <select
               value={listaPrecioSeleccionada || ''}
               onChange={e => setListaPrecioSeleccionada(Number(e.target.value) || undefined)}
-              className="border-2 border-amber-300 rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 min-w-[180px]"
+              className="border-2 border-amber-300 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 min-w-[120px] sm:min-w-[180px]"
             >
               <option value="">Precio Base</option>
               {listasPrecios.filter(l => l.activa).map(l => (
@@ -92,13 +92,13 @@ export default function ModalCatalogo({
               ))}
             </select>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors flex-shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
         {/* Filtro por mega-categoria */}
-        <div className="px-4 py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
+        <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap overflow-x-auto scrollbar-hide">
           <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
           {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
             <button onClick={() => setCategoriaFiltro('promo')} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
@@ -181,7 +181,7 @@ export default function ModalCatalogo({
         )}
 
         {/* Grid de productos + combos relacionados */}
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 content-start">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-2.5 content-start">
           {categoriaFiltro !== 'combos' && productosCatalogo.map(p => (
             <button key={`prod-${p.id}`} onClick={() => { agregarProducto(p); onClose(); }} className={`relative border-2 rounded-lg p-2.5 text-left transition-all hover:shadow-md active:scale-[0.98] group ${
               preciosPromoProductos.has(p.id)

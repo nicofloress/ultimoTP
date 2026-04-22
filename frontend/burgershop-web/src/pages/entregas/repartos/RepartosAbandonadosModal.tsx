@@ -81,7 +81,7 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
           </button>
         </div>
 
-        <div className="p-4 flex-1 overflow-y-auto">
+        <div className="p-4 flex-1 overflow-y-auto overflow-x-hidden">
           {totalPendientesGlobal > 0 && (
             <div className="bg-amber-50 border border-amber-300 rounded-md px-3 py-2 mb-3 text-sm text-amber-800">
               Hay {totalPendientesGlobal} pedido(s) sin resolver (Pendiente / Asignado / En Camino). Para finalizar esos repartos,
@@ -89,12 +89,13 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
             </div>
           )}
 
+          <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
               <tr>
                 <th className="px-2 py-2 text-left font-semibold">Fecha</th>
                 <th className="px-2 py-2 text-left font-semibold">Zona</th>
-                <th className="px-2 py-2 text-left font-semibold">Repartidor</th>
+                <th className="px-2 py-2 text-left font-semibold hidden sm:table-cell">Repartidor</th>
                 <th className="px-2 py-2 text-center font-semibold">Ventas</th>
                 <th className="px-2 py-2 text-left font-semibold">Estado</th>
                 <th className="px-2 py-2 text-right font-semibold"></th>
@@ -107,7 +108,7 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
                   <tr key={r.id} className={bloqueado ? 'bg-red-50/40' : 'hover:bg-amber-50'}>
                     <td className="px-2 py-2 font-medium text-gray-700">{formatFecha(r.fecha)}</td>
                     <td className="px-2 py-2 text-gray-700">{r.zonaNombre}</td>
-                    <td className="px-2 py-2 text-gray-700">{r.repartidorNombre}</td>
+                    <td className="px-2 py-2 text-gray-700 hidden sm:table-cell">{r.repartidorNombre}</td>
                     <td className="px-2 py-2 text-center font-semibold text-gray-800">{r.totalVentas}</td>
                     <td className="px-2 py-2">
                       <div className="flex flex-wrap gap-1 text-[11px]">
@@ -150,6 +151,7 @@ export default function RepartosAbandonadosModal({ repartos, onClose, onChanged 
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="px-5 py-3 bg-gray-50 border-t rounded-b-xl flex items-center justify-between">

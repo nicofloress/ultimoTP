@@ -76,21 +76,23 @@ export default function ComboForm({
           const um = prod?.unidadMinima ?? 1;
           const totalUn = d.cantidad * um;
           return (
-            <div key={i} className="flex gap-2 mb-2 items-center">
+            <div key={i} className="flex flex-wrap gap-2 mb-2 items-center">
               <ProductoSelect
                 productos={productos}
                 onlyActivos={false}
                 value={d.productoId || ''}
                 onChange={id => { const n = [...detalles]; n[i].productoId = id === '' ? 0 : id; setDetalles(n); }}
-                className="flex-1"
+                className="flex-1 min-w-[160px]"
                 placeholder="Seleccionar producto"
                 renderSuffix={p => `($${p.precio})`}
               />
-              <input type="number" value={d.cantidad} onChange={e => { const n = [...detalles]; n[i].cantidad = Number(e.target.value); setDetalles(n); }} className="border rounded px-3 py-2 w-20" min={1} />
-              {prod && d.cantidad > 0 && (
-                <span className="text-xs text-gray-500 whitespace-nowrap">= {totalUn} un.</span>
-              )}
-              <button type="button" onClick={() => setDetalles(detalles.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 px-2" aria-label="Quitar producto">X</button>
+              <div className="flex items-center gap-2">
+                <input type="number" value={d.cantidad} onChange={e => { const n = [...detalles]; n[i].cantidad = Number(e.target.value); setDetalles(n); }} className="border rounded px-3 py-2 w-20" min={1} />
+                {prod && d.cantidad > 0 && (
+                  <span className="text-xs text-gray-500 whitespace-nowrap">= {totalUn} un.</span>
+                )}
+                <button type="button" onClick={() => setDetalles(detalles.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 px-2" aria-label="Quitar producto">X</button>
+              </div>
             </div>
           );
         })}

@@ -186,8 +186,8 @@ export default function LogsPage() {
       </div>
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[200px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_2fr_auto_auto] items-end gap-3">
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
             {esSuperAdmin ? (
               <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
@@ -200,7 +200,7 @@ export default function LogsPage() {
               </div>
             )}
           </div>
-          <div className="w-40">
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
             <input
               type="date"
@@ -209,7 +209,7 @@ export default function LogsPage() {
               className={inputClass}
             />
           </div>
-          <div className="w-40">
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
             <input
               type="date"
@@ -218,7 +218,7 @@ export default function LogsPage() {
               className={inputClass}
             />
           </div>
-          <div className="w-36">
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Nivel</label>
             <select
               value={nivel}
@@ -232,7 +232,7 @@ export default function LogsPage() {
               <option value={LogNivel.Critical}>Critical</option>
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-xs font-medium text-gray-600 mb-1">Buscar</label>
             <input
               type="text"
@@ -246,7 +246,7 @@ export default function LogsPage() {
           <button
             onClick={handleBuscar}
             disabled={cargando}
-            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
+            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
           >
             {cargando ? (
               <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
@@ -262,7 +262,7 @@ export default function LogsPage() {
           </button>
           <button
             onClick={() => setMostrarLimpiar(true)}
-            className="px-4 py-1.5 text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 text-sm font-semibold transition-colors"
+            className="px-4 py-1.5 text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 text-sm font-semibold transition-colors whitespace-nowrap"
           >
             Limpiar Logs
           </button>
@@ -285,26 +285,26 @@ export default function LogsPage() {
                 <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
                   Fecha/Hora
                 </th>
-                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
+                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap hidden md:table-cell">
                   Local
                 </th>
                 <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
                   Nivel
                 </th>
-                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
+                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap hidden sm:table-cell">
                   Origen
                 </th>
                 <th className="text-left px-4 py-2.5 font-semibold text-gray-600">Mensaje</th>
-                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
+                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap hidden lg:table-cell">
                   Usuario
                 </th>
-                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
+                <th className="text-left px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap hidden lg:table-cell">
                   Ruta
                 </th>
-                <th className="text-center px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
+                <th className="text-center px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap hidden sm:table-cell">
                   Status
                 </th>
-                <th className="text-right px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">
+                <th className="text-right px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap hidden md:table-cell">
                   Duracion
                 </th>
               </tr>
@@ -472,21 +472,21 @@ function LogRow({
           odd ? 'bg-gray-50/60' : 'bg-white'
         } ${expanded ? 'bg-amber-50' : ''}`}
       >
-        <td className="px-4 py-2 whitespace-nowrap text-gray-600">{formatFecha(log.fecha)}</td>
-        <td className="px-4 py-2 whitespace-nowrap text-gray-600">{log.localNombre || '-'}</td>
+        <td className="px-4 py-2 whitespace-nowrap text-gray-600 text-xs sm:text-sm">{formatFecha(log.fecha)}</td>
+        <td className="px-4 py-2 whitespace-nowrap text-gray-600 hidden md:table-cell">{log.localNombre || '-'}</td>
         <td className="px-4 py-2 whitespace-nowrap">
           <NivelBadge nivel={log.nivel} />
         </td>
-        <td className="px-4 py-2 whitespace-nowrap text-gray-700 font-medium max-w-[160px] truncate">
+        <td className="px-4 py-2 whitespace-nowrap text-gray-700 font-medium max-w-[160px] truncate hidden sm:table-cell">
           {log.origen}
         </td>
-        <td className="px-4 py-2 text-gray-600 max-w-[300px]">
-          <span className="block truncate">{truncate(log.mensaje, 80)}</span>
+        <td className="px-4 py-2 text-gray-600 max-w-[200px] sm:max-w-[300px]">
+          <span className="block truncate text-xs sm:text-sm">{truncate(log.mensaje, 80)}</span>
         </td>
-        <td className="px-4 py-2 whitespace-nowrap text-gray-600">
+        <td className="px-4 py-2 whitespace-nowrap text-gray-600 hidden lg:table-cell">
           {log.usuarioNombre || <span className="text-gray-300">-</span>}
         </td>
-        <td className="px-4 py-2 whitespace-nowrap text-gray-600 max-w-[200px] truncate">
+        <td className="px-4 py-2 whitespace-nowrap text-gray-600 max-w-[200px] truncate hidden lg:table-cell">
           {log.httpMethod && log.ruta ? (
             <span>
               <span className="font-semibold text-gray-500">{log.httpMethod}</span>{' '}
@@ -496,10 +496,10 @@ function LogRow({
             <span className="text-gray-300">-</span>
           )}
         </td>
-        <td className={`px-4 py-2 text-center whitespace-nowrap ${statusColor}`}>
+        <td className={`px-4 py-2 text-center whitespace-nowrap hidden sm:table-cell ${statusColor}`}>
           {log.statusCode ?? <span className="text-gray-300">-</span>}
         </td>
-        <td className="px-4 py-2 text-right whitespace-nowrap text-gray-600">
+        <td className="px-4 py-2 text-right whitespace-nowrap text-gray-600 hidden md:table-cell">
           {log.duracionMs != null ? `${log.duracionMs}ms` : <span className="text-gray-300">-</span>}
         </td>
       </tr>
