@@ -50,8 +50,8 @@ const LO = RolUsuario.Local;
 const menuSections: MenuSection[] = [
   {
     items: [
-      { to: '/', label: 'Dashboard', end: true },
       { to: '/pos', label: 'POS' },
+      { to: '/', label: 'Dashboard', end: true },
       { to: '/ventas', label: 'Ventas' },
     ],
   },

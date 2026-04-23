@@ -87,6 +87,15 @@ export default function RepartidorApp() {
   const [ordenManual, setOrdenManual] = useState<Venta[] | null>(null);
   const [direccionLocal, setDireccionLocal] = useState<string | null>(null);
   const optimizacionIniciada = useRef(false);
+  const [whatsappPedido, setWhatsappPedido] = useState<Venta | null>(null);
+
+  const abrirWhatsApp = (pedido: Venta) => {
+    if (!pedido.telefonoCliente) return;
+    const tel = pedido.telefonoCliente.replace(/\D/g, '');
+    const nombre = pedido.nombreCliente || 'cliente';
+    const msg = encodeURIComponent(`Hola ${nombre}! Tu pedido #${pedido.numeroTicket} está en camino y será entregado en breve. ¡Gracias por elegirnos!`);
+    window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+  };
 
   // Cargar dirección del local del repartidor para usar como punto de partida
   useEffect(() => {
@@ -201,6 +210,9 @@ export default function RepartidorApp() {
       try {
         await marcarEnCamino(pedido.id);
         await refresh();
+        if (import.meta.env.DEV && pedido.telefonoCliente) {
+          setWhatsappPedido(pedido);
+        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al iniciar entrega';
         showToast(msg, 'error');
@@ -337,11 +349,13 @@ export default function RepartidorApp() {
     try {
       await marcarEnCamino(pedido.id);
       showToast(`Entrega ${pedido.numeroTicket} en camino`, 'success');
-      // Limpiar ruta/orden para que se recalcule con los datos nuevos
       setRutaOptimizada(null);
       setOrdenManual(null);
       optimizacionIniciada.current = false;
       await refresh();
+      if (import.meta.env.DEV && pedido.telefonoCliente) {
+        setWhatsappPedido(pedido);
+      }
     } catch {
       showToast('Error al iniciar entrega', 'error');
     } finally {
@@ -706,6 +720,34 @@ export default function RepartidorApp() {
         </div>
       )}
 
+
+      {/* Modal avisar por WhatsApp */}
+      {whatsappPedido && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-center text-lg font-semibold text-gray-800">
+              {'\uD83D\uDCF2'} ¿Avisar al cliente por WhatsApp?
+            </p>
+            <p className="text-center text-sm text-gray-500">
+              Se abrirá WhatsApp con un mensaje listo para enviar a <span className="font-medium text-gray-700">{whatsappPedido.nombreCliente || whatsappPedido.telefonoCliente}</span>
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setWhatsappPedido(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition-colors"
+              >
+                No
+              </button>
+              <button
+                onClick={() => { abrirWhatsApp(whatsappPedido); setWhatsappPedido(null); }}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                {'\uD83D\uDCAC'} Sí, avisar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox comprobante */}
       {comprobanteSrc && (

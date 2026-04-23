@@ -41,6 +41,7 @@ export default function EntregasPage() {
   const [repartosAbandonados, setRepartosAbandonados] = useState<RepartoAbandonadoDto[]>([]);
   const [mostrarAbandonadosModal, setMostrarAbandonadosModal] = useState(false);
   const [cargandoAbandonados, setCargandoAbandonados] = useState(true);
+  const [pedidosWhatsapp, setPedidosWhatsapp] = useState<Venta[]>([]);
 
   const cargarAbandonados = useCallback(async () => {
     setCargandoAbandonados(true);
@@ -227,7 +228,6 @@ export default function EntregasPage() {
   const confirmarReparto = async () => {
     setEnviando(true);
     try {
-      // Solo enviar asignaciones de zonas que tienen pedidos pendientes
       const asignacionesArray = Array.from(asignaciones.entries())
         .filter(([zonaId]) => zonasPendientesDespacho.has(zonaId))
         .map(([zonaId, repartidorId]) => ({
@@ -235,12 +235,16 @@ export default function EntregasPage() {
           repartidorId,
           montoInicialCambio: montosIniciales.get(zonaId) ?? 0,
         }));
+      const conTelefono = pedidosPendientes.filter(p => p.telefonoCliente);
       await empezarReparto(asignacionesArray);
       setMostrarConfirmacion(false);
       showToast('Reparto iniciado con exito', 'success');
       setAsignaciones(new Map());
       setMontosIniciales(new Map());
       await cargar();
+      if (import.meta.env.DEV && conTelefono.length > 0) {
+        setPedidosWhatsapp(conTelefono);
+      }
     } catch (err) {
       console.error('Error al empezar reparto:', err);
       showToast('Error al empezar reparto', 'error');
@@ -529,9 +533,26 @@ export default function EntregasPage() {
                           </p>
                         )}
                         {pedido.telefonoCliente && (
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            Tel: {pedido.telefonoCliente}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <p className="text-xs text-gray-400">
+                              Tel: {pedido.telefonoCliente}
+                            </p>
+                            {import.meta.env.DEV && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const tel = pedido.telefonoCliente!.replace(/\D/g, '');
+                                  const nombre = pedido.nombreCliente || 'cliente';
+                                  const msg = encodeURIComponent(`Hola ${nombre}! Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
+                                  window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+                                }}
+                                title="Avisar por WhatsApp"
+                                className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors border border-green-300"
+                              >
+                                WhatsApp
+                              </button>
+                            )}
+                          </div>
                         )}
                         {(pedido.estado === EstadoVenta.Cancelado || pedido.estado === EstadoVenta.NoEntregado) && pedido.motivoCancelacion && (
                           <p className="text-xs text-red-600 mt-1 italic">
@@ -686,6 +707,56 @@ export default function EntregasPage() {
                 ) : (
                   'Confirmar Reparto'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal avisar clientes por WhatsApp */}
+      {pedidosWhatsapp.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-green-600 px-6 py-4 flex items-center gap-3">
+              <div className="bg-white/20 rounded-full p-2">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Avisar por WhatsApp</h3>
+                <p className="text-green-100 text-sm">{pedidosWhatsapp.length} cliente{pedidosWhatsapp.length !== 1 ? 's' : ''} con telefono</p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 space-y-2 max-h-64 overflow-y-auto">
+              {pedidosWhatsapp.map(pedido => (
+                <div key={pedido.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm text-gray-800">#{pedido.numeroTicket} — {pedido.nombreCliente || 'Sin nombre'}</div>
+                    <div className="text-xs text-gray-500">{pedido.telefonoCliente}</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const tel = pedido.telefonoCliente!.replace(/\D/g, '');
+                      const nombre = pedido.nombreCliente || 'cliente';
+                      const msg = encodeURIComponent(`Hola ${nombre}! Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
+                      window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+                    }}
+                    className="flex-shrink-0 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                  >
+                    Enviar
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setPedidosWhatsapp([])}
+                className="w-full py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cerrar
               </button>
             </div>
           </div>

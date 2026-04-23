@@ -1,4 +1,5 @@
-import { Producto, Combo, ListaPrecio } from '../../../types';
+import { useState, useMemo } from 'react';
+import { Producto, Combo, Categoria, ListaPrecio } from '../../../types';
 import { formatGramaje } from '../../../utils/formatGramaje';
 import { formatearNumero } from '../../../components/NumericInput';
 
@@ -42,6 +43,8 @@ interface Props {
   preciosListaCombos: Map<number, number>;
   preciosPromoProductos: Map<number, PrecioPromo>;
   preciosPromoCombos: Map<number, PrecioPromo>;
+  categorias: Categoria[];
+  todosLosCombos: Combo[];
   agregarProducto: (p: Producto) => void;
   agregarCombo: (c: Combo) => void;
 }
@@ -71,9 +74,58 @@ export default function ModalCatalogo({
   preciosListaCombos,
   preciosPromoProductos,
   preciosPromoCombos,
+  categorias,
+  todosLosCombos,
   agregarProducto,
   agregarCombo,
 }: Props) {
+  const [comboMegaFiltro, setComboMegaFiltro] = useState<string | null>(null);
+  const [comboSubFiltro, setComboSubFiltro] = useState<number | null>(null);
+
+  const prodIdMap = useMemo(() => {
+    const map = new Map<number, Producto>();
+    productos.forEach(p => map.set(p.id, p));
+    return map;
+  }, [productos]);
+
+  const combosActivos = useMemo(() => todosLosCombos.filter(c => c.activo), [todosLosCombos]);
+
+  const comboMegaCategorias = useMemo(() => {
+    if (categoriaFiltro !== 'combos') return [];
+    const prodIdsEnCombos = new Set(combosActivos.flatMap(c => c.detalles.map(d => d.productoId)));
+    const catIdsEnCombos = new Set<number>();
+    prodIdsEnCombos.forEach(pid => {
+      const p = prodIdMap.get(pid);
+      if (p) catIdsEnCombos.add(p.categoriaId);
+    });
+    return megaCategorias.filter(mc => mc.catIds.some(cid => catIdsEnCombos.has(cid)));
+  }, [categoriaFiltro, combosActivos, prodIdMap, megaCategorias]);
+
+  const comboMegaActiva = comboMegaCategorias.find(m => m.key === comboMegaFiltro);
+
+  const comboSubCategorias = useMemo(() => {
+    if (!comboMegaActiva) return [];
+    const rootId = parseInt(comboMegaActiva.key.replace('cat-', ''));
+    const subs = categorias.filter(c => c.activa && c.categoriaPadreId === rootId);
+    const prodIdsEnCombos = new Set(combosActivos.flatMap(c => c.detalles.map(d => d.productoId)));
+    return subs.filter(sub => {
+      return productos.some(p => p.categoriaId === sub.id && prodIdsEnCombos.has(p.id));
+    }).map(c => ({ id: c.id, nombre: c.nombre }));
+  }, [comboMegaActiva, categorias, combosActivos, productos]);
+
+  const combosFiltrados = useMemo(() => {
+    if (categoriaFiltro !== 'combos') return combosCatalogo;
+    if (!comboMegaActiva) return combosCatalogo;
+    const catIds = comboSubFiltro ? [comboSubFiltro] : comboMegaActiva.catIds;
+    const catSet = new Set(catIds);
+    return combosCatalogo.filter(c =>
+      c.detalles.some(d => {
+        const p = prodIdMap.get(d.productoId);
+        return p && catSet.has(p.categoriaId);
+      })
+    );
+  }, [categoriaFiltro, combosCatalogo, comboMegaActiva, comboSubFiltro, prodIdMap]);
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -98,8 +150,8 @@ export default function ModalCatalogo({
         </div>
 
         {/* Filtro por mega-categoria */}
-        <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap overflow-x-auto scrollbar-hide">
-          <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+        <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-gray-200 flex gap-1.5 flex-wrap">
+          <button onClick={() => { setCategoriaFiltro(null); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); setComboMegaFiltro(null); setComboSubFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!categoriaFiltro ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
           {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
             <button onClick={() => setCategoriaFiltro('promo')} className={`px-3 py-1 rounded-full text-sm font-bold transition-all ${categoriaFiltro === 'promo' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100'}`}>Promos</button>
           )}
@@ -117,9 +169,9 @@ export default function ModalCatalogo({
           >
             Oferta Semanal
           </button>
-          <button onClick={() => setCategoriaFiltro('combos')} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
+          <button onClick={() => { setCategoriaFiltro('combos'); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); setComboMegaFiltro(null); setComboSubFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === 'combos' ? 'bg-purple-600 text-white shadow-sm' : 'bg-purple-50 text-purple-800 hover:bg-purple-100'}`}>Combos</button>
           {megaCategorias.map(mc => (
-            <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+            <button key={mc.key} onClick={() => { setCategoriaFiltro(mc.key); setGramajesFiltro(null); setMarcaFiltro(null); setLineaFiltro(null); setComboMegaFiltro(null); setComboSubFiltro(null); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${categoriaFiltro === mc.key ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
           ))}
         </div>
 
@@ -134,8 +186,30 @@ export default function ModalCatalogo({
           </div>
         )}
 
-        {/* Sub-filtros: marca y gramaje */}
-        {tieneSubfiltros && (marcasDisponibles.length > 1 || gramajesDisponibles.length > 0) && (
+        {/* Sub-filtro combos: mega-categoría */}
+        {categoriaFiltro === 'combos' && comboMegaCategorias.length > 0 && (
+          <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-1.5 items-center">
+            <span className="text-xs text-gray-500 font-medium mr-1">Tipo:</span>
+            <button onClick={() => { setComboMegaFiltro(null); setComboSubFiltro(null); }} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!comboMegaFiltro ? 'bg-purple-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
+            {comboMegaCategorias.map(mc => (
+              <button key={mc.key} onClick={() => { setComboMegaFiltro(mc.key); setComboSubFiltro(null); }} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${comboMegaFiltro === mc.key ? 'bg-purple-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{mc.label}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Sub-filtro combos: sub-categoría */}
+        {categoriaFiltro === 'combos' && comboSubCategorias.length > 0 && (
+          <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-1.5 items-center">
+            <span className="text-xs text-gray-500 font-medium mr-1">Sub:</span>
+            <button onClick={() => setComboSubFiltro(null)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${!comboSubFiltro ? 'bg-purple-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todas</button>
+            {comboSubCategorias.map(sc => (
+              <button key={sc.id} onClick={() => setComboSubFiltro(sc.id)} className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${comboSubFiltro === sc.id ? 'bg-purple-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{sc.nombre}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Sub-filtros: marca y gramaje (en combos solo para Hamburguesas) */}
+        {!(categoriaFiltro === 'combos' && comboMegaActiva?.label !== 'Hamburguesas') && tieneSubfiltros && (marcasDisponibles.length > 1 || gramajesDisponibles.length > 0) && (
           <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-x-4 gap-y-1.5 items-center">
             {marcasDisponibles.length > 1 && (
               <div className="flex gap-1.5 items-center">
@@ -211,7 +285,7 @@ export default function ModalCatalogo({
               )}
             </button>
           ))}
-          {combosCatalogo.map(c => (
+          {combosFiltrados.map(c => (
             <button key={`combo-${c.id}`} onClick={() => { agregarCombo(c); onClose(); }} className={`relative border-2 rounded-lg p-2.5 text-left hover:shadow-md active:scale-[0.98] transition-all group ${
               preciosPromoCombos.has(c.id)
                 ? 'bg-red-50 border-red-200 hover:border-red-400'

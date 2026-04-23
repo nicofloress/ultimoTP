@@ -283,6 +283,7 @@ export default function PedidosPage() {
 
   // ===== BUSCAR CLIENTE =====
   const handleBuscarCliente = async (term: string) => {
+    if (clienteSeleccionado) limpiarCliente();
     setBusquedaCliente(term);
     if (term.length >= 2) {
       const results = await buscarClientes(term);
@@ -309,6 +310,10 @@ export default function PedidosPage() {
     setClienteSeleccionado(null);
     setBusquedaCliente('');
     setSugerenciasCliente([]);
+    setTelefono('');
+    setDireccion('');
+    setZonaSeleccionada(undefined);
+    setListaPrecioSeleccionada(undefined);
     setEsCtaCte(false);
   };
 
@@ -401,13 +406,13 @@ export default function PedidosPage() {
       const prodIdsEnCombos = new Set(combos.filter(c => c.activo).flatMap(c => c.detalles.map(d => d.productoId)));
       let prods = productos.filter(p => prodIdsEnCombos.has(p.id) && p.pesoGramos);
       if (lineaFiltro) prods = prods.filter(p => p.categoriaId === lineaFiltro);
-      return prods.map(p => p.pesoGramos!).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+      return prods.map(p => p.pesoGramos!).filter((v, i, a) => v <= 200 && a.indexOf(v) === i).sort((a, b) => a - b);
     }
     if (!megaActiva) return [];
     return productos
       .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : megaActiva.catIds.includes(p.categoriaId)) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
       .map(p => p.pesoGramos!)
-      .filter((v, i, a) => a.indexOf(v) === i)
+      .filter((v, i, a) => v <= 200 && a.indexOf(v) === i)
       .sort((a, b) => a - b);
   }, [productos, combos, categoriaFiltro, marcaFiltro, megaActiva, lineaFiltro]);
 
@@ -1381,6 +1386,8 @@ export default function PedidosPage() {
           preciosListaCombos={preciosListaCombos}
           preciosPromoProductos={preciosPromoProductos}
           preciosPromoCombos={preciosPromoCombos}
+          categorias={categorias}
+          todosLosCombos={combos}
           agregarProducto={agregarProducto}
           agregarCombo={agregarCombo}
         />

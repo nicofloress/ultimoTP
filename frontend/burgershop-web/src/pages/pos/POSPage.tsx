@@ -394,13 +394,13 @@ export default function POSPage() {
       const prodIdsEnCombos = new Set(combos.filter(c => c.activo).flatMap(c => c.detalles.map(d => d.productoId)));
       let prods = productos.filter(p => prodIdsEnCombos.has(p.id) && p.pesoGramos);
       if (lineaFiltro) prods = prods.filter(p => p.categoriaId === lineaFiltro);
-      return prods.map(p => p.pesoGramos!).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+      return prods.map(p => p.pesoGramos!).filter((v, i, a) => v <= 200 && a.indexOf(v) === i).sort((a, b) => a - b);
     }
     if (!megaActiva) return [];
     return productos
       .filter(p => p.activo && (lineaFiltro ? p.categoriaId === lineaFiltro : megaActiva.catIds.includes(p.categoriaId)) && p.pesoGramos && (!marcaFiltro || p.marca === marcaFiltro))
       .map(p => p.pesoGramos!)
-      .filter((v, i, a) => a.indexOf(v) === i)
+      .filter((v, i, a) => v <= 200 && a.indexOf(v) === i)
       .sort((a, b) => a - b);
   }, [productos, combos, categoriaFiltro, marcaFiltro, megaActiva, lineaFiltro]);
 
@@ -731,9 +731,9 @@ export default function POSPage() {
   const labelClass = 'text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1';
 
   return (
-    <div className="flex flex-col lg:flex-row gap-2 h-[calc(100vh-5rem)] lg:h-[calc(100vh-7.5rem)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-2 min-h-0 h-auto lg:h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-hidden">
       {/* ============ PANEL IZQUIERDO ============ */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 lg:min-h-0">
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2 mb-1.5">
           <h2 className="text-base lg:text-lg font-bold text-white">Punto de Venta</h2>
         </div>
@@ -749,7 +749,7 @@ export default function POSPage() {
                 type="text"
                 value={clienteSeleccionado ? `${clienteSeleccionado.nombre}${clienteSeleccionado.telefono ? ` - ${clienteSeleccionado.telefono}` : ''}` : busquedaCliente}
                 onChange={e => {
-                  if (clienteSeleccionado) setClienteSeleccionado(null);
+                  if (clienteSeleccionado) limpiarCliente();
                   setBusquedaCliente(e.target.value);
                   setNombreCliente(e.target.value);
                   setMostrarSugerencias(true);
@@ -913,7 +913,7 @@ export default function POSPage() {
         </div>
 
         {/* Tabla del carrito */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden min-h-0">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-none lg:flex-1 flex flex-col overflow-hidden min-h-[120px] lg:min-h-0">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -1034,7 +1034,7 @@ export default function POSPage() {
       </div>
 
       {/* ============ PANEL DERECHO: CAJA ============ */}
-      <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 max-h-[65vh] lg:max-h-full">
+      <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 lg:max-h-full">
         {/* Caja info */}
         <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white shadow-lg border-b-2 border-amber-500' : 'bg-red-50 border-b border-red-200'}`}>
           <div>
@@ -1362,6 +1362,8 @@ export default function POSPage() {
           preciosListaCombos={preciosListaCombos}
           preciosPromoProductos={preciosPromoProductos}
           preciosPromoCombos={preciosPromoCombos}
+          categorias={categorias}
+          todosLosCombos={combos}
           agregarProducto={agregarProducto}
           agregarCombo={agregarCombo}
         />
