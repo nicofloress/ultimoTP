@@ -20,6 +20,7 @@ type Tab = 'pendientes' | 'completados' | 'noEntregados';
 export default function RepartidorApp() {
   const { usuario, logout } = useAuth();
   const repartidorId = usuario?.repartidorId ?? null;
+  const puedeVerWhatsapp = usuario?.nombreUsuario === 'pedro';
   const { entregas, pendingCount, refresh, lastRefresh, isRefreshing } = useNotifications(repartidorId);
   const { showToast } = useGlobalToast();
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false);
@@ -217,7 +218,7 @@ export default function RepartidorApp() {
       try {
         await marcarEnCamino(pedido.id);
         await refresh();
-        if (import.meta.env.DEV && pedido.telefonoCliente) {
+        if (puedeVerWhatsapp && pedido.telefonoCliente) {
           setWhatsappPedido(pedido);
         }
       } catch (err: unknown) {
@@ -360,7 +361,7 @@ export default function RepartidorApp() {
       setOrdenManual(null);
       optimizacionIniciada.current = false;
       await refresh();
-      if (import.meta.env.DEV && pedido.telefonoCliente) {
+      if (puedeVerWhatsapp && pedido.telefonoCliente) {
         setWhatsappPedido(pedido);
       }
     } catch {

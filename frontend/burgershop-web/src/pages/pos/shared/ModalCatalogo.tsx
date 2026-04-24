@@ -127,16 +127,29 @@ export default function ModalCatalogo({
   }, [categoriaFiltro, combosCatalogo, comboMegaActiva, comboSubFiltro, prodIdMap]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 mr-auto">Catalogo de Productos</h2>
-          <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-400 rounded-lg px-2 sm:px-4 py-1 sm:py-1.5 flex-shrink-0">
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6"
+      style={{
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+      }}
+      onClick={onClose}
+    >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-full sm:max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-2 sm:flex-1 sm:min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 truncate">Catalogo de Productos</h2>
+            <button onClick={onClose} className="sm:hidden text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors flex-shrink-0" aria-label="Cerrar">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-400 rounded-lg px-2 sm:px-4 py-1 sm:py-1.5 flex-shrink-0 w-full sm:w-auto">
             <span className="text-xs sm:text-sm font-semibold text-amber-700 whitespace-nowrap hidden sm:inline">Lista de Precios:</span>
+            <span className="text-xs font-semibold text-amber-700 whitespace-nowrap sm:hidden">Lista:</span>
             <select
               value={listaPrecioSeleccionada || ''}
               onChange={e => setListaPrecioSeleccionada(Number(e.target.value) || undefined)}
-              className="border-2 border-amber-300 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 min-w-[120px] sm:min-w-[180px]"
+              className="flex-1 sm:flex-initial border-2 border-amber-300 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 sm:min-w-[180px]"
             >
               <option value="">Precio Base</option>
               {listasPrecios.filter(l => l.activa).map(l => (
@@ -144,7 +157,7 @@ export default function ModalCatalogo({
               ))}
             </select>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors flex-shrink-0">
+          <button onClick={onClose} className="hidden sm:flex text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors flex-shrink-0" aria-label="Cerrar">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>

@@ -285,10 +285,11 @@ export default function Layout() {
         className={`fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 bottom-0 bg-gradient-to-b from-slate-600 to-slate-900 shadow-2xl text-gray-300 z-40 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex-1 flex flex-col min-w-[16rem]">
+        <div className="flex-1 flex flex-col min-h-0 min-w-[16rem]">
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto py-2 sidebar-scroll">
+          <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-2 sidebar-scroll">
             {filteredSections.map((section, sIdx) => {
               const colapsada = section.title ? !!seccionesColapsadas[section.title] : false;
               return (
