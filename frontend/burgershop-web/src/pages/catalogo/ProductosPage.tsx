@@ -167,6 +167,13 @@ export default function ProductosPage() {
   const handleSubmitCombo = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // El combo debe tener al menos un producto en el detalle
+    const detallesValidos = comboDetalles.filter(d => d.productoId > 0 && d.cantidad > 0);
+    if (detallesValidos.length === 0) {
+      showToast('Debe agregar al menos un producto al combo', 'error');
+      return;
+    }
+
     // Verificar duplicado
     const duplicado = comboYaExiste(comboDetalles, editandoCombo?.id);
     if (duplicado) {

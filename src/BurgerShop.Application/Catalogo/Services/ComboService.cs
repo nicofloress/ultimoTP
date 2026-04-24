@@ -63,6 +63,9 @@ public class ComboService : IComboService
     {
         try
         {
+            if (dto.Detalles is null || !dto.Detalles.Any(d => d.ProductoId > 0 && d.Cantidad > 0))
+                throw new InvalidOperationException("Debe agregar al menos un producto al combo");
+
             var combo = new Combo
             {
                 Nombre = dto.Nombre,
@@ -92,6 +95,9 @@ public class ComboService : IComboService
     {
         try
         {
+            if (dto.Detalles is null || !dto.Detalles.Any(d => d.ProductoId > 0 && d.Cantidad > 0))
+                throw new InvalidOperationException("Debe agregar al menos un producto al combo");
+
             var combo = await _repo.GetByIdWithDetallesAsync(id);
             if (combo is null) return null;
 

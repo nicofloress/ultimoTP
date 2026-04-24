@@ -29,16 +29,30 @@ public class CombosController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ComboDto>> Create(CrearComboDto dto)
     {
-        var combo = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = combo.Id }, combo);
+        try
+        {
+            var combo = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = combo.Id }, combo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "SuperAdmin,Administrador")]
     public async Task<ActionResult<ComboDto>> Update(int id, ActualizarComboDto dto)
     {
-        var combo = await _service.UpdateAsync(id, dto);
-        return combo is null ? NotFound() : Ok(combo);
+        try
+        {
+            var combo = await _service.UpdateAsync(id, dto);
+            return combo is null ? NotFound() : Ok(combo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]

@@ -184,7 +184,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-900 dark:text-gray-100 transition-colors">
       {/* Header fijo - siempre arriba, todo el ancho */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-600 border-b border-slate-700 flex items-center px-2 sm:px-4">
+      <header className="fixed top-0 left-0 right-0 z-50 h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-slate-600 border-b border-slate-700 flex items-center px-2 sm:px-4">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 rounded hover:bg-slate-600 transition-colors text-slate-200 flex-shrink-0"
@@ -282,7 +282,7 @@ export default function Layout() {
 
       {/* Sidebar - debajo del header */}
       <aside
-        className={`fixed top-14 left-0 bottom-0 bg-gradient-to-b from-slate-600 to-slate-900 shadow-2xl text-gray-300 z-40 flex flex-col transition-all duration-300 ${
+        className={`fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 bottom-0 bg-gradient-to-b from-slate-600 to-slate-900 shadow-2xl text-gray-300 z-40 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden`}
       >
@@ -356,7 +356,7 @@ export default function Layout() {
 
       {/* Main content area - debajo del header, al lado del sidebar */}
       <div
-        className={`pt-14 transition-all duration-300 ${
+        className={`pt-[calc(3.5rem+env(safe-area-inset-top))] transition-all duration-300 ${
           sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'
         }`}
       >

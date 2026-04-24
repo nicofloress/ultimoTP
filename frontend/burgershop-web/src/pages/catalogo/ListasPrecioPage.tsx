@@ -15,6 +15,7 @@ import {
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import ProductoSelect from '../../components/ProductoSelect';
+import ComboSelect from '../../components/ComboSelect';
 
 export default function ListasPrecioPage() {
   const [listas, setListas] = useState<ListaPrecio[]>([]);
@@ -260,23 +261,20 @@ export default function ListasPrecioPage() {
             <div className="flex-1 min-w-[180px]">
               <label className="text-sm font-medium text-gray-700 block mb-1">{tipoDetalle === 'combo' ? 'Combo' : 'Producto'}</label>
               {tipoDetalle === 'combo' ? (
-                <select
+                <ComboSelect
+                  combos={combosDisponibles}
+                  onlyActivos={false}
                   value={nuevoItemId}
-                  onChange={e => {
-                    const id = Number(e.target.value);
+                  onChange={id => {
                     setNuevoItemId(id || '');
                     if (id) {
                       const c = combos.find(x => x.id === id);
                       if (c) setNuevoPrecio(c.precio);
                     }
                   }}
-                  className="w-full border rounded px-3 py-2 text-sm"
-                >
-                  <option value="">Seleccionar combo...</option>
-                  {combosDisponibles.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre} (${c.precio.toLocaleString()})</option>
-                  ))}
-                </select>
+                  placeholder="Seleccionar combo..."
+                  renderSuffix={c => `($${c.precio.toLocaleString()})`}
+                />
               ) : (
                 <ProductoSelect
                   productos={productosDisponibles}

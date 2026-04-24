@@ -3,6 +3,7 @@ import { Repartidor, Mensaje } from '../../types';
 import { getRepartidores } from '../../api/repartidores';
 import { getMensajesRepartidor, enviarMensajeAdmin, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useGlobalToast } from '../../components/Toast';
+import { parseFechaUtc } from '../../utils/fechas';
 
 interface Props {
   abierto: boolean;
@@ -120,7 +121,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
   const totalNoLeidos = Array.from(noLeidos.values()).reduce((sum, c) => sum + c, 0);
 
   const formatHora = (fecha: string) => {
-    return new Date(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return parseFechaUtc(fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   if (!abierto) return null;

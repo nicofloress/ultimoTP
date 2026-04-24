@@ -12,3 +12,15 @@ export function esDiaAnterior(fecha: string): boolean {
   hoy.setHours(0, 0, 0, 0);
   return parseFechaLocal(fecha).getTime() < hoy.getTime();
 }
+
+/**
+ * Parsea una fecha ISO asumiendo UTC si no especifica zona horaria.
+ * El backend guarda DateTime.UtcNow pero segun el mapping de Npgsql puede
+ * serializarse sin el sufijo "Z", haciendo que el browser lo interprete
+ * como hora local. Esta funcion agrega "Z" si falta para forzar UTC.
+ */
+export function parseFechaUtc(fecha: string): Date {
+  // Si ya tiene Z o un offset (+03:00 / -0300), usar como esta
+  const tieneZona = /Z$|[+-]\d{2}:?\d{2}$/i.test(fecha);
+  return new Date(tieneZona ? fecha : fecha + 'Z');
+}
