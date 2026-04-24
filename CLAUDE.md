@@ -71,3 +71,7 @@ The application is organized into 3 business modules, each with its own entities
 ## Seed Data
 
 The initial migration seeds: 4 categorías (Hamburguesas, Bebidas, Acompañamientos, Postres), 8 productos, and 2 repartidores (codes: 1234, 5678).
+
+
+## Aclaraciones
+- Al pedirte que subas cambios al repositorio de github asociado, deberas generar el commit y luego ejecutar este comando para generar el push a main ! git push origin main

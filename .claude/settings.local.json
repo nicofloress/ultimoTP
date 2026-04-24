@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(dotnet run:*)",
-	"Bash(git push:*)",
+      "Bash(git push:*)",
+      "Bash(git push origin main)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
       "Bash(npm run:*)",
       "Bash(curl:*)",
       "Bash(dotnet test:*)",

@@ -93,8 +93,7 @@ export default function RepartidorApp() {
   const abrirWhatsApp = (pedido: Venta) => {
     if (!pedido.telefonoCliente) return;
     const tel = pedido.telefonoCliente.replace(/\D/g, '');
-    const nombre = pedido.nombreCliente || 'cliente';
-    const msg = encodeURIComponent(`Hola ${nombre}! Tu pedido #${pedido.numeroTicket} está en camino y será entregado en breve. ¡Gracias por elegirnos!`);
+    const msg = encodeURIComponent(`Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} está en camino y será entregado en breve. ¡Gracias por elegirnos!`);
     window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
   };
 

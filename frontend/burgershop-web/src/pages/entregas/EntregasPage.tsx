@@ -7,6 +7,7 @@ import { getProductos } from '../../api/productos';
 import { crearVenta, getVenta } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
 import { useLocalActivo } from '../../context/LocalContext';
+import { useAuth } from '../../context/AuthContext';
 import AdminChat from './AdminChat';
 import RepartosAbandonadosModal from './repartos/RepartosAbandonadosModal';
 
@@ -24,6 +25,8 @@ const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text
 
 export default function EntregasPage() {
   const { localActivo } = useLocalActivo();
+  const { usuario } = useAuth();
+  const puedeVerWhatsapp = usuario?.nombreUsuario === 'admin36';
   const [pedidos, setPedidos] = useState<Venta[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [asignaciones, setAsignaciones] = useState<Map<number, number>>(new Map());
@@ -242,7 +245,7 @@ export default function EntregasPage() {
       setAsignaciones(new Map());
       setMontosIniciales(new Map());
       await cargar();
-      if (import.meta.env.DEV && conTelefono.length > 0) {
+      if (puedeVerWhatsapp && conTelefono.length > 0) {
         setPedidosWhatsapp(conTelefono);
       }
     } catch (err) {
@@ -537,13 +540,12 @@ export default function EntregasPage() {
                             <p className="text-xs text-gray-400">
                               Tel: {pedido.telefonoCliente}
                             </p>
-                            {import.meta.env.DEV && (
+                            {puedeVerWhatsapp && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const tel = pedido.telefonoCliente!.replace(/\D/g, '');
-                                  const nombre = pedido.nombreCliente || 'cliente';
-                                  const msg = encodeURIComponent(`Hola ${nombre}! Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
+                                  const msg = encodeURIComponent(`Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
                                   window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
                                 }}
                                 title="Avisar por WhatsApp"
@@ -739,8 +741,7 @@ export default function EntregasPage() {
                   <button
                     onClick={() => {
                       const tel = pedido.telefonoCliente!.replace(/\D/g, '');
-                      const nombre = pedido.nombreCliente || 'cliente';
-                      const msg = encodeURIComponent(`Hola ${nombre}! Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
+                      const msg = encodeURIComponent(`Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
                       window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
                     }}
                     className="flex-shrink-0 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
