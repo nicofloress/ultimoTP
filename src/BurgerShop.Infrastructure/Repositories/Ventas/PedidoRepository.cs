@@ -32,6 +32,11 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
 
     public async Task<IEnumerable<Venta>> GetByFechaAsync(DateTime fecha)
     {
+        var repartosEnCursoIds = await _context.RepartosZona
+            .Where(r => r.Fecha == fecha.Date && r.Estado == EstadoReparto.EnCurso)
+            .Select(r => r.Id)
+            .ToListAsync();
+
         return await _dbSet
             .Include(v => v.Lineas)
             .Include(v => v.Local)
@@ -42,7 +47,8 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Usuario)
             .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
             .Where(v => v.FechaCreacion.Date == fecha.Date
-                || (v.FechaProgramada != null && v.FechaProgramada.Value.Date == fecha.Date))
+                || (v.FechaProgramada != null && v.FechaProgramada.Value.Date == fecha.Date)
+                || (v.RepartoZonaId != null && repartosEnCursoIds.Contains(v.RepartoZonaId.Value)))
             .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
@@ -83,7 +89,10 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Zona)
             .Include(v => v.FormaPago)
             .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
-            .Where(v => v.RepartidorId == repartidorId && v.FechaCreacion.Date == hoy)
+            .Where(v => v.RepartidorId == repartidorId
+                && (v.FechaProgramada == null
+                    ? v.FechaCreacion.Date == hoy
+                    : v.FechaProgramada.Value.Date == hoy))
             .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();
     }
@@ -234,6 +243,22 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
                 .Where(v => v.RepartoZonaId == reparto.Id)
                 .ToListAsync();
 
+            // Desvincular pedidos programados a futuro que quedaron pegados al reparto sin entregar.
+            var manana = DateTime.Today.AddDays(1);
+            foreach (var venta in ventasZona)
+            {
+                if ((venta.Estado == EstadoVenta.Asignado || venta.Estado == EstadoVenta.EnCamino)
+                    && venta.FechaProgramada.HasValue
+                    && venta.FechaProgramada.Value.Date >= manana)
+                {
+                    venta.RepartoZonaId = null;
+                    venta.RepartidorId = null;
+                    venta.FechaAsignacion = null;
+                    venta.Estado = EstadoVenta.Pendiente;
+                }
+            }
+            ventasZona = ventasZona.Where(v => v.RepartoZonaId == reparto.Id).ToList();
+
             reparto.TotalVentas = ventasZona.Count;
             reparto.TotalEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.Entregado);
             reparto.TotalNoEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.NoEntregado);
@@ -265,6 +290,21 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
         var ventasZona = await _dbSet
             .Where(v => v.RepartoZonaId == reparto.Id)
             .ToListAsync();
+
+        var manana = DateTime.Today.AddDays(1);
+        foreach (var venta in ventasZona)
+        {
+            if ((venta.Estado == EstadoVenta.Asignado || venta.Estado == EstadoVenta.EnCamino)
+                && venta.FechaProgramada.HasValue
+                && venta.FechaProgramada.Value.Date >= manana)
+            {
+                venta.RepartoZonaId = null;
+                venta.RepartidorId = null;
+                venta.FechaAsignacion = null;
+                venta.Estado = EstadoVenta.Pendiente;
+            }
+        }
+        ventasZona = ventasZona.Where(v => v.RepartoZonaId == reparto.Id).ToList();
 
         reparto.TotalVentas = ventasZona.Count;
         reparto.TotalEntregados = ventasZona.Count(v => v.Estado == EstadoVenta.Entregado);
@@ -486,7 +526,10 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
                 && v.RepartoZonaId != null
                 && repartosEnCursoIds.Contains(v.RepartoZonaId.Value)
                 && v.Estado != EstadoVenta.Cancelado
-                && v.Estado != EstadoVenta.NoEntregado)
+                && v.Estado != EstadoVenta.NoEntregado
+                && (v.FechaProgramada == null
+                    ? v.FechaCreacion.Date == hoy
+                    : v.FechaProgramada.Value.Date == hoy))
             .ToListAsync();
     }
 

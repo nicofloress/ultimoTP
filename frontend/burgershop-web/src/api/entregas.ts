@@ -6,6 +6,7 @@ export const asignarEntrega = (ventaId: number, repartidorId: number) => api.pos
 export const getEntregasRepartidor = (id: number) =>
   api.get<Venta[]>(`/entregas/repartidor/${id}`, { params: { _t: Date.now() } }).then(r => r.data);
 export const marcarEnCamino = (ventaId: number) => api.put<Venta>(`/entregas/${ventaId}/en-camino`).then(r => r.data);
+export const revertirEnCamino = (ventaId: number) => api.put<Venta>(`/entregas/${ventaId}/revertir-en-camino`).then(r => r.data);
 export const marcarEntregado = (ventaId: number, data: { notas?: string; formaPagoId?: number; comprobanteBase64?: string; pagos?: { formaPagoId: number; monto: number }[] }) =>
   api.put<Venta>(`/entregas/${ventaId}/entregar`, data).then(r => r.data);
 

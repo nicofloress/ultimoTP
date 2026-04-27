@@ -641,6 +641,23 @@ export default function PedidosPage() {
   const handleGuardarCambios = async () => {
     if (!editandoPedido || !formularioValido) return;
     try {
+      // Si el pedido ERA programado (tenía fechaProgramada original) y el usuario
+      // destilda "Programar" en uno con fecha de creación anterior a hoy,
+      // forzar fechaProgramada=hoy para que siga apareciendo en la lista del día.
+      // Si el pedido nunca fue programado, no tocar nada (mantener undefined).
+      let fechaProgramadaAEnviar: string | undefined;
+      if (esProgramado && fechaProgramada) {
+        fechaProgramadaAEnviar = fechaProgramada;
+      } else if (editandoPedido.fechaProgramada && editandoPedido.fechaCreacion) {
+        const creacion = new Date(editandoPedido.fechaCreacion);
+        const hoy = new Date();
+        creacion.setHours(0, 0, 0, 0);
+        hoy.setHours(0, 0, 0, 0);
+        if (creacion.getTime() < hoy.getTime()) {
+          fechaProgramadaAEnviar = hoy.toISOString().substring(0, 10);
+        }
+      }
+
       await actualizarVenta(editandoPedido.id, {
         nombreCliente: editandoPedido.nombreCliente || 'Consumidor Final',
         telefonoCliente: telefono || undefined,
@@ -650,7 +667,7 @@ export default function PedidosPage() {
         formaPagoId: formaPagoSeleccionada || undefined,
         notaInterna: notaInterna || undefined,
         tipoFactura: editandoPedido.tipoFactura,
-        fechaProgramada: esProgramado && fechaProgramada ? fechaProgramada : undefined,
+        fechaProgramada: fechaProgramadaAEnviar,
         estaPago: yaPago,
         lineas: carrito.map(item => ({
           productoId: item.productoId || undefined,

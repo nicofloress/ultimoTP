@@ -247,8 +247,11 @@ public class VentaService : IVentaService
             venta.MontoNeto = Math.Round(totalNeto, 2);
             venta.MontoIVA = Math.Round(venta.Total - totalNeto, 2);
 
-            // Si es Domicilio con zona, verificar si ya hay reparto activo en esa zona
-            if (dto.Tipo == TipoVenta.Domicilio && dto.ZonaId.HasValue)
+            // Si es Domicilio con zona y el pedido es para hoy, auto-asignar al reparto activo.
+            // Los pedidos programados para una fecha futura no se asignan al reparto de hoy.
+            var esParaHoy = !dto.FechaProgramada.HasValue
+                || dto.FechaProgramada.Value.Date == DateTime.Today;
+            if (dto.Tipo == TipoVenta.Domicilio && dto.ZonaId.HasValue && esParaHoy)
             {
                 var repartoActivo = await _ventaRepo.GetRepartoZonaActivoHoyAsync(dto.ZonaId.Value);
                 if (repartoActivo != null)
@@ -864,6 +867,34 @@ public class VentaService : IVentaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error en {Method}: {Message}", nameof(MarcarEnCaminoAsync), ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<VentaDto?> RevertirEnCaminoAsync(int ventaId)
+    {
+        try
+        {
+            var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+            if (venta is null) return null;
+
+            if (venta.Estado != EstadoVenta.EnCamino)
+                throw new InvalidOperationException(
+                    $"Solo se puede revertir un pedido en estado EnCamino. Estado actual: {venta.Estado}.");
+
+            venta.Estado = EstadoVenta.Asignado;
+            _ventaRepo.Update(venta);
+            await _ventaRepo.SaveChangesAsync();
+            return ToDto(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "{Method}: {Message}", nameof(RevertirEnCaminoAsync), ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(RevertirEnCaminoAsync), ex.Message);
             throw;
         }
     }

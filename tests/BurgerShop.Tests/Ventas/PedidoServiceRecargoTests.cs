@@ -1,11 +1,13 @@
 using BurgerShop.Application.Ventas.DTOs;
 using BurgerShop.Application.Ventas.Services;
+using BurgerShop.Application.Ventas.Interfaces;
 using BurgerShop.Domain.Entities.Catalogo;
 using BurgerShop.Domain.Entities.Ventas;
 using BurgerShop.Domain.Enums;
 using BurgerShop.Domain.Interfaces;
 using BurgerShop.Domain.Interfaces.Catalogo;
 using BurgerShop.Domain.Interfaces.Finanzas;
+using BurgerShop.Domain.Interfaces.Ventas;
 using BurgerShop.Application.Inventario.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -37,10 +39,17 @@ public class PedidoServiceRecargoTests
         _formaPagoRepoMock = new Mock<IRepository<FormaPago>>();
         _cajaRepoMock      = new Mock<ICierreCajaRepository>();
 
-        // Por defecto no hay caja abierta (comportamiento neutro para los tests existentes)
+        // Por defecto hay una caja abierta (CreateAsync valida su existencia desde el cambio que
+        // exige caja para registrar ventas).
         _cajaRepoMock
             .Setup(r => r.GetCajaAbiertaAsync(It.IsAny<int?>()))
-            .ReturnsAsync((BurgerShop.Domain.Entities.Finanzas.CierreCaja?)null);
+            .ReturnsAsync(new BurgerShop.Domain.Entities.Finanzas.CierreCaja
+            {
+                Id = 1,
+                FechaApertura = DateTime.Now,
+                MontoInicial = 0m,
+                Estado = BurgerShop.Domain.Enums.EstadoCaja.Abierta
+            });
 
         _service = new VentaService(
             _ventaRepoMock.Object,
@@ -49,6 +58,8 @@ public class PedidoServiceRecargoTests
             _formaPagoRepoMock.Object,
             _cajaRepoMock.Object,
             new Mock<IMovimientoService>().Object,
+            new Mock<ICuentaCorrienteService>().Object,
+            new Mock<ICuentaCorrienteRepository>().Object,
             new Mock<ILogger<VentaService>>().Object);
 
         // Setup genérico: GetSiguienteNumeroTicketAsync devuelve 1
@@ -376,7 +387,9 @@ public class PedidoServiceRecargoTests
     {
         // Arrange
         SetupProductoRepo(1);
-        var dto = BuildCrearVentaDto();
+        // Solo las ventas Domicilio inician en Pendiente; las Mostrador arrancan Entregado.
+        var baseDto = BuildCrearVentaDto();
+        var dto = baseDto with { Tipo = TipoVenta.Domicilio };
 
         Venta? ventaGuardada = null;
         _ventaRepoMock

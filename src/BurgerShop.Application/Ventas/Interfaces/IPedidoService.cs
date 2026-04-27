@@ -22,6 +22,7 @@ public interface IVentaService
     Task<VentaDto?> AsignarRepartidorAsync(int ventaId, int repartidorId);
     Task<IEnumerable<VentaDto>> GetEntregasRepartidorHoyAsync(int repartidorId);
     Task<VentaDto?> MarcarEnCaminoAsync(int ventaId);
+    Task<VentaDto?> RevertirEnCaminoAsync(int ventaId);
     Task<VentaDto?> MarcarEntregadoAsync(int ventaId, MarcarEntregadoDto dto);
     Task<IEnumerable<VentaDto>> GetListosParaRepartoHoyAsync();
     Task<IEnumerable<VentaDto>> EmpezarRepartoAsync(EmpezarRepartoDto dto);

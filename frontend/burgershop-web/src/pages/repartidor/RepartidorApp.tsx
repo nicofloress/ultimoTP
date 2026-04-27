@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 declare const __APP_VERSION__: string;
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 import { Venta, Mensaje, EstadoVenta } from '../../types';
-import { marcarEnCamino, marcarEntregado, marcarNoEntregado, reabrirEntrega } from '../../api/entregas';
+import { marcarEnCamino, marcarEntregado, marcarNoEntregado, reabrirEntrega, revertirEnCamino } from '../../api/entregas';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useAuth } from '../../context/AuthContext';
 import { useGlobalToast } from '../../components/Toast';
@@ -371,6 +371,23 @@ export default function RepartidorApp() {
     }
   };
 
+  const handleRevertirEnCamino = async (pedido: Venta) => {
+    setActionLoading(pedido.id);
+    try {
+      await revertirEnCamino(pedido.id);
+      showToast(`Entrega ${pedido.numeroTicket} vuelta a Asignada`, 'success');
+      setRutaOptimizada(null);
+      setOrdenManual(null);
+      optimizacionIniciada.current = false;
+      await refresh();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al revertir entrega';
+      showToast(msg, 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleEntregado = async () => {
     if (!modalPedido) return;
 
@@ -655,6 +672,7 @@ export default function RepartidorApp() {
               onMover={moverPedido}
               actionLoading={actionLoading}
               onEnCamino={handleEnCamino}
+              onRevertirEnCamino={handleRevertirEnCamino}
               onEntregado={(p) => { setModalPedido(p); setNotasEntrega(''); setMetodoPago(null); setComprobanteBase64(null); setMontoEfectivo(''); setMontoTransferencia(''); }}
               onCancelar={(p) => { setCancelarPedido(p); setMotivoCancelacion(''); }}
               onNavegar={(p) => navegarAPedido(p)}
@@ -959,6 +977,7 @@ function PendientesTab({
   pedidos,
   actionLoading,
   onEnCamino,
+  onRevertirEnCamino,
   onEntregado,
   onCancelar,
   onMover,
@@ -968,6 +987,7 @@ function PendientesTab({
   pedidos: Venta[];
   actionLoading: number | null;
   onEnCamino: (p: Venta) => void;
+  onRevertirEnCamino: (p: Venta) => void;
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
   onMover?: (fromIdx: number, toIdx: number) => void;
@@ -1071,6 +1091,7 @@ function PendientesTab({
               pedido={p}
               actionLoading={actionLoading}
               onEnCamino={onEnCamino}
+              onRevertirEnCamino={onRevertirEnCamino}
               onEntregado={onEntregado}
               onCancelar={onCancelar}
               onNavegar={onNavegar}
@@ -1091,6 +1112,7 @@ function PedidoCard({
   pedido,
   actionLoading,
   onEnCamino,
+  onRevertirEnCamino,
   onEntregado,
   onCancelar,
   onNavegar,
@@ -1100,6 +1122,7 @@ function PedidoCard({
   pedido: Venta;
   actionLoading: number | null;
   onEnCamino: (p: Venta) => void;
+  onRevertirEnCamino: (p: Venta) => void;
   onEntregado: (p: Venta) => void;
   onCancelar: (p: Venta) => void;
   onNavegar: (p: Venta) => void;
@@ -1209,28 +1232,38 @@ function PedidoCard({
         )}
 
         {isEnCamino && (
-          <div className="flex gap-2">
+          <>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onEntregado(pedido)}
+                disabled={loading}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {'\u2705'} Marcar Entregado
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => onCancelar(pedido)}
+                disabled={loading}
+                className="bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 py-2.5 px-4 rounded-lg font-semibold transition-colors text-sm"
+              >
+                No Entregado
+              </button>
+            </div>
             <button
-              onClick={() => onEntregado(pedido)}
+              onClick={() => onRevertirEnCamino(pedido)}
               disabled={loading}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              className="w-full mt-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-1"
+              title="Volver el pedido a Asignado para priorizar otro"
             >
-              {loading ? (
-                <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  {'\u2705'} Marcar Entregado
-                </>
-              )}
+              {'\u21A9'} Volver atras (Asignado)
             </button>
-            <button
-              onClick={() => onCancelar(pedido)}
-              disabled={loading}
-              className="bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 py-2.5 px-4 rounded-lg font-semibold transition-colors text-sm"
-            >
-              No Entregado
-            </button>
-          </div>
+          </>
         )}
 
       </div>

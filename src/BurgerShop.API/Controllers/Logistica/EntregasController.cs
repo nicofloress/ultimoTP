@@ -60,6 +60,20 @@ public class EntregasController : ControllerBase
         }
     }
 
+    [HttpPut("{ventaId}/revertir-en-camino")]
+    public async Task<ActionResult<VentaDto>> RevertirEnCamino(int ventaId)
+    {
+        try
+        {
+            var venta = await _ventaService.RevertirEnCaminoAsync(ventaId);
+            return venta is null ? NotFound() : Ok(venta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{ventaId}/entregar")]
     public async Task<ActionResult<VentaDto>> MarcarEntregado(int ventaId, [FromBody] MarcarEntregadoDto dto)
     {
