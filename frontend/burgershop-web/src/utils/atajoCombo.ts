@@ -16,8 +16,8 @@
 
 export interface AtajoCombo {
   cantidad: number;
-  gramaje: number;
-  linea: 'eco' | 'premium';
+  gramaje?: number;
+  linea?: 'eco' | 'premium';
   conPan: boolean;
   aderezos: string[]; // nombres parciales de aderezos: "mayo", "most", etc.
 }
@@ -25,20 +25,27 @@ export interface AtajoCombo {
 export function parsearAtajo(input: string): AtajoCombo | null {
   const texto = input.trim().toLowerCase().replace(/\s/g, '');
 
-  // Patrón: NUMxNUM[e|p][p?][aderezos?]
-  const match = texto.match(/^(\d+)x(\d+)(e|p)(.*)$/);
+  // Patrón parcial: NUMx[NUM?][e|p?][p?][aderezos?]
+  // El "x" después del primer número es el disparador del atajo.
+  const match = texto.match(/^(\d+)x(\d*)(.*)$/);
   if (!match) return null;
 
   const cantidad = parseInt(match[1], 10);
-  const gramaje = parseInt(match[2], 10);
-  const lineaChar = match[3];
-  let resto = match[4];
+  const gramaje = match[2] ? parseInt(match[2], 10) : undefined;
+  let resto = match[3];
 
-  const linea: 'eco' | 'premium' = lineaChar === 'e' ? 'eco' : 'premium';
+  let linea: 'eco' | 'premium' | undefined;
+  if (resto.startsWith('e')) {
+    linea = 'eco';
+    resto = resto.substring(1);
+  } else if (resto.startsWith('p')) {
+    linea = 'premium';
+    resto = resto.substring(1);
+  }
 
-  // Si empieza con 'p', tiene pan
+  // Si empieza con 'p' (después de la línea), tiene pan
   let conPan = false;
-  if (resto.startsWith('p')) {
+  if (linea && resto.startsWith('p')) {
     conPan = true;
     resto = resto.substring(1);
   }
@@ -85,20 +92,23 @@ export function filtrarCombosPorAtajo<
   return combos.filter(c => {
     if (!c.activo) return false;
 
-    // Buscar si el combo contiene la hamburguesa correcta (cantidad, gramaje, línea)
+    // Buscar si el combo contiene la hamburguesa que matchea el atajo parcial.
     // La cantidad del atajo es en unidades reales (ej: 60 hamburguesas),
     // pero ComboDetalle.Cantidad está en paquetes (ej: 30 paquetes de 2).
     // Multiplicar detalle.cantidad × unidadMinima para comparar.
-    const lineaTexto = atajo.linea === 'eco' ? 'conomica' : 'remium';
+    const lineaTexto = atajo.linea === 'eco' ? 'conomica' : atajo.linea === 'premium' ? 'remium' : null;
     const hambDetalle = c.detalles.find(d => {
       const prod = productos.find(p => p.id === d.productoId);
       if (!prod) return false;
-      if (prod.pesoGramos !== atajo.gramaje) return false;
+      // Solo se aceptan productos con pesoGramos (hamburguesas)
+      if (!prod.pesoGramos) return false;
+      if (atajo.gramaje !== undefined && prod.pesoGramos !== atajo.gramaje) return false;
       const cantidadReal = d.cantidad * (prod.unidadMinima || 1);
       if (cantidadReal !== atajo.cantidad) return false;
-      // Verificar línea por nombre de categoría
-      const cat = categorias.find(ct => ct.id === prod.categoriaId);
-      if (!cat || !cat.nombre.toLowerCase().includes(lineaTexto)) return false;
+      if (lineaTexto) {
+        const cat = categorias.find(ct => ct.id === prod.categoriaId);
+        if (!cat || !cat.nombre.toLowerCase().includes(lineaTexto)) return false;
+      }
       return true;
     });
     if (!hambDetalle) return false;

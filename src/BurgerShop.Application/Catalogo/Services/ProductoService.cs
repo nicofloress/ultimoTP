@@ -78,7 +78,7 @@ public class ProductoService : IProductoService
             var p = await _repo.GetByIdAsync(id);
             if (p is null) return null;
             var cat = p.Categoria;
-            return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA, p.UnidadMedida);
+            return new ProductoDto(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, cat?.Nombre ?? "", p.Activo, p.ImagenUrl, p.Codigo, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA, p.UnidadMedida);
         }
         catch (Exception ex)
         {
@@ -98,7 +98,7 @@ public class ProductoService : IProductoService
                 Precio = dto.PrecioVenta > 0 ? dto.PrecioVenta : dto.Precio,
                 CategoriaId = dto.CategoriaId,
                 ImagenUrl = dto.ImagenUrl,
-                NumeroInterno = string.IsNullOrWhiteSpace(dto.NumeroInterno) ? null : dto.NumeroInterno,
+                Codigo = string.IsNullOrWhiteSpace(dto.Codigo) ? null : dto.Codigo,
                 PesoGramos = dto.PesoGramos,
                 UnidadesPorBulto = dto.UnidadesPorBulto,
                 Marca = dto.Marca,
@@ -114,7 +114,7 @@ public class ProductoService : IProductoService
             };
             await _repo.AddAsync(producto);
             await _repo.SaveChangesAsync();
-            return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA, producto.UnidadMedida);
+            return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.Codigo, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA, producto.UnidadMedida);
         }
         catch (Exception ex)
         {
@@ -136,7 +136,7 @@ public class ProductoService : IProductoService
             producto.CategoriaId = dto.CategoriaId;
             producto.Activo = dto.Activo;
             producto.ImagenUrl = dto.ImagenUrl;
-            producto.NumeroInterno = dto.NumeroInterno;
+            producto.Codigo = dto.Codigo;
             producto.PesoGramos = dto.PesoGramos;
             producto.UnidadesPorBulto = dto.UnidadesPorBulto;
             producto.Marca = dto.Marca;
@@ -155,7 +155,7 @@ public class ProductoService : IProductoService
 
             _repo.Update(producto);
             await _repo.SaveChangesAsync();
-            return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.NumeroInterno, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA, producto.UnidadMedida);
+            return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.Codigo, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA, producto.UnidadMedida);
         }
         catch (Exception ex)
         {
@@ -190,7 +190,7 @@ public class ProductoService : IProductoService
             var productos = await _repo.GetActivosAsync();
             var terminoLower = termino.ToLowerInvariant();
             var filtrados = productos
-                .Where(p => (p.NumeroInterno != null && p.NumeroInterno.ToLowerInvariant().Contains(terminoLower))
+                .Where(p => (p.Codigo != null && p.Codigo.ToLowerInvariant().Contains(terminoLower))
                          || p.Nombre.ToLowerInvariant().Contains(terminoLower)
                          || (p.Descripcion != null && p.Descripcion.ToLowerInvariant().Contains(terminoLower))
                          || (p.Marca != null && p.Marca.ToLowerInvariant().Contains(terminoLower)))
@@ -221,11 +221,11 @@ public class ProductoService : IProductoService
     }
 
     private static ProductoDto ToDto(Producto p)
-        => new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA, p.UnidadMedida);
+        => new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.Codigo, p.PesoGramos, p.UnidadesPorBulto, null, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA, p.UnidadMedida);
 
     private static ProductoDto ToDtoConPrecioLista(Producto p, Dictionary<int, decimal> precios)
     {
         var precioLista = precios.TryGetValue(p.Id, out var precio) ? (decimal?)precio : null;
-        return new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.NumeroInterno, p.PesoGramos, p.UnidadesPorBulto, precioLista, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA, p.UnidadMedida);
+        return new(p.Id, p.Nombre, p.Descripcion, p.Precio, p.CategoriaId, p.Categoria?.Nombre ?? "", p.Activo, p.ImagenUrl, p.Codigo, p.PesoGramos, p.UnidadesPorBulto, precioLista, p.Marca, p.UnidadesPorMedia, p.EsOfertaSemanal, p.PrecioCosto, p.PrecioVenta, p.FechaUltimaModificacionPrecio, p.DiferenciaPrecioCosto, p.UnidadMinima, p.AlicuotaIVA, p.UnidadMedida);
     }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Producto, Combo, Categoria, CarritoItem, TipoVenta, FormaPago, TipoFactura, ClienteDto, ListaPrecio, CrearPagoDto, TipoCliente } from '../../types';
 import { Zona } from '../../types/logistica';
-import { parsearAtajo, filtrarCombosPorAtajo } from '../../utils/atajoCombo';
+import { buscarProductos, buscarCombos, construirIndiceProductos, construirIndiceCombos } from '../../utils/buscarItems';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getCategorias } from '../../api/categorias';
@@ -347,26 +347,19 @@ export default function POSPage() {
     ? total - montoPagado
     : total - pagosDivididos.reduce((sum, p) => sum + p.monto + (formasPago.find(f => f.id === p.formaPagoId)?.porcentajeRecargo ?? 0) * p.monto / 100, 0);
 
-  // --- Busqueda de productos ---
-  const productosFiltrados = productos.filter(p => {
-    if (!p.activo) return false;
-    if (busqueda) {
-      const term = busqueda.toLowerCase();
-      return (p.numeroInterno?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term);
-    }
-    return false;
-  });
+  // --- Busqueda de productos / combos ---
+  const indiceProductos = useMemo(() => construirIndiceProductos(productos), [productos]);
+  const indiceCombos = useMemo(() => construirIndiceCombos(combos), [combos]);
 
-  const combosFiltrados = useMemo(() => {
-    if (!busqueda) return [];
-    // Intentar parsear como atajo de combo
-    const atajo = parsearAtajo(busqueda);
-    if (atajo) {
-      return filtrarCombosPorAtajo(combos, atajo, productos, categorias);
-    }
-    // Búsqueda normal por nombre
-    return combos.filter(c => c.activo && c.nombre.toLowerCase().includes(busqueda.toLowerCase()));
-  }, [busqueda, combos, productos, categorias]);
+  const productosFiltrados = useMemo(
+    () => (busqueda ? buscarProductos(productos, indiceProductos, busqueda) : []),
+    [productos, indiceProductos, busqueda],
+  );
+
+  const combosFiltrados = useMemo(
+    () => (busqueda ? buscarCombos(combos, productos, categorias, indiceCombos, busqueda) : []),
+    [busqueda, combos, productos, categorias, indiceCombos],
+  );
 
   // ===== MEGA-CATEGORIAS: cada categoría raíz es un botón de filtro =====
   const megaCategorias = useMemo(() => {
@@ -464,7 +457,7 @@ export default function POSPage() {
 
   // Navegación con teclado en resultados de búsqueda
   const resultadosBusqueda = busqueda.trim()
-    ? [...productosFiltrados.slice(0, 6).map(p => ({ tipo: 'prod' as const, item: p })), ...combosFiltrados.slice(0, 6).map(c => ({ tipo: 'combo' as const, item: c }))]
+    ? [...productosFiltrados.slice(0, 50).map(p => ({ tipo: 'prod' as const, item: p })), ...combosFiltrados.slice(0, 50).map(c => ({ tipo: 'combo' as const, item: c }))]
     : [];
 
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -497,7 +490,7 @@ export default function POSPage() {
         return;
       }
       // Código exacto de barras
-      const exacto = productos.find(p => p.activo && p.numeroInterno?.toLowerCase() === busqueda.trim().toLowerCase());
+      const exacto = productos.find(p => p.activo && p.codigo?.toLowerCase() === busqueda.trim().toLowerCase());
       if (exacto) { agregarProducto(exacto); setBusqueda(''); setTimeout(() => busquedaRef.current?.focus(), 0); return; }
       // Si hay un solo resultado (producto o combo), agregarlo
       if (resultadosBusqueda.length === 1) {
@@ -839,7 +832,7 @@ export default function POSPage() {
           {/* Resultados de busqueda rapida */}
           {busqueda && (productosFiltrados.length > 0 || combosFiltrados.length > 0) && (
             <div className="mt-1.5 border border-gray-200 rounded-md max-h-72 overflow-y-auto shadow-sm">
-              {productosFiltrados.slice(0, 6).map((p, idx) => (
+              {productosFiltrados.slice(0, 50).map((p, idx) => (
                 <button
                   key={`p-${p.id}`}
                   data-busqueda-idx={idx}
@@ -847,7 +840,7 @@ export default function POSPage() {
                   className={`w-full flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 active:bg-amber-100 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${indiceBusqueda === idx ? 'bg-amber-100' : ''}`}
                 >
                   <div className="flex items-center gap-2">
-                    {p.numeroInterno && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{p.numeroInterno}</span>}
+                    {p.codigo && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{p.codigo}</span>}
                     <span className="text-gray-800">{p.nombre}</span>
                   </div>
                   <span className="font-semibold text-amber-600">
@@ -862,8 +855,8 @@ export default function POSPage() {
                   </span>
                 </button>
               ))}
-              {combosFiltrados.slice(0, 6).map((c, idx) => {
-                const idxGlobal = productosFiltrados.slice(0, 6).length + idx;
+              {combosFiltrados.slice(0, 50).map((c, idx) => {
+                const idxGlobal = productosFiltrados.slice(0, 50).length + idx;
                 return (
                 <button
                   key={`c-${c.id}`}
@@ -873,6 +866,7 @@ export default function POSPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
+                    {c.codigo && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{c.codigo}</span>}
                     <span className="text-gray-800">{c.nombre}</span>
                   </div>
                   <span className="font-semibold text-purple-600">
@@ -943,10 +937,12 @@ export default function POSPage() {
                 ) : (
                   carrito.map((item, i) => {
                     const prod = productos.find(p => p.id === item.productoId);
+                    const cmb = item.comboId ? combos.find(c => c.id === item.comboId) : undefined;
+                    const cod = prod?.codigo || cmb?.codigo || '-';
                     return (
                       <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/40 transition-colors">
                         <td className="hidden sm:table-cell px-2.5 py-1.5 text-xs text-gray-400 font-mono w-20">
-                          {prod?.numeroInterno || '-'}
+                          {cod}
                         </td>
                         <td className="px-2.5 py-1.5">
                           <div className="font-medium text-gray-800 text-sm">{item.nombre}</div>

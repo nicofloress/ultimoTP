@@ -8,6 +8,8 @@ export interface ComboDetalleForm {
 }
 
 interface Props {
+  codigo: string;
+  setCodigo: (v: string) => void;
   nombre: string;
   setNombre: (v: string) => void;
   descripcion: string;
@@ -27,7 +29,7 @@ interface Props {
 }
 
 export default function ComboForm({
-  nombre, setNombre, descripcion, setDescripcion, precio, setPrecio,
+  codigo, setCodigo, nombre, setNombre, descripcion, setDescripcion, precio, setPrecio,
   detalles, setDetalles, esOferta, setEsOferta, productos,
   editando, esSuperAdmin, guardando, onSubmit, onCancel,
 }: Props) {
@@ -38,7 +40,11 @@ export default function ComboForm({
 
   return (
     <form onSubmit={onSubmit} className="bg-white p-4 rounded-lg shadow mb-3 space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Codigo</label>
+          <input type="text" value={codigo} onChange={e => setCodigo(e.target.value.toLowerCase())} placeholder="ej: 30x80pp+" className="border rounded px-3 py-2 w-full font-mono" maxLength={20} />
+        </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
           <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del combo" className="border rounded px-3 py-2 w-full" required />

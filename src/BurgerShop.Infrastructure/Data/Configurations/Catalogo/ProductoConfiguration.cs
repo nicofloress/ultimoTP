@@ -13,8 +13,8 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.Property(p => p.Descripcion).HasMaxLength(500);
         builder.Property(p => p.Precio).HasColumnType("decimal(18,2)");
         builder.Property(p => p.ImagenUrl).HasMaxLength(500);
-        builder.Property(p => p.NumeroInterno).HasMaxLength(50);
-        builder.HasIndex(p => p.NumeroInterno).IsUnique().HasFilter("\"NumeroInterno\" IS NOT NULL AND \"NumeroInterno\" != ''");
+        builder.Property(p => p.Codigo).HasMaxLength(50);
+        builder.HasIndex(p => p.Codigo).IsUnique().HasFilter("\"Codigo\" IS NOT NULL AND \"Codigo\" != ''");
         builder.Property(p => p.Marca).HasMaxLength(100);
         builder.Property(p => p.UnidadesPorMedia).HasDefaultValue(0);
 

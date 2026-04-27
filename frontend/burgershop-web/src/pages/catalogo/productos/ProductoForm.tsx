@@ -8,7 +8,7 @@ export interface ProductoFormData {
   precio: number;
   categoriaId: number;
   imagenUrl: string;
-  numeroInterno: string;
+  codigo: string;
   pesoGramos: number;
   unidadesPorBulto: number;
   marca: string;
@@ -91,8 +91,8 @@ export default function ProductoForm({
         </div>
       )}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Numero Interno</label>
-        <input type="text" value={form.numeroInterno} onChange={e => setForm({ ...form, numeroInterno: e.target.value })} placeholder="Numero interno (ej: HAM-001)" className="border rounded px-3 py-2 w-full" />
+        <label className="block text-xs font-medium text-gray-600 mb-1">Codigo</label>
+        <input type="text" value={form.codigo} onChange={e => setForm({ ...form, codigo: e.target.value })} placeholder="Codigo (ej: HAM-001)" className="border rounded px-3 py-2 w-full font-mono" maxLength={50} />
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">Marca {marcas.length > 0 && <span className="text-gray-400 text-[10px]">({marcas.length} cargadas)</span>}</label>

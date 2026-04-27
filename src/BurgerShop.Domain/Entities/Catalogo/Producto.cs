@@ -9,7 +9,7 @@ public class Producto
     public int CategoriaId { get; set; }
     public bool Activo { get; set; } = true;
     public string? ImagenUrl { get; set; }
-    public string? NumeroInterno { get; set; }
+    public string? Codigo { get; set; }
     public int? PesoGramos { get; set; }
     public string UnidadMedida { get; set; } = "g"; // "g" = gramos, "ml" = mililitros
     public int UnidadesPorBulto { get; set; } = 1;

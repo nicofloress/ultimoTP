@@ -19,8 +19,8 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
         {/* Header */}
         <div className="bg-slate-700 text-white px-5 py-4 rounded-t-xl">
           <h3 id="producto-detalle-title" className="font-bold text-lg">{producto.nombre}</h3>
-          {producto.numeroInterno && (
-            <span className="text-slate-300 text-xs font-mono">{producto.numeroInterno}</span>
+          {producto.codigo && (
+            <span className="text-slate-300 text-xs font-mono">{producto.codigo}</span>
           )}
         </div>
 

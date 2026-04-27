@@ -17,7 +17,7 @@ import ProductoForm from './productos/ProductoForm';
 import ComboForm from './productos/ComboForm';
 import ProductoDetalleModal from './productos/ProductoDetalleModal';
 
-const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', numeroInterno: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0, alicuotaIVA: 21, unidadMedida: 'g' };
+const emptyForm = { nombre: '', descripcion: '', precio: 0, categoriaId: 0, imagenUrl: '', codigo: '', pesoGramos: 0, unidadesPorBulto: 1, marca: '', unidadesPorMedia: 0, unidadMinima: 1, esOfertaSemanal: false, precioCosto: 0, precioVenta: 0, alicuotaIVA: 21, unidadMedida: 'g' };
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -42,6 +42,7 @@ export default function ProductosPage() {
   const [guardando, setGuardando] = useState(false);
   const [showFormCombo, setShowFormCombo] = useState(false);
   const [editandoCombo, setEditandoCombo] = useState<Combo | null>(null);
+  const [comboCodigo, setComboCodigo] = useState('');
   const [comboNombre, setComboNombre] = useState('');
   const [comboDescripcion, setComboDescripcion] = useState('');
   const [comboPrecio, setComboPrecio] = useState(0);
@@ -107,7 +108,7 @@ export default function ProductosPage() {
     } else {
       setUnidadPeso(peso >= 1000 ? 'kg' : 'g');
     }
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', numeroInterno: p.numeroInterno || '', pesoGramos: peso, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0, alicuotaIVA: p.alicuotaIVA ?? 21, unidadMedida: um });
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoriaId: p.categoriaId, imagenUrl: p.imagenUrl || '', codigo: p.codigo || '', pesoGramos: peso, unidadesPorBulto: p.unidadesPorBulto ?? 1, marca: p.marca || '', unidadesPorMedia: p.unidadesPorMedia ?? 0, unidadMinima: p.unidadMinima ?? 1, esOfertaSemanal: p.esOfertaSemanal ?? false, precioCosto: p.precioCosto ?? 0, precioVenta: p.precioVenta ?? 0, alicuotaIVA: p.alicuotaIVA ?? 21, unidadMedida: um });
     setShowForm(true);
   };
 
@@ -133,13 +134,13 @@ export default function ProductosPage() {
   const abrirFormCombo = () => {
     setShowForm(false); setEditando(null);
     setShowFormCombo(true); setEditandoCombo(null);
-    setComboNombre(''); setComboDescripcion(''); setComboPrecio(0); setComboDetalles([]); setComboEsOferta(false);
+    setComboCodigo(''); setComboNombre(''); setComboDescripcion(''); setComboPrecio(0); setComboDetalles([]); setComboEsOferta(false);
   };
 
   const handleEditarCombo = (c: Combo) => {
     setShowForm(false); setEditando(null);
     setEditandoCombo(c);
-    setComboNombre(c.nombre); setComboDescripcion(c.descripcion || ''); setComboPrecio(c.precio);
+    setComboCodigo(c.codigo || ''); setComboNombre(c.nombre); setComboDescripcion(c.descripcion || ''); setComboPrecio(c.precio);
     setComboDetalles(c.detalles.map(d => ({ productoId: d.productoId, cantidad: d.cantidad })));
     setComboEsOferta(c.esOfertaSemanal ?? false);
     setShowFormCombo(true);
@@ -148,6 +149,7 @@ export default function ProductosPage() {
   const handleDuplicarCombo = (c: Combo) => {
     setShowForm(false); setEditando(null);
     setEditandoCombo(null); // null = crear nuevo
+    setComboCodigo('');
     setComboNombre(c.nombre + ' (copia)');
     setComboDescripcion(c.descripcion || '');
     setComboPrecio(c.precio);
@@ -183,11 +185,12 @@ export default function ProductosPage() {
 
     setGuardando(true);
     try {
+      const codigoSan = comboCodigo.trim() || undefined;
       if (editandoCombo) {
-        await updateCombo(editandoCombo.id, { nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, activo: true, esOfertaSemanal: comboEsOferta, detalles: comboDetalles });
+        await updateCombo(editandoCombo.id, { codigo: codigoSan, nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, activo: true, esOfertaSemanal: comboEsOferta, detalles: comboDetalles });
         showToast('Combo actualizado correctamente', 'success');
       } else {
-        await createCombo({ nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, esOfertaSemanal: comboEsOferta, detalles: comboDetalles });
+        await createCombo({ codigo: codigoSan, nombre: comboNombre, descripcion: comboDescripcion, precio: comboPrecio, esOfertaSemanal: comboEsOferta, detalles: comboDetalles });
         showToast('Combo creado correctamente', 'success');
       }
       setShowFormCombo(false); setEditandoCombo(null);
@@ -314,7 +317,7 @@ export default function ProductosPage() {
     if (busqueda.trim()) {
       const term = busqueda.toLowerCase();
       lista = lista.filter(p =>
-        (p.numeroInterno?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term) || (p.descripcion?.toLowerCase().includes(term))
+        (p.codigo?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term) || (p.descripcion?.toLowerCase().includes(term))
       );
     }
     if (megaFiltro === 'promo') {
@@ -419,6 +422,8 @@ export default function ProductosPage() {
       {/* Form combo */}
       {showFormCombo && esSuperAdmin && (
         <ComboForm
+          codigo={comboCodigo}
+          setCodigo={setComboCodigo}
           nombre={comboNombre}
           setNombre={setComboNombre}
           descripcion={comboDescripcion}
@@ -513,7 +518,7 @@ export default function ProductosPage() {
                 onClick={() => setProductoDetalle(p)}
               >
                 <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
-                {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
+                {p.codigo && <div className="text-[10px] text-gray-400 font-mono">{p.codigo}</div>}
                 <div className="font-medium text-sm text-gray-800">{p.nombre}</div>
                 <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
                 <div className="font-bold mt-1">
@@ -570,8 +575,8 @@ export default function ProductosPage() {
                 {preciosPromoProductos.has(p.id) && (
                   <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
                 )}
-                {p.numeroInterno && (
-                  <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>
+                {p.codigo && (
+                  <div className="text-[10px] text-gray-400 font-mono">{p.codigo}</div>
                 )}
                 <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700">{p.nombre}</div>
                 <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>

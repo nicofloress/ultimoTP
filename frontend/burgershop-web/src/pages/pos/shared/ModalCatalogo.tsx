@@ -280,7 +280,7 @@ export default function ModalCatalogo({
               {preciosPromoProductos.has(p.id) && (
                 <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PROMO</span>
               )}
-              {p.numeroInterno && <div className="text-[10px] text-gray-400 font-mono">{p.numeroInterno}</div>}
+              {p.codigo && <div className="text-[10px] text-gray-400 font-mono">{p.codigo}</div>}
               <div className="font-medium text-sm text-gray-800 group-hover:text-amber-700 leading-tight">{p.nombre}</div>
               <div className="text-[11px] text-gray-400 mt-0.5">{p.categoriaNombre}</div>
               {preciosPromoProductos.has(p.id) ? (

@@ -56,7 +56,7 @@ public class ProductoServiceTests
             CategoriaId      = categoriaId,
             Activo           = activo,
             ImagenUrl        = null,
-            NumeroInterno    = "P001",
+            Codigo    = "P001",
             PesoGramos       = 200,
             UnidadesPorBulto = unidadesPorBulto,
             Marca            = marca,
@@ -77,7 +77,7 @@ public class ProductoServiceTests
             Precio:           800m,
             CategoriaId:      2,
             ImagenUrl:        null,
-            NumeroInterno:    "PAN-001",
+            Codigo:    "PAN-001",
             PesoGramos:       150,
             UnidadesPorBulto: 10,
             Marca:            "La Especial",
@@ -111,7 +111,7 @@ public class ProductoServiceTests
             Precio:           2200m,
             CategoriaId:      3,
             ImagenUrl:        null,
-            NumeroInterno:    "QUE-001",
+            Codigo:    "QUE-001",
             PesoGramos:       500,
             UnidadesPorBulto: 24,
             Marca:            "Cremona",
@@ -141,7 +141,7 @@ public class ProductoServiceTests
             Precio:           600m,
             CategoriaId:      4,
             ImagenUrl:        null,
-            NumeroInterno:    "BEB-001",
+            Codigo:    "BEB-001",
             PesoGramos:       null,
             UnidadesPorBulto: 24,
             Marca:            null,       // explícitamente null
@@ -174,7 +174,7 @@ public class ProductoServiceTests
             Precio:           300m,
             CategoriaId:      4,
             ImagenUrl:        null,
-            NumeroInterno:    "BEB-002",
+            Codigo:    "BEB-002",
             PesoGramos:       null,
             UnidadesPorBulto: 1,
             Marca:            null,
@@ -204,7 +204,7 @@ public class ProductoServiceTests
             Precio:           400m,
             CategoriaId:      3,
             ImagenUrl:        null,
-            NumeroInterno:    "ACA-001",
+            Codigo:    "ACA-001",
             PesoGramos:       150,
             UnidadesPorBulto: 1,
             Marca:            "McCain",
@@ -238,7 +238,7 @@ public class ProductoServiceTests
             Precio:           100m,
             CategoriaId:      1,
             ImagenUrl:        null,
-            NumeroInterno:    null);
+            Codigo:    null);
 
         _repoMock
             .Setup(r => r.AddAsync(It.IsAny<Producto>()))
@@ -277,7 +277,7 @@ public class ProductoServiceTests
             CategoriaId:      productoExistente.CategoriaId,
             Activo:           true,
             ImagenUrl:        null,
-            NumeroInterno:    "P001",
+            Codigo:    "P001",
             PesoGramos:       200,
             UnidadesPorBulto: 1,
             Marca:            "Fargo",
@@ -311,7 +311,7 @@ public class ProductoServiceTests
             CategoriaId:      1,
             Activo:           true,
             ImagenUrl:        null,
-            NumeroInterno:    "P001",
+            Codigo:    "P001",
             PesoGramos:       300,
             UnidadesPorBulto: 1,
             Marca:            "MarcaNueva",
@@ -345,7 +345,7 @@ public class ProductoServiceTests
             CategoriaId:      productoExistente.CategoriaId,
             Activo:           true,
             ImagenUrl:        null,
-            NumeroInterno:    "P001",
+            Codigo:    "P001",
             PesoGramos:       200,
             UnidadesPorBulto: 1,
             Marca:            null,    // se quita la marca
@@ -375,7 +375,7 @@ public class ProductoServiceTests
             CategoriaId: 1,
             Activo:      true,
             ImagenUrl:   null,
-            NumeroInterno: null);
+            Codigo: null);
 
         // Act
         var resultado = await _service.UpdateAsync(404, dto);
@@ -405,7 +405,7 @@ public class ProductoServiceTests
             CategoriaId:      1,
             Activo:           true,
             ImagenUrl:        null,
-            NumeroInterno:    null,
+            Codigo:    null,
             Marca:            "TestMarca",
             UnidadesPorMedia: 3);
 
@@ -526,7 +526,7 @@ public class ProductoServiceTests
         var dto = new ProductoDto(
             Id: 1, Nombre: "Test", Descripcion: null, Precio: 100m,
             CategoriaId: 1, CategoriaNombre: "Cat", Activo: true,
-            ImagenUrl: null, NumeroInterno: null,
+            ImagenUrl: null, Codigo: null,
             PesoGramos: null, UnidadesPorBulto: 1, PrecioLista: null,
             Marca: "Arcor", UnidadesPorMedia: 7);
 
@@ -542,7 +542,7 @@ public class ProductoServiceTests
         var dto = new ProductoDto(
             Id: 2, Nombre: "Sin Marca", Descripcion: null, Precio: 200m,
             CategoriaId: 1, CategoriaNombre: "Cat", Activo: true,
-            ImagenUrl: null, NumeroInterno: null,
+            ImagenUrl: null, Codigo: null,
             PesoGramos: null, UnidadesPorBulto: 1, PrecioLista: null,
             Marca: null, UnidadesPorMedia: 0);
 
@@ -561,7 +561,7 @@ public class ProductoServiceTests
             Precio:           500m,
             CategoriaId:      1,
             ImagenUrl:        null,
-            NumeroInterno:    null,
+            Codigo:    null,
             PesoGramos:       null,
             UnidadesPorBulto: 6,
             Marca:            "Bagley",
@@ -583,7 +583,7 @@ public class ProductoServiceTests
             Precio:        100m,
             CategoriaId:   1,
             ImagenUrl:     null,
-            NumeroInterno: null);
+            Codigo: null);
 
         // Assert
         Assert.Null(dto.Marca);
@@ -601,7 +601,7 @@ public class ProductoServiceTests
             CategoriaId:      2,
             Activo:           true,
             ImagenUrl:        null,
-            NumeroInterno:    "P-99",
+            Codigo:    "P-99",
             PesoGramos:       250,
             UnidadesPorBulto: 12,
             Marca:            "Kraft",
@@ -623,7 +623,7 @@ public class ProductoServiceTests
             CategoriaId:   1,
             Activo:        true,
             ImagenUrl:     null,
-            NumeroInterno: null,
+            Codigo: null,
             Marca:         null,
             UnidadesPorMedia: 0);
 

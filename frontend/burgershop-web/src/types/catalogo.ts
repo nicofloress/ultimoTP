@@ -25,7 +25,7 @@ export interface Producto {
   categoriaNombre: string;
   activo: boolean;
   imagenUrl?: string;
-  numeroInterno?: string;
+  codigo?: string;
   pesoGramos?: number;
   unidadMedida?: string; // "g" | "ml"
   unidadesPorBulto: number;
@@ -50,6 +50,7 @@ export interface ComboDetalle {
 
 export interface Combo {
   id: number;
+  codigo?: string;
   nombre: string;
   descripcion?: string;
   precio: number;

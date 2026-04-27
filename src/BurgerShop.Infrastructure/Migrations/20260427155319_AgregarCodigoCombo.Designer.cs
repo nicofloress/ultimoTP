@@ -3,6 +3,7 @@ using System;
 using BurgerShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BurgerShop.Infrastructure.Migrations
 {
     [DbContext(typeof(BurgerShopDbContext))]
-    partial class BurgerShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427155319_AgregarCodigoCombo")]
+    partial class AgregarCodigoCombo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1039,10 +1042,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Property<int>("CategoriaId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Codigo")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Descripcion")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1068,6 +1067,10 @@ namespace BurgerShop.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<string>("NumeroInterno")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("PesoGramos")
                         .HasColumnType("integer");
@@ -1100,9 +1103,9 @@ namespace BurgerShop.Infrastructure.Migrations
 
                     b.HasIndex("CategoriaId");
 
-                    b.HasIndex("Codigo")
+                    b.HasIndex("NumeroInterno")
                         .IsUnique()
-                        .HasFilter("\"Codigo\" IS NOT NULL AND \"Codigo\" != ''");
+                        .HasFilter("\"NumeroInterno\" IS NOT NULL AND \"NumeroInterno\" != ''");
 
                     b.ToTable("Productos");
 

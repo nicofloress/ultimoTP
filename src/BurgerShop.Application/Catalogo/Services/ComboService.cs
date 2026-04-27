@@ -68,6 +68,7 @@ public class ComboService : IComboService
 
             var combo = new Combo
             {
+                Codigo = NormalizarCodigo(dto.Codigo),
                 Nombre = dto.Nombre,
                 Descripcion = dto.Descripcion,
                 Precio = dto.Precio,
@@ -101,6 +102,7 @@ public class ComboService : IComboService
             var combo = await _repo.GetByIdWithDetallesAsync(id);
             if (combo is null) return null;
 
+            combo.Codigo = NormalizarCodigo(dto.Codigo);
             combo.Nombre = dto.Nombre;
             combo.Descripcion = dto.Descripcion;
             combo.Precio = dto.Precio;
@@ -150,5 +152,12 @@ public class ComboService : IComboService
         c.Detalles.Select(d => new ComboDetalleDto(
             d.ProductoId, d.Producto?.Nombre ?? "", d.Cantidad, d.Producto?.Precio ?? 0
         )).ToList(),
-        c.EsOfertaSemanal);
+        c.EsOfertaSemanal,
+        c.Codigo);
+
+    private static string? NormalizarCodigo(string? codigo)
+    {
+        if (string.IsNullOrWhiteSpace(codigo)) return null;
+        return codigo.Trim().ToLowerInvariant();
+    }
 }
