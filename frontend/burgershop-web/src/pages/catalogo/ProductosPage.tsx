@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
-import { getPromociones, PromocionDto } from '../../api/promociones';
+import { getPromociones, PromocionDto, TipoBeneficio } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { getMarcasActivas, MarcaDto } from '../../api/marcas';
 import { formatGramaje } from '../../utils/formatGramaje';
@@ -267,21 +267,35 @@ export default function ProductosPage() {
     });
   }, [promociones, localActivo]);
 
+  // Aplica un beneficio sobre un precio base. Devuelve null si la promo no
+  // afecta el precio mostrado del item (ej: reintegro, envio gratis).
+  const aplicarBeneficio = (precioBase: number, promo: PromocionDto): number | null => {
+    switch (promo.tipoBeneficio) {
+      case TipoBeneficio.PorcentajeDescuento:
+        return precioBase * (1 - promo.valorBeneficio / 100);
+      case TipoBeneficio.MontoFijoDescuento:
+        return Math.max(0, precioBase - promo.valorBeneficio);
+      default:
+        // PrecioFijoItems se maneja arriba via item.precioPromo.
+        // Reintegros, EnvioGratis y ProductoGratis no modifican el precio mostrado.
+        return null;
+    }
+  };
+
   const preciosPromoProductos = useMemo(() => {
     const map = new Map<number, { precioPromo: number; nombrePromo: string }>();
     for (const promo of promosVigentes) {
       for (const item of promo.items) {
         if (item.productoId) {
-          let precio: number;
+          let precio: number | null;
           if (item.precioPromo != null) {
             precio = item.precioPromo;
           } else {
             const prod = productos.find(p => p.id === item.productoId);
             if (!prod) continue;
-            precio = promo.tipoDescuento === 1
-              ? prod.precio * (1 - promo.valorDescuento / 100)
-              : Math.max(0, prod.precio - promo.valorDescuento);
+            precio = aplicarBeneficio(prod.precio, promo);
           }
+          if (precio == null) continue;
           map.set(item.productoId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
         }
       }
@@ -294,16 +308,15 @@ export default function ProductosPage() {
     for (const promo of promosVigentes) {
       for (const item of promo.items) {
         if (item.comboId) {
-          let precio: number;
+          let precio: number | null;
           if (item.precioPromo != null) {
             precio = item.precioPromo;
           } else {
             const combo = combos.find(c => c.id === item.comboId);
             if (!combo) continue;
-            precio = promo.tipoDescuento === 1
-              ? combo.precio * (1 - promo.valorDescuento / 100)
-              : Math.max(0, combo.precio - promo.valorDescuento);
+            precio = aplicarBeneficio(combo.precio, promo);
           }
+          if (precio == null) continue;
           map.set(item.comboId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
         }
       }
