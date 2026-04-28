@@ -26,8 +26,7 @@ function getHoy(): string {
 }
 
 function formatFecha(fecha: string) {
-  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
-  return new Date(f).toLocaleString('es-AR', {
+  return new Date(fecha).toLocaleString('es-AR', {
     day: '2-digit',
     month: '2-digit',
     year: '2-digit',
@@ -79,6 +78,19 @@ export default function MovimientosPage() {
   const [formPrecioUnitario, setFormPrecioUnitario] = useState<number>(0);
   const [formFecha, setFormFecha] = useState(getHoy());
   const [formObservaciones, setFormObservaciones] = useState('');
+  const [formModo, setFormModo] = useState<'bultos' | 'paquetes'>('paquetes');
+
+  // Producto seleccionado en el modal y conversiones bultos<->paquetes
+  const productoSeleccionadoModal = useMemo(() => {
+    if (formProductoId === '') return null;
+    return productos.find(p => p.id === formProductoId) || null;
+  }, [formProductoId, productos]);
+
+  const upbModal = productoSeleccionadoModal?.unidadesPorBulto || 1;
+  const puedeUsarBultos = upbModal > 1;
+  const cantidadPaquetes = formModo === 'bultos' ? formCantidad * upbModal : formCantidad;
+  const precioUnitarioPaquete = formModo === 'bultos' && upbModal > 0 ? formPrecioUnitario / upbModal : formPrecioUnitario;
+  const montoTotalForm = formModo === 'bultos' ? formCantidad * formPrecioUnitario : cantidadPaquetes * formPrecioUnitario;
 
   // --- Load catálogos ---
   useEffect(() => {
@@ -164,8 +176,14 @@ export default function MovimientosPage() {
     setFormPrecioUnitario(0);
     setFormFecha(getHoy());
     setFormObservaciones('');
+    setFormModo('paquetes');
     setModalOpen(true);
   };
+
+  // Si se cambia a un producto sin bultos, forzar modo paquetes
+  useEffect(() => {
+    if (!puedeUsarBultos && formModo === 'bultos') setFormModo('paquetes');
+  }, [puedeUsarBultos, formModo]);
 
   const guardarMovimiento = async () => {
     if (formCodigoAccionId === '' || !formCantidad || !formPrecioUnitario) {
@@ -178,14 +196,21 @@ export default function MovimientosPage() {
     }
     setGuardando(true);
     try {
+      const obsBultos = formModo === 'bultos' && upbModal > 1
+        ? `${formCantidad} bulto${formCantidad !== 1 ? 's' : ''} x ${upbModal} paq/bulto = ${cantidadPaquetes} paq.`
+        : '';
+      const observacionesFinal = obsBultos
+        ? (formObservaciones ? `${obsBultos} ${formObservaciones}` : obsBultos)
+        : (formObservaciones || undefined);
+
       await crearMovimiento({
         codigoAccionId: formCodigoAccionId as number,
         productoId: formProductoId !== '' ? (formProductoId as number) : undefined,
         localId: localSeleccionado,
-        cantidad: formCantidad,
-        precioUnitario: formPrecioUnitario,
+        cantidad: cantidadPaquetes,
+        precioUnitario: precioUnitarioPaquete,
         fechaMovimiento: formFecha,
-        observaciones: formObservaciones || undefined,
+        observaciones: observacionesFinal,
       });
       showToast('Movimiento creado correctamente', 'success');
       setModalOpen(false);
@@ -548,14 +573,41 @@ export default function MovimientosPage() {
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nombre}
+                      {p.unidadesPorBulto > 1 ? ` (${p.unidadesPorBulto} paq/bulto)` : ''}
                     </option>
                   ))}
                 </select>
               </div>
+
+              {/* Info bulto + toggle Bultos/Paquetes */}
+              {puedeUsarBultos && (
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-xs text-blue-700">
+                    1 bulto = <strong>{upbModal} paquetes</strong>
+                  </div>
+                  <div className="flex gap-1 bg-gray-100 rounded-md p-0.5 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => { setFormModo('bultos'); setFormCantidad(0); setFormPrecioUnitario(0); }}
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-all ${formModo === 'bultos' ? 'bg-white shadow text-amber-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Bultos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setFormModo('paquetes'); setFormCantidad(0); setFormPrecioUnitario(0); }}
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-all ${formModo === 'paquetes' ? 'bg-white shadow text-amber-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Paquetes
+                    </button>
+                  </div>
+                </>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Cantidad <span className="text-red-500">*</span>
+                    {formModo === 'bultos' ? 'Cantidad de Bultos' : 'Cantidad (paquetes)'} <span className="text-red-500">*</span>
                   </label>
                   <NumericInput
                     className={`${inputClass} w-full`}
@@ -563,10 +615,15 @@ export default function MovimientosPage() {
                     onChange={(v) => setFormCantidad(v)}
                     min={0}
                   />
+                  {formModo === 'bultos' && formCantidad > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      = <strong className="text-blue-600">{cantidadPaquetes} paquetes</strong>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Precio Unitario <span className="text-red-500">*</span>
+                    {formModo === 'bultos' ? 'Precio por Bulto' : 'Precio por Paquete'} <span className="text-red-500">*</span>
                   </label>
                   <NumericInput
                     className={`${inputClass} w-full`}
@@ -575,8 +632,21 @@ export default function MovimientosPage() {
                     min={0}
                     decimales
                   />
+                  {formModo === 'bultos' && formPrecioUnitario > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      = <strong className="text-blue-600">{precioUnitarioPaquete.toFixed(2)} / paq.</strong>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Resumen total cuando es bultos */}
+              {formModo === 'bultos' && formCantidad > 0 && formPrecioUnitario > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm flex justify-between">
+                  <span className="text-gray-700 font-semibold">Total:</span>
+                  <span className="font-bold text-amber-700">{formatMonto(montoTotalForm)}</span>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
                   Fecha Movimiento

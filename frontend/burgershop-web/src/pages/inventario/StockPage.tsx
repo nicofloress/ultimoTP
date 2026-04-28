@@ -16,8 +16,9 @@ const selectClass =
   'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 function formatFecha(fecha: string) {
-  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
-  return new Date(f).toLocaleString('es-AR', {
+  // El backend devuelve DateTime sin timezone (hora local del servidor).
+  // No agregamos Z para que JS no lo interprete como UTC.
+  return new Date(fecha).toLocaleString('es-AR', {
     day: '2-digit',
     month: '2-digit',
     year: '2-digit',
@@ -25,6 +26,31 @@ function formatFecha(fecha: string) {
     minute: '2-digit',
     hour12: false,
   });
+}
+
+// Desglosa stock en cajas (bultos) enteras + unidades minimas sueltas.
+// 1 caja = unidadesPorBulto x unidadMinima unidades.
+// Ej: 30 paq. con upb=12, um=1 → "2 cajas + 6 un."
+// Ej: 647 paq. con upb=20, um=2 → "32 cajas + 14 un." (1294 un. totales / 40 un/caja)
+// Para stocks negativos ambos terminos son negativos: "-32 cajas -14 un."
+function formatStockCajas(stockFinal: number, upb: number, unidadMinima: number): string {
+  if (!upb || upb <= 1) return '-';
+  if (stockFinal === 0) return '0 cajas';
+  const um = unidadMinima > 0 ? unidadMinima : 1;
+  const totalUnidades = stockFinal * um;
+  const unidadesPorCaja = upb * um;
+  const negativo = totalUnidades < 0;
+  const absUn = Math.abs(totalUnidades);
+  const cajas = Math.floor(absUn / unidadesPorCaja);
+  const sueltos = Math.round((absUn - cajas * unidadesPorCaja) * 100) / 100;
+  if (negativo) {
+    if (cajas === 0) return `-${sueltos} un.`;
+    if (sueltos === 0) return `-${cajas} caja${cajas !== 1 ? 's' : ''}`;
+    return `-${cajas} caja${cajas !== 1 ? 's' : ''} -${sueltos} un.`;
+  }
+  if (cajas === 0) return `${sueltos} un.`;
+  if (sueltos === 0) return `${cajas} caja${cajas !== 1 ? 's' : ''}`;
+  return `${cajas} caja${cajas !== 1 ? 's' : ''} + ${sueltos} un.`;
 }
 
 type SortDir = 'asc' | 'desc';
@@ -91,6 +117,13 @@ export default function StockPage() {
     const interval = setInterval(cargarStock, 300000);
     return () => clearInterval(interval);
   }, [cargarStock]);
+
+  // --- Lookup de producto por id para acceder a unidadMinima en el render ---
+  const productosPorId = useMemo(() => {
+    const map = new Map<number, Producto>();
+    productos.forEach(p => map.set(p.id, p));
+    return map;
+  }, [productos]);
 
   // --- Mega-categorias: cada categoría raíz es un botón de filtro ---
   const megaCategorias = useMemo(() => {
@@ -177,7 +210,7 @@ export default function StockPage() {
     { key: 'egresoLocal', label: 'Egresos', align: 'text-right', hide: 'hidden sm:table-cell' },
     { key: 'ventaLocal', label: 'Ventas', align: 'text-right', hide: 'hidden sm:table-cell' },
     { key: 'stockFinal', label: 'Stock (Paq.)', align: 'text-right' },
-    { key: 'bultos', label: 'Bultos', align: 'text-right', hide: 'hidden md:table-cell' },
+    { key: 'bultos', label: 'Stock (Cajas + un.)', align: 'text-right' },
     { key: 'stockMinimo', label: 'Stock Min.', align: 'text-right', hide: 'hidden md:table-cell' },
     { key: 'ultimaModificacion', label: 'Ultima Mod.', hide: 'hidden md:table-cell' },
   ];
@@ -354,8 +387,14 @@ export default function StockPage() {
                     }`}>
                       {s.stockFinal}
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-500 font-mono hidden md:table-cell">
-                      {s.bultos > 0 ? s.bultos : '-'}
+                    <td className={`px-3 py-2 text-right font-mono text-xs sm:text-sm ${
+                      esNegativo ? 'text-red-600 font-bold' : esBajo ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {formatStockCajas(
+                        s.stockFinal,
+                        s.unidadesPorBulto,
+                        productosPorId.get(s.productoId)?.unidadMinima ?? 1
+                      )}
                     </td>
                     <td className="px-3 py-2 text-right text-gray-500 hidden md:table-cell">
                       {s.stockMinimo != null ? s.stockMinimo : '-'}
