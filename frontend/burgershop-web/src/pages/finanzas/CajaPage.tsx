@@ -29,6 +29,7 @@ export default function CajaPage() {
   const [montoEfectivoReal, setMontoEfectivoReal] = useState(0);
   const [detalleExpandido, setDetalleExpandido] = useState<number | null>(null);
   const [mostrarConfirmCierre, setMostrarConfirmCierre] = useState(false);
+  const [cerrandoCaja, setCerrandoCaja] = useState(false);
   const [cajaDetalle, setCajaDetalle] = useState<CierreCaja | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const { showToast } = useGlobalToast();
@@ -132,16 +133,19 @@ export default function CajaPage() {
   };
 
   const confirmarCierreCaja = async () => {
-    if (!cajaAbierta) return;
-    setMostrarConfirmCierre(false);
+    if (!cajaAbierta || cerrandoCaja) return;
+    setCerrandoCaja(true);
     try {
       await cerrarCaja(cajaAbierta.id, { montoEfectivoReal, observaciones: observacionesCierre || undefined });
       setObservacionesCierre('');
       setMontoEfectivoReal(0);
       await cargarDatos();
       showToast('Caja enviada a revision', 'success');
+      setMostrarConfirmCierre(false);
     } catch {
       showToast('Error al cerrar la caja', 'error');
+    } finally {
+      setCerrandoCaja(false);
     }
   };
 
@@ -601,8 +605,9 @@ export default function CajaPage() {
         mensaje="Esta accion no se puede deshacer"
         tipo="warning"
         textoConfirmar="Cerrar Caja"
+        cargando={cerrandoCaja}
         onConfirmar={confirmarCierreCaja}
-        onCancelar={() => setMostrarConfirmCierre(false)}
+        onCancelar={() => !cerrandoCaja && setMostrarConfirmCierre(false)}
       />
 
       {/* Modal Detalle de Caja */}
