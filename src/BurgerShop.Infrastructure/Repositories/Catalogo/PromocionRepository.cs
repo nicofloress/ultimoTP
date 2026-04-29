@@ -19,6 +19,7 @@ public class PromocionRepository : Repository<Promocion>, IPromocionRepository
             .Include(p => p.Locales)
                 .ThenInclude(l => l.Local)
             .Include(p => p.TiposVenta)
+            .Include(p => p.Condiciones)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -32,6 +33,7 @@ public class PromocionRepository : Repository<Promocion>, IPromocionRepository
             .Include(p => p.Locales)
                 .ThenInclude(l => l.Local)
             .Include(p => p.TiposVenta)
+            .Include(p => p.Condiciones)
             .OrderByDescending(p => p.FechaCreacion)
             .ToListAsync();
     }
@@ -47,12 +49,14 @@ public class PromocionRepository : Repository<Promocion>, IPromocionRepository
             .Include(p => p.Locales)
                 .ThenInclude(l => l.Local)
             .Include(p => p.TiposVenta)
+            .Include(p => p.Condiciones)
             .Where(p =>
                 p.Activa &&
                 p.FechaDesde <= hoy &&
                 p.FechaHasta >= hoy &&
                 p.Locales.Any(l => l.LocalId == localId))
-            .OrderBy(p => p.Nombre)
+            .OrderByDescending(p => p.Prioridad)
+            .ThenBy(p => p.Nombre)
             .ToListAsync();
     }
 }

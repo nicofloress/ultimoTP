@@ -52,6 +52,19 @@ export interface Venta {
   fechaEnvioDeposito?: string;
   vencidoDeposito?: boolean;
   cierreCajaId?: number;
+  descuentoPromociones?: number;
+  reintegroPromociones?: number;
+  promociones?: VentaPromocionAplicada[];
+}
+
+export interface VentaPromocionAplicada {
+  id: number;
+  promocionId: number;
+  nombrePromocion: string;
+  tipoBeneficio: number;
+  montoDescuento: number;
+  montoReintegro: number;
+  esReintegro: boolean;
 }
 
 export enum TipoVenta {

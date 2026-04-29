@@ -11,12 +11,25 @@ namespace BurgerShop.API.Controllers.Catalogo;
 public class PromocionesController : ControllerBase
 {
     private readonly IPromocionService _service;
+    private readonly IPromocionEvaluatorService _evaluator;
 
-    public PromocionesController(IPromocionService service) => _service = service;
+    public PromocionesController(IPromocionService service, IPromocionEvaluatorService evaluator)
+    {
+        _service = service;
+        _evaluator = evaluator;
+    }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PromocionDto>>> GetAll()
         => Ok(await _service.GetAllAsync());
+
+    [HttpPost("evaluar")]
+    public async Task<ActionResult<EvaluarPromocionesResultDto>> Evaluar(EvaluarPromocionesContextDto ctx)
+    {
+        if (ctx.LocalId <= 0) return BadRequest("localId es requerido.");
+        var resultado = await _evaluator.EvaluarAsync(ctx);
+        return Ok(resultado);
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<PromocionDto>> GetById(int id)

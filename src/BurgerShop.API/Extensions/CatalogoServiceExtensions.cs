@@ -1,4 +1,6 @@
 using BurgerShop.Application.Catalogo.Interfaces;
+using BurgerShop.Application.Catalogo.Promociones;
+using BurgerShop.Application.Catalogo.Promociones.Evaluators;
 using BurgerShop.Application.Catalogo.Services;
 using BurgerShop.Domain.Interfaces.Catalogo;
 using BurgerShop.Infrastructure.Repositories.Catalogo;
@@ -24,6 +26,14 @@ public static class CatalogoServiceExtensions
         services.AddScoped<IMarcaService, MarcaService>();
         services.AddScoped<IListaPrecioService, ListaPrecioService>();
         services.AddScoped<IPromocionService, PromocionService>();
+
+        // Promociones - evaluators de condiciones (strategy pattern)
+        services.AddScoped<IPromocionConditionEvaluator, DiaSemanaEvaluator>();
+        services.AddScoped<IPromocionConditionEvaluator, FormaPagoEvaluator>();
+        services.AddScoped<IPromocionConditionEvaluator, MontoMinimoEvaluator>();
+        services.AddScoped<IPromocionConditionEvaluator, HorarioEvaluator>();
+        services.AddScoped<IPromocionConditionEvaluator, CantidadMinimaEvaluator>();
+        services.AddScoped<IPromocionEvaluatorService, PromocionEvaluatorService>();
 
         return services;
     }

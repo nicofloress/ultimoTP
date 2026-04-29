@@ -15,6 +15,9 @@ export interface TicketPrintProps {
     notaInterna?: string;
     tipoFactura: number;
     pagos?: { formaPagoNombre: string; monto: number; recargo: number; totalACobrar: number }[];
+    descuentoPromociones?: number;
+    reintegroPromociones?: number;
+    promociones?: { nombrePromocion: string; montoDescuento: number; montoReintegro: number; esReintegro: boolean }[];
   };
   onClose: () => void;
 }
@@ -46,6 +49,26 @@ function generarHTML(ticket: TicketPrintProps['ticket']) {
   const descuentoHTML = ticket.descuento > 0 ? `
     <div style="display:flex;justify-content:space-between;margin:2px 0">
       <span>Descuento:</span><span>-$${formatMoney(ticket.descuento)}</span>
+    </div>` : '';
+
+  const promosNoReintegro = (ticket.promociones || []).filter(p => !p.esReintegro);
+  const promosReintegro = (ticket.promociones || []).filter(p => p.esReintegro);
+  const promosHTML = promosNoReintegro.length > 0 ? `
+    <div style="margin:2px 0">
+      ${promosNoReintegro.map(p => `
+        <div style="display:flex;justify-content:space-between">
+          <span>${p.nombrePromocion}:</span><span>-$${formatMoney(p.montoDescuento)}</span>
+        </div>
+      `).join('')}
+    </div>` : '';
+  const reintegrosHTML = promosReintegro.length > 0 ? `
+    <div style="margin:4px 0;border-top:1px dashed #000;padding-top:4px;font-size:10px">
+      <div style="font-weight:bold;margin-bottom:2px">Reintegros:</div>
+      ${promosReintegro.map(p => `
+        <div style="display:flex;justify-content:space-between">
+          <span>${p.nombrePromocion}</span><span>+$${formatMoney(p.montoReintegro)}</span>
+        </div>
+      `).join('')}
     </div>` : '';
 
   const recargoHTML = ticket.recargo > 0 ? `
@@ -111,6 +134,7 @@ function generarHTML(ticket: TicketPrintProps['ticket']) {
     <span>Subtotal:</span><span>$${formatMoney(ticket.subtotal)}</span>
   </div>
   ${descuentoHTML}
+  ${promosHTML}
   ${recargoHTML}
 
   <div class="sep"></div>
@@ -120,6 +144,7 @@ function generarHTML(ticket: TicketPrintProps['ticket']) {
   <div class="sep"></div>
 
   ${pagosHTML}
+  ${reintegrosHTML}
   ${notaHTML}
 
   <div style="text-align:center;margin-top:8px;border-top:1px dashed #000;padding-top:6px">
@@ -207,6 +232,11 @@ export default function TicketPrint({ ticket, onClose }: TicketPrintProps) {
               <span>Descuento:</span><span>-${formatMoney(ticket.descuento)}</span>
             </div>
           )}
+          {(ticket.promociones || []).filter(p => !p.esReintegro).map((p, i) => (
+            <div key={`promo-${i}`} style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: '10px' }}>
+              <span>{p.nombrePromocion}:</span><span>-${formatMoney(p.montoDescuento)}</span>
+            </div>
+          ))}
           {ticket.recargo > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: '10px' }}>
               <span>Recargo:</span><span>+${formatMoney(ticket.recargo)}</span>
@@ -231,6 +261,17 @@ export default function TicketPrint({ ticket, onClose }: TicketPrintProps) {
           ) : ticket.formaPagoNombre ? (
             <div style={{ margin: '4px 0', fontSize: '10px' }}>Forma de Pago: {formaPago}</div>
           ) : null}
+
+          {(ticket.promociones || []).filter(p => p.esReintegro).length > 0 && (
+            <div style={{ margin: '4px 0', fontSize: '10px', borderTop: '1px dashed #000', paddingTop: '4px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>Reintegros:</div>
+              {(ticket.promociones || []).filter(p => p.esReintegro).map((p, i) => (
+                <div key={`reint-${i}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{p.nombrePromocion}</span><span>+${formatMoney(p.montoReintegro)}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {ticket.notaInterna && (
             <div style={{ fontSize: '10px', fontStyle: 'italic', margin: '4px 0', borderTop: '1px dashed #000', paddingTop: '4px' }}>

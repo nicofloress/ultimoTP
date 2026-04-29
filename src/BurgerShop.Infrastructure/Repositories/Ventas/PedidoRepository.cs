@@ -22,6 +22,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Repartidor)
             .Include(v => v.Usuario)
             .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Include(v => v.Promociones)
             .FirstOrDefaultAsync(v => v.Id == id);
     }
 
@@ -46,6 +47,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Cliente)
             .Include(v => v.Usuario)
             .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Include(v => v.Promociones)
             .Where(v => v.FechaCreacion.Date == fecha.Date
                 || (v.FechaProgramada != null && v.FechaProgramada.Value.Date == fecha.Date)
                 || (v.RepartoZonaId != null && repartosEnCursoIds.Contains(v.RepartoZonaId.Value)))
@@ -64,6 +66,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Cliente)
             .Include(v => v.Usuario)
             .Include(v => v.Pagos).ThenInclude(pg => pg.FormaPago)
+            .Include(v => v.Promociones)
             .Where(v => v.FechaCreacion.Date >= desde.Date && v.FechaCreacion.Date <= hasta.Date)
             .OrderByDescending(v => v.FechaCreacion)
             .ToListAsync();

@@ -128,6 +128,11 @@ public class VentaService : IVentaService
                 ? EstadoVenta.Entregado
                 : EstadoVenta.Pendiente;
 
+            // Snapshot de promociones aplicadas (para auditoría)
+            var promosAplicadas = dto.Promociones ?? new List<CrearVentaPromocionDto>();
+            var descuentoPromos = promosAplicadas.Where(p => !p.EsReintegro).Sum(p => p.MontoDescuento);
+            var reintegroPromos = promosAplicadas.Where(p => p.EsReintegro).Sum(p => p.MontoReintegro);
+
             var venta = new Venta
             {
                 NumeroTicket = ticket,
@@ -140,6 +145,8 @@ public class VentaService : IVentaService
                 DireccionEntrega = dto.DireccionEntrega,
                 ZonaId = dto.ZonaId,
                 Descuento = dto.Descuento,
+                DescuentoPromociones = descuentoPromos,
+                ReintegroPromociones = reintegroPromos,
                 NotaInterna = dto.NotaInterna,
                 TipoFactura = dto.TipoFactura,
                 FechaProgramada = dto.FechaProgramada,
@@ -148,6 +155,20 @@ public class VentaService : IVentaService
                 Observaciones = dto.Observaciones,
                 UsuarioId = usuarioId
             };
+
+            foreach (var promo in promosAplicadas)
+            {
+                venta.Promociones.Add(new VentaPromocion
+                {
+                    PromocionId = promo.PromocionId,
+                    NombrePromocion = promo.NombrePromocion,
+                    TipoBeneficio = promo.TipoBeneficio,
+                    MontoDescuento = promo.MontoDescuento,
+                    MontoReintegro = promo.MontoReintegro,
+                    EsReintegro = promo.EsReintegro,
+                    FechaCreacion = ahora
+                });
+            }
 
             decimal subtotal = 0;
             foreach (var linea in dto.Lineas)
@@ -210,7 +231,7 @@ public class VentaService : IVentaService
                 }
 
                 venta.Recargo = recargoTotal;
-                venta.Total = subtotal - dto.Descuento + recargoTotal;
+                venta.Total = subtotal - dto.Descuento - descuentoPromos + recargoTotal;
             }
             else
             {
@@ -223,12 +244,12 @@ public class VentaService : IVentaService
                     var formaPago = await _formaPagoRepo.GetByIdAsync(dto.FormaPagoId.Value);
                     if (formaPago is not null && formaPago.PorcentajeRecargo > 0)
                     {
-                        recargo = (subtotal - dto.Descuento) * formaPago.PorcentajeRecargo / 100m;
+                        recargo = (subtotal - dto.Descuento - descuentoPromos) * formaPago.PorcentajeRecargo / 100m;
                     }
                 }
 
                 venta.Recargo = recargo;
-                venta.Total = subtotal - dto.Descuento + recargo;
+                venta.Total = subtotal - dto.Descuento - descuentoPromos + recargo;
             }
 
             // Calcular IVA desglosado (precios incluyen IVA)
@@ -1428,6 +1449,11 @@ public class VentaService : IVentaService
             v.MontoIVA,
             v.FechaEnvioDeposito,
             v.VencidoDeposito,
-            v.CierreCajaId);
+            v.CierreCajaId,
+            v.DescuentoPromociones,
+            v.ReintegroPromociones,
+            v.Promociones.Select(p => new VentaPromocionDto(
+                p.Id, p.PromocionId, p.NombrePromocion, p.TipoBeneficio,
+                p.MontoDescuento, p.MontoReintegro, p.EsReintegro)).ToList());
     }
 }

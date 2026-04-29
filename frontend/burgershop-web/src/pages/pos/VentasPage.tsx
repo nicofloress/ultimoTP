@@ -12,8 +12,7 @@ const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focu
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 
 function formatFecha(fecha: string) {
-  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
-  return new Date(f).toLocaleString('es-AR', {
+  return new Date(fecha).toLocaleString('es-AR', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
@@ -77,6 +76,14 @@ export default function VentasPage() {
       notaInterna: v.notaInterna || v.observaciones,
       tipoFactura: v.tipoFactura ?? 0,
       pagos: v.pagos?.map(p => ({ formaPagoNombre: p.formaPagoNombre, monto: p.monto, recargo: p.recargo, totalACobrar: p.totalACobrar })),
+      descuentoPromociones: v.descuentoPromociones,
+      reintegroPromociones: v.reintegroPromociones,
+      promociones: v.promociones?.map(p => ({
+        nombrePromocion: p.nombrePromocion,
+        montoDescuento: p.montoDescuento,
+        montoReintegro: p.montoReintegro,
+        esReintegro: p.esReintegro,
+      })),
     };
     setTicketParaImprimir(ticket);
     setMostrarComprobante(true);
@@ -281,7 +288,17 @@ export default function VentasPage() {
                         ? v.pagos.map(p => p.formaPagoNombre).join(' / ')
                         : v.formaPagoNombre || '-'}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-amber-600">${v.total.toLocaleString('es-AR')}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-amber-600">
+                      {v.promociones && v.promociones.length > 0 && (
+                        <span
+                          className="inline-block mr-1 align-middle bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                          title={v.promociones.map(p => `${p.nombrePromocion}: -$${p.montoDescuento.toLocaleString('es-AR')}`).join('\n')}
+                        >
+                          PROMO
+                        </span>
+                      )}
+                      ${v.total.toLocaleString('es-AR')}
+                    </td>
                     <td className="px-4 py-2.5 text-center">
                       {v.estaPago ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Pagado</span>
@@ -437,6 +454,12 @@ export default function VentasPage() {
                 <span>-${seleccionado.descuento.toLocaleString('es-AR')}</span>
               </div>
             )}
+            {seleccionado.promociones && seleccionado.promociones.filter(p => !p.esReintegro).map(p => (
+              <div key={`promo-${p.id}`} className="flex justify-between text-sm text-emerald-600">
+                <span className="truncate max-w-[180px]" title={p.nombrePromocion}>✨ {p.nombrePromocion}</span>
+                <span className="whitespace-nowrap">-${p.montoDescuento.toLocaleString('es-AR')}</span>
+              </div>
+            ))}
             {seleccionado.recargo > 0 && (
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Recargo</span>
@@ -447,6 +470,17 @@ export default function VentasPage() {
               <span>Total</span>
               <span className="text-amber-600">${seleccionado.total.toLocaleString('es-AR')}</span>
             </div>
+            {seleccionado.promociones && seleccionado.promociones.filter(p => p.esReintegro).length > 0 && (
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <div className="text-xs font-semibold uppercase text-emerald-600 mb-1">Reintegros a cuenta</div>
+                {seleccionado.promociones.filter(p => p.esReintegro).map(p => (
+                  <div key={`reint-${p.id}`} className="flex justify-between text-xs text-emerald-600">
+                    <span className="truncate max-w-[180px]">{p.nombrePromocion}</span>
+                    <span>+${p.montoReintegro.toLocaleString('es-AR')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {(seleccionado.montoNeto != null && seleccionado.montoNeto > 0) && (
               <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
                 <div className="flex justify-between text-xs text-gray-400">

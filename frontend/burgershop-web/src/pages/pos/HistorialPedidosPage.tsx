@@ -20,9 +20,8 @@ const tipoLabels: Record<TipoVenta, string> = {
 };
 
 function formatFecha(fecha: string) {
-  // Tratar fechas del backend como UTC si no tienen zona horaria
-  const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
-  return new Date(f).toLocaleString('es-AR', {
+  // El backend devuelve DateTime sin timezone (hora local del servidor).
+  return new Date(fecha).toLocaleString('es-AR', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });

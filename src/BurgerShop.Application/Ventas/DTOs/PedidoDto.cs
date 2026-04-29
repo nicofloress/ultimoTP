@@ -44,7 +44,19 @@ public record VentaDto(
     decimal MontoIVA = 0,
     DateTime? FechaEnvioDeposito = null,
     bool VencidoDeposito = false,
-    int? CierreCajaId = null);
+    int? CierreCajaId = null,
+    decimal DescuentoPromociones = 0,
+    decimal ReintegroPromociones = 0,
+    List<VentaPromocionDto>? Promociones = null);
+
+public record VentaPromocionDto(
+    int Id,
+    int PromocionId,
+    string NombrePromocion,
+    TipoBeneficio TipoBeneficio,
+    decimal MontoDescuento,
+    decimal MontoReintegro,
+    bool EsReintegro);
 
 public record LineaVentaDto(
     int Id,
@@ -72,7 +84,16 @@ public record CrearVentaDto(
     bool EstaPago = false,
     List<CrearPagoVentaDto>? Pagos = null,
     int? LocalId = null,
-    string? Observaciones = null);
+    string? Observaciones = null,
+    List<CrearVentaPromocionDto>? Promociones = null);
+
+public record CrearVentaPromocionDto(
+    int PromocionId,
+    string NombrePromocion,
+    TipoBeneficio TipoBeneficio,
+    decimal MontoDescuento,
+    decimal MontoReintegro,
+    bool EsReintegro);
 
 public record CrearLineaVentaDto(
     int? ProductoId,

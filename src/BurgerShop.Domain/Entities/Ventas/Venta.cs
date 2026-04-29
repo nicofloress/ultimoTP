@@ -24,6 +24,8 @@ public class Venta
 
     public decimal Subtotal { get; set; }
     public decimal Descuento { get; set; }
+    public decimal DescuentoPromociones { get; set; }
+    public decimal ReintegroPromociones { get; set; }
     public decimal Recargo { get; set; }
     public decimal Total { get; set; }
     public decimal MontoNeto { get; set; }
@@ -60,4 +62,5 @@ public class Venta
     public Usuario? Usuario { get; set; }
     public ICollection<LineaVenta> Lineas { get; set; } = new List<LineaVenta>();
     public ICollection<PagoVenta> Pagos { get; set; } = new List<PagoVenta>();
+    public ICollection<VentaPromocion> Promociones { get; set; } = new List<VentaPromocion>();
 }

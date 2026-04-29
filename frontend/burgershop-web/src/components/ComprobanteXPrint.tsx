@@ -15,6 +15,9 @@ export interface ComprobanteXPrintProps {
     notaInterna?: string;
     tipoFactura: number;
     pagos?: { formaPagoNombre: string; monto: number; recargo: number; totalACobrar: number }[];
+    descuentoPromociones?: number;
+    reintegroPromociones?: number;
+    promociones?: { nombrePromocion: string; montoDescuento: number; montoReintegro: number; esReintegro: boolean }[];
   };
   config?: {
     sucursal?: string;
@@ -55,6 +58,21 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
   const descuentoHTML = ticket.descuento > 0 ? `
     <div style="display:flex;justify-content:space-between;font-size:14px;margin:2px 0">
       <span>DESCUENTO:</span><span>-$${formatMoney(ticket.descuento)}</span>
+    </div>` : '';
+
+  const promosNoReintegro = (ticket.promociones || []).filter(p => !p.esReintegro);
+  const promosReintegro = (ticket.promociones || []).filter(p => p.esReintegro);
+  const promosHTML = promosNoReintegro.length > 0 ? promosNoReintegro.map(p => `
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin:2px 0">
+      <span>${p.nombrePromocion}:</span><span>-$${formatMoney(p.montoDescuento)}</span>
+    </div>`).join('') : '';
+  const reintegrosHTML = promosReintegro.length > 0 ? `
+    <div style="font-size:13px;margin:4px 0;border-top:1px dashed #000;padding-top:4px">
+      <div style="font-weight:bold;margin-bottom:2px">REINTEGROS:</div>
+      ${promosReintegro.map(p => `
+        <div style="display:flex;justify-content:space-between">
+          <span>${p.nombrePromocion}</span><span>+$${formatMoney(p.montoReintegro)}</span>
+        </div>`).join('')}
     </div>` : '';
 
   const recargoHTML = ticket.recargo > 0 ? `
@@ -121,9 +139,11 @@ function generarHTML(ticket: ComprobanteXPrintProps['ticket'], config?: Comproba
   <div class="sep"></div>
   <div class="row" style="font-size:13px;margin:2px 0"><span>SUBTOTAL:</span><span>$${formatMoney(ticket.subtotal)}</span></div>
   ${descuentoHTML}
+  ${promosHTML}
   ${recargoHTML}
   <div class="sep"></div>
   <div class="row" style="font-size:14px;font-weight:bold;margin:4px 0"><span>TOTAL</span><span>$${formatMoney(ticket.total)}</span></div>
+  ${reintegrosHTML}
   <div class="sep"></div>
 
   <div style="font-size:14px;margin:4px 0">
@@ -251,6 +271,11 @@ export default function ComprobanteXPrint({ ticket, config, onClose }: Comproban
               <span>DESCUENTO:</span><span>-${formatMoney(ticket.descuento)}</span>
             </div>
           )}
+          {(ticket.promociones || []).filter(p => !p.esReintegro).map((p, i) => (
+            <div key={`promo-${i}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', margin: '2px 0' }}>
+              <span>{p.nombrePromocion}:</span><span>-${formatMoney(p.montoDescuento)}</span>
+            </div>
+          ))}
           {ticket.recargo > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', margin: '2px 0' }}>
               <span>RECARGO:</span><span>+${formatMoney(ticket.recargo)}</span>
@@ -261,6 +286,16 @@ export default function ComprobanteXPrint({ ticket, config, onClose }: Comproban
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', margin: '4px 0' }}>
             <span>TOTAL</span><span>${formatMoney(ticket.total)}</span>
           </div>
+          {(ticket.promociones || []).filter(p => p.esReintegro).length > 0 && (
+            <div style={{ fontSize: '10px', margin: '4px 0', borderTop: '1px dashed #000', paddingTop: '4px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>REINTEGROS:</div>
+              {(ticket.promociones || []).filter(p => p.esReintegro).map((p, i) => (
+                <div key={`reint-${i}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{p.nombrePromocion}</span><span>+${formatMoney(p.montoReintegro)}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }} />
 
           <div style={{ fontSize: '10px', margin: '4px 0' }}>

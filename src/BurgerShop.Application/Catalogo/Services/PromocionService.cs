@@ -70,8 +70,11 @@ public class PromocionService : IPromocionService
                 Descripcion = dto.Descripcion,
                 FechaDesde = dto.FechaDesde,
                 FechaHasta = dto.FechaHasta,
-                TipoDescuento = dto.TipoDescuento,
-                ValorDescuento = dto.ValorDescuento,
+                TipoBeneficio = dto.TipoBeneficio,
+                ValorBeneficio = dto.ValorBeneficio,
+                TopeMaximo = dto.TopeMaximo,
+                Acumulable = dto.Acumulable,
+                Prioridad = dto.Prioridad,
                 Activa = true,
                 FechaCreacion = DateTime.Now,
                 Items = dto.Items.Select(i => new PromocionItem
@@ -87,6 +90,11 @@ public class PromocionService : IPromocionService
                 TiposVenta = (dto.TiposVenta ?? new List<int>()).Select(tv => new PromocionTipoVenta
                 {
                     TipoVenta = (TipoVenta)tv
+                }).ToList(),
+                Condiciones = (dto.Condiciones ?? new List<CrearPromocionCondicionDto>()).Select(c => new PromocionCondicion
+                {
+                    Tipo = c.Tipo,
+                    Valor = c.Valor
                 }).ToList()
             };
 
@@ -114,8 +122,11 @@ public class PromocionService : IPromocionService
             promo.Descripcion = dto.Descripcion;
             promo.FechaDesde = dto.FechaDesde;
             promo.FechaHasta = dto.FechaHasta;
-            promo.TipoDescuento = dto.TipoDescuento;
-            promo.ValorDescuento = dto.ValorDescuento;
+            promo.TipoBeneficio = dto.TipoBeneficio;
+            promo.ValorBeneficio = dto.ValorBeneficio;
+            promo.TopeMaximo = dto.TopeMaximo;
+            promo.Acumulable = dto.Acumulable;
+            promo.Prioridad = dto.Prioridad;
             promo.Activa = dto.Activa;
 
             promo.Items.Clear();
@@ -149,6 +160,20 @@ public class PromocionService : IPromocionService
                     {
                         PromocionId = id,
                         TipoVenta = (TipoVenta)tv
+                    });
+                }
+            }
+
+            promo.Condiciones.Clear();
+            if (dto.Condiciones is { Count: > 0 })
+            {
+                foreach (var c in dto.Condiciones)
+                {
+                    promo.Condiciones.Add(new PromocionCondicion
+                    {
+                        PromocionId = id,
+                        Tipo = c.Tipo,
+                        Valor = c.Valor
                     });
                 }
             }
@@ -209,8 +234,11 @@ public class PromocionService : IPromocionService
         p.Descripcion,
         p.FechaDesde,
         p.FechaHasta,
-        p.TipoDescuento,
-        p.ValorDescuento,
+        p.TipoBeneficio,
+        p.ValorBeneficio,
+        p.TopeMaximo,
+        p.Acumulable,
+        p.Prioridad,
         p.Activa,
         p.FechaCreacion,
         p.Items.Select(i => new PromocionItemDto(
@@ -225,6 +253,7 @@ public class PromocionService : IPromocionService
             l.LocalId,
             l.Local?.Nombre ?? string.Empty
         )).ToList(),
-        p.TiposVenta.Select(tv => (int)tv.TipoVenta).ToList()
+        p.TiposVenta.Select(tv => (int)tv.TipoVenta).ToList(),
+        p.Condiciones.Select(c => new PromocionCondicionDto(c.Id, c.Tipo, c.Valor)).ToList()
     );
 }

@@ -25,7 +25,7 @@ import PagoDivididoPanel from '../../components/PagoDivididoPanel';
 import { getCajaAbierta, abrirCaja } from '../../api/caja';
 
 import NumericInput, { formatearNumero } from '../../components/NumericInput';
-import { getPromociones, PromocionDto } from '../../api/promociones';
+import { getPromociones, PromocionDto, evaluarPromociones, EvaluarPromocionesResultDto } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 
 export default function POSPage() {
@@ -70,6 +70,7 @@ export default function POSPage() {
   const [montoPagado, setMontoPagado] = useState(0);
   const [descuento, setDescuento] = useState(0);
   const [tipoDescuento, setTipoDescuento] = useState<'$' | '%'>('$');
+  const [evaluacionPromos, setEvaluacionPromos] = useState<EvaluarPromocionesResultDto | null>(null);
 
   // Tipo de cliente
   const [tiposCliente, setTiposCliente] = useState<TipoCliente[]>([]);
@@ -214,9 +215,9 @@ export default function POSPage() {
             const prod = productos.find(pr => pr.id === item.productoId);
             if (!prod) continue;
             const precioBase = preciosLista.get(prod.id) ?? prod.precio;
-            precio = promo.tipoDescuento === 1
-              ? precioBase * (1 - promo.valorDescuento / 100)
-              : Math.max(0, precioBase - promo.valorDescuento);
+            precio = promo.tipoBeneficio === 1
+              ? precioBase * (1 - promo.valorBeneficio / 100)
+              : Math.max(0, precioBase - promo.valorBeneficio);
           }
           map.set(item.productoId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
         }
@@ -236,9 +237,9 @@ export default function POSPage() {
           } else {
             const combo = combos.find(cb => cb.id === item.comboId);
             if (!combo) continue;
-            precio = promo.tipoDescuento === 1
-              ? combo.precio * (1 - promo.valorDescuento / 100)
-              : Math.max(0, combo.precio - promo.valorDescuento);
+            precio = promo.tipoBeneficio === 1
+              ? combo.precio * (1 - promo.valorBeneficio / 100)
+              : Math.max(0, combo.precio - promo.valorBeneficio);
           }
           map.set(item.comboId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
         }
@@ -330,6 +331,39 @@ export default function POSPage() {
     ? Math.round(subtotal * descuento / 100)
     : descuento;
 
+  // --- Evaluación automática de promociones ---
+  const descuentoPromos = evaluacionPromos?.totalDescuento ?? 0;
+  const reintegroPromos = evaluacionPromos?.totalReintegro ?? 0;
+  const promosAplicadas = evaluacionPromos?.promociones ?? [];
+
+  useEffect(() => {
+    if (carrito.length === 0 || !localActivo) {
+      setEvaluacionPromos(null);
+      return;
+    }
+    const tipoVentaCalc = envioADomicilio ? 2 : 1;
+    const formaPagoEval = modoPago === 'total' ? formaPagoSeleccionada : undefined;
+    const itemsEval = carrito.map(it => ({
+      productoId: it.productoId,
+      comboId: it.comboId,
+      cantidad: it.cantidad,
+      precioUnitario: it.precioUnitario * (1 - (it.descuentoPorcentaje ?? 0) / 100),
+    }));
+    let cancel = false;
+    evaluarPromociones({
+      localId: localActivo,
+      formaPagoId: formaPagoEval,
+      tipoVenta: tipoVentaCalc,
+      items: itemsEval,
+      clienteId: clienteSeleccionado?.id,
+    }).then(res => {
+      if (!cancel) setEvaluacionPromos(res);
+    }).catch(() => {
+      if (!cancel) setEvaluacionPromos(null);
+    });
+    return () => { cancel = true; };
+  }, [carrito, formaPagoSeleccionada, modoPago, envioADomicilio, localActivo, clienteSeleccionado]);
+
   const formaPagoActual = formasPago.find(fp => fp.id === formaPagoSeleccionada);
   const recargosDivididos = modoPago === 'dividido'
     ? pagosDivididos.reduce((sum, p) => {
@@ -339,10 +373,10 @@ export default function POSPage() {
     : 0;
   const recargo = modoPago === 'total'
     ? (formaPagoActual && formaPagoActual.porcentajeRecargo > 0
-      ? Math.round((subtotal - descuentoCalculado) * formaPagoActual.porcentajeRecargo / 100)
+      ? Math.round((subtotal - descuentoCalculado - descuentoPromos) * formaPagoActual.porcentajeRecargo / 100)
       : 0)
     : Math.round(recargosDivididos);
-  const total = subtotal - descuentoCalculado + recargo;
+  const total = subtotal - descuentoCalculado - descuentoPromos + recargo;
   const deuda = modoPago === 'total'
     ? total - montoPagado
     : total - pagosDivididos.reduce((sum, p) => sum + p.monto + (formasPago.find(f => f.id === p.formaPagoId)?.porcentajeRecargo ?? 0) * p.monto / 100, 0);
@@ -410,7 +444,7 @@ export default function POSPage() {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
     if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.esOfertaSemanal);
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => preciosPromoProductos.has(p.id));
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id));
     if (!megaActiva) return activos;
     let filtered = activos.filter(p => megaActiva.catIds.includes(p.categoriaId));
@@ -438,7 +472,7 @@ export default function POSPage() {
       return activos.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
     }
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
+    if (categoriaFiltro === 'ofertas') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'descuento') return activos.filter(c => preciosListaCombos.has(c.id));
     if (!megaActiva) return [];
     let prodsEnCat = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));
@@ -591,6 +625,14 @@ export default function POSPage() {
         clienteId: clienteSeleccionado?.id,
         pagos: modoPago === 'dividido' ? pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0).map(p => ({ formaPagoId: p.formaPagoId, monto: p.monto })) : undefined,
         lineas: detallesCarrito,
+        promociones: promosAplicadas.map(pa => ({
+          promocionId: pa.promocionId,
+          nombrePromocion: pa.nombre,
+          tipoBeneficio: pa.tipoBeneficio,
+          montoDescuento: pa.montoDescuento,
+          montoReintegro: pa.montoReintegro ?? 0,
+          esReintegro: pa.esReintegro,
+        })),
       });
       // Si es cuenta corriente, registrar cargo
       if (esCtaCte && clienteSeleccionado) {
@@ -652,6 +694,14 @@ export default function POSPage() {
           monto: p.monto,
           recargo: p.recargo,
           totalACobrar: p.totalACobrar,
+        })),
+        descuentoPromociones: venta.descuentoPromociones,
+        reintegroPromociones: venta.reintegroPromociones,
+        promociones: venta.promociones?.map(p => ({
+          nombrePromocion: p.nombrePromocion,
+          montoDescuento: p.montoDescuento,
+          montoReintegro: p.montoReintegro,
+          esReintegro: p.esReintegro,
         })),
       };
       setTicketParaImprimir(ticketListo);
@@ -1171,6 +1221,24 @@ export default function POSPage() {
               <span className="text-gray-500">Descuento</span>
               <span className="font-medium text-green-600">-${formatearNumero(descuentoCalculado, 2)}</span>
             </div>
+          )}
+          {promosAplicadas.length > 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1 mt-1 mb-1">
+              <div className="text-[11px] font-bold text-emerald-700 mb-0.5">✨ Promociones</div>
+              {promosAplicadas.map(pa => (
+                <div key={pa.promocionId} className="flex justify-between text-xs text-emerald-800">
+                  <span className="truncate">{pa.nombre}</span>
+                  <span className="font-medium whitespace-nowrap ml-2">
+                    {pa.esReintegro
+                      ? `+$${formatearNumero(pa.montoReintegro ?? 0, 2)} reintegro`
+                      : `-$${formatearNumero(pa.montoDescuento, 2)}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {reintegroPromos > 0 && (
+            <div className="text-[10px] text-emerald-700 italic">El cliente recibe ${formatearNumero(reintegroPromos, 2)} de reintegro</div>
           )}
           {recargo > 0 && (
             <div className="flex justify-between text-sm">

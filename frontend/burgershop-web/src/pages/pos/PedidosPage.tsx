@@ -207,9 +207,9 @@ export default function PedidosPage() {
             const prod = productos.find(pr => pr.id === item.productoId);
             if (!prod) continue;
             const precioBase = preciosLista.get(prod.id) ?? prod.precio;
-            precio = promo.tipoDescuento === 1
-              ? precioBase * (1 - promo.valorDescuento / 100)
-              : Math.max(0, precioBase - promo.valorDescuento);
+            precio = promo.tipoBeneficio === 1
+              ? precioBase * (1 - promo.valorBeneficio / 100)
+              : Math.max(0, precioBase - promo.valorBeneficio);
           }
           map.set(item.productoId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
         }
@@ -229,9 +229,9 @@ export default function PedidosPage() {
           } else {
             const combo = combos.find(cb => cb.id === item.comboId);
             if (!combo) continue;
-            precio = promo.tipoDescuento === 1
-              ? combo.precio * (1 - promo.valorDescuento / 100)
-              : Math.max(0, combo.precio - promo.valorDescuento);
+            precio = promo.tipoBeneficio === 1
+              ? combo.precio * (1 - promo.valorBeneficio / 100)
+              : Math.max(0, combo.precio - promo.valorBeneficio);
           }
           map.set(item.comboId, { precioPromo: Math.round(precio * 100) / 100, nombrePromo: promo.nombre });
         }
@@ -424,7 +424,7 @@ export default function PedidosPage() {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
     if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.esOfertaSemanal);
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => preciosPromoProductos.has(p.id));
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id));
     if (!megaActiva) return activos;
     let filtered = activos.filter(p => megaActiva.catIds.includes(p.categoriaId));
@@ -452,7 +452,7 @@ export default function PedidosPage() {
       return activos.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
     }
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
+    if (categoriaFiltro === 'ofertas') return activos.filter(c => preciosPromoCombos.has(c.id));
     if (categoriaFiltro === 'descuento') return activos.filter(c => preciosListaCombos.has(c.id));
     if (!megaActiva) return [];
     let prodsEnCat = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));

@@ -316,8 +316,7 @@ export default function RendicionesPage() {
   };
 
   const formatFecha = (fecha: string) => {
-    const f = fecha.endsWith('Z') || fecha.includes('+') ? fecha : fecha + 'Z';
-    return new Date(f).toLocaleString('es-AR', {
+    return new Date(fecha).toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

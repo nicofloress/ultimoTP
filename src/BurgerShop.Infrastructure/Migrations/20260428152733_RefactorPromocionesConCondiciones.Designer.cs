@@ -3,6 +3,7 @@ using System;
 using BurgerShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BurgerShop.Infrastructure.Migrations
 {
     [DbContext(typeof(BurgerShopDbContext))]
-    partial class BurgerShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428152733_RefactorPromocionesConCondiciones")]
+    partial class RefactorPromocionesConCondiciones
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3542,11 +3545,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("DescuentoPromociones")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
-
                     b.Property<string>("DireccionEntrega")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -3612,11 +3610,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Property<decimal>("Recargo")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("ReintegroPromociones")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
-
                     b.Property<int?>("RepartidorId")
                         .HasColumnType("integer");
 
@@ -3676,49 +3669,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.HasIndex("ZonaId");
 
                     b.ToTable("Ventas");
-                });
-
-            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.VentaPromocion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("EsReintegro")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<decimal>("MontoDescuento")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MontoReintegro")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("NombrePromocion")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("PromocionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TipoBeneficio")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("VentaId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PromocionId");
-
-                    b.HasIndex("VentaId");
-
-                    b.ToTable("VentaPromociones");
                 });
 
             modelBuilder.Entity("BurgerShop.Domain.Entities.Auth.Usuario", b =>
@@ -4288,24 +4238,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("Zona");
                 });
 
-            modelBuilder.Entity("BurgerShop.Domain.Entities.Ventas.VentaPromocion", b =>
-                {
-                    b.HasOne("BurgerShop.Domain.Entities.Catalogo.Promocion", "Promocion")
-                        .WithMany()
-                        .HasForeignKey("PromocionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("BurgerShop.Domain.Entities.Ventas.Venta", "Venta")
-                        .WithMany("Promociones")
-                        .HasForeignKey("VentaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Promocion");
-
-                    b.Navigation("Venta");
-                });
-
             modelBuilder.Entity("BurgerShop.Domain.Entities.Catalogo.Categoria", b =>
                 {
                     b.Navigation("Productos");
@@ -4383,8 +4315,6 @@ namespace BurgerShop.Infrastructure.Migrations
                     b.Navigation("Lineas");
 
                     b.Navigation("Pagos");
-
-                    b.Navigation("Promociones");
                 });
 #pragma warning restore 612, 618
         }

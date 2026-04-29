@@ -22,6 +22,14 @@ export const crearVenta = (data: {
   localId?: number;
   pagos?: { formaPagoId: number; monto: number }[];
   lineas: { productoId?: number; comboId?: number; cantidad: number; precioUnitario: number; notas?: string }[];
+  promociones?: {
+    promocionId: number;
+    nombrePromocion: string;
+    tipoBeneficio: number;
+    montoDescuento: number;
+    montoReintegro: number;
+    esReintegro: boolean;
+  }[];
 }) => api.post<Venta>('/ventas', data).then(r => r.data);
 
 export const cambiarEstado = (id: number, nuevoEstado: number) =>

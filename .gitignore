@@ -37,3 +37,15 @@ appsettings.Development.json
 cert.pem
 *.pem
 frontend/burgershop-web/public/version.json
+
+# Cygwin / MSYS crash dumps
+*.stackdump
+
+# Tmp scratch files (no commitear)
+auth_tmp.json
+tmp_*.json
+tmp_*/
+
+# package.json/package-lock.json sueltos en raiz (los reales viven en frontend/burgershop-web)
+/package.json
+/package-lock.json

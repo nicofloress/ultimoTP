@@ -22,6 +22,7 @@ public class BurgerShopDbContext : DbContext
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<LineaVenta> LineasVenta => Set<LineaVenta>();
     public DbSet<PagoVenta> PagosVenta => Set<PagoVenta>();
+    public DbSet<VentaPromocion> VentaPromociones => Set<VentaPromocion>();
     public DbSet<FormaPago> FormasPago => Set<FormaPago>();
     public DbSet<Zona> Zonas => Set<Zona>();
     public DbSet<Repartidor> Repartidores => Set<Repartidor>();
@@ -52,6 +53,7 @@ public class BurgerShopDbContext : DbContext
     public DbSet<PromocionItem> PromocionItems => Set<PromocionItem>();
     public DbSet<PromocionLocal> PromocionLocales => Set<PromocionLocal>();
     public DbSet<PromocionTipoVenta> PromocionTiposVenta => Set<PromocionTipoVenta>();
+    public DbSet<PromocionCondicion> PromocionCondiciones => Set<PromocionCondicion>();
 
     // Inventario
     public DbSet<Empresa> Empresas => Set<Empresa>();

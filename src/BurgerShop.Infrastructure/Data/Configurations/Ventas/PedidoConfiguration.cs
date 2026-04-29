@@ -15,6 +15,8 @@ public class VentaConfiguration : IEntityTypeConfiguration<Venta>
         builder.Property(v => v.DireccionEntrega).HasMaxLength(500);
         builder.Property(v => v.Subtotal).HasColumnType("decimal(18,2)");
         builder.Property(v => v.Descuento).HasColumnType("decimal(18,2)");
+        builder.Property(v => v.DescuentoPromociones).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+        builder.Property(v => v.ReintegroPromociones).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
         builder.Property(v => v.Recargo).HasColumnType("decimal(18,2)");
         builder.Property(v => v.Total).HasColumnType("decimal(18,2)");
         builder.Property(v => v.NotasEntrega).HasMaxLength(1000);

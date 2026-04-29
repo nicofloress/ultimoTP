@@ -277,7 +277,7 @@ export default function ProductosPage() {
         return Math.max(0, precioBase - promo.valorBeneficio);
       default:
         // PrecioFijoItems se maneja arriba via item.precioPromo.
-        // Reintegros, EnvioGratis y ProductoGratis no modifican el precio mostrado.
+        // Los reintegros no modifican el precio mostrado del item.
         return null;
     }
   };
