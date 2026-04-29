@@ -444,7 +444,7 @@ export default function POSPage() {
     const activos = productos.filter(p => p.activo);
     if (!categoriaFiltro || categoriaFiltro === 'combos') return activos;
     if (categoriaFiltro === 'promo') return activos.filter(p => preciosPromoProductos.has(p.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(p => preciosPromoProductos.has(p.id));
+    if (categoriaFiltro === 'ofertas') return activos.filter(p => p.esOfertaSemanal);
     if (categoriaFiltro === 'descuento') return activos.filter(p => preciosLista.has(p.id));
     if (!megaActiva) return activos;
     let filtered = activos.filter(p => megaActiva.catIds.includes(p.categoriaId));
@@ -472,7 +472,7 @@ export default function POSPage() {
       return activos.filter(c => c.detalles.some(d => prodIds.has(d.productoId)));
     }
     if (categoriaFiltro === 'promo') return activos.filter(c => preciosPromoCombos.has(c.id));
-    if (categoriaFiltro === 'ofertas') return activos.filter(c => preciosPromoCombos.has(c.id));
+    if (categoriaFiltro === 'ofertas') return activos.filter(c => c.esOfertaSemanal);
     if (categoriaFiltro === 'descuento') return activos.filter(c => preciosListaCombos.has(c.id));
     if (!megaActiva) return [];
     let prodsEnCat = productos.filter(p => megaActiva.catIds.includes(p.categoriaId));
