@@ -88,13 +88,31 @@ public class PromocionEvaluatorService : IPromocionEvaluatorService
             }
         }
 
+        // IDs de productos/combos cubiertos por una promo per-item (Items.Count > 0).
+        // Las promos "blanket" (Items.Count == 0, tipicamente forma de pago)
+        // NO deben tocar estos items: si un articulo ya tiene su precio promo
+        // por ser parte de una promo de producto, no acumula con la de medio
+        // de pago.
+        var productoIdsConPromoItem = seleccionadas
+            .Where(p => p.Items.Count > 0)
+            .SelectMany(p => p.Items)
+            .Where(pi => pi.ProductoId.HasValue)
+            .Select(pi => pi.ProductoId!.Value)
+            .ToHashSet();
+        var comboIdsConPromoItem = seleccionadas
+            .Where(p => p.Items.Count > 0)
+            .SelectMany(p => p.Items)
+            .Where(pi => pi.ComboId.HasValue)
+            .Select(pi => pi.ComboId!.Value)
+            .ToHashSet();
+
         var promosAplicadas = new List<PromocionAplicadaDto>();
         decimal totalDescuento = 0m;
         decimal totalReintegro = 0m;
 
         foreach (var promo in seleccionadas)
         {
-            var resultado = CalcularBeneficio(promo, ctx.Items);
+            var resultado = CalcularBeneficio(promo, ctx.Items, productoIdsConPromoItem, comboIdsConPromoItem);
             if (resultado.monto <= 0) continue;
             if (resultado.esReintegro)
             {
@@ -160,9 +178,13 @@ public class PromocionEvaluatorService : IPromocionEvaluatorService
             (pi.ComboId.HasValue && items.Any(i => i.ComboId == pi.ComboId)));
     }
 
-    private static (decimal monto, bool esReintegro) CalcularBeneficio(Promocion p, IReadOnlyList<EvaluarPromocionItemDto> items)
+    private static (decimal monto, bool esReintegro) CalcularBeneficio(
+        Promocion p,
+        IReadOnlyList<EvaluarPromocionItemDto> items,
+        ISet<int> productoIdsConPromoItem,
+        ISet<int> comboIdsConPromoItem)
     {
-        var subtotalAfectado = SubtotalAfectado(p, items);
+        var subtotalAfectado = SubtotalAfectado(p, items, productoIdsConPromoItem, comboIdsConPromoItem);
         decimal monto = p.TipoBeneficio switch
         {
             TipoBeneficio.PorcentajeDescuento => subtotalAfectado * (p.ValorBeneficio / 100m),
@@ -180,11 +202,22 @@ public class PromocionEvaluatorService : IPromocionEvaluatorService
         return (monto, esReintegro);
     }
 
-    private static decimal SubtotalAfectado(Promocion p, IReadOnlyList<EvaluarPromocionItemDto> items)
+    private static decimal SubtotalAfectado(
+        Promocion p,
+        IReadOnlyList<EvaluarPromocionItemDto> items,
+        ISet<int> productoIdsConPromoItem,
+        ISet<int> comboIdsConPromoItem)
     {
         if (p.Items.Count == 0)
         {
-            return items.Sum(i => i.Cantidad * i.PrecioUnitario);
+            // Promo blanket (sin items): aplica solo a items NO cubiertos por
+            // alguna promo per-item. Asi una promo de forma de pago no acumula
+            // con un producto que ya tiene su propio precio promo.
+            return items
+                .Where(i =>
+                    !(i.ProductoId.HasValue && productoIdsConPromoItem.Contains(i.ProductoId.Value)) &&
+                    !(i.ComboId.HasValue && comboIdsConPromoItem.Contains(i.ComboId.Value)))
+                .Sum(i => i.Cantidad * i.PrecioUnitario);
         }
         decimal total = 0m;
         foreach (var item in items)
