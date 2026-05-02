@@ -110,9 +110,13 @@ public class VentasController : ControllerBase
     [HttpPut("{id}/cancelar")]
     public async Task<ActionResult<VentaDto>> Cancelar(int id, [FromBody] CancelarVentaDto dto)
     {
+        int? usuarioId = null;
+        if (int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid))
+            usuarioId = uid;
+
         try
         {
-            var venta = await _service.CancelarAsync(id, dto.Motivo);
+            var venta = await _service.CancelarAsync(id, dto.Motivo, usuarioId);
             if (venta is null) return NotFound();
             await _notificaciones.NotificarPedidoCanceladoAsync(venta.Id, venta.NumeroTicket, venta.LocalId);
             return Ok(venta);

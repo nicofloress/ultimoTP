@@ -13,7 +13,7 @@ public interface IVentaService
     Task<IEnumerable<VentaDto>> GetByRangoFechasAsync(DateTime desde, DateTime hasta);
     Task<IEnumerable<VentaDto>> GetByEstadoAsync(EstadoVenta estado);
     Task<VentaDto?> CambiarEstadoAsync(int id, EstadoVenta nuevoEstado);
-    Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion);
+    Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion, int? usuarioId = null);
     Task<VentaDto?> MarcarNoEntregadoAsync(int id, string motivo);
     Task<VentaDto?> ReabrirEntregaAsync(int id);
     Task<VentaDto?> CambiarEstadoPedidoAsync(int id, EstadoVenta nuevoEstado, string? motivo, int? formaPagoId = null, List<DTOs.PagoEntregaDto>? pagos = null);

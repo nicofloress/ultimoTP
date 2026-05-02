@@ -582,7 +582,7 @@ public class VentaService : IVentaService
         }
     }
 
-    public async Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion)
+    public async Task<VentaDto?> CancelarAsync(int id, string motivoCancelacion, int? usuarioId = null)
     {
         try
         {
@@ -591,6 +591,29 @@ public class VentaService : IVentaService
 
             var venta = await _ventaRepo.GetByIdWithLineasAsync(id);
             if (venta is null) return null;
+
+            if (venta.Estado == EstadoVenta.Cancelado)
+                throw new InvalidOperationException("La venta ya está cancelada.");
+
+            // Revertir movimientos de stock y caja generados por la venta (si los hubiera).
+            // AnularMovimientosVentaAsync es idempotente respecto a movimientos inexistentes.
+            await _movimientoService.AnularMovimientosVentaAsync(id, usuarioId);
+
+            // Revertir cargo de cuenta corriente si la venta habia generado uno
+            if (venta.ClienteId.HasValue)
+            {
+                var cargoExistente = await _cuentaCorrienteRepo.GetCargoPorVentaAsync(id);
+                if (cargoExistente != null && cargoExistente.Monto > 0)
+                {
+                    var ajusteDto = new CrearAjusteDto(
+                        ClienteId: venta.ClienteId.Value,
+                        Monto: cargoExistente.Monto,
+                        EsAFavor: true,
+                        Observaciones: $"Anulación venta #{venta.NumeroTicket}: {motivoCancelacion.Trim()}"
+                    );
+                    await _cuentaCorrienteService.RegistrarAjusteAsync(ajusteDto, usuarioId);
+                }
+            }
 
             venta.Estado = EstadoVenta.Cancelado;
             venta.MotivoCancelacion = motivoCancelacion.Trim();

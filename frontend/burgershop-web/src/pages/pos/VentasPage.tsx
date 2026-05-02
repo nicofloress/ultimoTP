@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Venta, estadoLabels, estadoColores, TipoVenta } from '../../types';
-import { getVentas, getVentaStats, VentaStats, asignarCaja } from '../../api/pedidos';
+import { Venta, estadoLabels, estadoColores, TipoVenta, EstadoVenta } from '../../types';
+import { getVentas, getVentaStats, VentaStats, asignarCaja, cancelarVenta } from '../../api/pedidos';
 import { getLocales, LocalDto } from '../../api/locales';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
@@ -57,6 +57,10 @@ export default function VentasPage() {
   const [ventaAcciones, setVentaAcciones] = useState<Venta | null>(null);
   const [mostrarComprobante, setMostrarComprobante] = useState(false);
   const [ticketParaImprimir, setTicketParaImprimir] = useState<TicketPrintProps['ticket'] | null>(null);
+  // Anulacion
+  const [ventaAnular, setVentaAnular] = useState<Venta | null>(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
+  const [anulando, setAnulando] = useState(false);
   const { showToast } = useGlobalToast();
 
   const imprimirVenta = (v: Venta) => {
@@ -112,6 +116,28 @@ export default function VentasPage() {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const confirmarAnulacion = async () => {
+    if (!ventaAnular) return;
+    if (!motivoAnulacion.trim()) {
+      showToast('Ingresa un motivo de anulacion', 'error');
+      return;
+    }
+    setAnulando(true);
+    try {
+      await cancelarVenta(ventaAnular.id, motivoAnulacion.trim());
+      showToast('Venta anulada correctamente', 'success');
+      setVentaAnular(null);
+      setMotivoAnulacion('');
+      setSeleccionado(null);
+      await cargar();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al anular la venta';
+      showToast(msg, 'error');
+    } finally {
+      setAnulando(false);
+    }
+  };
 
   const toggleOrden = (col: string) => {
     if (ordenCol === col) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -569,10 +595,85 @@ export default function VentasPage() {
                 </svg>
                 <span className="font-bold text-sm text-gray-700">WHATSAPP</span>
               </button>
+              {/* Anular venta — solo si no esta cancelada */}
+              {ventaAcciones.estado !== EstadoVenta.Cancelado && (
+                <button
+                  onClick={() => { setVentaAnular(ventaAcciones); setMotivoAnulacion(''); setVentaAcciones(null); }}
+                  className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-red-50 transition-colors border-2 border-transparent hover:border-red-200 col-span-2 sm:col-span-1"
+                >
+                  <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-bold text-sm text-red-700">ANULAR</span>
+                </button>
+              )}
             </div>
             <div className="border-t px-4 sm:px-8 py-4 text-center">
               <button onClick={() => setVentaAcciones(null)} className="text-gray-500 hover:text-gray-700 font-medium text-sm">
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Anulacion */}
+      {ventaAnular && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !anulando && setVentaAnular(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="bg-red-600 px-6 py-4 rounded-t-xl flex items-center gap-3">
+              <div className="bg-white/20 rounded-full p-2">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Anular Venta</h3>
+                <p className="text-red-100 text-sm">{ventaAnular.numeroTicket} - ${ventaAnular.total.toLocaleString('es-AR')}</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              <p className="text-sm text-gray-600">
+                Esta acción <strong>revierte el stock</strong> y los <strong>movimientos de caja</strong> de la venta. Si fue a cuenta corriente, también se acredita el saldo al cliente.
+              </p>
+              <p className="text-xs text-gray-500">No se puede deshacer.</p>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Motivo <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={motivoAnulacion}
+                  onChange={e => setMotivoAnulacion(e.target.value)}
+                  placeholder="Ej: cliente devolvio el producto"
+                  className="w-full border border-red-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                  disabled={anulando}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 flex gap-3 border-t border-gray-100">
+              <button
+                onClick={() => { setVentaAnular(null); setMotivoAnulacion(''); }}
+                disabled={anulando}
+                className="flex-1 py-2.5 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarAnulacion}
+                disabled={anulando || !motivoAnulacion.trim()}
+                className="flex-[1.5] py-2.5 rounded-lg font-bold text-sm text-white bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {anulando ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Anulando...
+                  </>
+                ) : (
+                  'Confirmar Anulacion'
+                )}
               </button>
             </div>
           </div>
