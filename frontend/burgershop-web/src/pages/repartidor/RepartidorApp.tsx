@@ -14,6 +14,7 @@ import { desactivarTracking } from '../../api/tracking';
 import { getLocal } from '../../api/locales';
 import { GoogleMap } from '../../components/GoogleMap';
 import { parseFechaUtc } from '../../utils/fechas';
+import { enviarWhatsapp } from '../../utils/whatsapp';
 
 type Tab = 'pendientes' | 'completados' | 'noEntregados';
 
@@ -93,9 +94,10 @@ export default function RepartidorApp() {
 
   const abrirWhatsApp = (pedido: Venta) => {
     if (!pedido.telefonoCliente) return;
-    const tel = pedido.telefonoCliente.replace(/\D/g, '');
-    const msg = encodeURIComponent(`Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} está en camino y será entregado en breve. ¡Gracias por elegirnos!`);
-    window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+    enviarWhatsapp(
+      pedido.telefonoCliente,
+      `Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} está en camino y será entregado en breve. ¡Gracias por elegirnos!`,
+    );
   };
 
   // Cargar dirección del local del repartidor para usar como punto de partida

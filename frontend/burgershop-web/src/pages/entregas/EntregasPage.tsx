@@ -10,6 +10,7 @@ import { useLocalActivo } from '../../context/LocalContext';
 import { useAuth } from '../../context/AuthContext';
 import AdminChat from './AdminChat';
 import RepartosAbandonadosModal from './repartos/RepartosAbandonadosModal';
+import { enviarWhatsapp } from '../../utils/whatsapp';
 
 // Separate from shared estadoColores: entregas uses different colors for visual distinction in the delivery context
 const estadoColorEntrega: Partial<Record<EstadoVenta, string>> = {
@@ -544,9 +545,10 @@ export default function EntregasPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const tel = pedido.telefonoCliente!.replace(/\D/g, '');
-                                  const msg = encodeURIComponent(`Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
-                                  window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+                                  enviarWhatsapp(
+                                    pedido.telefonoCliente!,
+                                    `Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`,
+                                  );
                                 }}
                                 title="Avisar por WhatsApp"
                                 className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors border border-green-300"
@@ -740,9 +742,10 @@ export default function EntregasPage() {
                   </div>
                   <button
                     onClick={() => {
-                      const tel = pedido.telefonoCliente!.replace(/\D/g, '');
-                      const msg = encodeURIComponent(`Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`);
-                      window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+                      enviarWhatsapp(
+                        pedido.telefonoCliente!,
+                        `Hola, somos Hamburguesas La Plata. Tu pedido #${pedido.numeroTicket} fue despachado y será entregado en el transcurso del dia. ¡Gracias por elegirnos!`,
+                      );
                     }}
                     className="flex-shrink-0 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
                   >
