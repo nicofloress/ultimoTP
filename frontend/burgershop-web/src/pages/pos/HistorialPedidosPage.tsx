@@ -10,6 +10,7 @@ import { Zona } from '../../types/logistica';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import EditarPedidoModal from './historial/EditarPedidoModal';
+import { parseFechaUtc } from '../../utils/fechas';
 
 const inputClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
 const selectClass = 'border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
@@ -20,8 +21,7 @@ const tipoLabels: Record<TipoVenta, string> = {
 };
 
 function formatFecha(fecha: string) {
-  // El backend devuelve DateTime sin timezone (hora local del servidor).
-  return new Date(fecha).toLocaleString('es-AR', {
+  return parseFechaUtc(fecha).toLocaleString('es-AR', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });

@@ -18,6 +18,7 @@ import { RolUsuario } from '../../types/auth';
 import NuevaRendicionModal from './rendiciones/NuevaRendicionModal';
 import EditarEstadoPedidoModal from './rendiciones/EditarEstadoPedidoModal';
 import DetalleRendicionModal from './rendiciones/DetalleRendicionModal';
+import { parseFechaUtc } from '../../utils/fechas';
 
 type FiltroEstado = 'todas' | 'pendientes' | 'aprobadas' | 'rechazadas';
 
@@ -316,7 +317,7 @@ export default function RendicionesPage() {
   };
 
   const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleString('es-AR', {
+    return parseFechaUtc(fecha).toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

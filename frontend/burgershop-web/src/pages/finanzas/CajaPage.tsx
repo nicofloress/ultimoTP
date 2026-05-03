@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import DetalleCajaModal from './caja/DetalleCajaModal';
 import RevisionCajaModal from './caja/RevisionCajaModal';
+import { parseFechaUtc } from '../../utils/fechas';
 
 const hoy = new Date();
 const hace7Dias = new Date(hoy);
@@ -207,7 +208,7 @@ export default function CajaPage() {
   const formatMonto = (n: number) => n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleString('es-AR', {
+    return parseFechaUtc(fecha).toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

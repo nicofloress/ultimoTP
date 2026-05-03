@@ -14,18 +14,17 @@ import { getLocales, LocalDto } from '../../api/locales';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { useGlobalToast } from '../../components/Toast';
+import { parseFechaUtc } from '../../utils/fechas';
 
 
 const formatFecha = (f: string) => {
   if (!f) return '-';
-  const d = new Date(f);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return parseFechaUtc(f).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 const formatFechaHora = (f: string) => {
   if (!f) return '-';
-  const d = new Date(f);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  return parseFechaUtc(f).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 };
 
 const formatMonto = (m: number) =>
