@@ -211,7 +211,7 @@ export default function CuentaCorrientePage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 min-h-0 lg:h-[calc(100vh-7.5rem)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-4 min-h-0 lg:h-[calc(100vh-7.5rem)] lg:overflow-hidden">
       {/* Panel izquierdo - lista de cuentas */}
       <div className="w-full lg:w-96 flex-shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden lg:max-h-full max-h-[40vh]">
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-3">
