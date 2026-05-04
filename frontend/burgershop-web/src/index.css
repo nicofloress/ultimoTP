@@ -154,3 +154,19 @@
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.8);
 }
+
+/* Mobile fix: cuando hay un modal abierto (overlay con bg-black/...), bloquea
+   el scroll del fondo para que el usuario pueda scrollear dentro del modal sin
+   que la pagina detras se mueva. Aplica solo si el navegador soporta :has(). */
+@supports selector(:has(*)) {
+  body:has(.fixed.inset-0[class*="bg-black/"]) {
+    overflow: hidden;
+  }
+}
+
+/* Contiene el scroll dentro del overlay del modal para que no se propague al
+   body en iOS / Android cuando el contenido interno llega al limite. */
+.fixed.inset-0[class*="bg-black/"] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
