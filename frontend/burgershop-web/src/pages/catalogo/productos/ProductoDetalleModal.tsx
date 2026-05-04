@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Producto, ListaPrecio } from '../../../types';
+import { getHistorialPrecios, HistorialPrecioDto } from '../../../api/historialPrecios';
+import { parseFechaUtc } from '../../../utils/fechas';
 
 interface Props {
   producto: Producto;
@@ -7,6 +10,12 @@ interface Props {
 }
 
 export default function ProductoDetalleModal({ producto, listas, onClose }: Props) {
+  const [historial, setHistorial] = useState<HistorialPrecioDto[]>([]);
+
+  useEffect(() => {
+    getHistorialPrecios('Producto', producto.id).then(setHistorial).catch(() => {});
+  }, [producto.id]);
+
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
@@ -91,6 +100,32 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
             })}
           </div>
         </div>
+
+        {/* Historial de precios */}
+        {historial.length > 0 && (
+          <div className="px-5 pb-3">
+            <div className="border-t pt-3">
+              <span className="text-gray-500 text-sm font-medium block mb-2">Historial de Precios</span>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {historial.map(h => {
+                  const dif = h.precioNuevo - h.precioAnterior;
+                  return (
+                    <div key={h.id} className="flex justify-between items-center text-xs text-gray-600">
+                      <span>{parseFechaUtc(h.fechaCambio).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-gray-400 line-through">${h.precioAnterior.toLocaleString('es-AR')}</span>
+                        <span className="font-medium">${h.precioNuevo.toLocaleString('es-AR')}</span>
+                        <span className={`font-semibold ${dif > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          {dif > 0 ? '+' : ''}{dif.toLocaleString('es-AR')}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="px-5 py-3 bg-gray-50 rounded-b-xl flex justify-end">

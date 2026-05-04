@@ -10,12 +10,14 @@ public class ProductoService : IProductoService
 {
     private readonly IProductoRepository _repo;
     private readonly IListaPrecioRepository _listaPrecioRepo;
+    private readonly IHistorialPrecioService _historialService;
     private readonly ILogger<ProductoService> _logger;
 
-    public ProductoService(IProductoRepository repo, IListaPrecioRepository listaPrecioRepo, ILogger<ProductoService> logger)
+    public ProductoService(IProductoRepository repo, IListaPrecioRepository listaPrecioRepo, IHistorialPrecioService historialService, ILogger<ProductoService> logger)
     {
         _repo = repo;
         _listaPrecioRepo = listaPrecioRepo;
+        _historialService = historialService;
         _logger = logger;
     }
 
@@ -146,6 +148,7 @@ public class ProductoService : IProductoService
             producto.AlicuotaIVA = dto.AlicuotaIVA;
             producto.UnidadMedida = string.IsNullOrWhiteSpace(dto.UnidadMedida) ? "g" : dto.UnidadMedida;
 
+            var precioVentaAnterior = producto.PrecioVenta;
             var preciosCambiaron = producto.PrecioCosto != dto.PrecioCosto || producto.PrecioVenta != dto.PrecioVenta;
             producto.PrecioCosto = dto.PrecioCosto;
             producto.PrecioVenta = dto.PrecioVenta;
@@ -155,6 +158,9 @@ public class ProductoService : IProductoService
 
             _repo.Update(producto);
             await _repo.SaveChangesAsync();
+
+            if (precioVentaAnterior != dto.PrecioVenta)
+                await _historialService.RegistrarCambioAsync("Producto", id, producto.Nombre, precioVentaAnterior, dto.PrecioVenta);
             return new ProductoDto(producto.Id, producto.Nombre, producto.Descripcion, producto.Precio, producto.CategoriaId, "", producto.Activo, producto.ImagenUrl, producto.Codigo, producto.PesoGramos, producto.UnidadesPorBulto, null, producto.Marca, producto.UnidadesPorMedia, producto.EsOfertaSemanal, producto.PrecioCosto, producto.PrecioVenta, producto.FechaUltimaModificacionPrecio, producto.DiferenciaPrecioCosto, producto.UnidadMinima, producto.AlicuotaIVA, producto.UnidadMedida);
         }
         catch (Exception ex)

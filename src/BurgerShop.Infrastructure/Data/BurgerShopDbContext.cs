@@ -17,6 +17,7 @@ public class BurgerShopDbContext : DbContext
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<Combo> Combos => Set<Combo>();
+    public DbSet<HistorialPrecio> HistorialPrecios => Set<HistorialPrecio>();
     public DbSet<ComboDetalle> ComboDetalles => Set<ComboDetalle>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Venta> Ventas => Set<Venta>();

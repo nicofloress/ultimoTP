@@ -9,11 +9,13 @@ namespace BurgerShop.Application.Catalogo.Services;
 public class ComboService : IComboService
 {
     private readonly IComboRepository _repo;
+    private readonly IHistorialPrecioService _historialService;
     private readonly ILogger<ComboService> _logger;
 
-    public ComboService(IComboRepository repo, ILogger<ComboService> logger)
+    public ComboService(IComboRepository repo, IHistorialPrecioService historialService, ILogger<ComboService> logger)
     {
         _repo = repo;
+        _historialService = historialService;
         _logger = logger;
     }
 
@@ -102,6 +104,8 @@ public class ComboService : IComboService
             var combo = await _repo.GetByIdWithDetallesAsync(id);
             if (combo is null) return null;
 
+            var precioAnterior = combo.Precio;
+
             combo.Codigo = NormalizarCodigo(dto.Codigo);
             combo.Nombre = dto.Nombre;
             combo.Descripcion = dto.Descripcion;
@@ -117,6 +121,9 @@ public class ComboService : IComboService
 
             _repo.Update(combo);
             await _repo.SaveChangesAsync();
+
+            if (precioAnterior != dto.Precio)
+                await _historialService.RegistrarCambioAsync("Combo", id, combo.Nombre, precioAnterior, dto.Precio);
 
             var updated = await _repo.GetByIdWithDetallesAsync(id);
             return ToDto(updated!);

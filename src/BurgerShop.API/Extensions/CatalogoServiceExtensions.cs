@@ -17,6 +17,7 @@ public static class CatalogoServiceExtensions
         services.AddScoped<IListaPrecioRepository, ListaPrecioRepository>();
         services.AddScoped<IPromocionRepository, PromocionRepository>();
         services.AddScoped<IMarcaRepository, MarcaRepository>();
+        services.AddScoped<IHistorialPrecioRepository, HistorialPrecioRepository>();
 
         // Services
         services.AddScoped<ICategoriaService, CategoriaService>();
@@ -26,6 +27,7 @@ public static class CatalogoServiceExtensions
         services.AddScoped<IMarcaService, MarcaService>();
         services.AddScoped<IListaPrecioService, ListaPrecioService>();
         services.AddScoped<IPromocionService, PromocionService>();
+        services.AddScoped<IHistorialPrecioService, HistorialPrecioService>();
 
         // Promociones - evaluators de condiciones (strategy pattern)
         services.AddScoped<IPromocionConditionEvaluator, DiaSemanaEvaluator>();
