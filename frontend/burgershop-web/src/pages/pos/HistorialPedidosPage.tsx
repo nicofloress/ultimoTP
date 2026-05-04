@@ -157,7 +157,7 @@ export default function HistorialPedidosPage() {
   }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro, estadoPagoFiltro]);
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-7.5rem)] overflow-hidden gap-4">
+    <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-7.5rem)] lg:overflow-hidden">
       {/* Lista */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Panel de estadisticas */}
@@ -292,7 +292,7 @@ export default function HistorialPedidosPage() {
         </div>
 
         {/* Tabla */}
-        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 bg-white rounded-lg border-2 border-gray-300 shadow-xl">
+        <div className="overflow-x-auto bg-white rounded-lg border-2 border-gray-300 shadow-xl lg:flex-1 lg:overflow-y-auto lg:min-h-0">
           {pedidosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
