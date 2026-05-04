@@ -54,7 +54,7 @@ export default function DetalleRendicionModal({ detalle, estadoBadge, formatFech
     >
       <div className="flex flex-col lg:flex-row items-stretch gap-3 max-h-[85vh] w-full max-w-4xl" onClick={e => e.stopPropagation()}>
         {/* Panel izquierdo: Rendición */}
-        <div className="bg-white rounded-xl shadow-2xl w-full lg:max-w-md lg:w-[28rem] overflow-hidden flex flex-col flex-shrink-0">
+        <div className="bg-white rounded-xl shadow-2xl w-full lg:max-w-md lg:w-[28rem] overflow-hidden flex flex-col flex-1 min-h-0 lg:flex-none">
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0 bg-slate-700">
             <div>
               <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function DetalleRendicionModal({ detalle, estadoBadge, formatFech
 
         {/* Panel derecho: Detalle del pedido */}
         {pedidoExpandido && (
-          <div className="bg-white rounded-xl shadow-2xl w-full lg:w-[22rem] overflow-hidden flex flex-col flex-shrink-0 animate-in slide-in-from-left-2">
+          <div className="bg-white rounded-xl shadow-2xl w-full lg:w-[22rem] overflow-hidden flex flex-col flex-1 min-h-0 lg:flex-none animate-in slide-in-from-left-2">
             <div className="px-5 py-4 bg-slate-700 flex items-center justify-between flex-shrink-0">
               <div>
                 <div className="font-bold text-white">{pedidoExpandido.numeroTicket}</div>
@@ -311,7 +311,7 @@ export default function DetalleRendicionModal({ detalle, estadoBadge, formatFech
         )}
 
         {cargandoPedido && !pedidoExpandido && pedidoExpandidoId && (
-          <div className="bg-white rounded-xl shadow-2xl w-full lg:w-[22rem] overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className="bg-white rounded-xl shadow-2xl w-full lg:w-[22rem] overflow-hidden flex items-center justify-center flex-1 min-h-0 lg:flex-none">
             <div className="text-gray-400 text-sm">Cargando pedido...</div>
           </div>
         )}

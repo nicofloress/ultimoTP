@@ -164,9 +164,23 @@
   }
 }
 
+/* Mobile-only: paneles fullscreen sin overlay negro (ej: detalle del historial,
+   detalle de ventas) que en mobile son fixed inset-0 y en desktop pasan a
+   lg:static. Cubrimos los z-index tipicos de estas vistas. */
+@media (max-width: 1023.98px) {
+  @supports selector(:has(*)) {
+    body:has(.fixed.inset-0[class*="z-40"]),
+    body:has(.fixed.inset-0[class*="z-50"]),
+    body:has(.fixed.inset-0[class*="z-[60]"]) {
+      overflow: hidden;
+    }
+  }
+}
+
 /* Contiene el scroll dentro del overlay del modal para que no se propague al
    body en iOS / Android cuando el contenido interno llega al limite. */
-.fixed.inset-0[class*="bg-black/"] {
+.fixed.inset-0[class*="bg-black/"],
+.fixed.inset-0.flex.flex-col {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
