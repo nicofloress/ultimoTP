@@ -53,6 +53,7 @@ export interface CierreCaja {
 export interface AbrirCajaDto {
   montoInicial: number;
   observaciones?: string;
+  localId?: number;
 }
 
 export interface CerrarCajaDto {

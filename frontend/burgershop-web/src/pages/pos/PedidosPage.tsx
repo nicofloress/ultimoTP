@@ -5,7 +5,8 @@ import {
   FormaPago, Zona, TipoFactura, ListaPrecio, TipoCliente,
 } from '../../types';
 import { getVentas, crearVenta, cambiarEstado, cancelarVenta, actualizarVenta } from '../../api/pedidos';
-import { getCajaAbierta } from '../../api/caja';
+import { getCajaAbierta, abrirCaja } from '../../api/caja';
+import ModalAbrirCaja from './pos/ModalAbrirCaja';
 import { buscarProductos, buscarCombos, construirIndiceProductos, construirIndiceCombos } from '../../utils/buscarItems';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
@@ -74,6 +75,9 @@ export default function PedidosPage() {
 
   // ===== ESTADO DE CAJA =====
   const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
+  const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
+  const [cajaMontoInicial, setCajaMontoInicial] = useState(0);
+  const [cajaObservaciones, setCajaObservaciones] = useState('');
   useEffect(() => {
     getCajaAbierta(localActivo || undefined).then(c => setCajaAbiertaId(c?.id ?? null));
   }, [localActivo]);
@@ -762,9 +766,15 @@ export default function PedidosPage() {
             <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-            <span className="text-sm font-medium text-red-700">
-              No hay caja abierta en este local. Abrí la caja desde POS antes de registrar pedidos.
+            <span className="flex-1 text-sm font-medium text-red-700">
+              No hay caja abierta en este local. Abrí la caja para registrar pedidos.
             </span>
+            <button
+              onClick={() => setMostrarAbrirCaja(true)}
+              className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-md hover:bg-green-700 transition-colors flex-shrink-0"
+            >
+              Abrir caja
+            </button>
           </div>
         )}
         {/* Zona superior: datos del pedido (izq) + mapa (der) */}
@@ -1454,6 +1464,37 @@ export default function PedidosPage() {
           repartidores={repartidores}
           onAsignar={handleAsignarRepartidor}
           onCerrar={() => setMostrarAsignarRepartidor(null)}
+        />
+      )}
+
+      {/* ============ MODAL ABRIR CAJA ============ */}
+      {mostrarAbrirCaja && (
+        <ModalAbrirCaja
+          montoInicial={cajaMontoInicial}
+          setMontoInicial={setCajaMontoInicial}
+          observaciones={cajaObservaciones}
+          setObservaciones={setCajaObservaciones}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const caja = await abrirCaja({
+                montoInicial: cajaMontoInicial,
+                observaciones: cajaObservaciones || undefined,
+                localId: localActivo || undefined,
+              });
+              setCajaAbiertaId(caja.id);
+              setCajaMontoInicial(0);
+              setCajaObservaciones('');
+              setMostrarAbrirCaja(false);
+              addToast('Caja abierta correctamente', 'success');
+            } catch (err: unknown) {
+              const msg = (err as { response?: { data?: { mensaje?: string } } })?.response?.data?.mensaje || 'No se pudo abrir la caja';
+              addToast(msg, 'error');
+              getCajaAbierta(localActivo || undefined).then(c => { if (c) setCajaAbiertaId(c.id); });
+              setMostrarAbrirCaja(false);
+            }
+          }}
+          onCerrar={() => setMostrarAbrirCaja(false)}
         />
       )}
     </div>
