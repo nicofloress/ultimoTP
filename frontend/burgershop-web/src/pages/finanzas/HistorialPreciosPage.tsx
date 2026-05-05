@@ -9,6 +9,9 @@ export default function HistorialPreciosPage() {
   const [cargando, setCargando] = useState(false);
   const [tipoFiltro, setTipoFiltro] = useState<string>('');
   const [busqueda, setBusqueda] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [sentido, setSentido] = useState<'' | 'aumento' | 'baja'>('');
 
   useEffect(() => {
     setCargando(true);
@@ -28,8 +31,18 @@ export default function HistorialPreciosPage() {
         h.entidadId.toString().includes(term)
       );
     }
+    if (fechaDesde) {
+      const desde = new Date(fechaDesde + 'T00:00:00');
+      items = items.filter(h => parseFechaUtc(h.fechaCambio) >= desde);
+    }
+    if (fechaHasta) {
+      const hasta = new Date(fechaHasta + 'T23:59:59');
+      items = items.filter(h => parseFechaUtc(h.fechaCambio) <= hasta);
+    }
+    if (sentido === 'aumento') items = items.filter(h => h.precioNuevo > h.precioAnterior);
+    if (sentido === 'baja') items = items.filter(h => h.precioNuevo < h.precioAnterior);
     return items;
-  }, [historial, tipoFiltro, busqueda]);
+  }, [historial, tipoFiltro, busqueda, fechaDesde, fechaHasta, sentido]);
 
   const formatFecha = (fecha: string) =>
     parseFechaUtc(fecha).toLocaleString('es-AR', {
@@ -52,6 +65,17 @@ export default function HistorialPreciosPage() {
           <option value="Combo">Combos</option>
           <option value="Producto">Productos</option>
         </select>
+        <select className={selectClass} value={sentido} onChange={e => setSentido(e.target.value as '' | 'aumento' | 'baja')}>
+          <option value="">Aumentos y bajas</option>
+          <option value="aumento">Solo aumentos</option>
+          <option value="baja">Solo bajas</option>
+        </select>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-500 font-medium">Desde</span>
+          <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className={selectClass} />
+          <span className="text-xs text-gray-500 font-medium">Hasta</span>
+          <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} className={selectClass} />
+        </div>
         <input
           type="text"
           placeholder="Buscar por nombre o ID..."
