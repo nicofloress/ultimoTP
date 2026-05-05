@@ -38,7 +38,8 @@ export default function POSPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const [listasPrecios, setListasPrecios] = useState<ListaPrecio[]>([]);
-  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
+  // undefined = aun cargando, null = confirmado sin caja, number = caja abierta
+  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null | undefined>(undefined);
   const [promociones, setPromociones] = useState<PromocionDto[]>([]);
 
   // Carrito
@@ -1082,14 +1083,24 @@ export default function POSPage() {
       {/* ============ PANEL DERECHO: CAJA ============ */}
       <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 lg:max-h-full">
         {/* Caja info */}
-        <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${cajaAbiertaId ? 'bg-slate-800 text-white shadow-lg border-b-2 border-amber-500' : 'bg-red-50 border-b border-red-200'}`}>
+        <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${
+          cajaAbiertaId === undefined
+            ? 'bg-slate-100 border-b border-slate-200'
+            : cajaAbiertaId
+              ? 'bg-slate-800 text-white shadow-lg border-b-2 border-amber-500'
+              : 'bg-red-50 border-b border-red-200'
+        }`}>
           <div>
-            <div className={`text-[10px] uppercase tracking-wider ${cajaAbiertaId ? 'text-slate-400' : 'text-red-400'}`}>Caja</div>
-            <div className={`font-bold text-sm ${cajaAbiertaId ? 'text-white' : 'text-red-600'}`}>
-              {cajaAbiertaId ? `Caja #${cajaAbiertaId}` : 'Caja Cerrada'}
+            <div className={`text-[10px] uppercase tracking-wider ${
+              cajaAbiertaId === undefined ? 'text-slate-400' : cajaAbiertaId ? 'text-slate-400' : 'text-red-400'
+            }`}>Caja</div>
+            <div className={`font-bold text-sm ${
+              cajaAbiertaId === undefined ? 'text-slate-400' : cajaAbiertaId ? 'text-white' : 'text-red-600'
+            }`}>
+              {cajaAbiertaId === undefined ? 'Cargando...' : cajaAbiertaId ? `Caja #${cajaAbiertaId}` : 'Caja Cerrada'}
             </div>
           </div>
-          {!cajaAbiertaId && (
+          {cajaAbiertaId === null && (
             <button
               onClick={() => setMostrarAbrirCaja(true)}
               className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-xs font-bold px-3 py-1.5 transition-colors"

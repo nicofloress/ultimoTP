@@ -74,11 +74,13 @@ export default function PedidosPage() {
   const [busquedaTicket, setBusquedaTicket] = useState('');
 
   // ===== ESTADO DE CAJA =====
-  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
+  // undefined = aun cargando, null = confirmado sin caja, number = caja abierta
+  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null | undefined>(undefined);
   const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
   const [cajaMontoInicial, setCajaMontoInicial] = useState(0);
   const [cajaObservaciones, setCajaObservaciones] = useState('');
   useEffect(() => {
+    setCajaAbiertaId(undefined);
     getCajaAbierta(localActivo || undefined).then(c => setCajaAbiertaId(c?.id ?? null));
   }, [localActivo]);
 
@@ -760,8 +762,8 @@ export default function PedidosPage() {
 
       {/* ============ PANEL IZQUIERDO: FORMULARIO ============ */}
       <div className={`flex-1 flex flex-col min-w-0 min-h-0 ${panelMovil !== 'formulario' ? 'hidden lg:flex' : ''}`}>
-        {/* Banner: caja cerrada */}
-        {!cajaAbiertaId && (
+        {/* Banner: caja cerrada (solo si confirmado, no durante carga inicial) */}
+        {cajaAbiertaId === null && (
           <div className="mb-1.5 bg-red-50 border-2 border-red-300 rounded-lg px-3 py-2 flex items-center gap-2 flex-shrink-0">
             <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
