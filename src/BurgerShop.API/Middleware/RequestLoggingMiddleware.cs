@@ -30,10 +30,28 @@ public class RequestLoggingMiddleware
     {
         var stopwatch = Stopwatch.StartNew();
 
+        // Buffer la respuesta para poder leer el body si hay error
+        var originalBodyStream = context.Response.Body;
+        using var memStream = new MemoryStream();
+        context.Response.Body = memStream;
+
         try
         {
             await _next(context);
             stopwatch.Stop();
+
+            string? responseBody = null;
+            if (context.Response.StatusCode >= 400 && memStream.Length > 0)
+            {
+                memStream.Seek(0, SeekOrigin.Begin);
+                using var reader = new StreamReader(memStream, leaveOpen: true);
+                responseBody = await reader.ReadToEndAsync();
+            }
+
+            // Volcar el buffer al stream real para que el cliente reciba la respuesta
+            memStream.Seek(0, SeekOrigin.Begin);
+            await memStream.CopyToAsync(originalBodyStream);
+            context.Response.Body = originalBodyStream;
 
             // Solo logueamos respuestas con error (4xx/5xx) que no fueron excepciones
             if (context.Response.StatusCode >= 400)
@@ -41,12 +59,16 @@ public class RequestLoggingMiddleware
                 await RegistrarLogAsync(
                     context,
                     stopwatch.ElapsedMilliseconds,
-                    excepcion: null);
+                    excepcion: null,
+                    responseBody: responseBody);
             }
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
+
+            // Restaurar el body stream antes de escribir la respuesta de error
+            context.Response.Body = originalBodyStream;
 
             // Loguear en el sistema de logging de .NET también
             _logger.LogError(ex, "Excepción no controlada en {Method} {Path}",
@@ -58,7 +80,8 @@ public class RequestLoggingMiddleware
                 await RegistrarLogAsync(
                     context,
                     stopwatch.ElapsedMilliseconds,
-                    excepcion: ex);
+                    excepcion: ex,
+                    responseBody: null);
             }
             catch (Exception logEx)
             {
@@ -81,7 +104,7 @@ public class RequestLoggingMiddleware
         }
     }
 
-    private async Task RegistrarLogAsync(HttpContext context, long duracionMs, Exception? excepcion)
+    private async Task RegistrarLogAsync(HttpContext context, long duracionMs, Exception? excepcion, string? responseBody = null)
     {
         try
         {
@@ -113,6 +136,14 @@ public class RequestLoggingMiddleware
             var mensaje = excepcion is not null
                 ? excepcion.Message
                 : $"HTTP {context.Response.StatusCode} en {context.Request.Method} {context.Request.Path}";
+
+            // Si tenemos response body (errores 4xx con BadRequest), intentar extraer el mensaje
+            if (excepcion is null && !string.IsNullOrWhiteSpace(responseBody))
+            {
+                var detalle = ExtraerMensajeDeBody(responseBody);
+                if (!string.IsNullOrWhiteSpace(detalle))
+                    mensaje = $"{mensaje} - {detalle}";
+            }
 
             var ip = context.Connection.RemoteIpAddress?.ToString();
             var userAgent = context.Request.Headers.UserAgent.ToString();
@@ -155,6 +186,51 @@ public class RequestLoggingMiddleware
             // Si falla el propio sistema de logging, solo escribimos en el logger de .NET
             // para no ocultar el error original ni causar bucles infinitos
             _logger.LogError(logEx, "Error al intentar persistir un log en la base de datos.");
+        }
+    }
+
+    private static string? ExtraerMensajeDeBody(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return body.Length > 500 ? body.Substring(0, 500) : body;
+
+            // Probar varias claves comunes
+            foreach (var key in new[] { "mensaje", "message", "error", "title", "detail" })
+            {
+                if (root.TryGetProperty(key, out var prop) && prop.ValueKind == JsonValueKind.String)
+                {
+                    var valor = prop.GetString();
+                    if (!string.IsNullOrWhiteSpace(valor)) return valor;
+                }
+            }
+
+            // ProblemDetails / ValidationProblemDetails: errors es un objeto con arrays
+            if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
+            {
+                var partes = new List<string>();
+                foreach (var prop in errors.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var msg in prop.Value.EnumerateArray())
+                        {
+                            if (msg.ValueKind == JsonValueKind.String)
+                                partes.Add($"{prop.Name}: {msg.GetString()}");
+                        }
+                    }
+                }
+                if (partes.Count > 0) return string.Join("; ", partes);
+            }
+
+            return body.Length > 500 ? body.Substring(0, 500) : body;
+        }
+        catch
+        {
+            return body.Length > 500 ? body.Substring(0, 500) : body;
         }
     }
 
