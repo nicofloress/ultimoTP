@@ -5,6 +5,7 @@ import {
   FormaPago, Zona, TipoFactura, ListaPrecio, TipoCliente,
 } from '../../types';
 import { getVentas, crearVenta, cambiarEstado, cancelarVenta, actualizarVenta } from '../../api/pedidos';
+import { getCajaAbierta } from '../../api/caja';
 import { buscarProductos, buscarCombos, construirIndiceProductos, construirIndiceCombos } from '../../utils/buscarItems';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
@@ -70,6 +71,12 @@ export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Venta[]>([]);
   const [filtroEstado, setFiltroEstado] = useState<EstadoVenta | null>(null);
   const [busquedaTicket, setBusquedaTicket] = useState('');
+
+  // ===== ESTADO DE CAJA =====
+  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
+  useEffect(() => {
+    getCajaAbierta(localActivo || undefined).then(c => setCajaAbiertaId(c?.id ?? null));
+  }, [localActivo]);
 
   // ===== PANEL IZQUIERDO: FORMULARIO =====
   const [editandoPedido, setEditandoPedido] = useState<Venta | null>(null);
@@ -596,6 +603,10 @@ export default function PedidosPage() {
   // ===== CREAR PEDIDO =====
   const handleCrearPedido = async () => {
     if (!formularioValido) return;
+    if (!cajaAbiertaId) {
+      addToast('Debe abrir la caja antes de registrar un pedido', 'error');
+      return;
+    }
     setCreandoPedido(true);
     try {
     await crearVenta({
@@ -625,8 +636,11 @@ export default function PedidosPage() {
     addToast('Pedido creado correctamente', 'success');
     limpiarFormulario();
     cargarPedidos();
-    } catch {
-      addToast('Error al crear pedido', 'error');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { mensaje?: string; message?: string } } })?.response?.data?.mensaje
+        || (err as { response?: { data?: { mensaje?: string; message?: string } } })?.response?.data?.message
+        || 'Error al crear pedido';
+      addToast(msg, 'error');
     } finally {
       setCreandoPedido(false);
     }
@@ -742,6 +756,17 @@ export default function PedidosPage() {
 
       {/* ============ PANEL IZQUIERDO: FORMULARIO ============ */}
       <div className={`flex-1 flex flex-col min-w-0 min-h-0 ${panelMovil !== 'formulario' ? 'hidden lg:flex' : ''}`}>
+        {/* Banner: caja cerrada */}
+        {!cajaAbiertaId && (
+          <div className="mb-1.5 bg-red-50 border-2 border-red-300 rounded-lg px-3 py-2 flex items-center gap-2 flex-shrink-0">
+            <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span className="text-sm font-medium text-red-700">
+              No hay caja abierta en este local. Abrí la caja desde POS antes de registrar pedidos.
+            </span>
+          </div>
+        )}
         {/* Zona superior: datos del pedido (izq) + mapa (der) */}
         <div className="flex gap-2 mb-1.5 flex-shrink-0">
           {/* Columna izquierda: Header + Direccion + Telefono + Programar */}

@@ -30,6 +30,18 @@ public class RequestLoggingMiddleware
     {
         var stopwatch = Stopwatch.StartNew();
 
+        // Buffer del request body (solo si es POST/PUT/PATCH y no es muy grande)
+        string? requestBody = null;
+        var method = context.Request.Method;
+        if ((method == "POST" || method == "PUT" || method == "PATCH") &&
+            context.Request.ContentLength is > 0 and < 8192) // limite 8KB para evitar logs gigantes
+        {
+            context.Request.EnableBuffering();
+            using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
+            requestBody = await reader.ReadToEndAsync();
+            context.Request.Body.Position = 0;
+        }
+
         // Buffer la respuesta para poder leer el body si hay error
         var originalBodyStream = context.Response.Body;
         using var memStream = new MemoryStream();
@@ -60,7 +72,8 @@ public class RequestLoggingMiddleware
                     context,
                     stopwatch.ElapsedMilliseconds,
                     excepcion: null,
-                    responseBody: responseBody);
+                    responseBody: responseBody,
+                    requestBody: requestBody);
             }
         }
         catch (Exception ex)
@@ -81,7 +94,8 @@ public class RequestLoggingMiddleware
                     context,
                     stopwatch.ElapsedMilliseconds,
                     excepcion: ex,
-                    responseBody: null);
+                    responseBody: null,
+                    requestBody: requestBody);
             }
             catch (Exception logEx)
             {
@@ -104,7 +118,7 @@ public class RequestLoggingMiddleware
         }
     }
 
-    private async Task RegistrarLogAsync(HttpContext context, long duracionMs, Exception? excepcion, string? responseBody = null)
+    private async Task RegistrarLogAsync(HttpContext context, long duracionMs, Exception? excepcion, string? responseBody = null, string? requestBody = null)
     {
         try
         {
@@ -143,6 +157,13 @@ public class RequestLoggingMiddleware
                 var detalle = ExtraerMensajeDeBody(responseBody);
                 if (!string.IsNullOrWhiteSpace(detalle))
                     mensaje = $"{mensaje} - {detalle}";
+            }
+
+            // Adjuntar request body al mensaje si está disponible (truncado a 1KB)
+            if (!string.IsNullOrWhiteSpace(requestBody))
+            {
+                var bodyTrimmed = requestBody.Length > 1024 ? requestBody.Substring(0, 1024) + "..." : requestBody;
+                mensaje = $"{mensaje}\n[REQUEST BODY] {bodyTrimmed}";
             }
 
             var ip = context.Connection.RemoteIpAddress?.ToString();
