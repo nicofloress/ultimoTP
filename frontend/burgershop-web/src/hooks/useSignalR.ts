@@ -74,6 +74,9 @@ export function useSignalR() {
 
     // Mensajes
     connection.on('NuevoMensaje', (data: SignalREvent) => {
+      // Emitir evento para que AdminChat (u otros) puedan reaccionar en tiempo real
+      window.dispatchEvent(new CustomEvent('chat:nuevo-mensaje', { detail: data }));
+      // Solo notificar (toast + sonido) si corresponde al local activo
       notifyIfLocal(data, 'info');
     });
 

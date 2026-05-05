@@ -69,6 +69,15 @@ public class MensajesController : ControllerBase
         var count = await _service.GetNoLeidosCountAsync(repartidorId, esDeAdmin);
         return Ok(count);
     }
+
+    [HttpGet("no-leidos/bulk")]
+    public async Task<ActionResult<IEnumerable<NoLeidosCountDto>>> GetNoLeidosBulk(
+        [FromQuery] int? localId = null,
+        [FromQuery] bool esDeAdmin = true)
+    {
+        var counts = await _service.GetNoLeidosBulkAsync(localId, esDeAdmin);
+        return Ok(counts);
+    }
 }
 
 public record EnviarMensajeRepartidorDto(string Texto);

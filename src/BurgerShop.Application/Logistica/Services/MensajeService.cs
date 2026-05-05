@@ -81,6 +81,20 @@ public class MensajeService : IMensajeService
         }
     }
 
+    public async Task<IEnumerable<NoLeidosCountDto>> GetNoLeidosBulkAsync(int? localId, bool esDeAdmin)
+    {
+        try
+        {
+            var result = await _repo.GetNoLeidosBulkAsync(localId, esDeAdmin);
+            return result.Select(x => new NoLeidosCountDto(x.RepartidorId, x.Count));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetNoLeidosBulkAsync), ex.Message);
+            throw;
+        }
+    }
+
     private static MensajeDto ToDto(Mensaje m) => new(
         m.Id, m.RepartidorId, m.Texto, m.EsDeAdmin, m.FechaEnvio, m.Leido);
 }

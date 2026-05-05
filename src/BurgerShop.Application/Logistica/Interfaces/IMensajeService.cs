@@ -8,4 +8,5 @@ public interface IMensajeService
     Task<MensajeDto> EnviarMensajeAsync(CrearMensajeDto dto, bool esDeAdmin);
     Task MarcarLeidosAsync(int repartidorId, bool esDeAdmin);
     Task<int> GetNoLeidosCountAsync(int repartidorId, bool esDeAdmin);
+    Task<IEnumerable<NoLeidosCountDto>> GetNoLeidosBulkAsync(int? localId, bool esDeAdmin);
 }

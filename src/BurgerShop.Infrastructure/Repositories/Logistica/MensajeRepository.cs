@@ -40,4 +40,23 @@ public class MensajeRepository : Repository<Mensaje>, IMensajeRepository
         return await _dbSet
             .CountAsync(m => m.RepartidorId == repartidorId && m.EsDeAdmin != esDeAdmin && !m.Leido);
     }
+
+    public async Task<IReadOnlyList<(int RepartidorId, int Count)>> GetNoLeidosBulkAsync(int? localId, bool esDeAdmin)
+    {
+        // Cuenta no leídos por repartidor en una sola query, opcionalmente filtrado por local
+        var query = _dbSet
+            .Where(m => m.EsDeAdmin != esDeAdmin && !m.Leido);
+
+        if (localId.HasValue)
+        {
+            query = query.Where(m => m.Repartidor.LocalId == localId.Value);
+        }
+
+        var result = await query
+            .GroupBy(m => m.RepartidorId)
+            .Select(g => new { RepartidorId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        return result.Select(x => (x.RepartidorId, x.Count)).ToList();
+    }
 }
