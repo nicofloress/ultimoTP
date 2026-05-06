@@ -562,6 +562,10 @@ export default function POSPage() {
       showToast('Debe ingresar el monto pagado', 'error');
       return;
     }
+    if (modoPago === 'total' && deuda > 0) {
+      showToast(`Faltan $${formatearNumero(deuda, 2)} por cubrir. Usá pago dividido o cuenta corriente.`, 'error');
+      return;
+    }
     const pagosValidos = pagosDivididos.filter(p => p.formaPagoId > 0 && p.monto > 0);
     if (modoPago === 'dividido' && pagosValidos.length === 0) {
       showToast('Debe agregar al menos un pago con forma de pago y monto', 'error');

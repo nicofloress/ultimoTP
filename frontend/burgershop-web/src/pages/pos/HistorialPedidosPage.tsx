@@ -5,8 +5,9 @@ import { useGlobalToast } from '../../components/Toast';
 import { getLocales, LocalDto } from '../../api/locales';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { getZonas } from '../../api/zonas';
+import { getRepartidores } from '../../api/repartidores';
 import { FormaPago } from '../../types/ventas';
-import { Zona } from '../../types/logistica';
+import { Zona, Repartidor } from '../../types/logistica';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import EditarPedidoModal from './historial/EditarPedidoModal';
@@ -72,27 +73,76 @@ export default function HistorialPedidosPage() {
   const [formaPagoFiltro, setFormaPagoFiltro] = useState<number | ''>('');
   const [estadoPagoFiltro, setEstadoPagoFiltro] = useState<'' | 'pagado' | 'pendiente' | 'ctacte'>('');
   const [zonas, setZonas] = useState<Zona[]>([]);
+  const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
+  const [repartidorFiltro, setRepartidorFiltro] = useState<number | ''>('');
+  const [zonaFiltro, setZonaFiltro] = useState<number | ''>('');
+  const [tipoFiltro, setTipoFiltro] = useState<TipoVenta | ''>(TipoVenta.Domicilio);
+  const [montoMin, setMontoMin] = useState<string>('');
+  const [montoMax, setMontoMax] = useState<string>('');
+  const [comprobanteFiltro, setComprobanteFiltro] = useState<'' | 'con' | 'sin'>('');
+  const [filtrosAvanzados, setFiltrosAvanzados] = useState(false);
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+  const [statsMobileVisibles, setStatsMobileVisibles] = useState(false);
   const [mostrarEditar, setMostrarEditar] = useState(false);
 
   useEffect(() => {
     getLocales().then(setLocales);
     getFormasPagoActivas().then(setFormasPago);
     getZonas().then(setZonas).catch(() => {});
+    getRepartidores().then(setRepartidores).catch(() => {});
   }, []);
+
+  // Repartidores y zonas filtrados por local activo
+  const repartidoresVisibles = useMemo(() => {
+    return repartidores.filter(r => {
+      if (!r.activo) return false;
+      if (esSuperAdmin && !localSeleccionado) return true;
+      return r.localId === localSeleccionado;
+    });
+  }, [repartidores, esSuperAdmin, localSeleccionado]);
+
+  const zonasVisibles = useMemo(() => {
+    return zonas.filter(z => {
+      if (!z.activa) return false;
+      if (esSuperAdmin && !localSeleccionado) return true;
+      return z.localId === localSeleccionado;
+    });
+  }, [zonas, esSuperAdmin, localSeleccionado]);
+
+  // Resetear filtros dependientes cuando cambia el local
+  useEffect(() => {
+    setRepartidorFiltro('');
+    setZonaFiltro('');
+  }, [localSeleccionado]);
 
   const cargar = async () => {
     setCargando(true);
+    setFiltrosMobileVisibles(false);
     try {
-      getVentaStats(fechaDesde, localSeleccionado || undefined, TipoVenta.Domicilio).then(setStats).catch(() => {});
+      const tipoStats = tipoFiltro === '' ? undefined : tipoFiltro;
+      getVentaStats(fechaDesde, localSeleccionado || undefined, tipoStats).then(setStats).catch(() => {});
       const estado = estadoFiltro !== '' ? estadoFiltro : undefined;
       const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
       const data = await getVentas(fechaDesde, estado, hasta, localSeleccionado || undefined);
-      setPedidos(data.filter(v => v.tipo === TipoVenta.Domicilio));
+      setPedidos(data);
     } catch (err) {
       console.error('Error cargando historial:', err);
     } finally {
       setCargando(false);
     }
+  };
+
+  const limpiarFiltros = () => {
+    setEstadoFiltro('');
+    setFormaPagoFiltro('');
+    setEstadoPagoFiltro('');
+    setRepartidorFiltro('');
+    setZonaFiltro('');
+    setTipoFiltro(TipoVenta.Domicilio);
+    setMontoMin('');
+    setMontoMax('');
+    setComprobanteFiltro('');
+    setBusqueda('');
   };
 
   // Cargar al montar solo
@@ -115,6 +165,7 @@ export default function HistorialPedidosPage() {
 
   const pedidosFiltrados = useMemo(() => {
     let lista = pedidos;
+    if (tipoFiltro !== '') lista = lista.filter(p => p.tipo === tipoFiltro);
     if (formaPagoFiltro !== '') {
       lista = lista.filter(p => {
         if (p.pagos && p.pagos.length > 0) return p.pagos.some(pg => pg.formaPagoId === formaPagoFiltro);
@@ -124,12 +175,21 @@ export default function HistorialPedidosPage() {
     if (estadoPagoFiltro === 'pagado') lista = lista.filter(p => p.estaPago);
     else if (estadoPagoFiltro === 'pendiente') lista = lista.filter(p => !p.estaPago && p.formaPagoNombre !== 'Cuenta Corriente');
     else if (estadoPagoFiltro === 'ctacte') lista = lista.filter(p => p.formaPagoNombre === 'Cuenta Corriente');
+    if (repartidorFiltro !== '') lista = lista.filter(p => p.repartidorId === repartidorFiltro);
+    if (zonaFiltro !== '') lista = lista.filter(p => p.zonaId === zonaFiltro);
+    const min = montoMin ? Number(montoMin) : null;
+    const max = montoMax ? Number(montoMax) : null;
+    if (min !== null && !isNaN(min)) lista = lista.filter(p => p.total >= min);
+    if (max !== null && !isNaN(max)) lista = lista.filter(p => p.total <= max);
+    if (comprobanteFiltro === 'con') lista = lista.filter(p => !!p.comprobanteEntrega);
+    else if (comprobanteFiltro === 'sin') lista = lista.filter(p => !p.comprobanteEntrega);
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
       lista = lista.filter(p =>
         p.numeroTicket.toLowerCase().includes(q) ||
         p.nombreCliente?.toLowerCase().includes(q) ||
-        p.direccionEntrega?.toLowerCase().includes(q)
+        p.direccionEntrega?.toLowerCase().includes(q) ||
+        p.telefonoCliente?.toLowerCase().includes(q)
       );
     }
     const dir = ordenDir === 'asc' ? 1 : -1;
@@ -154,15 +214,32 @@ export default function HistorialPedidosPage() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro, estadoPagoFiltro]);
+  }, [pedidos, busqueda, ordenCol, ordenDir, formaPagoFiltro, estadoPagoFiltro, repartidorFiltro, zonaFiltro, tipoFiltro, montoMin, montoMax, comprobanteFiltro]);
+
+  // Cantidad de filtros avanzados activos (los que estan ocultos en el panel colapsable)
+  const cantidadFiltrosAvanzados =
+    (repartidorFiltro !== '' ? 1 : 0) +
+    (zonaFiltro !== '' ? 1 : 0) +
+    (tipoFiltro !== TipoVenta.Domicilio ? 1 : 0) +
+    (montoMin !== '' ? 1 : 0) +
+    (montoMax !== '' ? 1 : 0) +
+    (comprobanteFiltro !== '' ? 1 : 0);
+
+  // Total de filtros activos (para el badge del toggle mobile)
+  const totalFiltrosActivos =
+    cantidadFiltrosAvanzados +
+    (estadoFiltro !== '' ? 1 : 0) +
+    (formaPagoFiltro !== '' ? 1 : 0) +
+    (estadoPagoFiltro !== '' ? 1 : 0) +
+    (busqueda.trim() !== '' ? 1 : 0);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-7.5rem)] lg:overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-7.5rem)] overflow-hidden">
       {/* Lista */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Panel de estadisticas */}
+        {/* Panel de estadisticas — oculto por defecto en mobile */}
         {stats && (
-          <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg mb-3 flex-shrink-0">
+          <div className={`${statsMobileVisibles ? 'block' : 'hidden'} sm:block bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg mb-3 flex-shrink-0`}>
             {/* Fila 1: Comparativas */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-4 py-2.5">
               <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide w-full sm:w-auto">Nro. total de pedidos</span>
@@ -190,8 +267,67 @@ export default function HistorialPedidosPage() {
           </div>
         )}
 
+        {/* Barra mobile compacta: toggle de filtros + stats + recuento */}
+        <div className="sm:hidden flex items-center gap-2 pb-2 flex-shrink-0">
+          <button
+            onClick={() => setStatsMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center transition-colors ${
+              statsMobileVisibles
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label={statsMobileVisibles ? 'Ocultar estadisticas' : 'Mostrar estadisticas'}
+            title={statsMobileVisibles ? 'Ocultar estadisticas' : 'Mostrar estadisticas'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md border flex items-center justify-center gap-1.5 transition-colors ${
+              filtrosMobileVisibles || totalFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span>Filtros</span>
+            {totalFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {totalFiltrosActivos}
+              </span>
+            )}
+            <svg className={`w-4 h-4 transition-transform ${filtrosMobileVisibles ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={cargar}
+            disabled={cargando}
+            className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1"
+            aria-label="Buscar"
+          >
+            {cargando ? (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+          </button>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {pedidosFiltrados.length} resultado{pedidosFiltrados.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
         {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pb-3 flex-shrink-0">
+        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-2 sm:gap-3 pb-3 flex-shrink-0`}>
           {/* Filtro por local — visual, sin filtrado real (los pedidos no tienen localId directo) */}
           {/* TODO: implementar filtrado por local en backend */}
           <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
@@ -275,11 +411,30 @@ export default function HistorialPedidosPage() {
           </select>
           <input
             type="text"
-            placeholder="Buscar ticket, cliente, direccion..."
+            placeholder="Buscar ticket, cliente, direccion, telefono..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             className={`${inputClass} w-full sm:flex-1 sm:min-w-[200px]`}
           />
+          <button
+            onClick={() => setFiltrosAvanzados(v => !v)}
+            className={`px-2.5 py-1.5 text-[13px] font-medium rounded-md border flex items-center gap-1.5 transition-colors ${
+              filtrosAvanzados || cantidadFiltrosAvanzados > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300 hover:bg-amber-100'
+                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+            }`}
+            title="Mostrar/ocultar filtros avanzados"
+          >
+            <svg className="w-[16px] h-[16px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Mas filtros
+            {cantidadFiltrosAvanzados > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosAvanzados}
+              </span>
+            )}
+          </button>
           <span className="text-sm text-gray-500">
             {pedidosFiltrados.length} resultado{pedidosFiltrados.length !== 1 ? 's' : ''}
           </span>
@@ -291,8 +446,84 @@ export default function HistorialPedidosPage() {
           )}
         </div>
 
+        {/* Filtros avanzados (colapsables) */}
+        {filtrosAvanzados && (
+          <div className="bg-amber-50/60 border border-amber-200 rounded-md px-3 py-2.5 mb-3 flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+            <select
+              value={tipoFiltro}
+              onChange={e => setTipoFiltro(e.target.value === '' ? '' : Number(e.target.value) as TipoVenta)}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Tipo: Todos</option>
+              <option value={TipoVenta.Domicilio}>Solo Domicilio</option>
+              <option value={TipoVenta.Mostrador}>Solo Mostrador</option>
+            </select>
+            <select
+              value={repartidorFiltro}
+              onChange={e => setRepartidorFiltro(e.target.value === '' ? '' : Number(e.target.value))}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Todos los repartidores</option>
+              {repartidoresVisibles.map(r => (
+                <option key={r.id} value={r.id}>{r.nombre}</option>
+              ))}
+            </select>
+            <select
+              value={zonaFiltro}
+              onChange={e => setZonaFiltro(e.target.value === '' ? '' : Number(e.target.value))}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Todas las zonas</option>
+              {zonasVisibles.map(z => (
+                <option key={z.id} value={z.id}>{z.nombre}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500 font-medium">Monto</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="Min"
+                value={montoMin}
+                onChange={e => setMontoMin(e.target.value)}
+                className={`${inputClass} w-24`}
+              />
+              <span className="text-xs text-gray-400">-</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="Max"
+                value={montoMax}
+                onChange={e => setMontoMax(e.target.value)}
+                className={`${inputClass} w-24`}
+              />
+            </div>
+            <select
+              value={comprobanteFiltro}
+              onChange={e => setComprobanteFiltro(e.target.value as '' | 'con' | 'sin')}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Comprobante: Todos</option>
+              <option value="con">Con comprobante</option>
+              <option value="sin">Sin comprobante</option>
+            </select>
+            <button
+              onClick={limpiarFiltros}
+              className="ml-auto px-2.5 py-1.5 text-[13px] font-medium text-gray-600 border border-gray-300 rounded-md hover:bg-white transition-colors flex items-center gap-1"
+              title="Limpiar todos los filtros"
+            >
+              <svg className="w-[14px] h-[14px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Limpiar
+            </button>
+          </div>
+        )}
+
         {/* Tabla */}
-        <div className="overflow-x-auto bg-white rounded-lg border-2 border-gray-300 shadow-xl lg:flex-1 lg:overflow-y-auto lg:min-h-0">
+        <div className="overflow-x-auto bg-white rounded-lg border-2 border-gray-300 shadow-xl flex-1 overflow-y-auto min-h-0">
           {pedidosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

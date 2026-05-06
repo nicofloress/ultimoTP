@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Venta, estadoLabels, estadoColores, TipoVenta, EstadoVenta } from '../../types';
-import { getVentas, getVentaStats, VentaStats, asignarCaja, cancelarVenta } from '../../api/pedidos';
+import { getVentas, getVentaStats, VentaStats, asignarCaja, cancelarVenta, enviarADeposito } from '../../api/pedidos';
 import { getLocales, LocalDto } from '../../api/locales';
+import { getFormasPagoActivas } from '../../api/formasPago';
+import { FormaPago } from '../../types/ventas';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
 import { useGlobalToast } from '../../components/Toast';
@@ -62,6 +64,17 @@ export default function VentasPage() {
   const [ventaAnular, setVentaAnular] = useState<Venta | null>(null);
   const [motivoAnulacion, setMotivoAnulacion] = useState('');
   const [anulando, setAnulando] = useState(false);
+  // Filtros avanzados
+  const [estadoFiltro, setEstadoFiltro] = useState<number | ''>('');
+  const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+  const [formaPagoFiltro, setFormaPagoFiltro] = useState<number | ''>('');
+  const [estadoPagoFiltro, setEstadoPagoFiltro] = useState<'' | 'pagado' | 'ctacte'>('');
+  const [montoMin, setMontoMin] = useState<string>('');
+  const [montoMax, setMontoMax] = useState<string>('');
+  const [cajaFiltro, setCajaFiltro] = useState<'' | 'con' | 'sin'>('');
+  const [filtrosAvanzados, setFiltrosAvanzados] = useState(false);
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+  const [statsMobileVisibles, setStatsMobileVisibles] = useState(false);
   const { showToast } = useGlobalToast();
 
   const imprimirVenta = (v: Venta) => {
@@ -96,20 +109,33 @@ export default function VentasPage() {
 
   useEffect(() => {
     getLocales().then(setLocales);
+    getFormasPagoActivas().then(setFormasPago).catch(() => {});
   }, []);
 
   const cargar = async () => {
     setCargando(true);
+    setFiltrosMobileVisibles(false);
     try {
       getVentaStats(fechaDesde, localSeleccionado || undefined, TipoVenta.Mostrador).then(setStats).catch(() => {});
       const hasta = fechaHasta && fechaHasta !== fechaDesde ? fechaHasta : undefined;
-      const data = await getVentas(fechaDesde, undefined, hasta, localSeleccionado || undefined);
+      const estado = estadoFiltro !== '' ? estadoFiltro : undefined;
+      const data = await getVentas(fechaDesde, estado, hasta, localSeleccionado || undefined);
       setVentas(data.filter(v => v.tipo === TipoVenta.Mostrador));
     } catch (err) {
       console.error('Error cargando ventas:', err);
     } finally {
       setCargando(false);
     }
+  };
+
+  const limpiarFiltros = () => {
+    setEstadoFiltro('');
+    setFormaPagoFiltro('');
+    setEstadoPagoFiltro('');
+    setMontoMin('');
+    setMontoMax('');
+    setCajaFiltro('');
+    setBusqueda('');
   };
 
   // Cargar al montar (con filtros por defecto = hoy)
@@ -147,11 +173,26 @@ export default function VentasPage() {
 
   const ventasFiltradas = useMemo(() => {
     let lista = ventas;
+    if (formaPagoFiltro !== '') {
+      lista = lista.filter(v => {
+        if (v.pagos && v.pagos.length > 0) return v.pagos.some(pg => pg.formaPagoId === formaPagoFiltro);
+        return v.formaPagoId === formaPagoFiltro;
+      });
+    }
+    if (estadoPagoFiltro === 'pagado') lista = lista.filter(v => v.estaPago);
+    else if (estadoPagoFiltro === 'ctacte') lista = lista.filter(v => !v.estaPago);
+    const min = montoMin ? Number(montoMin) : null;
+    const max = montoMax ? Number(montoMax) : null;
+    if (min !== null && !isNaN(min)) lista = lista.filter(v => v.total >= min);
+    if (max !== null && !isNaN(max)) lista = lista.filter(v => v.total <= max);
+    if (cajaFiltro === 'con') lista = lista.filter(v => v.cierreCajaId != null);
+    else if (cajaFiltro === 'sin') lista = lista.filter(v => v.cierreCajaId == null);
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
       lista = lista.filter(v =>
         v.numeroTicket.toLowerCase().includes(q) ||
-        v.nombreCliente?.toLowerCase().includes(q)
+        v.nombreCliente?.toLowerCase().includes(q) ||
+        v.telefonoCliente?.toLowerCase().includes(q)
       );
     }
     const dir = ordenDir === 'asc' ? 1 : -1;
@@ -171,14 +212,28 @@ export default function VentasPage() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [ventas, busqueda, ordenCol, ordenDir]);
+  }, [ventas, busqueda, ordenCol, ordenDir, formaPagoFiltro, estadoPagoFiltro, montoMin, montoMax, cajaFiltro]);
+
+  // Cantidad de filtros avanzados activos (excluye estado que esta en la barra principal)
+  const cantidadFiltrosAvanzados =
+    (formaPagoFiltro !== '' ? 1 : 0) +
+    (estadoPagoFiltro !== '' ? 1 : 0) +
+    (montoMin !== '' ? 1 : 0) +
+    (montoMax !== '' ? 1 : 0) +
+    (cajaFiltro !== '' ? 1 : 0);
+
+  // Total de filtros activos (para el badge del toggle mobile)
+  const totalFiltrosActivos =
+    cantidadFiltrosAvanzados +
+    (estadoFiltro !== '' ? 1 : 0) +
+    (busqueda.trim() !== '' ? 1 : 0);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-7.5rem)] lg:overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-7.5rem)] overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Panel de estadisticas */}
+        {/* Panel de estadisticas — oculto por defecto en mobile */}
         {stats && (
-          <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg mb-3 flex-shrink-0">
+          <div className={`${statsMobileVisibles ? 'block' : 'hidden'} sm:block bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg mb-3 flex-shrink-0`}>
             {/* Fila 1: Comparativas */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-4 py-2.5">
               <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide w-full sm:w-auto">Nro. total de ventas</span>
@@ -206,8 +261,67 @@ export default function VentasPage() {
           </div>
         )}
 
+        {/* Barra mobile compacta: toggle de filtros + stats + recuento */}
+        <div className="sm:hidden flex items-center gap-2 pb-2 flex-shrink-0">
+          <button
+            onClick={() => setStatsMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center transition-colors ${
+              statsMobileVisibles
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label={statsMobileVisibles ? 'Ocultar estadisticas' : 'Mostrar estadisticas'}
+            title={statsMobileVisibles ? 'Ocultar estadisticas' : 'Mostrar estadisticas'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md border flex items-center justify-center gap-1.5 transition-colors ${
+              filtrosMobileVisibles || totalFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span>Filtros</span>
+            {totalFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {totalFiltrosActivos}
+              </span>
+            )}
+            <svg className={`w-4 h-4 transition-transform ${filtrosMobileVisibles ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={cargar}
+            disabled={cargando}
+            className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1"
+            aria-label="Buscar"
+          >
+            {cargando ? (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+          </button>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {ventasFiltradas.length} resultado{ventasFiltradas.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
         {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pb-3 flex-shrink-0">
+        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-2 sm:gap-3 pb-3 flex-shrink-0`}>
           <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[200px]">
             <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
             {esSuperAdmin ? (
@@ -244,13 +358,41 @@ export default function VentasPage() {
               {cargando ? 'Buscando...' : 'Buscar'}
             </button>
           </div>
+          <select
+            value={estadoFiltro}
+            onChange={e => setEstadoFiltro(e.target.value === '' ? '' : Number(e.target.value))}
+            className={`${selectClass} w-full sm:w-auto`}
+          >
+            <option value="">Todos los estados</option>
+            <option value={EstadoVenta.Entregado}>{estadoLabels[EstadoVenta.Entregado]}</option>
+            <option value={EstadoVenta.Cancelado}>{estadoLabels[EstadoVenta.Cancelado]}</option>
+          </select>
           <input
             type="text"
-            placeholder="Buscar ticket, cliente..."
+            placeholder="Buscar ticket, cliente, telefono..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             className={`${inputClass} w-full sm:flex-1 sm:min-w-[200px]`}
           />
+          <button
+            onClick={() => setFiltrosAvanzados(v => !v)}
+            className={`px-2.5 py-1.5 text-[13px] font-medium rounded-md border flex items-center gap-1.5 transition-colors ${
+              filtrosAvanzados || cantidadFiltrosAvanzados > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300 hover:bg-amber-100'
+                : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+            }`}
+            title="Mostrar/ocultar filtros avanzados"
+          >
+            <svg className="w-[16px] h-[16px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Mas filtros
+            {cantidadFiltrosAvanzados > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosAvanzados}
+              </span>
+            )}
+          </button>
           <span className="text-sm text-gray-500">
             {ventasFiltradas.length} resultado{ventasFiltradas.length !== 1 ? 's' : ''}
           </span>
@@ -262,8 +404,74 @@ export default function VentasPage() {
           )}
         </div>
 
+        {/* Filtros avanzados (colapsables) */}
+        {filtrosAvanzados && (
+          <div className="bg-amber-50/60 border border-amber-200 rounded-md px-3 py-2.5 mb-3 flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+            <select
+              value={formaPagoFiltro}
+              onChange={e => setFormaPagoFiltro(e.target.value === '' ? '' : Number(e.target.value))}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Todos los medios</option>
+              {formasPago.map(fp => (
+                <option key={fp.id} value={fp.id}>{fp.nombre}</option>
+              ))}
+            </select>
+            <select
+              value={estadoPagoFiltro}
+              onChange={e => setEstadoPagoFiltro(e.target.value as '' | 'pagado' | 'ctacte')}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Pago: Todos</option>
+              <option value="pagado">Pagados</option>
+              <option value="ctacte">Cuenta Corriente</option>
+            </select>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500 font-medium">Monto</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="Min"
+                value={montoMin}
+                onChange={e => setMontoMin(e.target.value)}
+                className={`${inputClass} w-24`}
+              />
+              <span className="text-xs text-gray-400">-</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="Max"
+                value={montoMax}
+                onChange={e => setMontoMax(e.target.value)}
+                className={`${inputClass} w-24`}
+              />
+            </div>
+            <select
+              value={cajaFiltro}
+              onChange={e => setCajaFiltro(e.target.value as '' | 'con' | 'sin')}
+              className={`${selectClass} w-full sm:w-auto`}
+            >
+              <option value="">Caja: Todas</option>
+              <option value="con">Asociadas a caja</option>
+              <option value="sin">Sin caja</option>
+            </select>
+            <button
+              onClick={limpiarFiltros}
+              className="ml-auto px-2.5 py-1.5 text-[13px] font-medium text-gray-600 border border-gray-300 rounded-md hover:bg-white transition-colors flex items-center gap-1"
+              title="Limpiar todos los filtros"
+            >
+              <svg className="w-[14px] h-[14px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Limpiar
+            </button>
+          </div>
+        )}
+
         {/* Tabla */}
-        <div className="overflow-x-auto bg-white rounded-lg border-2 border-gray-300 shadow-xl lg:flex-1 lg:overflow-y-auto lg:min-h-0">
+        <div className="overflow-x-auto bg-white rounded-lg border-2 border-gray-300 shadow-xl flex-1 overflow-y-auto min-h-0">
           {ventasFiltradas.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,11 +804,34 @@ export default function VentasPage() {
                 </svg>
                 <span className="font-bold text-sm text-gray-700">WHATSAPP</span>
               </button>
+              {/* Enviar a deposito — solo si no esta cancelada y no fue enviada aun */}
+              {ventaAcciones.estado !== EstadoVenta.Cancelado && !ventaAcciones.fechaEnvioDeposito && (
+                <button
+                  onClick={async () => {
+                    const id = ventaAcciones.id;
+                    setVentaAcciones(null);
+                    try {
+                      await enviarADeposito(id);
+                      showToast('Venta enviada a deposito', 'success');
+                      await cargar();
+                    } catch (err: unknown) {
+                      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al enviar a deposito';
+                      showToast(msg, 'error');
+                    }
+                  }}
+                  className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-orange-50 transition-colors border-2 border-transparent hover:border-orange-200"
+                >
+                  <svg className="w-12 h-12 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                  </svg>
+                  <span className="font-bold text-sm text-orange-700">DEPOSITO</span>
+                </button>
+              )}
               {/* Anular venta — solo si no esta cancelada */}
               {ventaAcciones.estado !== EstadoVenta.Cancelado && (
                 <button
                   onClick={() => { setVentaAnular(ventaAcciones); setMotivoAnulacion(''); setVentaAcciones(null); }}
-                  className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-red-50 transition-colors border-2 border-transparent hover:border-red-200 col-span-2 sm:col-span-1"
+                  className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-red-50 transition-colors border-2 border-transparent hover:border-red-200"
                 >
                   <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

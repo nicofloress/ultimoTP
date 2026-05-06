@@ -32,10 +32,19 @@ const formatHora = (iso: string) => {
 const formatMoney = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
 
-const TIEMPO_DEPOSITO = 300; // 5 minutos en segundos
+const TIEMPO_POCO = 300; // 5 minutos en segundos (<=2 items)
+const TIEMPO_MUCHO = 600; // 10 minutos en segundos (>2 items)
+
+/** Tiempo limite (en segundos) segun la cantidad de lineas de la venta */
+const getTiempoLimite = (v: Venta) => (v.lineas.length <= 2 ? TIEMPO_POCO : TIEMPO_MUCHO);
 
 /** Fecha de referencia para el timer: usa fechaEnvioDeposito si existe, sino fechaCreacion */
 const getFechaReferencia = (v: Venta) => v.fechaEnvioDeposito || v.fechaCreacion;
+
+/** Segundos transcurridos desde la fecha de referencia, clampeado a >=0
+ *  (pedidos con fecha futura/programada arrancan en 0) */
+const getSegundosTranscurridos = (v: Venta, now: Date) =>
+  Math.max(0, (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000);
 
 /** Minutos restantes (redondeado hacia arriba) */
 const getMinutosRestantes = (restanteSegs: number) => Math.ceil(Math.max(0, restanteSegs) / 60);
@@ -107,8 +116,8 @@ export default function DepositoPage() {
   useEffect(() => {
     if (ventas.length === 0) return;
     for (const v of ventas) {
-      const transcurridos = (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000;
-      const restante = TIEMPO_DEPOSITO - transcurridos;
+      const transcurridos = getSegundosTranscurridos(v, now);
+      const restante = getTiempoLimite(v) - transcurridos;
       if (restante <= 0 && !venciendoRef.current.has(v.id)) {
         marcarVencido(v.id);
         break; // una a la vez
@@ -139,9 +148,8 @@ export default function DepositoPage() {
             {ventas.map(v => {
               const esPrimero = v.id === primeroId;
               const fading = fadingOutId === v.id;
-              const segundosTranscurridos =
-                (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000;
-              const restante = TIEMPO_DEPOSITO - segundosTranscurridos;
+              const segundosTranscurridos = getSegundosTranscurridos(v, now);
+              const restante = getTiempoLimite(v) - segundosTranscurridos;
               const minutosRestantes = getMinutosRestantes(restante);
 
               return (
