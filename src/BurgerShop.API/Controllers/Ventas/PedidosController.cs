@@ -33,7 +33,10 @@ public class VentasController : ControllerBase
         try
         {
             var venta = await _service.CreateAsync(dto, usuarioId);
-            await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString(), venta.LocalId);
+            // Solo notificar nuevos pedidos de domicilio: las ventas de mostrador
+            // las hace el mismo usuario en el POS y no requieren toast.
+            if (venta.Tipo == TipoVenta.Domicilio)
+                await _notificaciones.NotificarNuevoPedidoAsync(venta.Id, venta.NumeroTicket, venta.Tipo.ToString(), venta.LocalId);
             return CreatedAtAction(nameof(GetById), new { id = venta.Id }, venta);
         }
         catch (InvalidOperationException ex)

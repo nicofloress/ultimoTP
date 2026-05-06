@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVentasDeposito, marcarVencidoDeposito } from '../../api/deposito';
 import type { Venta } from '../../types';
+import { parseFechaUtc } from '../../utils/fechas';
 
 const playBeep = () => {
   try {
@@ -25,7 +26,7 @@ const formatTime = (date: Date) =>
   date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 const formatHora = (iso: string) => {
-  const d = new Date(iso);
+  const d = parseFechaUtc(iso);
   return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 };
 
@@ -44,10 +45,15 @@ const getFechaReferencia = (v: Venta) => v.fechaEnvioDeposito || v.fechaCreacion
 /** Segundos transcurridos desde la fecha de referencia, clampeado a >=0
  *  (pedidos con fecha futura/programada arrancan en 0) */
 const getSegundosTranscurridos = (v: Venta, now: Date) =>
-  Math.max(0, (now.getTime() - new Date(getFechaReferencia(v)).getTime()) / 1000);
+  Math.max(0, (now.getTime() - parseFechaUtc(getFechaReferencia(v)).getTime()) / 1000);
 
-/** Minutos restantes (redondeado hacia arriba) */
-const getMinutosRestantes = (restanteSegs: number) => Math.ceil(Math.max(0, restanteSegs) / 60);
+/** Formato cuenta atras MM:SS */
+const formatTiempoRestante = (restanteSegs: number) => {
+  const total = Math.max(0, Math.floor(restanteSegs));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+};
 
 export default function DepositoPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -90,7 +96,7 @@ export default function DepositoPage() {
         primeraCargaRef.current = false;
         // Ordenar por fecha de referencia ascendente (más vieja arriba)
         const ordenadas = [...data].sort(
-          (a, b) => new Date(getFechaReferencia(a)).getTime() - new Date(getFechaReferencia(b)).getTime()
+          (a, b) => parseFechaUtc(getFechaReferencia(a)).getTime() - parseFechaUtc(getFechaReferencia(b)).getTime()
         );
         setVentas(ordenadas);
       } catch {
@@ -150,7 +156,6 @@ export default function DepositoPage() {
               const fading = fadingOutId === v.id;
               const segundosTranscurridos = getSegundosTranscurridos(v, now);
               const restante = getTiempoLimite(v) - segundosTranscurridos;
-              const minutosRestantes = getMinutosRestantes(restante);
 
               return (
                 <div
@@ -185,13 +190,12 @@ export default function DepositoPage() {
                         <div className="text-lg sm:text-2xl text-yellow-300 uppercase font-bold">Tiempo</div>
                         <div
                           className={[
-                            'font-mono font-extrabold text-5xl sm:text-7xl',
-                            minutosRestantes <= 1 ? 'text-red-500 animate-pulse' : 'text-yellow-300',
+                            'font-mono font-extrabold text-5xl sm:text-7xl tabular-nums',
+                            restante <= 60 ? 'text-red-500 animate-pulse' : 'text-yellow-300',
                           ].join(' ')}
                         >
-                          {minutosRestantes}
+                          {formatTiempoRestante(restante)}
                         </div>
-                        <div className="text-lg sm:text-2xl text-yellow-300/70">min</div>
                       </div>
                     )}
                   </div>

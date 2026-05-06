@@ -1367,7 +1367,13 @@ public class VentaService : IVentaService
             if (venta is null)
                 throw new InvalidOperationException("Venta no encontrada.");
 
+            // Si ya está en la cola activa (enviada y no descartada), evitar duplicar
+            if (venta.FechaEnvioDeposito.HasValue && !venta.VencidoDeposito)
+                throw new InvalidOperationException("La venta ya está en la cola de depósito.");
+
+            // Reiniciar el timer y, si había sido descartada por el operador, reactivarla
             venta.FechaEnvioDeposito = DateTime.Now;
+            venta.VencidoDeposito = false;
             _ventaRepo.Update(venta);
             await _ventaRepo.SaveChangesAsync();
         }
