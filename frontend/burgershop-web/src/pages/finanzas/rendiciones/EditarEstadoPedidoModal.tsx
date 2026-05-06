@@ -29,16 +29,16 @@ export default function EditarEstadoPedidoModal({
 }: Props) {
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-2 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="editar-estado-title"
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="px-5 py-3 bg-slate-700">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="px-5 py-3 bg-slate-700 flex-shrink-0">
           <h3 id="editar-estado-title" className="font-bold text-white text-sm">Editar pedido</h3>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
             <select
@@ -116,7 +116,7 @@ export default function EditarEstadoPedidoModal({
             </div>
           )}
         </div>
-        <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2">
+        <div className="px-5 py-3 bg-gray-50 border-t flex justify-end gap-2 flex-shrink-0">
           <button
             onClick={onCancel}
             disabled={guardando}

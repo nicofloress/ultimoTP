@@ -19,6 +19,7 @@ const VERSION_KEY = 'app_version_current';
 })();
 const fechaVersion = localStorage.getItem(VERSION_DATE_KEY);
 import { RolUsuario } from '../types/auth';
+import logoHlp from '../assets/logo-hlp.png';
 
 function useIsMobile(breakpoint = 1024) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
@@ -206,16 +207,11 @@ export default function Layout() {
           </svg>
         </button>
         <div className="ml-1 sm:ml-3 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 32 32" fill="none">
-            <path d="M4 14h24c0-6-5.4-10-12-10S4 8 4 14z" fill="#F59E0B" />
-            <ellipse cx="11" cy="9" rx="1.2" ry="0.8" fill="#FEF3C7" />
-            <ellipse cx="17" cy="7.5" rx="1.2" ry="0.8" fill="#FEF3C7" />
-            <ellipse cx="22" cy="10" rx="1.2" ry="0.8" fill="#FEF3C7" />
-            <path d="M3 14.5c1.5 1.5 3 0 4.5 1.5s3 0 4.5 1.5 3 0 4.5 1.5 3 0 4.5-1.5 3 0 4.5-1.5" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" />
-            <rect x="3.5" y="17" width="25" height="3.5" rx="1.5" fill="#92400E" />
-            <path d="M3 17l2-1.5h22l2 1.5" fill="#FBBF24" />
-            <rect x="4" y="21" width="24" height="4" rx="2" fill="#D97706" />
-          </svg>
+          <img
+            src={logoHlp}
+            alt="Hamburguesas La Plata"
+            className="h-7 sm:h-9 w-auto"
+          />
           <span className="text-sm sm:text-base font-bold text-white tracking-tight hidden sm:inline">
             Gestion HLP
           </span>

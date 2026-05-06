@@ -28,6 +28,8 @@ export default function ProductosPage() {
   const [megaFiltro, setMegaFiltro] = useState<string | null>(null);
   const [gramajesFiltro, setGramajesFiltro] = useState<number | null>(null);
   const [verCombos, setVerCombos] = useState(false);
+  // UI mobile: toggle barra de filtros
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -378,6 +380,13 @@ export default function ProductosPage() {
 
   const listaSeleccionada = listas.find(l => l.id === listaPrecioId);
 
+  // Cantidad de filtros activos (badge mobile, excluye busqueda)
+  const cantidadFiltrosActivos =
+    (megaFiltro ? 1 : 0) +
+    (lineaFiltro ? 1 : 0) +
+    (gramajesFiltro ? 1 : 0) +
+    (verCombos ? 1 : 0);
+
   return (
     <div className="h-[calc(100vh-7.5rem)] flex flex-col overflow-hidden">
       {/* Header */}
@@ -458,6 +467,40 @@ export default function ProductosPage() {
 
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3 space-y-2">
+        {/* Barra mobile compacta: buscar + toggle filtros + contador */}
+        <div className="sm:hidden flex items-center gap-2">
+          <input
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar articulo..."
+            className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+          />
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+              filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label="Filtros"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {cantidadFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosActivos}
+              </span>
+            )}
+          </button>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {verCombos ? `${combosFiltrados.length} cmb.` : `${productosFiltrados.length} prod.`}
+          </span>
+        </div>
+
+        {/* Bloque completo de filtros — siempre visible en desktop, colapsable en mobile */}
+        <div className={`${filtrosMobileVisibles ? 'block' : 'hidden'} sm:block space-y-2`}>
         <div className="flex gap-1.5 flex-wrap">
           <button onClick={() => { setMegaFiltro(null); setGramajesFiltro(null); setLineaFiltro(null); setVerCombos(false); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${!megaFiltro && !verCombos ? 'bg-amber-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Todos</button>
           {(preciosPromoProductos.size > 0 || preciosPromoCombos.size > 0) && (
@@ -492,12 +535,13 @@ export default function ProductosPage() {
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por codigo, nombre o descripcion..."
-          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+          className="hidden sm:block w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
         />
-        <span className="text-xs text-gray-400">
+        <span className="hidden sm:inline text-xs text-gray-400">
           {verCombos ? `${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`
             : `${productosFiltrados.length} articulo${productosFiltrados.length !== 1 ? 's' : ''} + ${combosFiltrados.length} combo${combosFiltrados.length !== 1 ? 's' : ''}`}
         </span>
+        </div>
       </div>
 
       {/* Combos toggle legacy - hidden, replaced by chip above */}

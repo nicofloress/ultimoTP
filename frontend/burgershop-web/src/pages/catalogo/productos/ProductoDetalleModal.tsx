@@ -18,15 +18,15 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="producto-detalle-title"
     >
-      <div className="bg-white rounded-xl shadow-xl w-[95vw] sm:max-w-md sm:w-full mx-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-xl w-full sm:max-w-md mx-auto max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-slate-700 text-white px-5 py-4 rounded-t-xl">
+        <div className="bg-slate-700 text-white px-5 py-4 rounded-t-xl flex-shrink-0">
           <h3 id="producto-detalle-title" className="font-bold text-lg">{producto.nombre}</h3>
           {producto.codigo && (
             <span className="text-slate-300 text-xs font-mono">{producto.codigo}</span>
@@ -34,7 +34,7 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 space-y-3">
+        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Categoría</span>
             <span className="font-medium">{producto.categoriaNombre}</span>
@@ -99,14 +99,12 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
               );
             })}
           </div>
-        </div>
 
-        {/* Historial de precios */}
-        {historial.length > 0 && (
-          <div className="px-5 pb-3">
+          {/* Historial de precios */}
+          {historial.length > 0 && (
             <div className="border-t pt-3">
               <span className="text-gray-500 text-sm font-medium block mb-2">Historial de Precios</span>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              <div className="space-y-1.5">
                 {historial.map(h => {
                   const dif = h.precioNuevo - h.precioAnterior;
                   return (
@@ -124,11 +122,11 @@ export default function ProductoDetalleModal({ producto, listas, onClose }: Prop
                 })}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 bg-gray-50 rounded-b-xl flex justify-end">
+        <div className="px-5 py-3 bg-gray-50 rounded-b-xl flex justify-end flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"

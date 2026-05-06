@@ -54,6 +54,14 @@ export default function CajaPage() {
   const [fechaHasta, setFechaHasta] = useState(toInputDate(hoy));
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
 
+  // Mobile filtros (historial)
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+  const fechaDesdeDefault = toInputDate(hace7Dias);
+  const fechaHastaDefault = toInputDate(hoy);
+  const cantidadFiltrosActivos =
+    (fechaDesde !== fechaDesdeDefault ? 1 : 0) +
+    (fechaHasta !== fechaHastaDefault ? 1 : 0);
+
   // Ordenamiento historial
   const [sortField, setSortField] = useState<string>('fechaApertura');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -408,42 +416,87 @@ export default function CajaPage() {
         <h2 className="text-lg font-bold mb-4">Historial de Cierres</h2>
 
         {/* Filtros */}
-        <div className="flex flex-wrap items-end gap-3 mb-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={e => setFechaDesde(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={e => setFechaHasta(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            onClick={cargarHistorial}
-            disabled={cargandoHistorial}
-            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {cargandoHistorial ? (
-              <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        <div className="space-y-3 mb-4">
+          {/* Barra mobile compacta */}
+          <div className="sm:hidden flex items-center gap-2">
+            <button
+              onClick={() => setFiltrosMobileVisibles(v => !v)}
+              className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+                filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                  ? 'text-amber-700 bg-amber-50 border-amber-300'
+                  : 'text-gray-700 bg-white border-gray-300'
+              }`}
+              aria-label="Filtros"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
-            ) : (
-              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            )}
-            {cargandoHistorial ? 'Buscando...' : 'Buscar'}
-          </button>
+              <span className="text-xs">Filtros</span>
+              {cantidadFiltrosActivos > 0 && (
+                <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {cantidadFiltrosActivos}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={cargarHistorial}
+              disabled={cargandoHistorial}
+              className="px-2.5 py-2 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+              aria-label="Buscar"
+            >
+              {cargandoHistorial ? (
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              )}
+            </button>
+            <span className="text-xs text-gray-500 whitespace-nowrap ml-auto">
+              {historialOrdenado.length} cierres
+            </span>
+          </div>
+
+          <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-end gap-3`}>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+              <input
+                type="date"
+                value={fechaDesde}
+                onChange={e => setFechaDesde(e.target.value)}
+                className="border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={fechaHasta}
+                onChange={e => setFechaHasta(e.target.value)}
+                className="border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <button
+              onClick={cargarHistorial}
+              disabled={cargandoHistorial}
+              className="hidden sm:flex px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 items-center gap-1.5"
+            >
+              {cargandoHistorial ? (
+                <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              )}
+              {cargandoHistorial ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
         </div>
 
         {historialOrdenado.length === 0 ? (

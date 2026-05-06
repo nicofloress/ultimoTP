@@ -154,6 +154,14 @@ export default function RendicionesPage() {
   // Cantidad de rendiciones pendientes de crear (para notificación)
   const [cantPendientes, setCantPendientes] = useState(0);
 
+  // Mobile filtros
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+  const [statsMobileVisibles, setStatsMobileVisibles] = useState(false);
+  const cantidadFiltrosActivos =
+    (filtroFechaDesde !== hoy ? 1 : 0) +
+    (filtroFechaHasta !== hoy ? 1 : 0) +
+    (filtroEstado !== 'todas' ? 1 : 0);
+
   const cargarPendientesCount = async () => {
     try {
       const data = await getRepartidoresPendientes();
@@ -361,11 +369,20 @@ export default function RendicionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Rendiciones</h2>
+        <button
+          onClick={() => setStatsMobileVisibles(v => !v)}
+          className="sm:hidden text-white p-1 rounded hover:bg-white/10"
+          aria-label="Mostrar resumen"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
       </div>
       {/* Resumen */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className={`${statsMobileVisibles ? 'grid' : 'hidden'} sm:grid grid-cols-2 md:grid-cols-4 gap-4`}>
         <div className="bg-slate-700 rounded-lg shadow-lg p-4">
           <div className="text-xs text-slate-400 uppercase tracking-wider">Pendientes</div>
           <div className="text-2xl font-bold mt-1 text-yellow-400">{resumen.pendientes}</div>
@@ -399,8 +416,63 @@ export default function RendicionesPage() {
       )}
 
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 space-y-3">
+        {/* Barra mobile compacta */}
+        <div className="sm:hidden flex items-center gap-2">
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+              filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label="Filtros"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span className="text-xs">Filtros</span>
+            {cantidadFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosActivos}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={cargarDatos}
+            disabled={cargando}
+            className="px-2.5 py-2 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+            aria-label="Buscar"
+          >
+            {cargando ? (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={abrirNuevaRendicion}
+            className="ml-auto px-2.5 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center justify-center gap-1 text-xs font-semibold"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Nueva
+            {cantPendientes > 0 && (
+              <span className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{cantPendientes}</span>
+            )}
+          </button>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {rendicionesFiltradas.length}
+          </span>
+        </div>
+
+        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-4`}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
             <input
@@ -436,7 +508,7 @@ export default function RendicionesPage() {
             <button
               onClick={cargarDatos}
               disabled={cargando}
-              className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
+              className="hidden sm:flex px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 items-center gap-1.5"
             >
               {cargando ? (
                 <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
@@ -457,7 +529,7 @@ export default function RendicionesPage() {
               Limpiar filtros
             </button>
           </div>
-          <div className="ml-auto flex items-end gap-3">
+          <div className="hidden sm:flex ml-auto items-end gap-3">
             <button
               onClick={abrirNuevaRendicion}
               className="px-4 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-semibold transition-colors flex items-center gap-2"

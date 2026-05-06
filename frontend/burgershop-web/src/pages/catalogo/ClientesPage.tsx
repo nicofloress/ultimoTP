@@ -51,6 +51,8 @@ export default function ClientesPage() {
   const [guardando, setGuardando] = useState(false);
   const { sugerencias: sugerenciasDireccion, buscarDirecciones } = useGooglePlaces();
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  // UI mobile: toggle barra de filtros
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
 
   const cargar = () => getClientes().then(setClientes);
 
@@ -152,6 +154,9 @@ export default function ClientesPage() {
     );
   });
 
+  // Cantidad de filtros activos (badge mobile, excluye busqueda y local)
+  const cantidadFiltrosActivos = 0;
+
   return (
     <div>
       {/* Header simple sin botón */}
@@ -160,37 +165,83 @@ export default function ClientesPage() {
       </div>
 
       {/* Barra de filtros uniforme */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-2 flex-wrap">
-        {esSuperAdmin ? (
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
-            <select
-              className={selectClass + ' flex-1'}
-              value={localSeleccionado}
-              onChange={e => setLocalSeleccionado(Number(e.target.value))}
-            >
-              <option value={0}>Todos los locales</option>
-              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-            </select>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
-            <span className="text-sm text-gray-700 border border-gray-200 rounded-md px-2.5 py-1.5 bg-gray-50">
-              {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
-            </span>
-          </div>
-        )}
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-2 sm:flex-wrap">
+        {/* Barra mobile compacta: buscar + toggle filtros + nuevo + count */}
+        <div className="sm:hidden flex items-center gap-2">
+          <input
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar..."
+            className={selectClass + ' flex-1 min-w-0'}
+          />
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+              filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label="Filtros"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {cantidadFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosActivos}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={abrirNuevo}
+            className="px-2.5 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center justify-center"
+            aria-label="Nuevo cliente"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {clientesFiltrados.length} cli.
+          </span>
+        </div>
+
+        {/* Local: oculto en mobile salvo que se abra el toggle */}
+        <div className={`${filtrosMobileVisibles ? 'block' : 'hidden'} sm:block`}>
+          {esSuperAdmin ? (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
+              <select
+                className={selectClass + ' flex-1'}
+                value={localSeleccionado}
+                onChange={e => setLocalSeleccionado(Number(e.target.value))}
+              >
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Local</label>
+              <span className="text-sm text-gray-700 border border-gray-200 rounded-md px-2.5 py-1.5 bg-gray-50">
+                {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Busqueda y Nuevo: solo desktop (en mobile estan en la barra superior) */}
         <input
           type="text"
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre o telefono..."
-          className={selectClass + ' flex-1 min-w-[180px] w-full sm:w-auto'}
+          className={selectClass + ' hidden sm:block sm:flex-1 sm:min-w-[180px]'}
         />
         <button
           onClick={abrirNuevo}
-          className="w-full sm:w-auto px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 flex items-center justify-center gap-1.5 whitespace-nowrap"
+          className="hidden sm:flex sm:w-auto px-2.5 py-1.5 text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 items-center justify-center gap-1.5 whitespace-nowrap"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

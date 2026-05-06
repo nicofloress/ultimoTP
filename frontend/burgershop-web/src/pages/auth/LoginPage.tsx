@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import logoHlp from '../../assets/logo-hlp.png';
+import localHero from '../../assets/login-hero.png';
 
 export default function LoginPage() {
   const [nombreUsuario, setNombreUsuario] = useState('');
@@ -17,7 +19,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login({ nombreUsuario, password });
+      await login({ nombreUsuario: nombreUsuario.trim(), password });
       const usuarioGuardado = localStorage.getItem('usuario');
       if (usuarioGuardado) {
         const usuario = JSON.parse(usuarioGuardado);
@@ -53,68 +55,78 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-500 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo y nombre */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <svg className="w-16 h-16" viewBox="0 0 32 32" fill="none">
-              <path d="M4 14h24c0-6-5.4-10-12-10S4 8 4 14z" fill="#F59E0B" />
-              <ellipse cx="11" cy="9" rx="1.2" ry="0.8" fill="#FEF3C7" />
-              <ellipse cx="17" cy="7.5" rx="1.2" ry="0.8" fill="#FEF3C7" />
-              <ellipse cx="22" cy="10" rx="1.2" ry="0.8" fill="#FEF3C7" />
-              <path d="M3 14.5c1.5 1.5 3 0 4.5 1.5s3 0 4.5 1.5 3 0 4.5 1.5 3 0 4.5-1.5 3 0 4.5-1.5" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" />
-              <rect x="3.5" y="17" width="25" height="3.5" rx="1.5" fill="#92400E" />
-              <path d="M3 17l2-1.5h22l2 1.5" fill="#FBBF24" />
-              <rect x="4" y="21" width="24" height="4" rx="2" fill="#D97706" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Gestion HLP</h1>
-          <p className="text-slate-400 mt-1">Sistema de gestion integral</p>
-        </div>
+    <div className="h-screen w-screen bg-black overflow-hidden relative">
+      {/* Imagen del local full-bleed — desktop y mobile */}
+      <img
+        src={localHero}
+        alt="Hamburguesas La Plata"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
 
-        {/* Card de login */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20">
-          <h2 className="text-lg font-semibold text-white text-center mb-6">Iniciar Sesion</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Usuario</label>
-              <input
-                type="text"
-                value={nombreUsuario}
-                onChange={e => setNombreUsuario(e.target.value)}
-                placeholder="Nombre de usuario"
-                className="w-full bg-white/10 border-2 border-slate-500 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
-                required
+      {/* Overlay oscurecedor + leve blur */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[3px] lg:bg-black/40 lg:backdrop-blur-[2px] pointer-events-none" />
+
+      {/* Panel de login */}
+      <div className="relative h-full w-full flex items-center justify-center xl:justify-end p-6 xl:pr-16 2xl:pr-32 z-20">
+        <div className="w-full max-w-sm xl:max-w-xs 2xl:max-w-sm">
+          <div className="bg-white/10 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 border border-white/20 p-8 lg:p-10">
+            {/* Logo */}
+            <div className="flex justify-center mb-8">
+              <img
+                src={logoHlp}
+                alt="Hamburguesas La Plata"
+                className="h-24 lg:h-28 w-auto drop-shadow-[0_0_25px_rgba(0,0,0,0.6)]"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Contrasena</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Contrasena"
-                className="w-full bg-white/10 border-2 border-slate-500 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
-                required
-              />
-            </div>
-            {error && (
-              <div className="bg-red-500/20 border border-red-500/30 rounded-lg px-4 py-2">
-                <p className="text-red-300 text-center text-sm">{error}</p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold tracking-[0.25em] text-white/80 mb-2">
+                  USUARIO
+                </label>
+                <input
+                  type="text"
+                  value={nombreUsuario}
+                  onChange={e => setNombreUsuario(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm transition-all"
+                  autoComplete="username"
+                  required
+                />
               </div>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-amber-500 text-white py-3 rounded-lg font-bold text-lg hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 transition-colors shadow-lg shadow-amber-500/25"
-            >
-              {loading ? 'Ingresando...' : 'Ingresar'}
-            </button>
-          </form>
-        </div>
+              <div>
+                <label className="block text-xs font-semibold tracking-[0.25em] text-white/80 mb-2">
+                  CONTRASEÑA
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm transition-all"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
 
-        <p className="text-slate-500 text-xs text-center mt-6">Gestion HLP v1.0</p>
+              {error && (
+                <div className="bg-red-500/20 border border-red-400/40 rounded-xl px-4 py-2.5">
+                  <p className="text-red-100 text-center text-sm">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600/90 text-white py-3.5 rounded-xl font-bold tracking-wide hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-900/50 backdrop-blur-sm"
+              >
+                {loading ? 'Ingresando...' : 'INGRESAR'}
+              </button>
+            </form>
+
+            <p className="text-white/40 text-[11px] text-center mt-8 tracking-[0.2em]">
+              GESTIÓN HLP · v1.0
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

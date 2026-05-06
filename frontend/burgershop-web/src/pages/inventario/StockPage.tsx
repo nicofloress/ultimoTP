@@ -79,6 +79,9 @@ export default function StockPage() {
   const [ordenCol, setOrdenCol] = useState<string>('productoNombre');
   const [ordenDir, setOrdenDir] = useState<SortDir>('asc');
 
+  // --- UI mobile ---
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+
   // --- Load catalogos ---
   useEffect(() => {
     getLocales().then(setLocales).catch(() => {});
@@ -197,6 +200,13 @@ export default function StockPage() {
     }
   };
 
+  // Cantidad de filtros activos (para badge mobile, excluye busqueda y local)
+  const cantidadFiltrosActivos =
+    (soloBajo ? 1 : 0) +
+    (megaFiltro ? 1 : 0) +
+    (lineaFiltro ? 1 : 0) +
+    (gramajesFiltro ? 1 : 0);
+
   const SortArrow = ({ col }: { col: string }) =>
     ordenCol === col ? (
       <span className="text-amber-400 ml-1">{ordenDir === 'asc' ? '\u25B2' : '\u25BC'}</span>
@@ -222,9 +232,53 @@ export default function StockPage() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow p-4 space-y-3">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 space-y-3">
+        {/* Barra mobile compacta: buscar + toggle filtros + actualizar + count */}
+        <div className="sm:hidden flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Buscar producto..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className={`${inputClass} flex-1 min-w-0`}
+          />
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+              filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label="Filtros"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {cantidadFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosActivos}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={cargarStock}
+            disabled={cargando}
+            className="px-2.5 py-2 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+            aria-label="Actualizar"
+          >
+            <svg className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {stockFiltrado.length} art.
+          </span>
+        </div>
+
+        {/* Bloque completo de filtros — siempre visible en desktop, colapsable en mobile */}
+        <div className={`${filtrosMobileVisibles ? 'block' : 'hidden'} sm:block space-y-3`}>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[200px]">
+          <div className="w-full sm:w-auto sm:min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
             {esSuperAdmin ? (
               <select
@@ -255,17 +309,18 @@ export default function StockPage() {
               Solo stock bajo minimo
             </label>
           </div>
+          {/* Busqueda + Actualizar — solo en desktop (en mobile estan en la barra superior) */}
           <input
             type="text"
             placeholder="Buscar producto..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className={`${inputClass} flex-1 min-w-[200px]`}
+            className={`${inputClass} hidden sm:block sm:flex-1 sm:min-w-[200px]`}
           />
-          <span className="text-sm text-gray-500">
+          <span className="hidden sm:inline text-sm text-gray-500">
             {stockFiltrado.length} articulo{stockFiltrado.length !== 1 ? 's' : ''}
           </span>
-          <div className="flex-1" />
+          <div className="hidden sm:block flex-1" />
           {ultimaActualizacion && (
             <span className="text-xs text-gray-400 italic">
               Actualizado: {ultimaActualizacion.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
@@ -274,7 +329,7 @@ export default function StockPage() {
           <button
             onClick={cargarStock}
             disabled={cargando}
-            className="px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 flex items-center gap-1.5 disabled:opacity-50"
+            className="hidden sm:flex px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 items-center gap-1.5 disabled:opacity-50"
           >
             <svg className={`w-4 h-4 ${cargando ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -333,6 +388,7 @@ export default function StockPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Tabla */}

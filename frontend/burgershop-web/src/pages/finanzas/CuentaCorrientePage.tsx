@@ -91,6 +91,12 @@ export default function CuentaCorrientePage() {
   const [ajusteObs, setAjusteObs] = useState('');
   const [guardandoAjuste, setGuardandoAjuste] = useState(false);
 
+  // Mobile filtros (panel detalle)
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+  const cantidadFiltrosActivos =
+    (desde !== unMesAtras ? 1 : 0) +
+    (hasta !== hoy ? 1 : 0);
+
   const cargarCuentas = async () => {
     try {
       const data = soloConSaldo ? await getCuentasConSaldo() : await getCuentasCorrientes();
@@ -328,7 +334,8 @@ export default function CuentaCorrientePage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
-                Registrar Pago
+                <span className="hidden sm:inline">Registrar Pago</span>
+                <span className="sm:hidden">Pago</span>
               </button>
               <button
                 onClick={() => setShowAjuste(true)}
@@ -337,9 +344,46 @@ export default function CuentaCorrientePage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Ajuste Manual
+                <span className="hidden sm:inline">Ajuste Manual</span>
+                <span className="sm:hidden">Ajuste</span>
               </button>
-              <div className="flex flex-wrap items-center gap-2 text-sm w-full sm:w-auto sm:flex-1 justify-start sm:justify-center">
+              {/* Botón mobile filtros */}
+              <button
+                onClick={() => setFiltrosMobileVisibles(v => !v)}
+                className={`sm:hidden px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+                  filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                    ? 'text-amber-700 bg-amber-50 border-amber-300'
+                    : 'text-gray-700 bg-white border-gray-300'
+                }`}
+                aria-label="Filtros"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                {cantidadFiltrosActivos > 0 && (
+                  <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {cantidadFiltrosActivos}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => seleccionada && cargarMovimientos(seleccionada.clienteId)}
+                disabled={!seleccionada || cargandoMovs}
+                className="sm:hidden px-2.5 py-2 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+                aria-label="Buscar"
+              >
+                {cargandoMovs ? (
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
+              </button>
+              <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-2 text-sm w-full sm:w-auto sm:flex-1 justify-start sm:justify-center`}>
                 <label className="text-gray-500">Desde:</label>
                 <input
                   type="date"
@@ -359,7 +403,7 @@ export default function CuentaCorrientePage() {
                 <button
                   onClick={() => seleccionada && cargarMovimientos(seleccionada.clienteId)}
                   disabled={!seleccionada || cargandoMovs}
-                  className="ml-1 px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
+                  className="hidden sm:flex ml-1 px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 items-center gap-1.5"
                 >
                   {cargandoMovs ? (
                     <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">

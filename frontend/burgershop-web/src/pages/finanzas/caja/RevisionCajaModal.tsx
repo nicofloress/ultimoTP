@@ -48,13 +48,13 @@ export default function RevisionCajaModal({
       aria-modal="true"
       aria-labelledby="revision-caja-title"
     >
-      <div className="flex flex-col lg:flex-row gap-3 items-start w-full max-w-4xl mx-4 max-h-[90vh]" onClick={e => e.stopPropagation()}>
+      <div className="flex flex-col lg:flex-row gap-3 items-start w-full max-w-4xl mx-2 sm:mx-4 max-h-[90vh]" onClick={e => e.stopPropagation()}>
         <div className="bg-white rounded-lg shadow-xl w-full lg:max-w-2xl overflow-y-auto" style={{ maxHeight: '90vh' }}>
-          <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+          <div className="bg-slate-700 text-white px-4 sm:px-6 py-4 rounded-t-lg flex items-center justify-between">
             <h3 id="revision-caja-title" className="text-lg font-bold">Revisar Caja #{caja.id}</h3>
             <button onClick={onClose} className="text-white hover:text-gray-300 text-2xl" aria-label="Cerrar">&times;</button>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-gray-50 rounded p-3">
                 <div className="text-xs text-gray-500">Local</div>
@@ -155,15 +155,15 @@ export default function RevisionCajaModal({
                 {mostrarMovCorrectivo ? 'Ocultar' : 'Registrar movimiento correctivo'}
               </button>
               {mostrarMovCorrectivo && (
-                <div className="mt-3 bg-gray-50 rounded-lg p-4 space-y-3">
-                  <div className="flex gap-3 flex-wrap">
-                    <select value={movTipo} onChange={e => setMovTipo(e.target.value as 'ingreso' | 'egreso')} className="border rounded px-3 py-2 text-sm">
+                <div className="mt-3 bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3">
+                  <div className="flex gap-2 sm:gap-3 flex-wrap">
+                    <select value={movTipo} onChange={e => setMovTipo(e.target.value as 'ingreso' | 'egreso')} className="border rounded px-3 py-2 text-sm w-full sm:w-auto">
                       <option value="ingreso">Ingreso (ajuste +)</option>
                       <option value="egreso">Egreso (ajuste -)</option>
                     </select>
-                    <input type="number" value={movMonto || ''} onChange={e => setMovMonto(Number(e.target.value))} placeholder="Monto" className="border rounded px-3 py-2 text-sm w-32" min={0} />
-                    <input type="text" value={movObs} onChange={e => setMovObs(e.target.value)} placeholder="Motivo del ajuste" className="border rounded px-3 py-2 text-sm flex-1 min-w-[200px]" />
-                    <button onClick={onMovCorrectivo} disabled={movMonto <= 0} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 text-sm font-semibold disabled:opacity-50">
+                    <input type="number" value={movMonto || ''} onChange={e => setMovMonto(Number(e.target.value))} placeholder="Monto" className="border rounded px-3 py-2 text-sm w-full sm:w-32" min={0} />
+                    <input type="text" value={movObs} onChange={e => setMovObs(e.target.value)} placeholder="Motivo del ajuste" className="border rounded px-3 py-2 text-sm flex-1 w-full sm:min-w-[200px]" />
+                    <button onClick={onMovCorrectivo} disabled={movMonto <= 0} className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-2 text-sm font-semibold disabled:opacity-50 w-full sm:w-auto">
                       Aplicar
                     </button>
                   </div>
@@ -196,7 +196,7 @@ export default function RevisionCajaModal({
               </div>
             </div>
           </div>
-          <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg flex justify-end gap-3">
+          <div className="px-4 sm:px-6 py-4 border-t bg-gray-50 rounded-b-lg flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800">Cancelar</button>
             <button
               onClick={onRevisar}

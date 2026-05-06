@@ -19,7 +19,7 @@ export default function DetalleCajaModal({ caja, cargando, onClose, formatMonto,
       aria-modal="true"
       aria-labelledby="detalle-caja-title"
     >
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-4" onClick={e => e.stopPropagation()}>
         {cargando ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-gray-500">Cargando detalle...</div>
@@ -35,12 +35,12 @@ export default function DetalleCajaModal({ caja, cargando, onClose, formatMonto,
 
           return (
             <>
-              <div className="bg-slate-700 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+              <div className="bg-slate-700 text-white px-4 sm:px-6 py-4 rounded-t-lg flex items-center justify-between">
                 <h3 id="detalle-caja-title" className="text-lg font-bold">Caja #{caja.id}</h3>
                 <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors text-2xl leading-none" aria-label="Cerrar">&times;</button>
               </div>
 
-              <div className="px-6 py-4 border-b bg-gray-50">
+              <div className="px-4 sm:px-6 py-4 border-b bg-gray-50">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-sm text-gray-600">
                     Desde: {formatFecha(caja.fechaApertura)} hs.
@@ -66,7 +66,7 @@ export default function DetalleCajaModal({ caja, cargando, onClose, formatMonto,
                 </div>
               </div>
 
-              <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Efectivo</h4>
                   <div className="border rounded-lg overflow-hidden">
@@ -149,7 +149,7 @@ export default function DetalleCajaModal({ caja, cargando, onClose, formatMonto,
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+              <div className="px-4 sm:px-6 py-4 border-t bg-gray-50 rounded-b-lg">
                 {(caja.totalNeto != null && caja.totalNeto > 0) && (
                   <div className="mb-3 border rounded-lg overflow-hidden">
                     <div className="bg-slate-50 px-4 py-2 border-b">

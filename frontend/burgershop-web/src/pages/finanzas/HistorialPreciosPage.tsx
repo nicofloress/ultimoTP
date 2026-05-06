@@ -18,6 +18,13 @@ export default function HistorialPreciosPage() {
   const [fechaDesde, setFechaDesde] = useState(getHoy());
   const [fechaHasta, setFechaHasta] = useState(getHoy());
   const [sentido, setSentido] = useState<'' | 'aumento' | 'baja'>('');
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+  const hoy = getHoy();
+  const cantidadFiltrosActivos =
+    (tipoFiltro ? 1 : 0) +
+    (sentido ? 1 : 0) +
+    (fechaDesde !== hoy ? 1 : 0) +
+    (fechaHasta !== hoy ? 1 : 0);
 
   const buscar = async () => {
     setCargando(true);
@@ -70,47 +77,96 @@ export default function HistorialPreciosPage() {
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-2">
-        <select className={selectClass} value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}>
-          <option value="">Todos los tipos</option>
-          <option value="Combo">Combos</option>
-          <option value="Producto">Productos</option>
-        </select>
-        <select className={selectClass} value={sentido} onChange={e => setSentido(e.target.value as '' | 'aumento' | 'baja')}>
-          <option value="">Aumentos y bajas</option>
-          <option value="aumento">Solo aumentos</option>
-          <option value="baja">Solo bajas</option>
-        </select>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500 font-medium">Desde</span>
-          <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className={selectClass} />
-          <span className="text-xs text-gray-500 font-medium">Hasta</span>
-          <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} className={selectClass} />
+      <div className="space-y-2">
+        {/* Barra mobile compacta */}
+        <div className="sm:hidden flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o ID..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className={`${selectClass} flex-1 min-w-0`}
+          />
+          <button
+            onClick={() => setFiltrosMobileVisibles(v => !v)}
+            className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+              filtrosMobileVisibles || cantidadFiltrosActivos > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-300'
+                : 'text-gray-700 bg-white border-gray-300'
+            }`}
+            aria-label="Filtros"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {cantidadFiltrosActivos > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {cantidadFiltrosActivos}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={buscar}
+            disabled={cargando}
+            className="px-2.5 py-2 text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center"
+            aria-label="Buscar"
+          >
+            {cargando ? (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+          </button>
         </div>
-        <button
-          onClick={buscar}
-          disabled={cargando}
-          className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 flex items-center gap-1.5"
-        >
-          {cargando ? (
-            <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : (
-            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          )}
-          {cargando ? 'Buscando...' : 'Buscar'}
-        </button>
-        <input
-          type="text"
-          placeholder="Buscar por nombre o ID..."
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          className={`${selectClass} flex-1 min-w-[200px]`}
-        />
+
+        {/* Filtros completos (desktop siempre, mobile colapsable) */}
+        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-2`}>
+          <select className={selectClass} value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}>
+            <option value="">Todos los tipos</option>
+            <option value="Combo">Combos</option>
+            <option value="Producto">Productos</option>
+          </select>
+          <select className={selectClass} value={sentido} onChange={e => setSentido(e.target.value as '' | 'aumento' | 'baja')}>
+            <option value="">Aumentos y bajas</option>
+            <option value="aumento">Solo aumentos</option>
+            <option value="baja">Solo bajas</option>
+          </select>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500 font-medium">Desde</span>
+            <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} className={selectClass} />
+            <span className="text-xs text-gray-500 font-medium">Hasta</span>
+            <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} className={selectClass} />
+          </div>
+          <button
+            onClick={buscar}
+            disabled={cargando}
+            className="hidden sm:flex px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 items-center gap-1.5"
+          >
+            {cargando ? (
+              <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+            {cargando ? 'Buscando...' : 'Buscar'}
+          </button>
+          <input
+            type="text"
+            placeholder="Buscar por nombre o ID..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className={`${selectClass} hidden sm:block flex-1 min-w-[200px]`}
+          />
+        </div>
       </div>
 
       {/* Tabla */}

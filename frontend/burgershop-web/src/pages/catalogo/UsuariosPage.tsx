@@ -43,6 +43,10 @@ export default function UsuariosPage() {
   const [confirmacion, setConfirmacion] = useState<{ visible: boolean; id: number }>({ visible: false, id: 0 });
   const { showToast } = useGlobalToast();
   const [guardando, setGuardando] = useState(false);
+  const [filtrosMobileVisibles, setFiltrosMobileVisibles] = useState(false);
+
+  // Cantidad de filtros activos (para badge mobile, excluye busqueda y local)
+  const cantidadFiltrosActivos = (rolFiltro !== '' ? 1 : 0);
 
   const cargar = () => {
     getUsuarios().then(res => setUsuarios(res.data));
@@ -134,26 +138,53 @@ export default function UsuariosPage() {
         </button>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-end gap-2 sm:gap-3">
-        <div className="w-full sm:w-auto sm:min-w-[200px]">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
-          {esSuperAdmin ? (
-            <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
-              <option value={0}>Todos los locales</option>
-              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-            </select>
-          ) : (
-            <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
-              {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
-            </div>
+      {/* Barra mobile compacta: toggle filtros + count */}
+      <div className="sm:hidden flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setFiltrosMobileVisibles(v => !v)}
+          className={`px-2.5 py-2 rounded-md border flex items-center justify-center gap-1 transition-colors ${
+            filtrosMobileVisibles || cantidadFiltrosActivos > 0
+              ? 'text-amber-700 bg-amber-50 border-amber-300'
+              : 'text-gray-700 bg-white border-gray-300'
+          }`}
+          aria-label="Filtros"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          {cantidadFiltrosActivos > 0 && (
+            <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              {cantidadFiltrosActivos}
+            </span>
           )}
-        </div>
-        <div className="w-full sm:w-auto sm:min-w-[180px]">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Rol</label>
-          <select className={selectClass + ' w-full'} value={rolFiltro} onChange={e => setRolFiltro(e.target.value === '' ? '' : Number(e.target.value))}>
-            <option value="">Todos los roles</option>
-            {rolOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-          </select>
+        </button>
+        <span className="text-xs text-gray-500 whitespace-nowrap">
+          {usuarios.filter(u => (!localSeleccionado || u.localId === localSeleccionado) && (rolFiltro === '' || u.rol === rolFiltro)).length} usuarios
+        </span>
+      </div>
+
+      <div className={`${filtrosMobileVisibles ? 'block' : 'hidden'} sm:block mb-4`}>
+        <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+          <div className="w-full sm:w-auto sm:min-w-[200px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Local</label>
+            {esSuperAdmin ? (
+              <select className={selectClass + ' w-full'} value={localSeleccionado} onChange={e => setLocalSeleccionado(Number(e.target.value))}>
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            ) : (
+              <div className="border border-gray-300 rounded-md px-2.5 py-1.5 text-sm bg-gray-100 text-gray-700">
+                {locales.find(l => l.id === localSeleccionado)?.nombre || 'Mi Local'}
+              </div>
+            )}
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[180px]">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Rol</label>
+            <select className={selectClass + ' w-full'} value={rolFiltro} onChange={e => setRolFiltro(e.target.value === '' ? '' : Number(e.target.value))}>
+              <option value="">Todos los roles</option>
+              {rolOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
