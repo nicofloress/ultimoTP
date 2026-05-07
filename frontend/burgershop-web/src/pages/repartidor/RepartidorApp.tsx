@@ -3,7 +3,8 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 declare const __APP_VERSION__: string;
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 import { Venta, Mensaje, EstadoVenta } from '../../types';
-import { marcarEnCamino, marcarEntregado, marcarNoEntregado, reabrirEntrega, revertirEnCamino } from '../../api/entregas';
+import { marcarEnCamino, marcarEntregado, marcarNoEntregado, reabrirEntrega, revertirEnCamino, getControlCamioneta, RepartidorTally } from '../../api/entregas';
+import { RepartidorPanel } from '../entregas/ControlCamionetasPage';
 import { getMensajesRepartidor, enviarMensajeRepartidor, marcarLeidos, getNoLeidos } from '../../api/mensajes';
 import { useAuth } from '../../context/AuthContext';
 import { useGlobalToast } from '../../components/Toast';
@@ -15,8 +16,9 @@ import { getLocal } from '../../api/locales';
 import { GoogleMap } from '../../components/GoogleMap';
 import { parseFechaUtc } from '../../utils/fechas';
 import { enviarWhatsapp } from '../../utils/whatsapp';
+import logoHlp from '../../assets/logo-hlp.png';
 
-type Tab = 'pendientes' | 'completados' | 'noEntregados';
+type Tab = 'pendientes' | 'completados' | 'noEntregados' | 'control';
 
 export default function RepartidorApp() {
   const { usuario, logout } = useAuth();
@@ -475,21 +477,24 @@ export default function RepartidorApp() {
         <div className="bg-gradient-to-b from-slate-500 to-slate-800 text-gray-300" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           <div className="max-w-2xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="font-bold text-lg text-white tracking-tight truncate">Gestion HLP</h1>
-                  <span className="text-[10px] text-slate-500">v{APP_VERSION}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-slate-400 text-sm truncate">{usuario?.nombreCompleto}</p>
-                  {hayNuevaVersion && (
-                    <span className="text-[10px] text-amber-400 font-medium animate-pulse">
-                      Actualizando...
-                    </span>
-                  )}
+              <div className="min-w-0 flex items-center gap-2 flex-1">
+                <img src={logoHlp} alt="Hamburguesas La Plata" className="h-8 sm:h-9 w-auto flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-bold text-base sm:text-lg text-white tracking-tight truncate">Gestion HLP</h1>
+                    <span className="hidden sm:inline text-[10px] text-slate-500 flex-shrink-0">v{APP_VERSION}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-slate-400 text-xs sm:text-sm truncate">{usuario?.nombreCompleto}</p>
+                    {hayNuevaVersion && (
+                      <span className="text-[10px] text-amber-400 font-medium animate-pulse flex-shrink-0">
+                        Actualizando...
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 {/* GPS indicator */}
                 {gpsStatus === 'active' && (
                   <span className="relative flex h-3 w-3" title="GPS activo">
@@ -498,14 +503,14 @@ export default function RepartidorApp() {
                   </span>
                 )}
                 {gpsStatus === 'denied' && (
-                  <span className="text-red-400 text-xs font-medium" title="GPS denegado">GPS off</span>
+                  <span className="text-red-400 text-[10px] sm:text-xs font-medium" title="GPS denegado">GPS</span>
                 )}
                 {gpsStatus === 'error' && (
-                  <span className="text-amber-400 text-xs font-medium" title="Error GPS">GPS err</span>
+                  <span className="text-amber-400 text-[10px] sm:text-xs font-medium" title="Error GPS">GPS!</span>
                 )}
                 {/* Badge pendientes */}
                 {pendingCount > 0 && (
-                  <span className="bg-amber-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                  <span className="bg-amber-500 text-white text-xs font-bold rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center animate-pulse">
                     {pendingCount}
                   </span>
                 )}
@@ -513,17 +518,17 @@ export default function RepartidorApp() {
                 <button
                   onClick={refresh}
                   disabled={isRefreshing}
-                  className={`text-gray-400 hover:text-white hover:bg-slate-700 p-2 rounded transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+                  className={`text-gray-400 hover:text-white hover:bg-slate-700 p-1.5 sm:p-2 rounded transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
                   title="Actualizar"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
                 {/* Logout */}
                 <button
                   onClick={() => { desactivarTracking().catch(() => {}); logout(); }}
-                  className="text-gray-400 hover:text-white hover:bg-slate-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+                  className="text-gray-400 hover:text-white hover:bg-slate-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition-colors"
                 >
                   Salir
                 </button>
@@ -545,17 +550,19 @@ export default function RepartidorApp() {
           <div className="max-w-2xl mx-auto flex">
             <button
               onClick={() => setActiveTab('pendientes')}
-              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors border-b-2 ${
+              className={`flex-1 py-2.5 px-1 text-[11px] sm:text-sm font-semibold text-center leading-tight transition-colors border-b-2 ${
                 activeTab === 'pendientes'
                   ? 'border-amber-500 text-gray-800'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
-              Mis Repartos {pendingCount > 0 && <span className="ml-1 bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>}
+              <span className="sm:hidden">Repartos</span>
+              <span className="hidden sm:inline">Mis Repartos</span>
+              {pendingCount > 0 && <span className="ml-1 bg-amber-500 text-white text-[10px] sm:text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>}
             </button>
             <button
               onClick={() => setActiveTab('completados')}
-              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors border-b-2 ${
+              className={`flex-1 py-2.5 px-1 text-[11px] sm:text-sm font-semibold text-center leading-tight transition-colors border-b-2 ${
                 activeTab === 'completados'
                   ? 'border-green-500 text-gray-800'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
@@ -565,13 +572,24 @@ export default function RepartidorApp() {
             </button>
             <button
               onClick={() => setActiveTab('noEntregados')}
-              className={`flex-1 py-3 text-sm font-semibold text-center transition-colors border-b-2 ${
+              className={`flex-1 py-2.5 px-1 text-[11px] sm:text-sm font-semibold text-center leading-tight transition-colors border-b-2 ${
                 activeTab === 'noEntregados'
                   ? 'border-red-500 text-gray-800'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
-              No Entregados ({noEntregados.length})
+              <span className="sm:hidden">No entreg. ({noEntregados.length})</span>
+              <span className="hidden sm:inline">No Entregados ({noEntregados.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('control')}
+              className={`flex-1 py-2.5 px-1 text-[11px] sm:text-sm font-semibold text-center leading-tight transition-colors border-b-2 ${
+                activeTab === 'control'
+                  ? 'border-blue-500 text-gray-800'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              Control
             </button>
           </div>
         </div>
@@ -699,6 +717,10 @@ export default function RepartidorApp() {
             onReabrir={handleReabrir}
             actionLoading={actionLoading}
           />
+        )}
+
+        {activeTab === 'control' && (
+          <ControlTab repartidorId={repartidorId} />
         )}
 
       </main>
@@ -1423,6 +1445,75 @@ function NoEntregadosTab({
             </button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================
+// Control de Camioneta (tally readonly del repartidor)
+// ============================
+function ControlTab({ repartidorId }: { repartidorId: number | null }) {
+  const [tally, setTally] = useState<RepartidorTally | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTally = useCallback(async () => {
+    if (!repartidorId) return;
+    try {
+      const res = await getControlCamioneta();
+      const propio = res.repartidores.find(r => r.repartidorId === repartidorId) ?? null;
+      setTally(propio);
+      setError(null);
+    } catch (err) {
+      console.error('Error cargando control de camioneta:', err);
+      setError('No se pudo cargar el control');
+    } finally {
+      setLoading(false);
+    }
+  }, [repartidorId]);
+
+  useEffect(() => {
+    fetchTally();
+    const interval = setInterval(fetchTally, 30000);
+    return () => clearInterval(interval);
+  }, [fetchTally]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-red-500 text-sm">{error}</p>
+      </div>
+    );
+  }
+
+  if (!tally) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-5xl mb-4">{'\u{1F69A}'}</p>
+        <p className="text-gray-500 text-lg font-medium">No hay reparto activo</p>
+        <p className="text-gray-400 text-sm mt-1">El control aparecera cuando se inicie un reparto</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-white rounded-lg shadow-sm border px-4 py-3">
+        <p className="text-sm font-semibold text-gray-700">{tally.nombre}</p>
+        {tally.vehiculo && <p className="text-xs text-gray-500">{tally.vehiculo}</p>}
+        <p className="text-xs text-gray-400 mt-1">{tally.totalPedidos} pedidos asignados</p>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm border p-2 overflow-x-auto">
+        <RepartidorPanel tally={tally} readonly />
       </div>
     </div>
   );

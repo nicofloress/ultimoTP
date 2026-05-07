@@ -206,6 +206,15 @@ public class EntregasController : ControllerBase
         var fechaConsulta = fecha?.Date ?? DateTime.Today;
         var result = await _controlCamionetaService.GetHistorialAsync(fechaConsulta);
 
+        if (User.IsInRole("Repartidor"))
+        {
+            var repartidorIdClaim = User.FindFirstValue("repartidorId");
+            if (!int.TryParse(repartidorIdClaim, out var repartidorIdToken))
+                return Unauthorized(new { message = "No se encontro el repartidorId en el token" });
+            result.Items = result.Items.Where(i => i.RepartidorId == repartidorIdToken).ToList();
+            return Ok(result);
+        }
+
         var localIdClaim = User.FindFirst("localId")?.Value;
         if (int.TryParse(localIdClaim, out var localId))
         {
@@ -221,6 +230,16 @@ public class EntregasController : ControllerBase
     public async Task<ActionResult<ControlCamionetaDto>> GetControlCamioneta()
     {
         var result = await _controlCamionetaService.GetTalliesActivosHoyAsync();
+
+        if (User.IsInRole("Repartidor"))
+        {
+            var repartidorIdClaim = User.FindFirstValue("repartidorId");
+            if (!int.TryParse(repartidorIdClaim, out var repartidorIdToken))
+                return Unauthorized(new { message = "No se encontro el repartidorId en el token" });
+            result.Repartidores = result.Repartidores.Where(t => t.RepartidorId == repartidorIdToken).ToList();
+            return Ok(result);
+        }
+
         var localIdClaim = User.FindFirst("localId")?.Value;
         if (int.TryParse(localIdClaim, out var localId))
         {

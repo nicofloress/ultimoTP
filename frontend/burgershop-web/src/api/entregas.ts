@@ -80,6 +80,7 @@ export const getControlCamioneta = () => api.get<ControlCamionetaData>('/entrega
 export interface ControlCamionetaHistorialItem {
   repartoZonaId: number;
   zonaNombre: string;
+  repartidorId: number;
   repartidorNombre: string;
   repartidorVehiculo: string | null;
   repartidorLocalId?: number;

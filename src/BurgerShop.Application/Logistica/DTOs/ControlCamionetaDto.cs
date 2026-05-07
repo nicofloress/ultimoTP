@@ -56,6 +56,7 @@ public class ControlCamionetaHistorialItemDto
 {
     public int RepartoZonaId { get; set; }
     public string ZonaNombre { get; set; } = "";
+    public int RepartidorId { get; set; }
     public string RepartidorNombre { get; set; } = "";
     public string? RepartidorVehiculo { get; set; }
     public int? RepartidorLocalId { get; set; }

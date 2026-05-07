@@ -80,7 +80,7 @@ function TallySection({ title, bg, colSpan = 3, children }: { title: string; bg:
   );
 }
 
-function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; readonly?: boolean }) {
+export function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; readonly?: boolean }) {
   const [checks, setChecks] = useState<Record<string, boolean>>(() =>
     readonly ? {} : loadChecks(tally.repartidorId)
   );
@@ -128,7 +128,7 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* LEFT COLUMN - Carnes */}
-      <div>
+      <div className="min-w-0 overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className={colors.headerFila1}>
@@ -250,7 +250,7 @@ function RepartidorPanel({ tally, readonly = false }: { tally: RepartidorTally; 
       </div>
 
       {/* RIGHT COLUMN - Panes + Aderezos */}
-      <div>
+      <div className="min-w-0 overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className={colors.headerFila1}>

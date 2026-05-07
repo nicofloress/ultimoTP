@@ -219,6 +219,7 @@ public class ControlCamionetaService : IControlCamionetaService
                 {
                     RepartoZonaId = reparto.Id,
                     ZonaNombre = reparto.Zona?.Nombre ?? $"Zona {reparto.ZonaId}",
+                    RepartidorId = reparto.RepartidorId,
                     RepartidorNombre = reparto.Repartidor?.Nombre ?? "Desconocido",
                     RepartidorVehiculo = reparto.Repartidor?.Vehiculo,
                     RepartidorLocalId = reparto.Repartidor?.LocalId,
