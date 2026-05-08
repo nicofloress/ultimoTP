@@ -281,11 +281,14 @@ public class RendicionService : IRendicionService
                     }
                 }
 
-                // Saldar cuentas corrientes si la venta fue cobrada en la entrega
+                // Saldar cuentas corrientes SOLO si la venta fue cobrada en la entrega (EstaPago=true).
+                // Si quedo en cuenta corriente (EstaPago=false), la deuda debe persistir hasta que el cliente pague.
                 foreach (var ventaId in ventasEntregadas)
                 {
                     try
                     {
+                        var venta = await _ventaRepo.GetByIdWithLineasAsync(ventaId);
+                        if (venta is null || !venta.EstaPago) continue;
                         await _cuentaCorrienteService.SaldarCargoPorVentaAsync(ventaId, null);
                     }
                     catch (Exception ex)
