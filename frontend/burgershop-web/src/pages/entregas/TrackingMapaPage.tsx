@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { loadGoogleMapsScript } from '../../hooks/useGooglePlaces';
 import { obtenerRepartidoresActivos, type UbicacionRepartidor } from '../../api/tracking';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
+import { getLocales, LocalDto } from '../../api/locales';
 
 const POLLING_INTERVAL = 10_000;
 const STALE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutos
@@ -40,12 +43,22 @@ interface MarcadorState {
 }
 
 export default function TrackingMapaPage() {
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const marcadoresRef = useRef<Map<number, MarcadorState>>(new Map());
   const [repartidores, setRepartidores] = useState<UbicacionRepartidor[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sdkListo, setSdkListo] = useState(false);
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
+  const localFiltroEfectivo = localFiltro === 0 ? undefined : localFiltro;
+
+  // Cargar locales
+  useEffect(() => {
+    getLocales().then(setLocales).catch(() => {});
+  }, []);
 
   // Cargar SDK de Google Maps
   useEffect(() => {
@@ -70,13 +83,13 @@ export default function TrackingMapaPage() {
   // Polling de ubicaciones
   const fetchUbicaciones = useCallback(async () => {
     try {
-      const data = await obtenerRepartidoresActivos();
+      const data = await obtenerRepartidoresActivos(localFiltroEfectivo);
       setRepartidores(data);
       setError(null);
     } catch {
       setError('Error al obtener ubicaciones');
     }
-  }, []);
+  }, [localFiltroEfectivo]);
 
   useEffect(() => {
     fetchUbicaciones();
@@ -146,8 +159,21 @@ export default function TrackingMapaPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-7rem)]">
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-white">Tracking en Vivo</h2>
+        {esSuperAdmin && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-200 uppercase tracking-wide">Local</label>
+            <select
+              value={localFiltro}
+              onChange={e => setLocalFiltro(Number(e.target.value))}
+              className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value={0}>Todos los locales</option>
+              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
+        )}
       </div>
       {/* Header con stats */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">

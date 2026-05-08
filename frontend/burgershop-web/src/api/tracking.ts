@@ -9,8 +9,10 @@ export interface UbicacionRepartidor {
   estaActivo: boolean;
 }
 
-export async function obtenerRepartidoresActivos(): Promise<UbicacionRepartidor[]> {
-  const { data } = await api.get<UbicacionRepartidor[]>('/tracking/activos');
+export async function obtenerRepartidoresActivos(localId?: number): Promise<UbicacionRepartidor[]> {
+  const { data } = await api.get<UbicacionRepartidor[]>('/tracking/activos', {
+    params: localId ? { localId } : {},
+  });
   return data;
 }
 

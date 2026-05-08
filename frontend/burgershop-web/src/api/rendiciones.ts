@@ -47,8 +47,8 @@ export interface RendicionDto {
 export const crearRendicion = (data: { repartidorId: number; repartoZonaId: number; efectivoDeclarado: number; observaciones?: string }) =>
   api.post<RendicionDto>('/rendiciones', data).then(r => r.data);
 
-export const getRendiciones = (fechaDesde?: string, fechaHasta?: string) =>
-  api.get<RendicionDto[]>('/rendiciones', { params: { fechaDesde, fechaHasta } }).then(r => r.data);
+export const getRendiciones = (fechaDesde?: string, fechaHasta?: string, localId?: number) =>
+  api.get<RendicionDto[]>('/rendiciones', { params: { fechaDesde, fechaHasta, localId } }).then(r => r.data);
 
 export const getRendicionesRepartidor = (id: number) =>
   api.get<RendicionDto[]>(`/rendiciones/repartidor/${id}`).then(r => r.data);

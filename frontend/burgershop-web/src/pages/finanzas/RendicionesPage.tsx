@@ -15,6 +15,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { useGlobalToast } from '../../components/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { RolUsuario } from '../../types/auth';
+import { getLocales, LocalDto } from '../../api/locales';
 import NuevaRendicionModal from './rendiciones/NuevaRendicionModal';
 import EditarEstadoPedidoModal from './rendiciones/EditarEstadoPedidoModal';
 import DetalleRendicionModal from './rendiciones/DetalleRendicionModal';
@@ -49,8 +50,14 @@ export default function RendicionesPage() {
 
 
   // Edición de estado de pedido (solo admin/superadmin)
-  const { hasRole } = useAuth();
+  const { hasRole, usuario } = useAuth();
   const puedeEditarEstado = hasRole(RolUsuario.SuperAdmin, RolUsuario.Administrador);
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+
+  // Selector de local independiente (solo SuperAdmin elige; otros usan su localId)
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
+  const localFiltroEfectivo = localFiltro === 0 ? undefined : localFiltro;
   const [editandoEstadoPedidoId, setEditandoEstadoPedidoId] = useState<number | null>(null);
   const [nuevoEstadoPedido, setNuevoEstadoPedido] = useState<EstadoVenta>(EstadoVenta.Entregado);
   const [motivoNoEntregado, setMotivoNoEntregado] = useState('');
@@ -142,7 +149,7 @@ export default function RendicionesPage() {
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      const data = await getRendiciones(filtroFechaDesde || undefined, filtroFechaHasta || undefined);
+      const data = await getRendiciones(filtroFechaDesde || undefined, filtroFechaHasta || undefined, localFiltroEfectivo);
       setRendiciones(data);
     } catch {
       // silenciar errores
@@ -175,6 +182,17 @@ export default function RendicionesPage() {
     cargarPendientesCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cargar locales para selector de SuperAdmin
+  useEffect(() => {
+    getLocales().then(setLocales).catch(() => {});
+  }, []);
+
+  // Refetch cuando cambia el local seleccionado
+  useEffect(() => {
+    cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFiltro]);
 
   const abrirNuevaRendicion = useCallback(async () => {
     setMostrarNuevaRendicion(true);
@@ -369,8 +387,24 @@ export default function RendicionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex items-center justify-between">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-white">Rendiciones</h2>
+        {esSuperAdmin && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-200 uppercase tracking-wide">Local</label>
+            <select
+              value={localFiltro}
+              onChange={e => setLocalFiltro(Number(e.target.value))}
+              className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value={0}>Todos los locales</option>
+              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
+        )}
+        {!esSuperAdmin && locales.length > 0 && (
+          <span className="text-sm text-slate-200">{locales.find(l => l.id === localFiltro)?.nombre || ''}</span>
+        )}
         <button
           onClick={() => setStatsMobileVisibles(v => !v)}
           className="sm:hidden text-white p-1 rounded hover:bg-white/10"
@@ -472,7 +506,7 @@ export default function RendicionesPage() {
           </span>
         </div>
 
-        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-center gap-4`}>
+        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-end gap-4`}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
             <input

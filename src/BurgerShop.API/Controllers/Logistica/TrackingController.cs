@@ -29,12 +29,23 @@ public class TrackingController : ControllerBase
 
     [HttpGet("activos")]
     [Authorize(Roles = "SuperAdmin,Administrador,Local")]
-    public async Task<ActionResult<IEnumerable<UbicacionDto>>> GetActivos()
+    public async Task<ActionResult<IEnumerable<UbicacionDto>>> GetActivos([FromQuery] int? localId)
     {
         var ubicaciones = await _service.GetActivosAsync();
-        var localIdClaim = User.FindFirst("localId")?.Value;
-        if (int.TryParse(localIdClaim, out var localId))
-            ubicaciones = ubicaciones.Where(u => u.RepartidorLocalId == localId);
+        var rol = User.FindFirstValue(ClaimTypes.Role);
+        if (rol == "SuperAdmin")
+        {
+            // SuperAdmin: respeta el filtro del query (null = todos los locales)
+            if (localId.HasValue)
+                ubicaciones = ubicaciones.Where(u => u.RepartidorLocalId == localId.Value);
+        }
+        else
+        {
+            // Otros roles: forzados al local del JWT
+            var localIdClaim = User.FindFirst("localId")?.Value;
+            if (int.TryParse(localIdClaim, out var localFromJwt))
+                ubicaciones = ubicaciones.Where(u => u.RepartidorLocalId == localFromJwt);
+        }
         return Ok(ubicaciones);
     }
 
