@@ -32,11 +32,11 @@ function getHoy(): string {
   const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function StatItem({ label, value, porcentaje }: { label: string; value: number; porcentaje?: number }) {
+function StatItem({ label, value, porcentaje, tooltip }: { label: string; value: number; porcentaje?: number; tooltip?: string }) {
   const pctColor = porcentaje === undefined ? '' : porcentaje > 0 ? 'text-green-400' : porcentaje < 0 ? 'text-red-400' : 'text-slate-400';
   const pctArrow = porcentaje === undefined ? '' : porcentaje > 0 ? '\u25B2' : porcentaje < 0 ? '\u25BC' : '';
   return (
-    <div className="flex items-baseline gap-1.5">
+    <div className={`flex items-baseline gap-1.5 ${tooltip ? 'cursor-help' : ''}`} title={tooltip}>
       <span className="text-xs text-slate-200">{label}</span>
       <span className="text-sm font-bold text-white">{value.toLocaleString('es-AR')}</span>
       {porcentaje !== undefined && (
@@ -244,23 +244,42 @@ export default function HistorialPedidosPage() {
             {/* Fila 1: Comparativas */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-4 py-2.5">
               <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide w-full sm:w-auto">Nro. total de pedidos</span>
-              <StatItem label="Hoy" value={stats.ventasHoy} porcentaje={stats.porcentajeVariacionAyer} />
-              <StatItem label="Ayer" value={stats.ventasAyer} />
-              <StatItem label="Ult. 7 dias" value={stats.ventasUltimos7Dias} porcentaje={stats.porcentajeVariacion7Dias} />
-              <StatItem label="Ano pasado" value={stats.ventasAnioAnterior} porcentaje={stats.porcentajeVariacionAnio} />
+              <StatItem
+                label="Hoy"
+                value={stats.ventasHoy}
+                porcentaje={stats.porcentajeVariacionAyer}
+                tooltip="Cantidad de pedidos creados hoy. La flecha y el porcentaje comparan contra ayer."
+              />
+              <StatItem
+                label="Ayer"
+                value={stats.ventasAyer}
+                tooltip="Cantidad de pedidos creados ayer."
+              />
+              <StatItem
+                label="Ult. 7 dias"
+                value={stats.ventasUltimos7Dias}
+                porcentaje={stats.porcentajeVariacion7Dias}
+                tooltip="Cantidad de pedidos en los ultimos 7 dias. La flecha compara contra los 7 dias previos."
+              />
+              <StatItem
+                label="Ano pasado"
+                value={stats.ventasAnioAnterior}
+                porcentaje={stats.porcentajeVariacionAnio}
+                tooltip="Pedidos en el mismo dia del ano pasado. La flecha compara crecimiento interanual."
+              />
             </div>
             {/* Fila 2: Resumen de la fecha */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-6 px-4 py-2.5 border-t border-slate-600">
               <span className="text-xs font-semibold text-slate-200 uppercase tracking-wide w-full sm:w-auto">Pedidos</span>
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex items-baseline gap-1.5 cursor-help" title="Cantidad total de pedidos en el rango de fechas filtrado.">
                 <span className="text-xs text-slate-200">Pedidos</span>
                 <span className="text-sm font-bold text-white">{stats.totalVentasFecha.toLocaleString('es-AR')}</span>
               </div>
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex items-baseline gap-1.5 cursor-help" title="Total bruto dividido por la cantidad de pedidos. Mide cuanto compra en promedio cada cliente.">
                 <span className="text-xs text-slate-200">Ticket promedio</span>
                 <span className="text-sm font-bold text-white">${stats.ticketPromedio.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
               </div>
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex items-baseline gap-1.5 cursor-help" title="Suma de los totales de todos los pedidos del rango (incluye IVA). Es la facturacion bruta del periodo.">
                 <span className="text-xs text-slate-200">Total bruto</span>
                 <span className="text-sm font-bold text-amber-400">${stats.totalBruto.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
               </div>
