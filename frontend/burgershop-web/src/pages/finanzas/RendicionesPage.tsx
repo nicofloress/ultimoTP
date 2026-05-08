@@ -506,43 +506,48 @@ export default function RendicionesPage() {
           </span>
         </div>
 
-        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap items-end gap-4`}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-            <input
-              type="date"
-              value={filtroFechaDesde}
-              onChange={e => setFiltroFechaDesde(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
-            />
+        <div className={`${filtrosMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-col lg:flex-row lg:flex-wrap items-stretch lg:items-end gap-3 lg:gap-4 lg:justify-between`}>
+          {/* Grupo filtros */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+              <input
+                type="date"
+                value={filtroFechaDesde}
+                onChange={e => setFiltroFechaDesde(e.target.value)}
+                className="border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={filtroFechaHasta}
+                onChange={e => setFiltroFechaHasta(e.target.value)}
+                className="border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select
+                value={filtroEstado}
+                onChange={e => setFiltroEstado(e.target.value as FiltroEstado)}
+                className="border rounded px-3 py-2 text-sm"
+              >
+                <option value="todas">Todas</option>
+                <option value="pendientes">Pendientes</option>
+                <option value="aprobadas">Aprobadas</option>
+                <option value="rechazadas">Rechazadas</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-            <input
-              type="date"
-              value={filtroFechaHasta}
-              onChange={e => setFiltroFechaHasta(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-            <select
-              value={filtroEstado}
-              onChange={e => setFiltroEstado(e.target.value as FiltroEstado)}
-              className="border rounded px-3 py-2 text-sm"
-            >
-              <option value="todas">Todas</option>
-              <option value="pendientes">Pendientes</option>
-              <option value="aprobadas">Aprobadas</option>
-              <option value="rechazadas">Rechazadas</option>
-            </select>
-          </div>
-          <div className="flex items-end gap-2">
+
+          {/* Grupo acciones */}
+          <div className="flex flex-wrap items-end gap-2">
             <button
               onClick={cargarDatos}
               disabled={cargando}
-              className="hidden sm:flex px-2.5 py-1.5 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 items-center gap-1.5"
+              className="hidden sm:flex px-3 py-2 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 disabled:opacity-50 items-center gap-1.5"
             >
               {cargando ? (
                 <svg className="animate-spin w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24">
@@ -558,15 +563,13 @@ export default function RendicionesPage() {
             </button>
             <button
               onClick={() => { setFiltroFechaDesde(hoy); setFiltroFechaHasta(hoy); setFiltroEstado('todas'); }}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap"
             >
               Limpiar filtros
             </button>
-          </div>
-          <div className="hidden sm:flex ml-auto items-end gap-3">
             <button
               onClick={abrirNuevaRendicion}
-              className="px-4 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-semibold transition-colors flex items-center gap-2"
+              className="hidden sm:flex px-3 py-2 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 text-sm font-semibold transition-colors items-center gap-2 whitespace-nowrap"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
