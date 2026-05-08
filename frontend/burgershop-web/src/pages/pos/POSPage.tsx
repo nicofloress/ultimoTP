@@ -805,15 +805,15 @@ export default function POSPage() {
 
       {/* ============ PANEL IZQUIERDO: CARRITO ============ */}
       <div className={`flex-1 flex flex-col min-w-0 min-h-0 lg:min-h-0 ${panelMovil !== 'carrito' ? 'hidden lg:flex' : ''}`}>
-        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2 mb-1.5 flex items-center justify-between gap-2">
+        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2 mb-1.5 flex items-center justify-between gap-2 flex-wrap">
           <h2 className="text-base lg:text-lg font-bold text-white">Punto de Venta</h2>
           {esSuperAdmin && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <label className="text-xs text-slate-200 uppercase tracking-wide hidden sm:inline">Local</label>
               <select
                 value={localActivo}
                 onChange={e => setLocalActivo(Number(e.target.value))}
-                className="bg-slate-700 text-white text-xs sm:text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="bg-slate-700 text-white text-xs sm:text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400 max-w-[160px] truncate"
               >
                 {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
               </select>
