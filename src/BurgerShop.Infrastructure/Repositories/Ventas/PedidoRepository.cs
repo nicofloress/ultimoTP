@@ -515,9 +515,9 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
     {
         var hoy = DateTime.Today;
 
-        // Solo traer ventas que pertenecen a repartos actualmente EnCurso
-        var repartosEnCursoIds = await _context.RepartosZona
-            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.EnCurso)
+        // Excluir pedidos cuyo RepartoZona ya esta finalizado (esos viven en el historial)
+        var repartosFinalizadosIds = await _context.RepartosZona
+            .Where(r => r.Fecha == hoy && r.Estado == EstadoReparto.Finalizado)
             .Select(r => r.Id)
             .ToListAsync();
 
@@ -526,8 +526,7 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
             .Include(v => v.Lineas).ThenInclude(l => l.Combo).ThenInclude(c => c!.Detalles).ThenInclude(d => d.Producto).ThenInclude(pr => pr.Categoria).ThenInclude(c => c!.CategoriaPadre)
             .Include(v => v.Repartidor)
             .Where(v => v.RepartidorId != null
-                && v.RepartoZonaId != null
-                && repartosEnCursoIds.Contains(v.RepartoZonaId.Value)
+                && (v.RepartoZonaId == null || !repartosFinalizadosIds.Contains(v.RepartoZonaId.Value))
                 && v.Estado != EstadoVenta.Cancelado
                 && v.Estado != EstadoVenta.NoEntregado
                 && (v.FechaProgramada == null
