@@ -252,7 +252,7 @@ export default function VentasPage() {
                 label="Ult. 7 dias"
                 value={stats.ventasUltimos7Dias}
                 porcentaje={stats.porcentajeVariacion7Dias}
-                tooltip="Ventas en los ultimos 7 dias. La flecha compara contra los 7 dias previos."
+                tooltip="Ventas de los ultimos 7 dias corridos (hoy y los 6 dias anteriores, incluyendo fin de semana). No es 'desde el lunes'. La flecha compara contra los 7 dias previos a esa ventana."
               />
               <StatItem
                 label="Ano pasado"
