@@ -10,6 +10,7 @@ import { RolUsuario } from '../../types/auth';
 import DetalleCajaModal from './caja/DetalleCajaModal';
 import RevisionCajaModal from './caja/RevisionCajaModal';
 import { parseFechaUtc } from '../../utils/fechas';
+import { getLocales, LocalDto } from '../../api/locales';
 
 const hoy = new Date();
 const hace7Dias = new Date(hoy);
@@ -20,6 +21,13 @@ export default function CajaPage() {
   const { localActivo } = useLocalActivo();
   const { usuario } = useAuth();
   const esAdmin = usuario?.rol === RolUsuario.SuperAdmin || usuario?.rol === RolUsuario.Administrador;
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+
+  // Selector de local independiente del topbar (solo SuperAdmin elige; otros usan localActivo)
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  // 0 = Todos los locales (solo valido para SuperAdmin)
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (localActivo || usuario?.localId || 1));
+  const localFiltroEfectivo = localFiltro === 0 ? undefined : localFiltro;
   const [cajaAbierta, setCajaAbierta] = useState<CierreCaja | null>(null);
   const [historial, setHistorial] = useState<CierreCaja[]>([]);
   const [pendientes, setPendientes] = useState<CierreCaja[]>([]);
@@ -92,7 +100,7 @@ export default function CajaPage() {
   const cargarHistorial = async () => {
     setCargandoHistorial(true);
     try {
-      const hist = await getHistorialCajas(localActivo || undefined, fechaDesde, fechaHasta);
+      const hist = await getHistorialCajas(localFiltroEfectivo, fechaDesde, fechaHasta);
       setHistorial(hist);
     } catch {
       showToast('Error al cargar el historial', 'error');
@@ -105,10 +113,10 @@ export default function CajaPage() {
     setCargando(true);
     try {
       const promises: Promise<unknown>[] = [
-        getCajaAbierta(localActivo || undefined),
-        getHistorialCajas(localActivo || undefined, fechaDesde, fechaHasta),
+        getCajaAbierta(localFiltroEfectivo),
+        getHistorialCajas(localFiltroEfectivo, fechaDesde, fechaHasta),
       ];
-      if (esAdmin) promises.push(getPendientesRevision(localActivo || undefined));
+      if (esAdmin) promises.push(getPendientesRevision(localFiltroEfectivo));
       const [caja, hist, pend] = await Promise.all(promises);
       setCajaAbierta(caja as CierreCaja | null);
       setHistorial(hist as CierreCaja[]);
@@ -122,12 +130,24 @@ export default function CajaPage() {
 
   useEffect(() => {
     cargarDatos();
+    if (esSuperAdmin) getLocales().then(setLocales).catch(() => {});
+    else getLocales().then(setLocales).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    cargarDatos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFiltro]);
 
   const handleAbrirCaja = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await abrirCaja({ montoInicial, observaciones: observaciones || undefined });
+      await abrirCaja({
+        montoInicial,
+        observaciones: observaciones || undefined,
+        localId: esSuperAdmin ? localFiltroEfectivo : undefined,
+      });
       setMontoInicial(0);
       setObservaciones('');
       await cargarDatos();
@@ -236,14 +256,40 @@ export default function CajaPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4">
+      <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-white">Caja Diaria</h2>
+        {esSuperAdmin && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-200 uppercase tracking-wide">Local</label>
+            <select
+              value={localFiltro}
+              onChange={e => setLocalFiltro(Number(e.target.value))}
+              className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value={0}>Todos los locales</option>
+              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
+        )}
+        {!esSuperAdmin && locales.length > 0 && (
+          <span className="text-sm text-slate-200">{locales.find(l => l.id === localFiltro)?.nombre || ''}</span>
+        )}
       </div>
       {/* Estado de la Caja */}
       <div className="bg-white rounded-lg shadow-xl border-2 border-gray-300 p-6">
-        <h2 className="text-lg font-bold mb-4">Estado de la Caja</h2>
+        <h2 className="text-lg font-bold mb-4">
+          Estado de la Caja
+          {locales.find(l => l.id === localFiltro) && (
+            <span className="ml-2 text-sm font-normal text-gray-500">— {locales.find(l => l.id === localFiltro)?.nombre}</span>
+          )}
+        </h2>
 
-        {!cajaAbierta ? (
+        {esSuperAdmin && localFiltro === 0 ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-800 font-medium">Seleccione un local especifico para ver el estado de la caja.</p>
+            <p className="text-blue-600 text-sm mt-1">Con "Todos los locales" solo se ve el historial agregado.</p>
+          </div>
+        ) : !cajaAbierta ? (
           <form onSubmit={handleAbrirCaja} className="space-y-4">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <p className="text-yellow-800 font-medium">No hay una caja abierta actualmente.</p>
