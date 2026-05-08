@@ -546,10 +546,8 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
 
     public async Task<int> GetCountByFechaAsync(DateTime fecha, int? localId = null, int? tipo = null)
     {
-        var q = _dbSet
-            .Where(v => v.FechaCreacion.Date == fecha.Date
-                && v.Estado != EstadoVenta.Cancelado
-                && v.Estado != EstadoVenta.NoEntregado);
+        // Cuenta TODOS los pedidos (incluye Cancelado/NoEntregado) para que coincida con el listado.
+        var q = _dbSet.Where(v => v.FechaCreacion.Date == fecha.Date);
         if (localId.HasValue) q = q.Where(v => v.LocalId == localId.Value);
         if (tipo.HasValue) q = q.Where(v => (int)v.Tipo == tipo.Value);
         return await q.CountAsync();
@@ -557,11 +555,8 @@ public class VentaRepository : Repository<Venta>, IVentaRepository
 
     public async Task<int> GetCountByRangoAsync(DateTime desde, DateTime hasta, int? localId = null, int? tipo = null)
     {
-        var q = _dbSet
-            .Where(v => v.FechaCreacion.Date >= desde.Date
-                && v.FechaCreacion.Date <= hasta.Date
-                && v.Estado != EstadoVenta.Cancelado
-                && v.Estado != EstadoVenta.NoEntregado);
+        // Cuenta TODOS los pedidos (incluye Cancelado/NoEntregado) para que coincida con el listado.
+        var q = _dbSet.Where(v => v.FechaCreacion.Date >= desde.Date && v.FechaCreacion.Date <= hasta.Date);
         if (localId.HasValue) q = q.Where(v => v.LocalId == localId.Value);
         if (tipo.HasValue) q = q.Where(v => (int)v.Tipo == tipo.Value);
         return await q.CountAsync();
