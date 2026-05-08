@@ -303,7 +303,7 @@ export default function CuentaCorrientePage() {
               {statsMobileVisibles ? 'Ocultar' : 'Ver'}
             </button>
           </div>
-          <div className={`${statsMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap gap-x-5 gap-y-1.5 items-center`}>
+          <div className={`${statsMobileVisibles ? 'grid' : 'hidden'} grid-cols-2 sm:flex sm:flex-wrap gap-x-5 gap-y-1.5 items-baseline`}>
             <StatBubble
               label="Deuda total"
               value={formatMonto(stats.totalDeudaActual)}
@@ -359,8 +359,8 @@ export default function CuentaCorrientePage() {
       )}
 
     <div className="flex flex-col lg:flex-row gap-4 min-h-0 flex-1 lg:overflow-hidden">
-      {/* Panel izquierdo - lista de cuentas */}
-      <div className="w-full lg:w-96 flex-shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden lg:max-h-full max-h-[40vh]">
+      {/* Panel izquierdo - lista de cuentas. En mobile se oculta cuando hay cliente seleccionado */}
+      <div className={`w-full lg:w-96 flex-shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden lg:max-h-full ${seleccionada ? 'hidden lg:flex' : 'flex max-h-[calc(100vh-12rem)]'}`}>
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-3">
           <h2 className="text-lg font-bold text-white">Cuentas Corrientes</h2>
         </div>
@@ -442,8 +442,8 @@ export default function CuentaCorrientePage() {
         </div>
       </div>
 
-      {/* Panel derecho - detalle */}
-      <div className="flex-1 flex flex-col bg-white rounded-lg shadow overflow-hidden">
+      {/* Panel derecho - detalle. En mobile se oculta cuando no hay seleccion */}
+      <div className={`flex-1 flex-col bg-white rounded-lg shadow overflow-hidden ${seleccionada ? 'flex' : 'hidden lg:flex'}`}>
         {!seleccionada ? (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
             Selecciona un cliente para ver su cuenta corriente
@@ -451,16 +451,25 @@ export default function CuentaCorrientePage() {
         ) : (
           <>
             {/* Header detalle */}
-            <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white">{seleccionada.clienteNombre}</h3>
+            <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+              <button
+                onClick={() => setSeleccionada(null)}
+                className="lg:hidden text-white/70 hover:text-white p-1 -ml-1 flex-shrink-0"
+                aria-label="Volver"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">{seleccionada.clienteNombre}</h3>
                 {seleccionada.clienteTelefono && (
-                  <p className="text-sm text-slate-300">{seleccionada.clienteTelefono}</p>
+                  <p className="text-xs sm:text-sm text-slate-300 truncate">{seleccionada.clienteTelefono}</p>
                 )}
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-300 uppercase tracking-wide">Saldo actual</div>
-                <div className={`text-2xl font-bold ${seleccionada.saldoActual > 0 ? 'text-red-300' : 'text-green-300'}`}>
+              <div className="text-right flex-shrink-0">
+                <div className="text-[10px] sm:text-xs text-slate-300 uppercase tracking-wide">Saldo</div>
+                <div className={`text-base sm:text-2xl font-bold whitespace-nowrap ${seleccionada.saldoActual > 0 ? 'text-red-300' : 'text-green-300'}`}>
                   {formatMonto(seleccionada.saldoActual)}
                 </div>
               </div>
@@ -647,7 +656,7 @@ export default function CuentaCorrientePage() {
                       <th
                         key={col}
                         onClick={() => toggleOrden(col)}
-                        className={`${align} ${hide} px-4 py-2 font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
+                        className={`${align} ${hide} px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-medium text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors`}
                       >
                         {label}
                         {ordenCol === col && (
@@ -660,16 +669,19 @@ export default function CuentaCorrientePage() {
                 <tbody className="divide-y">
                   {movimientosOrdenados.map(m => (
                     <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-gray-600 whitespace-nowrap text-xs sm:text-sm">{formatFechaHora(m.fechaMovimiento)}</td>
-                      <td className="px-3 py-2">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${tipoBadge(m.tipo)}`}>
+                      <td className="px-2 sm:px-3 py-2 text-gray-600 whitespace-nowrap text-[11px] sm:text-sm">
+                        <span className="sm:hidden">{formatFecha(m.fechaMovimiento)}</span>
+                        <span className="hidden sm:inline">{formatFechaHora(m.fechaMovimiento)}</span>
+                      </td>
+                      <td className="px-2 sm:px-3 py-2">
+                        <span className={`inline-block px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${tipoBadge(m.tipo)}`}>
                           {m.tipo}
                         </span>
                       </td>
-                      <td className={`px-3 py-2 text-right font-medium text-xs sm:text-sm ${m.tipo === 'Pago' ? 'text-green-600' : m.monto > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className={`px-2 sm:px-3 py-2 text-right font-medium text-[11px] sm:text-sm whitespace-nowrap ${m.tipo === 'Pago' ? 'text-green-600' : m.monto > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {m.tipo === 'Pago' ? '+' : ''}{formatMonto(Math.abs(m.monto))}
                       </td>
-                      <td className={`px-3 py-2 text-right font-medium text-xs sm:text-sm ${m.saldoResultante > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className={`px-2 sm:px-3 py-2 text-right font-medium text-[11px] sm:text-sm whitespace-nowrap ${m.saldoResultante > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {formatMonto(m.saldoResultante)}
                       </td>
                       <td className="px-3 py-2 text-gray-600 text-xs sm:text-sm hidden sm:table-cell">
@@ -942,9 +954,9 @@ const toneClasses: Record<string, string> = {
 
 function StatBubble({ label, value, tone, tooltip }: { label: string; value: string; tone: string; tooltip: string }) {
   return (
-    <div className="flex items-baseline gap-1.5 cursor-help" title={tooltip}>
-      <span className="text-[11px] text-slate-400 uppercase tracking-wide">{label}</span>
-      <span className={`text-sm font-bold ${toneClasses[tone] || 'text-white'}`}>{value}</span>
+    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-1.5 cursor-help min-w-0" title={tooltip}>
+      <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wide truncate">{label}</span>
+      <span className={`text-xs sm:text-sm font-bold truncate ${toneClasses[tone] || 'text-white'}`}>{value}</span>
     </div>
   );
 }
