@@ -215,34 +215,38 @@ export default function RepartidorApp() {
    * así que el orden de los pedidos en la lista ya es el óptimo.
    * El repartidor navega de a uno: toca "Navegar", entrega, vuelve a la app, toca el siguiente.
    */
-  const navegarAPedido = async (pedido: Venta) => {
-    // Si está Asignado, marcarlo como EnCamino antes de navegar
-    if (pedido.estado === EstadoVenta.Asignado) {
-      setActionLoading(pedido.id);
-      try {
-        await marcarEnCamino(pedido.id);
-        await refresh();
-        if (puedeVerWhatsapp && pedido.telefonoCliente) {
-          setWhatsappPedido(pedido);
-        }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Error al iniciar entrega';
-        showToast(msg, 'error');
-        setActionLoading(null);
-        return;
-      }
-      setActionLoading(null);
-    }
+  const navegarAPedido = (pedido: Venta) => {
     if (!pedido.direccionEntrega) {
       showToast('El pedido no tiene dirección de entrega', 'error');
       return;
     }
     const destino = encodeURIComponent(pedido.direccionEntrega);
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
+    // Abrir Maps de forma sincrónica para preservar el gesto del usuario
+    // (los browsers mobile bloquean window.open despues de un await)
     window.open(url, '_blank');
-    // Refrescar datos al volver de Maps (el visibilitychange ya lo hace,
-    // pero también refrescamos inmediatamente para actualizar la UI)
-    refresh();
+
+    // Marcar EnCamino en segundo plano si esta Asignado
+    if (pedido.estado === EstadoVenta.Asignado) {
+      setActionLoading(pedido.id);
+      (async () => {
+        try {
+          await marcarEnCamino(pedido.id);
+          await refresh();
+          if (puedeVerWhatsapp && pedido.telefonoCliente) {
+            setWhatsappPedido(pedido);
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Error al iniciar entrega';
+          showToast(msg, 'error');
+        } finally {
+          setActionLoading(null);
+        }
+      })();
+    } else {
+      // Refrescar al volver de Maps para reflejar cambios
+      refresh();
+    }
   };
 
   // Polling mensajes no leidos
