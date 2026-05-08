@@ -54,7 +54,7 @@ const estadosFiltro = [
 
 export default function PedidosPage() {
   const { showToast: addToast } = useGlobalToast();
-  const { localActivo, locales } = useLocalActivo();
+  const { localActivo, setLocalActivo, locales, esSuperAdmin } = useLocalActivo();
   // ===== DATA =====
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -785,18 +785,30 @@ export default function PedidosPage() {
           <div className="flex-1 flex flex-col gap-1.5 min-w-0">
             {/* Header: Nro Pedido + Estado */}
             <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-white">
                   {editandoPedido
                     ? <span>Pedido <span className="text-amber-400">#{editandoPedido.numeroTicket}</span></span>
                     : 'Nuevo Pedido'
                   }
                 </h2>
-                {editandoPedido && (
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${estadoColores[editandoPedido.estado]}`}>
-                    {estadoLabels[editandoPedido.estado]}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {esSuperAdmin && (
+                    <select
+                      value={localActivo}
+                      onChange={e => setLocalActivo(Number(e.target.value))}
+                      className="bg-slate-700 text-white text-xs sm:text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      title="Local activo (afecta el alta del pedido)"
+                    >
+                      {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                    </select>
+                  )}
+                  {editandoPedido && (
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${estadoColores[editandoPedido.estado]}`}>
+                      {estadoLabels[editandoPedido.estado]}
+                    </span>
+                  )}
+                </div>
               </div>
               {esEdicionLimitada && (
                 <p className="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1 mt-1">

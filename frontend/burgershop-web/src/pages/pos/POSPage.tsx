@@ -30,7 +30,7 @@ import { useLocalActivo } from '../../context/LocalContext';
 
 export default function POSPage() {
   const { showToast } = useGlobalToast();
-  const { localActivo } = useLocalActivo();
+  const { localActivo, setLocalActivo, locales, esSuperAdmin } = useLocalActivo();
   const hoy = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   // Data
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -778,12 +778,47 @@ export default function POSPage() {
   const selectClass = 'w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white';
   const labelClass = 'text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1';
 
+  const [panelMovil, setPanelMovil] = useState<'carrito' | 'pago'>('carrito');
+
   return (
-    <div className="flex flex-col lg:flex-row gap-2 min-h-0 h-auto lg:h-[calc(100vh-7.5rem)] overflow-y-auto lg:overflow-hidden">
-      {/* ============ PANEL IZQUIERDO ============ */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 lg:min-h-0">
-        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2 mb-1.5">
+    <div className="flex flex-col lg:flex-row gap-2 min-h-0 h-[calc(100vh-5rem)] lg:h-[calc(100vh-7.5rem)] overflow-hidden">
+      {/* Tabs móvil para alternar entre carrito y pago */}
+      <div className="flex lg:hidden gap-1 flex-shrink-0">
+        <button
+          onClick={() => setPanelMovil('carrito')}
+          className={`flex-1 py-2 rounded-t-lg text-sm font-bold transition-colors ${panelMovil === 'carrito' ? 'bg-white text-amber-700 border-b-2 border-amber-500' : 'bg-gray-200 text-gray-500'}`}
+        >
+          Carrito{carrito.length > 0 ? ` (${carrito.length})` : ''}
+        </button>
+        <button
+          onClick={() => setPanelMovil('pago')}
+          className={`flex-1 py-2 rounded-t-lg text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${panelMovil === 'pago' ? 'bg-white text-amber-700 border-b-2 border-amber-500' : 'bg-gray-200 text-gray-500'}`}
+        >
+          <span>Pago</span>
+          {carrito.length > 0 && (
+            <span className={`text-xs font-semibold ${panelMovil === 'pago' ? 'text-amber-600' : 'text-gray-500'}`}>
+              ${formatearNumero(total, 0)}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ============ PANEL IZQUIERDO: CARRITO ============ */}
+      <div className={`flex-1 flex flex-col min-w-0 min-h-0 lg:min-h-0 ${panelMovil !== 'carrito' ? 'hidden lg:flex' : ''}`}>
+        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-3 py-2 mb-1.5 flex items-center justify-between gap-2">
           <h2 className="text-base lg:text-lg font-bold text-white">Punto de Venta</h2>
+          {esSuperAdmin && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-200 uppercase tracking-wide hidden sm:inline">Local</label>
+              <select
+                value={localActivo}
+                onChange={e => setLocalActivo(Number(e.target.value))}
+                className="bg-slate-700 text-white text-xs sm:text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         {/* Header: Cliente + Tipo + Factura */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 mb-1.5 space-y-2">
@@ -1084,8 +1119,8 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* ============ PANEL DERECHO: CAJA ============ */}
-      <div className="w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 lg:max-h-full">
+      {/* ============ PANEL DERECHO: CAJA / PAGO ============ */}
+      <div className={`w-full lg:w-96 xl:w-[420px] bg-white rounded-lg shadow-2xl border-2 border-slate-300 flex flex-col min-h-0 lg:max-h-full ${panelMovil !== 'pago' ? 'hidden lg:flex' : ''}`}>
         {/* Caja info */}
         <div className={`px-3 py-2 rounded-t-lg flex items-center justify-between ${
           cajaAbiertaId === undefined

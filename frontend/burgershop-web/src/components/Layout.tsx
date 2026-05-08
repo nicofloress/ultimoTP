@@ -225,23 +225,6 @@ export default function Layout() {
             <div className="text-xs text-slate-300 leading-tight">{usuario?.rolNombre}</div>
           </div>
         </div>
-        {esSuperAdmin && (
-          <div className="hidden md:flex items-center gap-2 mr-2 lg:mr-4 flex-shrink-0">
-            <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <select
-              value={localActivo}
-              onChange={e => setLocalActivo(Number(e.target.value))}
-              className="bg-slate-700 text-white text-sm border border-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-[140px] lg:min-w-[180px]"
-            >
-              {locales.map(l => (
-                <option key={l.id} value={l.id}>{l.nombre}</option>
-              ))}
-            </select>
-          </div>
-        )}
         <button
           onClick={toggleTheme}
           className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex-shrink-0"
