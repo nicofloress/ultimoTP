@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLocalActivo } from '../context/LocalContext';
 import { useTheme } from '../context/ThemeContext';
 
 declare const __APP_VERSION__: string;
@@ -120,7 +119,6 @@ export default function Layout() {
   const isMobile = useIsMobile();
 
   const userRol = usuario?.rol;
-  const { locales, localActivo, setLocalActivo, esSuperAdmin } = useLocalActivo();
 
   const filteredSections = menuSections
     .map((section) => ({
