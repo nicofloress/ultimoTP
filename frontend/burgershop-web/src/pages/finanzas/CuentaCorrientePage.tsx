@@ -643,17 +643,35 @@ export default function CuentaCorrientePage() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={ajusteAFavor}
-                    onChange={e => setAjusteAFavor(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-400"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    {ajusteAFavor ? 'A favor del cliente (reduce saldo)' : 'En contra del cliente (aumenta saldo)'}
-                  </span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de ajuste *</label>
+                <div className="flex flex-col gap-2">
+                  <label className={`flex items-start gap-2 cursor-pointer p-2.5 rounded-lg border-2 transition-colors ${!ajusteAFavor ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="tipoAjuste"
+                      checked={!ajusteAFavor}
+                      onChange={() => setAjusteAFavor(false)}
+                      className="mt-0.5 w-4 h-4 text-red-600 focus:ring-red-400"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-gray-800">Cargo (aumenta la deuda)</div>
+                      <div className="text-xs text-gray-500">El cliente debe mas plata. Saldo sube.</div>
+                    </div>
+                  </label>
+                  <label className={`flex items-start gap-2 cursor-pointer p-2.5 rounded-lg border-2 transition-colors ${ajusteAFavor ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="tipoAjuste"
+                      checked={ajusteAFavor}
+                      onChange={() => setAjusteAFavor(true)}
+                      className="mt-0.5 w-4 h-4 text-green-600 focus:ring-green-400"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-gray-800">Descuento / Credito (reduce la deuda)</div>
+                      <div className="text-xs text-gray-500">El cliente debe menos plata. Saldo baja.</div>
+                    </div>
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones *</label>

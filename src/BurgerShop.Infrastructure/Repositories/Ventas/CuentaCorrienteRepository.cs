@@ -91,10 +91,13 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
             .Where(m => m.CuentaCorrienteId == cuentaCorrienteId);
 
         if (desde.HasValue)
-            query = query.Where(m => m.FechaMovimiento >= desde.Value);
+            query = query.Where(m => m.FechaMovimiento >= desde.Value.Date);
 
         if (hasta.HasValue)
-            query = query.Where(m => m.FechaMovimiento <= hasta.Value);
+        {
+            var hastaFin = hasta.Value.Date.AddDays(1);
+            query = query.Where(m => m.FechaMovimiento < hastaFin);
+        }
 
         return await query
             .OrderByDescending(m => m.FechaMovimiento)
