@@ -37,4 +37,16 @@ public class StockController : ControllerBase
         await _service.ActualizarStockMinimoAsync(dto);
         return NoContent();
     }
+
+    /// <summary>
+    /// Setea stock positivo (cantidad por producto) para todos los productos activos en un local.
+    /// Solo SuperAdmin. Util para demo/seed.
+    /// </summary>
+    [HttpPost("seed-positivo/{localId:int}")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<object>> SeedPositivo(int localId, [FromQuery] decimal cantidad = 100)
+    {
+        var (creados, actualizados) = await _service.SeedStockPositivoAsync(localId, cantidad);
+        return Ok(new { localId, cantidad, creados, actualizados });
+    }
 }
