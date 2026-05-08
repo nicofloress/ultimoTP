@@ -624,9 +624,9 @@ export default function CuentaCorrientePage() {
       {showAjuste && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <form onSubmit={handleAjuste} className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="bg-amber-500 text-white px-6 py-3 rounded-t-lg">
+            <div className="bg-gradient-to-b from-slate-500 to-slate-700 text-white px-6 py-3 rounded-t-lg">
               <h3 className="text-lg font-bold">Ajuste Manual</h3>
-              <p className="text-sm text-amber-100">{seleccionada?.clienteNombre}</p>
+              <p className="text-sm text-slate-200">{seleccionada?.clienteNombre}</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -696,7 +696,7 @@ export default function CuentaCorrientePage() {
               <button
                 type="submit"
                 disabled={guardandoAjuste}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
                 {guardandoAjuste ? 'Guardando...' : 'Registrar Ajuste'}
               </button>
