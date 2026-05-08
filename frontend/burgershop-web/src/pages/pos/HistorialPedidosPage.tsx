@@ -208,6 +208,7 @@ export default function HistorialPedidosPage() {
         case 'total': va = a.total; vb = b.total; break;
         case 'formaPago': va = getFormaPagoLabel(a); vb = getFormaPagoLabel(b); break;
         case 'estaPago': va = a.estaPago ? 1 : 0; vb = b.estaPago ? 1 : 0; break;
+        case 'cierreCajaId': va = a.cierreCajaId ?? 0; vb = b.cierreCajaId ?? 0; break;
         default: return 0;
       }
       if (va < vb) return -1 * dir;
@@ -548,6 +549,7 @@ export default function HistorialPedidosPage() {
                     ['formaPago', 'Medio Pago', '', 'hidden md:table-cell'],
                     ['total', 'Total', 'text-right', ''],
                     ['estaPago', 'Pago', 'text-center', 'hidden sm:table-cell'],
+                    ['cierreCajaId', 'Caja', 'text-center', 'hidden lg:table-cell'],
                   ] as [string, string, string, string][]).map(([col, label, align, visibility]) => (
                     <th
                       key={col}
@@ -593,6 +595,13 @@ export default function HistorialPedidosPage() {
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">No pago</span>
                       )}
                     </td>
+                    <td className="px-4 py-2.5 text-center hidden lg:table-cell">
+                      {p.cierreCajaId ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">#{p.cierreCajaId}</span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -635,7 +644,10 @@ export default function HistorialPedidosPage() {
 
       {/* Panel detalle */}
       {seleccionado && (
-        <div className="fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto w-full lg:w-96 bg-white rounded-lg border-2 border-slate-300 shadow-2xl flex flex-col overflow-hidden flex-shrink-0">
+        <div
+          className="fixed inset-0 z-[60] lg:static lg:inset-auto lg:z-auto w-full lg:w-96 bg-white lg:rounded-lg lg:border-2 lg:border-slate-300 shadow-2xl flex flex-col overflow-hidden flex-shrink-0"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
           {/* Header detalle */}
           <div className="px-4 py-3 border-b-2 border-amber-500 flex items-center justify-between bg-slate-700 shadow-lg flex-shrink-0">
             <div>
@@ -768,7 +780,10 @@ export default function HistorialPedidosPage() {
           </div>
 
           {/* Footer totales */}
-          <div className="border-t border-gray-200 px-4 py-3 space-y-1 bg-gray-50 flex-shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.05)]">
+          <div
+            className="border-t border-gray-200 px-4 py-3 space-y-1 bg-gray-50 flex-shrink-0 shadow-[0_-2px_6px_rgba(0,0,0,0.05)]"
+            style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+          >
             <div className="flex justify-between text-sm text-gray-500">
               <span>Subtotal</span>
               <span>${seleccionado.subtotal.toLocaleString('es-AR')}</span>
