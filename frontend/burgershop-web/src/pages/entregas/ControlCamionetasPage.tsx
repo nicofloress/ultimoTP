@@ -4,6 +4,9 @@ import {
   getControlCamionetaHistorial, ControlCamionetaHistorialItem
 } from '../../api/entregas';
 import { useLocalActivo } from '../../context/LocalContext';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
+import { getLocales, LocalDto } from '../../api/locales';
 import { useGlobalToast } from '../../components/Toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -429,12 +432,21 @@ function SeccionHistorial({ localActivo }: { localActivo: number | null }) {
 
 export default function ControlCamionetasPage() {
   const { localActivo } = useLocalActivo();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
   const { showToast } = useGlobalToast();
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (localActivo || usuario?.localId || 1));
+  const localFiltroEfectivo = localFiltro === 0 ? undefined : localFiltro;
   const [data, setData] = useState<RepartidorTally[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const tallyRef = useRef<HTMLDivElement>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
+
+  useEffect(() => {
+    getLocales().then(setLocales).catch(() => {});
+  }, []);
 
   const descargarPDF = async () => {
     if (!tallyRef.current) return;
@@ -474,14 +486,15 @@ export default function ControlCamionetasPage() {
   const fetchData = useCallback(async () => {
     try {
       const res = await getControlCamioneta();
-      setData(localActivo ? res.repartidores.filter(r => !r.repartidorLocalId || r.repartidorLocalId === localActivo) : res.repartidores);
+      setData(localFiltroEfectivo ? res.repartidores.filter(r => !r.repartidorLocalId || r.repartidorLocalId === localFiltroEfectivo) : res.repartidores);
     } catch (err) {
       console.error('Error cargando control camioneta:', err);
       showToast('Error al cargar el control de camioneta', 'error');
     } finally {
       setLoading(false);
     }
-  }, [localActivo]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFiltroEfectivo, showToast]);
 
   useEffect(() => {
     fetchData();
@@ -503,8 +516,24 @@ export default function ControlCamionetasPage() {
     <div className="space-y-6">
       {/* ── Sección activos ─────────────────────────────────────────────── */}
       <div className="space-y-4">
-        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5">
+        <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-white">Control de Camionetas</h2>
+          {esSuperAdmin && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-200 uppercase tracking-wide">Local</label>
+              <select
+                value={localFiltro}
+                onChange={e => setLocalFiltro(Number(e.target.value))}
+                className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+          )}
+          {!esSuperAdmin && locales.length > 0 && (
+            <span className="text-sm text-slate-200">{locales.find(l => l.id === localFiltro)?.nombre || ''}</span>
+          )}
         </div>
 
         {data.length === 0 ? (
@@ -592,7 +621,7 @@ export default function ControlCamionetasPage() {
       </div>
 
       {/* ── Sección historial ───────────────────────────────────────────── */}
-      <SeccionHistorial localActivo={localActivo} />
+      <SeccionHistorial localActivo={localFiltroEfectivo ?? null} />
     </div>
   );
 }

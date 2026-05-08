@@ -8,6 +8,8 @@ import { crearVenta, getVenta } from '../../api/pedidos';
 import { useGlobalToast } from '../../components/Toast';
 import { useLocalActivo } from '../../context/LocalContext';
 import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
+import { getLocales, LocalDto } from '../../api/locales';
 import AdminChat from './AdminChat';
 import RepartosAbandonadosModal from './repartos/RepartosAbandonadosModal';
 import { enviarWhatsapp } from '../../utils/whatsapp';
@@ -28,6 +30,9 @@ export default function EntregasPage() {
   const { localActivo } = useLocalActivo();
   const { usuario } = useAuth();
   const puedeVerWhatsapp = usuario?.nombreUsuario === 'admin36';
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (localActivo || usuario?.localId || 1));
   const [pedidos, setPedidos] = useState<Venta[]>([]);
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [asignaciones, setAsignaciones] = useState<Map<number, number>>(new Map());
@@ -67,12 +72,13 @@ export default function EntregasPage() {
     setCargando(true);
     try {
       const [p, r, z] = await Promise.all([getPedidosPorZona(), getRepartidores(), getZonas()]);
-      // Filtrar zonas del local
-      const zonasDelLocal = localActivo ? z.filter(zona => !zona.localId || zona.localId === localActivo) : z;
+      // Filtrar zonas del local seleccionado (0 = todos los locales para SuperAdmin)
+      const filtroLocal = localFiltro === 0 ? undefined : localFiltro;
+      const zonasDelLocal = filtroLocal ? z.filter(zona => !zona.localId || zona.localId === filtroLocal) : z;
       const zonaIdsLocal = new Set(zonasDelLocal.map(zona => zona.id));
       // Filtrar pedidos: solo los de zonas del local
-      setPedidos(localActivo ? p.filter(ped => !ped.zonaId || zonaIdsLocal.has(ped.zonaId)) : p);
-      setRepartidores(r.filter(rep => rep.activo && (!localActivo || !rep.localId || rep.localId === localActivo)));
+      setPedidos(filtroLocal ? p.filter(ped => !ped.zonaId || zonaIdsLocal.has(ped.zonaId)) : p);
+      setRepartidores(r.filter(rep => rep.activo && (!filtroLocal || !rep.localId || rep.localId === filtroLocal)));
 
       // Auto-asignar repartidores en zonas que ya tienen repartidor activo
       setAsignaciones(prev => {
@@ -92,11 +98,15 @@ export default function EntregasPage() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [localFiltro]);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => {
+    getLocales().then(setLocales).catch(() => {});
+  }, []);
 
   const crearPedidosTest = async () => {
     setCreandoTest(true);
@@ -327,6 +337,22 @@ export default function EntregasPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {esSuperAdmin && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-200 uppercase tracking-wide">Local</label>
+              <select
+                value={localFiltro}
+                onChange={e => setLocalFiltro(Number(e.target.value))}
+                className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+          )}
+          {!esSuperAdmin && locales.length > 0 && locales.find(l => l.id === localFiltro) && (
+            <span className="text-sm text-slate-200">{locales.find(l => l.id === localFiltro)?.nombre}</span>
+          )}
           {import.meta.env.DEV && (
             <button
               onClick={crearPedidosTest}

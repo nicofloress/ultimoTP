@@ -9,6 +9,8 @@ import {
 } from '../../api/mensajes';
 import { useGlobalToast } from '../../components/Toast';
 import { useLocalActivo } from '../../context/LocalContext';
+import { useAuth } from '../../context/AuthContext';
+import { getLocales, LocalDto } from '../../api/locales';
 import { parseFechaUtc } from '../../utils/fechas';
 import { playNotificationSound } from '../../utils/sound';
 
@@ -35,6 +37,12 @@ interface ChatNuevoMensajeDetail {
 export default function AdminChat({ abierto, onCerrar }: Props) {
   const { showToast } = useGlobalToast();
   const { localActivo, esSuperAdmin } = useLocalActivo();
+  const { usuario } = useAuth();
+  // Selector de local independiente del topbar (solo SuperAdmin elige; otros usan localActivo)
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  // 0 = Todos los locales (solo valido para SuperAdmin)
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (localActivo || usuario?.localId || 1));
+  const localFiltroEfectivo = localFiltro === 0 ? undefined : localFiltro;
   const [repartidores, setRepartidores] = useState<Repartidor[]>([]);
   const [seleccionado, setSeleccionado] = useState<Repartidor | null>(null);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
@@ -50,14 +58,15 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
     seleccionadoRef.current = seleccionado;
   }, [seleccionado]);
 
-  // Lista visible filtrada por local activo (SuperAdmin ve todos)
+  // Lista visible filtrada por el selector de local independiente
+  // (SuperAdmin con "Todos" => sin filtro; resto => por localFiltro)
   const repartidoresVisibles = useMemo(() => {
     return repartidores.filter(r => {
       if (!r.activo) return false;
-      if (esSuperAdmin) return true;
-      return r.localId === localActivo;
+      if (localFiltroEfectivo == null) return true;
+      return r.localId === localFiltroEfectivo;
     });
-  }, [repartidores, esSuperAdmin, localActivo]);
+  }, [repartidores, localFiltroEfectivo]);
 
   const cargarRepartidores = useCallback(async () => {
     try {
@@ -71,7 +80,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
 
   const cargarNoLeidos = useCallback(async () => {
     try {
-      const localId = esSuperAdmin ? null : localActivo;
+      const localId = localFiltroEfectivo == null ? null : localFiltroEfectivo;
       const counts = await getNoLeidosBulk(localId, true);
       const map = new Map<number, number>();
       counts.forEach(c => {
@@ -81,7 +90,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
     } catch (err) {
       console.error('Error cargando no leidos:', err);
     }
-  }, [localActivo, esSuperAdmin]);
+  }, [localFiltroEfectivo]);
 
   const cargarMensajes = useCallback(async (rep: Repartidor) => {
     try {
@@ -100,6 +109,11 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
     }
   }, [showToast]);
 
+  // Cargar lista de locales una sola vez (para el selector del SuperAdmin)
+  useEffect(() => {
+    getLocales().then(setLocales).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (abierto) {
       cargarRepartidores();
@@ -113,11 +127,19 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
     }
   }, [abierto, cargarRepartidores, cargarNoLeidos]);
 
-  // Si cambia el local activo, deseleccionar conversacion para evitar mostrar de otro local
+  // Re-fetch al cambiar el filtro de local (mientras este abierto)
+  useEffect(() => {
+    if (!abierto) return;
+    cargarRepartidores();
+    cargarNoLeidos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFiltro]);
+
+  // Si cambia el filtro de local, deseleccionar conversacion para evitar mostrar de otro local
   useEffect(() => {
     setSeleccionado(null);
     setMensajes([]);
-  }, [localActivo]);
+  }, [localFiltro]);
 
   // Polling de fallback (30s) por si SignalR se desconecta
   useEffect(() => {
@@ -146,8 +168,8 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
       const data = evt.detail || {};
       // Solo nos interesan los mensajes que recibe el admin (los enviados por el repartidor)
       if (data.esDeAdmin === true) return;
-      // Filtrar por local activo si no es SuperAdmin
-      if (!esSuperAdmin && data.localId != null && data.localId !== localActivo) return;
+      // Filtrar por el filtro de local independiente (si "Todos", no filtra)
+      if (localFiltroEfectivo != null && data.localId != null && data.localId !== localFiltroEfectivo) return;
 
       const sel = seleccionadoRef.current;
       const repId = data.repartidorId;
@@ -164,7 +186,7 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
 
     window.addEventListener('chat:nuevo-mensaje', handler);
     return () => window.removeEventListener('chat:nuevo-mensaje', handler);
-  }, [abierto, esSuperAdmin, localActivo, cargarMensajes, cargarNoLeidos]);
+  }, [abierto, localFiltroEfectivo, cargarMensajes, cargarNoLeidos]);
 
   // Scroll al final cuando cambian mensajes
   useEffect(() => {
@@ -249,6 +271,20 @@ export default function AdminChat({ abierto, onCerrar }: Props) {
               </button>
             </div>
           </div>
+          {esSuperAdmin && (
+            <div className="px-3 py-2 border-b border-gray-200 bg-white flex-shrink-0">
+              <select
+                value={localFiltro}
+                onChange={e => setLocalFiltro(Number(e.target.value))}
+                className="w-full border border-slate-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              >
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto">
             {repartidoresVisibles.map(r => {
               const cantidad = noLeidos.get(r.id);

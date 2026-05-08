@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getLocales, LocalDto } from '../../api/locales';
 import { getProductos } from '../../api/productos';
 import { getCombos } from '../../api/combos';
 import { getFormasPagoActivas } from '../../api/formasPago';
 import { FormaPago, Producto, Combo } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { RolUsuario } from '../../types/auth';
 import {
   getPromociones,
   crearPromocion,
@@ -99,9 +101,12 @@ function valorPorDefecto(tipo: TipoCondicion): string {
 
 export default function PromocionesPage() {
   const { showToast } = useGlobalToast();
+  const { usuario } = useAuth();
+  const esSuperAdmin = usuario?.rol === RolUsuario.SuperAdmin;
 
   const [promociones, setPromociones] = useState<PromocionDto[]>([]);
   const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (usuario?.localId || 1));
   const [productos, setProductos] = useState<Producto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
@@ -423,23 +428,36 @@ export default function PromocionesPage() {
 
   const tiposCondicionFaltantes = CONDICIONES_DISPONIBLES.filter(t => !condiciones.some(c => c.tipo === t));
 
+  const promocionesFiltradas = useMemo(() => {
+    if (localFiltro === 0) return promociones;
+    return promociones.filter(p => p.locales.some(l => l.localId === localFiltro));
+  }, [promociones, localFiltro]);
+
   return (
     <div>
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-4 flex flex-wrap items-center gap-2 justify-between">
         <h2 className="text-lg font-bold text-white">Promociones</h2>
-        <button
-          onClick={() => { if (showForm) { resetForm(); } else { resetForm(); setShowForm(true); } }}
-          className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
-        >
-          {showForm ? 'Cerrar' : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Nueva Promocion
-            </>
+        <div className="flex items-center gap-2">
+          {esSuperAdmin && (
+            <select value={localFiltro} onChange={e => setLocalFiltro(Number(e.target.value))} className="border rounded px-2 py-1 text-sm">
+              <option value={0}>Todos los locales</option>
+              {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
           )}
-        </button>
+          <button
+            onClick={() => { if (showForm) { resetForm(); } else { resetForm(); setShowForm(true); } }}
+            className="text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-md hover:bg-emerald-100 px-4 py-1.5 text-sm font-semibold transition-colors flex items-center gap-1.5"
+          >
+            {showForm ? 'Cerrar' : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Nueva Promocion
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -630,11 +648,11 @@ export default function PromocionesPage() {
         </form>
       )}
 
-      {promociones.length === 0 ? (
+      {promocionesFiltradas.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">No hay promociones registradas</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {promociones.map(p => {
+          {promocionesFiltradas.map(p => {
             const badge = getBadgeEstado(p);
             return (
               <div key={p.id} className="bg-white rounded-lg shadow p-4">

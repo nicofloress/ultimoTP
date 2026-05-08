@@ -11,8 +11,10 @@ import { useGlobalToast } from '../../components/Toast';
 import { getPromociones, PromocionDto, TipoBeneficio } from '../../api/promociones';
 import { useLocalActivo } from '../../context/LocalContext';
 import { getMarcasActivas, MarcaDto } from '../../api/marcas';
+import { getLocales, LocalDto } from '../../api/locales';
 import { formatGramaje } from '../../utils/formatGramaje';
 import { formatearNumero } from '../../components/NumericInput';
+import { coincideQuery } from '../../utils/buscarItems';
 import ProductoForm from './productos/ProductoForm';
 import ComboForm from './productos/ComboForm';
 import ProductoDetalleModal from './productos/ProductoDetalleModal';
@@ -53,6 +55,8 @@ export default function ProductosPage() {
   const [promociones, setPromociones] = useState<PromocionDto[]>([]);
   const [marcas, setMarcas] = useState<MarcaDto[]>([]);
   const { localActivo } = useLocalActivo();
+  const [locales, setLocales] = useState<LocalDto[]>([]);
+  const [localFiltro, setLocalFiltro] = useState<number>(esSuperAdmin ? 0 : (localActivo || usuario?.localId || 1));
 
   const cargar = async () => {
     const [prods, cats, cmbs, lstas] = await Promise.all([
@@ -71,6 +75,7 @@ export default function ProductosPage() {
     cargar();
     getPromociones().then(setPromociones).catch(() => {});
     getMarcasActivas().then(setMarcas).catch(() => {});
+    getLocales().then(setLocales).catch(() => {});
   }, []);
 
   // Recargar productos cuando cambia la lista de precios
@@ -264,10 +269,10 @@ export default function ProductosPage() {
       const desde = p.fechaDesde.split('T')[0];
       const hasta = p.fechaHasta.split('T')[0];
       if (desde > hoy || hasta < hoy) return false;
-      if (localActivo !== 0 && !p.locales.some(l => l.localId === localActivo)) return false;
+      if (localFiltro !== 0 && !p.locales.some(l => l.localId === localFiltro)) return false;
       return true;
     });
-  }, [promociones, localActivo]);
+  }, [promociones, localFiltro]);
 
   // Aplica un beneficio sobre un precio base. Devuelve null si la promo no
   // afecta el precio mostrado del item (ej: reintegro, envio gratis).
@@ -330,9 +335,8 @@ export default function ProductosPage() {
   const productosFiltrados = useMemo(() => {
     let lista = productos.filter(p => p.activo);
     if (busqueda.trim()) {
-      const term = busqueda.toLowerCase();
       lista = lista.filter(p =>
-        (p.codigo?.toLowerCase().includes(term)) || p.nombre.toLowerCase().includes(term) || (p.descripcion?.toLowerCase().includes(term))
+        coincideQuery(`${p.nombre} ${p.codigo ?? ''} ${p.descripcion ?? ''} ${p.marca ?? ''}`, busqueda)
       );
     }
     if (megaFiltro === 'promo') {
@@ -354,7 +358,7 @@ export default function ProductosPage() {
   const combosFiltrados = useMemo(() => {
     let lista = combos.filter(c => c.activo);
     if (busqueda.trim()) {
-      lista = lista.filter(c => c.nombre.toLowerCase().includes(busqueda.toLowerCase()));
+      lista = lista.filter(c => coincideQuery(`${c.nombre} ${c.codigo ?? ''}`, busqueda));
     }
     if (megaFiltro === 'promo') {
       lista = lista.filter(c => preciosPromoCombos.has(c.id));
@@ -393,6 +397,19 @@ export default function ProductosPage() {
       <div className="bg-gradient-to-b from-slate-500 to-slate-700 rounded-lg shadow-lg px-4 py-2.5 mb-3 flex flex-wrap items-center gap-2 justify-between">
         <h2 className="text-lg font-bold text-white">Articulos</h2>
         <div className="flex flex-wrap items-center gap-2">
+          {esSuperAdmin && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs sm:text-sm font-medium text-gray-200 whitespace-nowrap">Local:</label>
+              <select
+                value={localFiltro}
+                onChange={e => setLocalFiltro(Number(e.target.value))}
+                className="border rounded-lg px-2 sm:px-3 py-1.5 text-sm bg-white min-w-[130px] sm:min-w-[180px]"
+              >
+                <option value={0}>Todos los locales</option>
+                {locales.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+          )}
           {/* Selector de lista de precios */}
           <div className="flex items-center gap-2">
             <label className="text-xs sm:text-sm font-medium text-gray-200 whitespace-nowrap">Lista:</label>
@@ -596,6 +613,7 @@ export default function ProductosPage() {
                 {!preciosPromoCombos.has(c.id) && c.esOfertaSemanal && (
                   <span className="absolute top-1 right-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">OFERTA</span>
                 )}
+                {c.codigo && <div className="text-[10px] text-gray-400 font-mono">{c.codigo}</div>}
                 <div className="font-medium text-sm text-gray-800">{c.nombre}</div>
                 {c.descripcion && <div className="text-xs text-gray-500 mt-0.5">{c.descripcion}</div>}
                 {preciosPromoCombos.has(c.id) ? (
@@ -690,7 +708,10 @@ export default function ProductosPage() {
                 {!preciosPromoCombos.has(c.id) && c.esOfertaSemanal && (
                   <span className="absolute top-1 right-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">OFERTA</span>
                 )}
-                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">COMBO</span>
+                  {c.codigo && <span className="text-[10px] text-gray-400 font-mono">{c.codigo}</span>}
+                </div>
                 <div className="font-medium text-sm text-gray-800 mt-1">{c.nombre}</div>
                 {c.descripcion && <div className="text-xs text-gray-500 mt-0.5">{c.descripcion}</div>}
                 {preciosPromoCombos.has(c.id) ? (
