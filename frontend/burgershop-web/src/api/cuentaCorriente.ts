@@ -54,3 +54,22 @@ export const registrarAjuste = (data: { clienteId: number; monto: number; esAFav
 
 export const actualizarLimiteCredito = (clienteId: number, limite: number) =>
   api.put(`/cuenta-corriente/cliente/${clienteId}/limite`, { limite }).then(r => r.data);
+
+export interface CuentaCorrienteStatsDto {
+  totalDeudaActual: number;
+  clientesConDeuda: number;
+  totalSaldoFavor: number;
+  clientesConFavor: number;
+  totalCargosMes: number;
+  totalPagosMes: number;
+  cantidadPagosMes: number;
+  totalAjustesFavorMes: number;
+  totalAjustesContraMes: number;
+  cantidadAjustesMes: number;
+  clienteTopDeudor?: string;
+  montoTopDeudor: number;
+  saldoPromedioDeudor: number;
+}
+
+export const getCuentaCorrienteStats = (localId?: number) =>
+  api.get<CuentaCorrienteStatsDto>('/cuenta-corriente/stats', { params: { localId } }).then(r => r.data);

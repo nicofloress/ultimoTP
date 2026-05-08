@@ -42,6 +42,21 @@ public class CuentaCorrienteController : ControllerBase
         return cuenta is null ? NotFound() : Ok(cuenta);
     }
 
+    // GET /api/cuenta-corriente/stats?localId=...
+    [HttpGet("stats")]
+    public async Task<ActionResult<CuentaCorrienteStatsDto>> GetStats([FromQuery] int? localId)
+    {
+        int? localFiltro = localId;
+        var rol = User.FindFirstValue(ClaimTypes.Role);
+        if (rol != "SuperAdmin")
+        {
+            var localIdClaim = User.FindFirstValue("localId");
+            if (int.TryParse(localIdClaim, out var l)) localFiltro = l;
+        }
+        var stats = await _service.GetStatsAsync(localFiltro);
+        return Ok(stats);
+    }
+
     // GET /api/cuenta-corriente/cliente/{clienteId}/movimientos?desde=...&hasta=...
     [HttpGet("cliente/{clienteId:int}/movimientos")]
     public async Task<ActionResult<IEnumerable<MovimientoCuentaCorrienteDto>>> GetMovimientos(

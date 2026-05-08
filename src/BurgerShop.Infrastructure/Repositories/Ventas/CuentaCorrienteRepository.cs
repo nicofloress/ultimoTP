@@ -116,4 +116,17 @@ public class CuentaCorrienteRepository : ICuentaCorrienteRepository
             .FirstOrDefaultAsync(m => m.VentaId == ventaId
                 && m.Tipo == Domain.Enums.TipoMovimientoCuentaCorriente.Cargo);
     }
+
+    public async Task<IEnumerable<MovimientoCuentaCorriente>> GetMovimientosEnRangoAsync(
+        DateTime desde, DateTime hasta, int? localId)
+    {
+        var query = _context.MovimientosCuentaCorriente
+            .Include(m => m.CuentaCorriente).ThenInclude(c => c.Cliente)
+            .Where(m => m.FechaMovimiento >= desde && m.FechaMovimiento < hasta);
+
+        if (localId.HasValue)
+            query = query.Where(m => m.CuentaCorriente.Cliente.LocalId == localId.Value);
+
+        return await query.OrderBy(m => m.FechaMovimiento).ToListAsync();
+    }
 }

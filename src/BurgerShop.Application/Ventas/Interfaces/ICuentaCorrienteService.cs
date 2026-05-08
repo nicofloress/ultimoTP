@@ -10,6 +10,7 @@ public interface ICuentaCorrienteService
     Task<IEnumerable<CuentaCorrienteDto>>           GetConSaldoAsync();
     Task<IEnumerable<MovimientoCuentaCorrienteDto>> GetMovimientosAsync(
         int clienteId, DateTime? desde, DateTime? hasta);
+    Task<CuentaCorrienteStatsDto>                   GetStatsAsync(int? localId);
 
     // Operaciones
     Task<MovimientoCuentaCorrienteDto> RegistrarCargoAsync(CrearCargoDto dto, int? usuarioId);

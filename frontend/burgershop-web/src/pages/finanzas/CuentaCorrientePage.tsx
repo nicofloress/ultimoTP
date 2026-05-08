@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import {
   CuentaCorrienteDto,
   MovimientoCuentaCorrienteDto,
+  CuentaCorrienteStatsDto,
   getCuentasCorrientes,
   getCuentasConSaldo,
   getMovimientosCuenta,
   registrarPago,
   registrarAjuste,
+  getCuentaCorrienteStats,
 } from '../../api/cuentaCorriente';
 import { FormaPago } from '../../types/ventas';
 import { getFormasPagoActivas } from '../../api/formasPago';
@@ -77,12 +79,19 @@ export default function CuentaCorrientePage() {
     return 0;
   });
 
+  // Stats
+  const [stats, setStats] = useState<CuentaCorrienteStatsDto | null>(null);
+  const [statsMobileVisibles, setStatsMobileVisibles] = useState(false);
+
   // Modal pago
   const [showPago, setShowPago] = useState(false);
   const [pagoMonto, setPagoMonto] = useState('');
   const [pagoFormaPagoId, setPagoFormaPagoId] = useState('');
   const [pagoObs, setPagoObs] = useState('');
   const [guardandoPago, setGuardandoPago] = useState(false);
+  // Pago dividido
+  const [pagoDividido, setPagoDividido] = useState(false);
+  const [pagosDivididos, setPagosDivididos] = useState<{ formaPagoId: string; monto: string }[]>([{ formaPagoId: '', monto: '' }, { formaPagoId: '', monto: '' }]);
 
   // Modal ajuste
   const [showAjuste, setShowAjuste] = useState(false);
@@ -106,6 +115,16 @@ export default function CuentaCorrientePage() {
     }
   };
 
+  const cargarStats = async () => {
+    try {
+      const localFiltro = esSuperAdmin && localSeleccionado === 0 ? undefined : localSeleccionado;
+      const data = await getCuentaCorrienteStats(localFiltro);
+      setStats(data);
+    } catch {
+      // ignorar fallo de stats - no critico
+    }
+  };
+
   const [cargandoMovs, setCargandoMovs] = useState(false);
 
   const cargarMovimientos = async (clienteId: number) => {
@@ -122,6 +141,7 @@ export default function CuentaCorrientePage() {
 
   useEffect(() => {
     cargarCuentas();
+    cargarStats();
     getFormasPagoActivas().then(setFormasPago);
     getLocales().then(setLocales);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,6 +151,11 @@ export default function CuentaCorrientePage() {
     cargarCuentas();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloConSaldo]);
+
+  useEffect(() => {
+    cargarStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSeleccionado]);
 
   useEffect(() => {
     if (seleccionada) {
@@ -147,7 +172,56 @@ export default function CuentaCorrientePage() {
 
   const handlePago = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!seleccionada || !pagoMonto || !pagoFormaPagoId) return;
+    if (!seleccionada) return;
+
+    if (pagoDividido) {
+      const items = pagosDivididos
+        .map(p => ({ formaPagoId: Number(p.formaPagoId), monto: Number(p.monto) }))
+        .filter(p => p.formaPagoId > 0 && p.monto > 0);
+      if (items.length < 2) {
+        showToast('Pago dividido requiere al menos 2 formas de pago con monto', 'error');
+        return;
+      }
+      const formasUnicas = new Set(items.map(i => i.formaPagoId));
+      if (formasUnicas.size !== items.length) {
+        showToast('No se puede repetir la misma forma de pago', 'error');
+        return;
+      }
+      setGuardandoPago(true);
+      try {
+        for (const item of items) {
+          await registrarPago({
+            clienteId: seleccionada.clienteId,
+            monto: item.monto,
+            formaPagoId: item.formaPagoId,
+            localId: localSeleccionado || 1,
+            observaciones: pagoObs ? `${pagoObs} (pago dividido)` : 'Pago dividido',
+          });
+        }
+        showToast(`Pago dividido registrado en ${items.length} formas de pago`, 'success');
+        setShowPago(false);
+        setPagoMonto('');
+        setPagoFormaPagoId('');
+        setPagoObs('');
+        setPagoDividido(false);
+        setPagosDivididos([{ formaPagoId: '', monto: '' }, { formaPagoId: '', monto: '' }]);
+        cargarCuentas();
+        cargarStats();
+        cargarMovimientos(seleccionada.clienteId);
+        const updated = await getCuentasCorrientes().catch(() => null);
+        if (updated) {
+          const found = updated.find(c => c.clienteId === seleccionada.clienteId);
+          if (found) setSeleccionada(found);
+        }
+      } catch {
+        showToast('Error al registrar pago dividido. Algunas partes pueden haberse aplicado, revise movimientos.', 'error');
+      } finally {
+        setGuardandoPago(false);
+      }
+      return;
+    }
+
+    if (!pagoMonto || !pagoFormaPagoId) return;
     setGuardandoPago(true);
     try {
       await registrarPago({
@@ -163,6 +237,7 @@ export default function CuentaCorrientePage() {
       setPagoFormaPagoId('');
       setPagoObs('');
       cargarCuentas();
+      cargarStats();
       cargarMovimientos(seleccionada.clienteId);
       // Update seleccionada saldo
       const updated = await getCuentasConSaldo().catch(() => null);
@@ -194,6 +269,7 @@ export default function CuentaCorrientePage() {
       setAjusteAFavor(false);
       setAjusteObs('');
       cargarCuentas();
+      cargarStats();
       cargarMovimientos(seleccionada.clienteId);
       const updated = await getCuentasCorrientes().catch(() => null);
       if (updated) {
@@ -217,7 +293,72 @@ export default function CuentaCorrientePage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 min-h-0 lg:h-[calc(100vh-7.5rem)] lg:overflow-hidden">
+    <div className="flex flex-col gap-3 min-h-0 lg:h-[calc(100vh-5rem)]">
+      {/* Stats bar */}
+      {stats && (
+        <div className="bg-gradient-to-b from-slate-700 to-slate-800 text-white rounded-lg shadow px-3 py-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1 sm:hidden">
+            <span className="text-xs font-semibold text-slate-300">Resumen</span>
+            <button onClick={() => setStatsMobileVisibles(v => !v)} className="text-xs text-amber-300 hover:text-amber-200">
+              {statsMobileVisibles ? 'Ocultar' : 'Ver'}
+            </button>
+          </div>
+          <div className={`${statsMobileVisibles ? 'flex' : 'hidden'} sm:flex flex-wrap gap-x-5 gap-y-1.5 items-center`}>
+            <StatBubble
+              label="Deuda total"
+              value={formatMonto(stats.totalDeudaActual)}
+              tone="red"
+              tooltip="Suma de saldos positivos de todos los clientes con cta cte. Plata que clientes deben al negocio."
+            />
+            <StatBubble
+              label="Clientes c/deuda"
+              value={stats.clientesConDeuda.toString()}
+              tone="amber"
+              tooltip="Cantidad de clientes que tienen saldo positivo (deudores)."
+            />
+            <StatBubble
+              label="A favor"
+              value={formatMonto(stats.totalSaldoFavor)}
+              tone="green"
+              tooltip="Suma de saldos a favor (cliente pago de mas o tiene credito). Plata que el negocio debe descontar en futuras compras."
+            />
+            <StatBubble
+              label="Cobrado mes"
+              value={formatMonto(stats.totalPagosMes)}
+              tone="emerald"
+              tooltip={`Total de pagos recibidos este mes (${stats.cantidadPagosMes} operaciones).`}
+            />
+            <StatBubble
+              label="Cargado mes"
+              value={formatMonto(stats.totalCargosMes)}
+              tone="blue"
+              tooltip="Total de cargos generados este mes (ventas en cta cte + cargos manuales)."
+            />
+            <StatBubble
+              label="Ajustes mes"
+              value={`${stats.cantidadAjustesMes}`}
+              tone="purple"
+              tooltip={`Cantidad de ajustes manuales este mes. A favor cliente: ${formatMonto(stats.totalAjustesFavorMes)} - En contra: ${formatMonto(stats.totalAjustesContraMes)}. Revisar para detectar fugas o abusos.`}
+            />
+            {stats.clienteTopDeudor && (
+              <StatBubble
+                label="Top deudor"
+                value={`${stats.clienteTopDeudor.length > 14 ? stats.clienteTopDeudor.slice(0, 14) + '..' : stats.clienteTopDeudor}: ${formatMonto(stats.montoTopDeudor)}`}
+                tone="red"
+                tooltip={`Cliente con mayor saldo deudor: ${stats.clienteTopDeudor} debe ${formatMonto(stats.montoTopDeudor)}.`}
+              />
+            )}
+            <StatBubble
+              label="Promedio deuda"
+              value={formatMonto(stats.saldoPromedioDeudor)}
+              tone="slate"
+              tooltip="Saldo promedio entre clientes con deuda. Indicador de tamano tipico de cuenta."
+            />
+          </div>
+        </div>
+      )}
+
+    <div className="flex flex-col lg:flex-row gap-4 min-h-0 flex-1 lg:overflow-hidden">
       {/* Panel izquierdo - lista de cuentas */}
       <div className="w-full lg:w-96 flex-shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden lg:max-h-full max-h-[40vh]">
         <div className="bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-3">
@@ -556,40 +697,120 @@ export default function CuentaCorrientePage() {
 
       {/* Modal Registrar Pago */}
       {showPago && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <form onSubmit={handlePago} className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2">
+          <form onSubmit={handlePago} className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[95vh] overflow-y-auto">
             <div className="bg-green-600 text-white px-6 py-3 rounded-t-lg">
               <h3 className="text-lg font-bold">Registrar Pago</h3>
               <p className="text-sm text-green-100">{seleccionada?.clienteNombre}</p>
             </div>
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+              {/* Toggle pago dividido */}
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={pagoMonto}
-                  onChange={e => setPagoMonto(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-                  required
-                  autoFocus
+                  id="pagoDividido"
+                  type="checkbox"
+                  checked={pagoDividido}
+                  onChange={e => setPagoDividido(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-400"
                 />
+                <label htmlFor="pagoDividido" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Pago dividido (varias formas de pago)
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pago *</label>
-                <select
-                  value={pagoFormaPagoId}
-                  onChange={e => setPagoFormaPagoId(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-                  required
-                >
-                  <option value="">Seleccionar...</option>
-                  {formasPago.map(fp => (
-                    <option key={fp.id} value={fp.id}>{fp.nombre}</option>
-                  ))}
-                </select>
-              </div>
+
+              {!pagoDividido && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={pagoMonto}
+                      onChange={e => setPagoMonto(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400"
+                      required={!pagoDividido}
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pago *</label>
+                    <select
+                      value={pagoFormaPagoId}
+                      onChange={e => setPagoFormaPagoId(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400"
+                      required={!pagoDividido}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {formasPago.map(fp => (
+                        <option key={fp.id} value={fp.id}>{fp.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {pagoDividido && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Detalle del pago dividido *</label>
+                  <div className="space-y-2">
+                    {pagosDivididos.map((p, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <select
+                          value={p.formaPagoId}
+                          onChange={e => {
+                            const next = [...pagosDivididos];
+                            next[idx] = { ...next[idx], formaPagoId: e.target.value };
+                            setPagosDivididos(next);
+                          }}
+                          className="flex-1 border rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-green-400"
+                        >
+                          <option value="">Forma...</option>
+                          {formasPago.map(fp => (
+                            <option key={fp.id} value={fp.id}>{fp.nombre}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Monto"
+                          value={p.monto}
+                          onChange={e => {
+                            const next = [...pagosDivididos];
+                            next[idx] = { ...next[idx], monto: e.target.value };
+                            setPagosDivididos(next);
+                          }}
+                          className="w-28 border rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-green-400"
+                        />
+                        {pagosDivididos.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setPagosDivididos(pagosDivididos.filter((_, i) => i !== idx))}
+                            className="text-red-500 hover:text-red-700 text-lg px-1"
+                            title="Eliminar"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setPagosDivididos([...pagosDivididos, { formaPagoId: '', monto: '' }])}
+                      className="text-xs text-green-600 hover:text-green-800 font-medium"
+                    >
+                      + Agregar otra forma
+                    </button>
+                    <span className="text-sm font-semibold text-gray-700">
+                      Total: {formatMonto(pagosDivididos.reduce((acc, p) => acc + (Number(p.monto) || 0), 0))}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
                 <textarea
@@ -704,6 +925,26 @@ export default function CuentaCorrientePage() {
           </form>
         </div>
       )}
+    </div>
+    </div>
+  );
+}
+
+const toneClasses: Record<string, string> = {
+  red: 'text-red-300',
+  amber: 'text-amber-300',
+  green: 'text-green-300',
+  emerald: 'text-emerald-300',
+  blue: 'text-blue-300',
+  purple: 'text-purple-300',
+  slate: 'text-slate-300',
+};
+
+function StatBubble({ label, value, tone, tooltip }: { label: string; value: string; tone: string; tooltip: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5 cursor-help" title={tooltip}>
+      <span className="text-[11px] text-slate-400 uppercase tracking-wide">{label}</span>
+      <span className={`text-sm font-bold ${toneClasses[tone] || 'text-white'}`}>{value}</span>
     </div>
   );
 }

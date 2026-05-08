@@ -20,4 +20,8 @@ public interface ICuentaCorrienteRepository
         int cuentaCorrienteId, DateTime? desde, DateTime? hasta);
     Task AddMovimientoAsync(MovimientoCuentaCorriente movimiento);
     Task<MovimientoCuentaCorriente?> GetCargoPorVentaAsync(int ventaId);
+
+    // Stats: movimientos en rango (filtrados opcionalmente por local del cliente)
+    Task<IEnumerable<MovimientoCuentaCorriente>> GetMovimientosEnRangoAsync(
+        DateTime desde, DateTime hasta, int? localId);
 }

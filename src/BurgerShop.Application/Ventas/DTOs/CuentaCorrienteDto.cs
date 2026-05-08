@@ -47,3 +47,18 @@ public record CrearAjusteDto(
     decimal Monto,
     bool    EsAFavor,
     string  Observaciones);
+
+public record CuentaCorrienteStatsDto(
+    decimal TotalDeudaActual,
+    int     ClientesConDeuda,
+    decimal TotalSaldoFavor,
+    int     ClientesConFavor,
+    decimal TotalCargosMes,
+    decimal TotalPagosMes,
+    int     CantidadPagosMes,
+    decimal TotalAjustesFavorMes,
+    decimal TotalAjustesContraMes,
+    int     CantidadAjustesMes,
+    string? ClienteTopDeudor,
+    decimal MontoTopDeudor,
+    decimal SaldoPromedioDeudor);

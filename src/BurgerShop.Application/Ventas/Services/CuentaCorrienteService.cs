@@ -98,6 +98,68 @@ public class CuentaCorrienteService : ICuentaCorrienteService
         }
     }
 
+    public async Task<CuentaCorrienteStatsDto> GetStatsAsync(int? localId)
+    {
+        try
+        {
+            var cuentas = (await _cuentaRepo.GetAllActivasAsync()).ToList();
+            if (localId.HasValue)
+                cuentas = cuentas.Where(c => c.Cliente?.LocalId == localId.Value).ToList();
+
+            var conDeuda = cuentas.Where(c => c.SaldoActual > 0).ToList();
+            var conFavor = cuentas.Where(c => c.SaldoActual < 0).ToList();
+
+            var totalDeuda = conDeuda.Sum(c => c.SaldoActual);
+            var totalFavor = Math.Abs(conFavor.Sum(c => c.SaldoActual));
+            var top = conDeuda.OrderByDescending(c => c.SaldoActual).FirstOrDefault();
+
+            var hoy = DateTime.Today;
+            var inicioMes = new DateTime(hoy.Year, hoy.Month, 1);
+            var inicioMesProx = inicioMes.AddMonths(1);
+
+            var movs = (await _cuentaRepo.GetMovimientosEnRangoAsync(inicioMes, inicioMesProx, localId)).ToList();
+
+            var cargos = movs.Where(m => m.Tipo == TipoMovimientoCuentaCorriente.Cargo).ToList();
+            var pagos = movs.Where(m => m.Tipo == TipoMovimientoCuentaCorriente.Pago).ToList();
+            var ajustes = movs.Where(m => m.Tipo == TipoMovimientoCuentaCorriente.AjusteManual).ToList();
+
+            // Para ajustes, calcular delta vs movimiento anterior de la misma cuenta
+            decimal ajustesFavor = 0;
+            decimal ajustesContra = 0;
+            foreach (var aj in ajustes)
+            {
+                var anterior = movs
+                    .Where(m => m.CuentaCorrienteId == aj.CuentaCorrienteId && m.FechaMovimiento < aj.FechaMovimiento)
+                    .OrderByDescending(m => m.FechaMovimiento)
+                    .FirstOrDefault();
+                var saldoPrevio = anterior?.SaldoResultante ?? (aj.SaldoResultante - aj.Monto);
+                var delta = aj.SaldoResultante - saldoPrevio;
+                if (delta < 0) ajustesFavor += Math.Abs(delta);
+                else ajustesContra += delta;
+            }
+
+            return new CuentaCorrienteStatsDto(
+                TotalDeudaActual:        totalDeuda,
+                ClientesConDeuda:        conDeuda.Count,
+                TotalSaldoFavor:         totalFavor,
+                ClientesConFavor:        conFavor.Count,
+                TotalCargosMes:          cargos.Sum(m => m.Monto),
+                TotalPagosMes:           pagos.Sum(m => m.Monto),
+                CantidadPagosMes:        pagos.Count,
+                TotalAjustesFavorMes:    ajustesFavor,
+                TotalAjustesContraMes:   ajustesContra,
+                CantidadAjustesMes:      ajustes.Count,
+                ClienteTopDeudor:        top?.Cliente?.Nombre,
+                MontoTopDeudor:          top?.SaldoActual ?? 0,
+                SaldoPromedioDeudor:     conDeuda.Count > 0 ? totalDeuda / conDeuda.Count : 0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en {Method}: {Message}", nameof(GetStatsAsync), ex.Message);
+            throw;
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Operaciones
     // -----------------------------------------------------------------------
