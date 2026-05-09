@@ -35,6 +35,20 @@ export function coincide(haystack: string, tokens: string[]): boolean {
   return true;
 }
 
+/**
+ * Búsqueda por texto libre con la misma normalización del POS:
+ * - Quita acentos, lowercasea, colapsa "30 x 80" → "30x80", "80gr"/"80grs" → "80".
+ * - Tokeniza por espacios; todos los tokens deben aparecer en el haystack.
+ * Usar para inputs de búsqueda donde se quiere que "40x110ep" o "30 x 80" matcheen
+ * el mismo tipo de campos (nombre + código) sin tener que importar todo el indice.
+ */
+export function coincideQuery(haystack: string, query: string): boolean {
+  if (!query.trim()) return true;
+  const tokens = tokenizar(query);
+  if (tokens.length === 0) return true;
+  return coincide(normalizarTexto(haystack), tokens);
+}
+
 interface ProductoIndexable {
   id: number;
   nombre: string;
